@@ -7,7 +7,7 @@
     "build": "pnpm -r build",
     "changeset": "changeset",
     "release": "changeset publish",
-    "benchmark": "pnpm --filter @blazediff/benchmark-private start",
+    "benchmark": "pnpm --filter @blazediff/benchmark start",
     "pkg:core": "pnpm --filter @blazediff/core",
     "pkg:types": "pnpm --filter @blazediff/types",
     "pkg:pngjs": "pnpm --filter @blazediff/pngjs-transformer",

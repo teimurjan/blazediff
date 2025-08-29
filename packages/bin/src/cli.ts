@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { compareImages } from "./index";
+import blazeDiffBin from "./index";
 import type { BlazeDiffTransformer } from "@blazediff/types";
 
 function printUsage(): void {
@@ -173,7 +173,7 @@ async function main(): Promise<void> {
     const { image1, image2, options } = parseArgs();
 
     const transformer = await getTransformer(options.transformer);
-    const result = await compareImages(image1, image2, {
+    const result = await blazeDiffBin(image1, image2, {
       outputPath: options.outputPath,
       transformer,
       coreOptions: {
