@@ -103,7 +103,7 @@ blazediff image1.png image2.png \
   --aa-color 0,255,255
 ```
 
-### Usage in JavaScript
+#### Usage in JavaScript
 
 ```js
 import blazeDiffBin from '@blazediff/bin'
