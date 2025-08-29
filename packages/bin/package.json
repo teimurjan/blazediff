@@ -3,6 +3,9 @@
   "version": "0.0.1",
   "description": "Command-line interface for the blazediff image comparison library",
   "private": false,
+  "publishConfig": {
+    "access": "public"
+  },
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",

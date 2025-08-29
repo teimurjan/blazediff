@@ -3,6 +3,9 @@
   "version": "0.0.1",
   "description": "Shared types for the BlazeDiff project",
   "private": false,
+  "publishConfig": {
+    "access": "public"
+  },
   "types": "src/index.ts",
   "exports": {
     ".": {

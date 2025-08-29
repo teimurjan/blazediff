@@ -3,6 +3,9 @@
   "version": "0.0.1",
   "description": "PNG image transformer using pngjs for the blazediff library",
   "private": false,
+  "publishConfig": {
+    "access": "public"
+  },
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
