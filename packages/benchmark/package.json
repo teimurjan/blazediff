@@ -1,0 +1,38 @@
+{
+  "name": "@blazediff/benchmark",
+  "version": "0.0.1",
+  "description": "Benchmark package for comparing BlazeDiff with pixelmatch",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "blazediff-benchmark": "./dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "clean": "rm -rf dist",
+    "start": "pnpm build && node dist/cli.js"
+  },
+  "devDependencies": {
+    "@blazediff/bin": "workspace:*",
+    "@blazediff/core": "workspace:*",
+    "@blazediff/pngjs-transformer": "workspace:*",
+    "@blazediff/types": "workspace:*",
+    "@types/node": "^24.3.0",
+    "cli-table3": "^0.6.5",
+    "pixelmatch": "^7.1.0",
+    "pngjs": "^7.0.0",
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.2"
+  }
+}

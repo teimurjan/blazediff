@@ -1,0 +1,26 @@
+{
+  "name": "@blazediff/root",
+  "version": "0.0.1",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "pnpm -r build",
+    "changeset": "changeset",
+    "release": "changeset publish",
+    "benchmark": "pnpm --filter @blazediff/benchmark start",
+    "pkg:core": "pnpm --filter @blazediff/core",
+    "pkg:types": "pnpm --filter @blazediff/types",
+    "pkg:pngjs": "pnpm --filter @blazediff/pngjs-transformer",
+    "pkg:benchmark": "pnpm --filter @blazediff/benchmark",
+    "pkg:bin": "pnpm --filter @blazediff/bin",
+    "pkg:jest": "pnpm --filter @blazediff/jest-image-snapshot"
+  },
+  "keywords": [],
+  "author": "Teimur Gasanov <me@teimurjan.dev> (https://github.com/teimurjan)",
+  "license": "MIT",
+  "packageManager": "pnpm@10.8.1",
+  "devDependencies": {
+    "@changesets/changelog-git": "^0.2.1",
+    "@changesets/cli": "^2.29.6"
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "name": "@blazediff/core",
+  "version": "0.0.1",
+  "description": "Blazing-fast pixel-by-pixel image comparison with block-based optimization. 20% faster than pixelmatch with zero memory allocation",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "image",
+    "comparison",
+    "diff",
+    "pixel",
+    "visual-testing"
+  ],
+  "author": "Teimur Gasanov <me@teimurjan.dev> (https://github.com/teimurjan)",
+  "license": "MIT",
+  "devDependencies": {
+    "@blazediff/types": "workspace:*",
+    "@types/node": "^24.3.0",
+    "tsup": "8.5.0",
+    "typescript": "5.9.2"
+  }
+}
