@@ -1,0 +1,39 @@
+{
+  "name": "@blazediff/sharp-transformer",
+  "version": "0.0.1",
+  "description": "Image transformer using Sharp for the blazediff library",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "image",
+    "transformer",
+    "sharp"
+  ],
+  "author": "Teimur Gasanov <me@teimurjan.dev> (https://github.com/teimurjan)",
+  "license": "MIT",
+  "dependencies": {
+    "sharp": "^0.34.3"
+  },
+  "devDependencies": {
+    "@blazediff/types": "workspace:*",
+    "@types/sharp": "^0.32.0",
+    "tsup": "8.5.0",
+    "typescript": "5.9.2"
+  }
+}

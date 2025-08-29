@@ -1,0 +1,8 @@
+*.node filter=lfs diff=lfs merge=lfs -text
+*.whl filter=lfs diff=lfs merge=lfs -text
+*.wasm filter=lfs diff=lfs merge=lfs -text
+*.exe filter=lfs diff=lfs merge=lfs -text
+packages/core-native-darwin-arm64/blazediff filter=lfs diff=lfs merge=lfs -text
+packages/core-native-darwin-x64/blazediff filter=lfs diff=lfs merge=lfs -text
+packages/core-native-linux-arm64/blazediff filter=lfs diff=lfs merge=lfs -text
+packages/core-native-linux-x64/blazediff filter=lfs diff=lfs merge=lfs -text

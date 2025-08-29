@@ -1,0 +1,41 @@
+{
+  "name": "@blazediff/pngjs-transformer",
+  "version": "0.0.1",
+  "description": "PNG image transformer using pngjs for the blazediff library",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "png",
+    "image",
+    "transformer",
+    "pngjs"
+  ],
+  "author": "Teimur Gasanov <me@teimurjan.dev> (https://github.com/teimurjan)",
+  "license": "MIT",
+  "dependencies": {
+    "pngjs": "7.0.0"
+  },
+  "devDependencies": {
+    "@blazediff/types": "workspace:*",
+    "@types/pixelmatch": "^5.2.6",
+    "@types/pngjs": "6.0.5",
+    "tsup": "8.5.0",
+    "typescript": "5.9.2"
+  }
+}
