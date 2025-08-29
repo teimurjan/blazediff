@@ -1,13 +1,13 @@
 import type { BlazeDiffOptions, BlazeDiffTransformer } from "@blazediff/types";
 import blazediff from "@blazediff/core";
 
-export interface CompareImagesOptions {
+export interface BlazeDiffBinOptions {
   outputPath?: string;
   transformer: BlazeDiffTransformer;
   coreOptions?: BlazeDiffOptions;
 }
 
-export interface CompareImagesResult {
+export interface BlazeDiffBinResult {
   diffCount: number;
   width: number;
   height: number;
@@ -15,11 +15,11 @@ export interface CompareImagesResult {
   duration: number;
 }
 
-export async function compareImages(
+export default async function blazeDiffBin(
   image1Path: string,
   image2Path: string,
-  options: CompareImagesOptions
-): Promise<CompareImagesResult> {
+  options: BlazeDiffBinOptions
+): Promise<BlazeDiffBinResult> {
   const [image1, image2] = await Promise.all([
     options.transformer.transform(image1Path),
     options.transformer.transform(image2Path),
