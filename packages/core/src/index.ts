@@ -2,18 +2,6 @@ import type { BlazeDiffOptions } from "@blazediff/types";
 
 type ImageInput = Uint8Array | Uint8ClampedArray;
 
-/**
- * Compare two equally sized images, pixel by pixel with coarse-to-fine optimization.
- *
- * @param image1 First image
- * @param image2 Second image
- * @param output Image data to write the diff to, if provided
- * @param width Input images width
- * @param height Input images height
- * @param options Configuration options for the comparison
- *
- * @return The number of mismatched pixels
- */
 export default function blazediff(
   image1: ImageInput,
   image2: ImageInput,
@@ -169,12 +157,6 @@ export default function blazediff(
   return diff;
 }
 
-/**
- * Calculate optimal block size based on image dimensions
- * @param {number} width Image width
- * @param {number} height Image height
- * @return {number} Optimal block size
- */
 function calculateOptimalBlockSize(width: number, height: number): number {
   const area = width * height;
 
@@ -199,7 +181,7 @@ function isValidImageInput(arr: unknown): arr is ImageInput {
  * based on "Anti-aliased Pixel and Intensity Slope Detector" paper by V. Vysniauskas, 2009
  */
 function antialiased(
-  img: ImageInput,
+  image: ImageInput,
   x1: number,
   y1: number,
   width: number,
@@ -226,7 +208,7 @@ function antialiased(
       if (x === x1 && y === y1) continue;
 
       // brightness delta between the center pixel and adjacent one
-      const delta = colorDelta(img, img, pos * 4, (y * width + x) * 4, true);
+      const delta = colorDelta(image, image, pos * 4, (y * width + x) * 4, true);
 
       // count the number of equal, darker and brighter adjacent pixels
       if (delta === 0) {
@@ -266,7 +248,7 @@ function antialiased(
  * Check if a pixel has 3+ adjacent pixels of the same color.
  */
 function hasManySiblings(
-  img: Uint32Array,
+  image: Uint32Array,
   x1: number,
   y1: number,
   width: number,
@@ -276,14 +258,14 @@ function hasManySiblings(
   const y0 = Math.max(y1 - 1, 0);
   const x2 = Math.min(x1 + 1, width - 1);
   const y2 = Math.min(y1 + 1, height - 1);
-  const val = img[y1 * width + x1];
+  const val = image[y1 * width + x1];
   let zeroes = x1 === x0 || x1 === x2 || y1 === y0 || y1 === y2 ? 1 : 0;
 
   // go through 8 adjacent pixels
   for (let x = x0; x <= x2; x++) {
     for (let y = y0; y <= y2; y++) {
       if (x === x1 && y === y1) continue;
-      zeroes += +(val === img[y * width + x]);
+      zeroes += +(val === image[y * width + x]);
       if (zeroes > 2) return true;
     }
   }
@@ -297,20 +279,20 @@ function hasManySiblings(
  * https://doaj.org/article/b2e3b5088ba943eebd9af2927fef08ad
  */
 function colorDelta(
-  img1: ImageInput,
-  img2: ImageInput,
+  image1: ImageInput,
+  image2: ImageInput,
   k: number,
   m: number,
   yOnly: boolean
 ): number {
-  const r1 = img1[k];
-  const g1 = img1[k + 1];
-  const b1 = img1[k + 2];
-  const a1 = img1[k + 3];
-  const r2 = img2[m];
-  const g2 = img2[m + 1];
-  const b2 = img2[m + 2];
-  const a2 = img2[m + 3];
+  const r1 = image1[k];
+  const g1 = image1[k + 1];
+  const b1 = image1[k + 2];
+  const a1 = image1[k + 3];
+  const r2 = image2[m];
+  const g2 = image2[m + 1];
+  const b2 = image2[m + 2];
+  const a2 = image2[m + 3];
 
   let dr = r1 - r2;
   let dg = g1 - g2;
@@ -347,34 +329,34 @@ function colorDelta(
  */
 function drawPixel(
   output: ImageInput,
-  pos: number,
+  position: number,
   r: number,
   g: number,
   b: number
 ): void {
-  output[pos + 0] = r;
-  output[pos + 1] = g;
-  output[pos + 2] = b;
-  output[pos + 3] = 255;
+  output[position + 0] = r;
+  output[position + 1] = g;
+  output[position + 2] = b;
+  output[position + 3] = 255;
 }
 
 /**
  * Draw a grayscale pixel to the output buffer
  */
 function drawGrayPixel(
-  img: ImageInput,
-  i: number,
+  image: ImageInput,
+  index: number,
   alpha: number,
   output: ImageInput
 ): void {
-  const val =
+  const value =
     255 +
-    ((img[i] * 0.29889531 +
-      img[i + 1] * 0.58662247 +
-      img[i + 2] * 0.11448223 -
+    ((image[index] * 0.29889531 +
+      image[index + 1] * 0.58662247 +
+      image[index + 2] * 0.11448223 -
       255) *
       alpha *
-      img[i + 3]) /
+      image[index + 3]) /
       255;
-  drawPixel(output, i, val, val, val);
+  drawPixel(output, index, value, value, value);
 }

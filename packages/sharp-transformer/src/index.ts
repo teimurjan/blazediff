@@ -36,7 +36,6 @@ async function transform(filePath: string): Promise<BlazeDiffImage> {
 
 async function write(image: BlazeDiffImage, filePath: string): Promise<void> {
   try {
-    // Create a Sharp instance from the raw pixel data
     const sharpImage = sharp(image.data, {
       raw: {
         width: image.width,
@@ -45,7 +44,6 @@ async function write(image: BlazeDiffImage, filePath: string): Promise<void> {
       },
     });
 
-    // Write as PNG (you can modify this to support other formats)
     await sharpImage.png().toFile(filePath);
   } catch (error) {
     throw new Error(`Failed to write image file ${filePath}: ${error}`);
