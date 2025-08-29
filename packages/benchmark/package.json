@@ -1,7 +1,8 @@
 {
-  "name": "@blazediff/benchmark",
+  "name": "@blazediff-private/benchmark",
   "version": "0.0.1",
   "description": "Benchmark package for comparing BlazeDiff with pixelmatch",
+  "private": false,
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
