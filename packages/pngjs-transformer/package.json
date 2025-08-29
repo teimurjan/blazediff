@@ -1,6 +1,6 @@
 {
   "name": "@blazediff/pngjs-transformer",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "PNG image transformer using pngjs for the blazediff library",
   "private": false,
   "publishConfig": {
