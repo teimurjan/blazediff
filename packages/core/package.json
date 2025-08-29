@@ -2,6 +2,7 @@
   "name": "@blazediff/core",
   "version": "0.0.1",
   "description": "Blazing-fast pixel-by-pixel image comparison with block-based optimization. 20% faster than pixelmatch with zero memory allocation",
+  "private": false,
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
