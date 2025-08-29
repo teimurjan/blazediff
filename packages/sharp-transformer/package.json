@@ -2,6 +2,7 @@
   "name": "@blazediff/sharp-transformer",
   "version": "0.0.1",
   "description": "Image transformer using Sharp for the blazediff library",
+  "private": false,
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",

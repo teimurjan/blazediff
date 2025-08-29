@@ -2,6 +2,7 @@
   "name": "@blazediff/bin",
   "version": "0.0.1",
   "description": "Command-line interface for the blazediff image comparison library",
+  "private": false,
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
