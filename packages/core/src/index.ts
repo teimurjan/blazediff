@@ -1,9 +1,9 @@
-import type { BlazeDiffOptions, BlazeDiffImage } from "@blazediff/types";
+import type { BlazeDiffImage, BlazeDiffOptions } from "@blazediff/types";
 
 export default function blazediff(
-  image1: BlazeDiffImage['data'],
-  image2: BlazeDiffImage['data'],
-  output: BlazeDiffImage['data'] | void,
+  image1: BlazeDiffImage["data"],
+  image2: BlazeDiffImage["data"],
+  output: BlazeDiffImage["data"] | void,
   width: number,
   height: number,
   options: BlazeDiffOptions = {}
@@ -19,9 +19,9 @@ export default function blazediff(
   } = options;
 
   if (
-    !isValidImageInput(image1) ||
-    !isValidImageInput(image2) ||
-    (output && !isValidImageInput(output))
+    !isValidBlazeDiffImage(image1) ||
+    !isValidBlazeDiffImage(image2) ||
+    (output && !isValidBlazeDiffImage(output))
   )
     throw new Error(
       "Image data: Uint8Array, Uint8ClampedArray or Buffer expected."
@@ -116,10 +116,11 @@ export default function blazediff(
         const pixelIndex = y * width + x;
         const pos = pixelIndex * 4;
 
+        // squared YUV distance between colors at this pixel position, negative if the img2 pixel is darker
         const delta =
           a32[pixelIndex] === b32[pixelIndex]
             ? 0
-            : luminanceDelta(image1, image2, pos, pos);
+            : colorDelta(image1, image2, pos, pos, false);
 
         // the color difference is above the threshold
         if (Math.abs(delta) > maxDelta) {
@@ -168,46 +169,17 @@ function calculateOptimalBlockSize(width: number, height: number): number {
 }
 
 /** Check if array is valid pixel data */
-function isValidImageInput(arr: unknown): arr is BlazeDiffImage['data'] {
+function isValidBlazeDiffImage(arr: unknown): arr is BlazeDiffImage["data"] {
   // work around instanceof Uint8Array not working properly in some Jest environments
   return ArrayBuffer.isView(arr) && (arr as any).BYTES_PER_ELEMENT === 1;
 }
 
 /**
- * Accurate luminance calculation
- * Uses standard ITU-R BT.709 luma coefficients
- */
-function getLuminance(image: BlazeDiffImage['data'], pos: number): number {
-  const r = image[pos];
-  const g = image[pos + 1];
-  const b = image[pos + 2];
-
-  // ITU-R BT.709 luma coefficients (similar to your YIQ but faster)
-  return r * 0.2126 + g * 0.7152 + b * 0.0722;
-}
-
-/**
- * Calculate the luminance delta between two pixels
- */
-function luminanceDelta(
-  image1: BlazeDiffImage['data'],
-  image2: BlazeDiffImage['data'],
-  pos1: number,
-  pos2: number
-): number {
-  const luma1 = getLuminance(image1, pos1);
-
-  const luma2 = getLuminance(image2, pos2);
-
-  return luma1 - luma2;
-}
-
-/**
- * Optimized anti-aliasing detection using luminance-based edge detection
- * Much faster than the original RGB-based approach
+ * Check if a pixel is likely a part of anti-aliasing;
+ * based on "Anti-aliased Pixel and Intensity Slope Detector" paper by V. Vysniauskas, 2009
  */
 function antialiased(
-  image: BlazeDiffImage['data'],
+  image: BlazeDiffImage["data"],
   x1: number,
   y1: number,
   width: number,
@@ -233,8 +205,14 @@ function antialiased(
     for (let y = y0; y <= y2; y++) {
       if (x === x1 && y === y1) continue;
 
-      // Fast luminance delta instead of complex color delta
-      const delta = luminanceDelta(image, image, pos * 4, (y * width + x) * 4);
+      // brightness delta between the center pixel and adjacent one
+      const delta = colorDelta(
+        image,
+        image,
+        pos * 4,
+        (y * width + x) * 4,
+        true
+      );
 
       // count the number of equal, darker and brighter adjacent pixels
       if (delta === 0) {
@@ -269,6 +247,7 @@ function antialiased(
       hasManySiblings(b32, maxX, maxY, width, height))
   );
 }
+
 /**
  * Check if a pixel has 3+ adjacent pixels of the same color.
  */
@@ -298,10 +277,70 @@ function hasManySiblings(
 }
 
 /**
+ * Perceptual-ish pixel delta in YCbCr (BT.601).
+ * - Detects ALL changes.
+ * - Faster/simpler than YIQ.
+ * - Sign = brighten/darken (via ΔY).
+ */
+function colorDelta(
+  image1: BlazeDiffImage["data"],
+  image2: BlazeDiffImage["data"],
+  k: number,
+  m: number,
+  yOnly: boolean
+): number {
+   const r1 = image1[k],     g1 = image1[k + 1], b1 = image1[k + 2], a1 = image1[k + 3];
+  const r2 = image2[m],     g2 = image2[m + 1], b2 = image2[m + 2], a2 = image2[m + 3];
+
+  let dr = r1 - r2;
+  let dg = g1 - g2;
+  let db = b1 - b2;
+  const da = a1 - a2;
+
+  if (!dr && !dg && !db && !da) return 0;
+
+  // If any alpha is not opaque, blend against a deterministic background
+  if ((a1 | a2) !== 255) {
+    // same spirit as your pattern, but cheap and branchless
+    const rb = 48 + 159 * (k & 1);
+    const gb = 48 + 159 * (((k * 0.6180339887) | 0) & 1);
+    const bb = 48 + 159 * (((k * 1.6180339887) | 0) & 1);
+
+    const inv255 = 1 / 255;
+    const a1f = a1 * inv255, a2f = a2 * inv255, daf = da * inv255;
+
+    dr = (r1 * a1f - r2 * a2f - rb * daf);
+    dg = (g1 * a1f - g2 * a2f - gb * daf);
+    db = (b1 * a1f - b2 * a2f - bb * daf);
+  }
+
+  // --- BT.601 luma (Y) and chroma differences (Cb, Cr)
+  // Y  = 0.299R + 0.587G + 0.114B
+  // Cb = 0.564 (B - Y)
+  // Cr = 0.713 (R - Y)
+  const Yr = 0.299, Yg = 0.587, Yb = 0.114;
+  const kCb = 0.564, kCr = 0.713;
+
+  const dY = Yr * dr + Yg * dg + Yb * db;
+  if (yOnly) return dY;
+
+  const dCb = kCb * (db - dY);
+  const dCr = kCr * (dr - dY);
+
+  // Weight luminance higher than chroma; tweak if you like.
+  const wY = 1.0, wCb = 0.5, wCr = 0.5;
+
+  const delta = wY * dY * dY + wCb * dCb * dCb + wCr * dCr * dCr;
+
+  // encode lighten/darken in the sign via ΔY
+  return dY > 0 ? -delta : delta;
+}
+
+/**
  * Draw a colored pixel to the output buffer
  */
 function drawPixel(
-  output: BlazeDiffImage['data'],
+  output: BlazeDiffImage["data"],
   position: number,
   r: number,
   g: number,
@@ -317,10 +356,10 @@ function drawPixel(
  * Draw a grayscale pixel to the output buffer
  */
 function drawGrayPixel(
-  image: BlazeDiffImage['data'],
+  image: BlazeDiffImage["data"],
   index: number,
   alpha: number,
-  output: BlazeDiffImage['data']
+  output: BlazeDiffImage["data"]
 ): void {
   const value =
     255 +

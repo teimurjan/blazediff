@@ -7,19 +7,18 @@
 <div align="center"><img src="./assets/logo.png" /></div>
 
 > BlazeDiff 🔥 — a blazing-fast, pixel-perfect image comparison library for JavaScript.
-70% faster than pixelmatch, with identical accuracy and output quality.
+Up-to 60% faster than pixelmatch, with identical accuracy and output quality.
 
 BlazeDiff is a high-performance image comparison library that uses an innovative block-based algorithm to achieve blazing-fast pixel-by-pixel image diffing. Built on the foundation of pixelmatch but with significant optimizations, it's designed for visual testing, CI/CD pipelines, and any application requiring fast, accurate image comparison.
 
 ## 🚀 Performance
 
-BlazeDiff is **~70% faster** than pixelmatch while maintaining the same accuracy and output quality. The performance improvement comes from:
+BlazeDiff is **~up-to 60% faster** than pixelmatch while maintaining the same accuracy and output quality. The performance improvement comes from:
 
 - **Block-based algorithm**: First pass creates dynamic-sized blocks and only processes changed blocks
 - **Zero memory allocation**: Uses `Int32Array` for blocks and `Uint32Array` for images
 - **Early exit optimization**: Returns immediately if no differences are detected
 - **32-bit integer comparisons**: Leverages CPU vectorization for faster pixel matching
-- **Luminance-only processing**: FXAA can approximate luminance using just the green channel, avoiding full RGB (YIQ) calculations
 
 ## 🏗️ Architecture
 
@@ -184,7 +183,7 @@ BlazeDiff supports multiple image transformers:
 ### 3. Selective Processing
 - Only processes pixels within changed blocks
 - Maintains pixelmatch's anti-aliasing detection
-- Uses YIQ color space for accurate difference calculation
+- Uses a simpler YCbCr instead of YIQ
 
 ### 4. Zero Allocation
 - Reuses existing `Uint32Array` views on input buffers
