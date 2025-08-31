@@ -1,14 +1,17 @@
-import { execSync } from "child_process";
+import { exec } from "child_process";
 import { readdirSync } from "fs";
 import { join } from "path";
 
-export function safeExecSync(command: string): string {
-  try {
-    return execSync(command).toString();
-  } catch (error) {
-    console.error(`Error executing command: ${command}`);
-    process.exit(1);
-  }
+export async function safeExec(command: string): Promise<string> {
+  return new Promise<string>((resolve, reject) => {
+    exec(command, (error, stdout, _stderr) => {
+      if (error && !stdout) {
+        reject(error);
+      } else {
+        resolve(stdout);
+      }
+    });
+  });
 }
 
 export type ImagePair = {

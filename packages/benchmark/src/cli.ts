@@ -18,10 +18,10 @@ async function runCoreBenchmarks(target: string, iterationsCount: number) {
       join(__dirname, "../fixtures"),
       "pixelmatch"
     );
-    const imagePairs = [...pixelmatchImagePairs];
-    if (target !== "bin") {
-      imagePairs.push(...fourKImagePairs);
-    }
+    const imagePairs =
+      target === "bin"
+        ? [...fourKImagePairs]
+        : [...pixelmatchImagePairs, ...fourKImagePairs];
 
     // warmup
     await benchmark(imagePairs, 3);
