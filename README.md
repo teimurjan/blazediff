@@ -19,6 +19,7 @@ BlazeDiff is **~30% faster** than pixelmatch while maintaining the same accuracy
 - **Zero memory allocation**: Uses `Int32Array` for blocks and `Uint32Array` for images
 - **Early exit optimization**: Returns immediately if no differences are detected
 - **32-bit integer comparisons**: Leverages CPU vectorization for faster pixel matching
+- **Luminance-only processing**: FXAA can approximate luminance using just the green channel, avoiding full RGB (YIQ) calculations
 
 ## 🏗️ Architecture
 
