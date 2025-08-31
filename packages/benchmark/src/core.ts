@@ -70,8 +70,8 @@ async function benchmarkBinImagePair(
 
   for (let i = 0; i < iterations; i++) {
     const start = performance.now();
-    const binPath = join(__dirname, "../node_modules/.bin/blazediff");
-    await safeExec(`${binPath} ${a} ${b} --transformer sharp`);
+    const bin = 'pnpm --filter @blazediff/benchmark exec blazediff'
+    await safeExec(`${bin} ${a} ${b} --transformer sharp`);
     const end = performance.now();
 
     blazediffTimes.push(end - start);
