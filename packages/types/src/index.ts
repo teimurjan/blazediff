@@ -30,4 +30,5 @@ export interface BlazeDiffOptions {
   diffColor?: [number, number, number];
   diffColorAlt?: [number, number, number];
   diffMask?: boolean;
+  yiq?: boolean;
 }
