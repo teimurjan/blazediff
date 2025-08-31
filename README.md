@@ -11,6 +11,8 @@ Up-to 60% faster than pixelmatch, with identical accuracy and output quality.
 
 BlazeDiff is a high-performance image comparison library that uses an innovative block-based algorithm to achieve blazing-fast pixel-by-pixel image diffing. Built on the foundation of pixelmatch but with significant optimizations, it's designed for visual testing, CI/CD pipelines, and any application requiring fast, accurate image comparison.
 
+**🔄 100% API and Result Compatible**: BlazeDiff is fully compatible with pixelmatch's API and produces identical results when using the YIQ color space flag, making it a drop-in replacement for existing pixelmatch implementations.
+
 ## 🚀 Performance
 
 BlazeDiff is **~up-to 60% faster** than pixelmatch while maintaining the same accuracy and output quality. The performance improvement comes from:
@@ -68,12 +70,13 @@ const diffCount = blazediff(
   width,         // Image width
   height,        // Image height
   {
-    threshold: 0.1,        // Color difference threshold (0-1)
-    alpha: 0.1,            // Background opacity
+    threshold: 0.1,         // Color difference threshold (0-1)
+    alpha: 0.1,             // Background opacity
     aaColor: [255, 255, 0], // Anti-aliasing color (yellow)
-    diffColor: [255, 0, 0],  // Difference color (red)
+    diffColor: [255, 0, 0], // Difference color (red)
     includeAA: false,       // Include anti-aliasing in diff
     diffMask: false         // Output only differences
+    yiq: false              // Use YCbCr color space
   }
 );
 

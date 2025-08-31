@@ -21,6 +21,7 @@ Options:
   --include-aa              Include anti-aliasing detection
   --diff-mask               Draw diff over transparent background
   --transformer <name>      Specify transformer to use (e.g. pngjs, sharp)
+  --yiq                     Use YIQ color space (default: false)
   -h, --help                Show this help message
 
 Examples:
@@ -53,6 +54,7 @@ function parseArgs(): {
     includeAA?: boolean;
     diffMask?: boolean;
     transformer?: string;
+    yiq?: boolean;
   };
 } {
   const args = process.argv.slice(2);
@@ -81,7 +83,7 @@ function parseArgs(): {
       case "--output":
         if (nextArg) {
           options.outputPath = nextArg;
-          i++; // Skip next argument
+          i++;
         }
         break;
       case "-t":
@@ -140,6 +142,9 @@ function parseArgs(): {
           i++;
         }
         break;
+      case "--yiq":
+        options.yiq = true;
+        break;
       default:
         console.error(`Unknown option: ${arg}`);
         printUsage();
@@ -184,6 +189,7 @@ async function main(): Promise<void> {
         diffColorAlt: options.diffColorAlt,
         includeAA: options.includeAA,
         diffMask: options.diffMask,
+        yiq: options.yiq,
       },
     });
 
