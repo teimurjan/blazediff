@@ -27,9 +27,6 @@ jobs:
       - name: Build Packages
         run: pnpm build
 
-      - name: Install Dependencies Again (after bin is built)
-        run: pnpm install --frozen-lockfile
-
       - name: Run Benchmark
         run: pnpm benchmark --iterations=10 --target=core
 

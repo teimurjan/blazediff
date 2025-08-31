@@ -2,7 +2,7 @@ import { join } from "path";
 import pixelmatch from "pixelmatch";
 import blazediff from "@blazediff/core";
 import transformer from "@blazediff/pngjs-transformer";
-import { ImagePair, safeExecSync } from "./utils";
+import { ImagePair, safeExec } from "./utils";
 
 export interface BenchmarkResult {
   name: string;
@@ -71,7 +71,7 @@ async function benchmarkBinImagePair(
   for (let i = 0; i < iterations; i++) {
     const start = performance.now();
     const binPath = join(__dirname, "../node_modules/.bin/blazediff");
-    safeExecSync(`${binPath} ${a} ${b} --transformer sharp`);
+    await safeExec(`${binPath} ${a} ${b} --transformer sharp`);
     const end = performance.now();
 
     blazediffTimes.push(end - start);
@@ -82,7 +82,7 @@ async function benchmarkBinImagePair(
   for (let i = 0; i < iterations; i++) {
     const start = performance.now();
     const binaryPath = join(__dirname, "../node_modules/.bin/pixelmatch");
-    safeExecSync(`${binaryPath} ${a} ${b}`);
+    await safeExec(`${binaryPath} ${a} ${b}`);
     const end = performance.now();
 
     pixelmatchTimes.push(end - start);

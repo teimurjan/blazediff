@@ -7,13 +7,13 @@
 <div align="center"><img src="./assets/logo.png" /></div>
 
 > BlazeDiff 🔥 — a blazing-fast, pixel-perfect image comparison library for JavaScript.
-Up to 60% faster than pixelmatch, with identical accuracy and output quality.
+70% faster than pixelmatch, with identical accuracy and output quality.
 
 BlazeDiff is a high-performance image comparison library that uses an innovative block-based algorithm to achieve blazing-fast pixel-by-pixel image diffing. Built on the foundation of pixelmatch but with significant optimizations, it's designed for visual testing, CI/CD pipelines, and any application requiring fast, accurate image comparison.
 
 ## 🚀 Performance
 
-BlazeDiff is **~30% faster** than pixelmatch while maintaining the same accuracy and output quality. The performance improvement comes from:
+BlazeDiff is **~70% faster** than pixelmatch while maintaining the same accuracy and output quality. The performance improvement comes from:
 
 - **Block-based algorithm**: First pass creates dynamic-sized blocks and only processes changed blocks
 - **Zero memory allocation**: Uses `Int32Array` for blocks and `Uint32Array` for images
@@ -150,33 +150,19 @@ BlazeDiff supports multiple image transformers:
 
 ℹ️ 50 iterations (3 warmup)
 
-| Image        | BlazeDiff   | Pixelmatch  | Speedup    |
-| ------------ | ----------- | ----------- | ---------- |
-| pixelmatch/1 | 0.54ms      | 0.82ms      | 34.32%     |
-| pixelmatch/2 | 2.05ms      | 2.04ms      | -0.67%     |
-| pixelmatch/3 | 0.33ms      | 0.77ms      | 57.12%     |
-| pixelmatch/4 | 4.00ms      | 4.05ms      | 1.18%      |
-| pixelmatch/5 | 0.14ms      | 0.37ms      | 61.68%     |
-| pixelmatch/6 | 0.89ms      | 0.90ms      | 0.92%      |
-| pixelmatch/7 | 1.40ms      | 1.83ms      | 23.38%     |
-| 4k/1         | 280.68ms    | 306.52ms    | 8.43%      |
-| 4k/2         | 284.15ms    | 296.85ms    | 4.28%      |
-| 4k/3         | 354.12ms    | 371.69ms    | 4.73%      |
-| **AVERAGE**  | **92.83ms** | **98.58ms** | **19.54%** |
-
-*Benchmarks run on MacBook Pro M1 Max, Node.js 22*
-
-### Binary Performance
-
-ℹ️ 50 iterations (3 warmup)
-   BlazeDiff uses sharp transformer
-
-| Image       | BlazeDiff    | Pixelmatch    | Speedup    |
-| ----------- | ------------ | ------------- | ---------- |
-| 4k/1        | 560.29ms     | 1451.51ms     | 61.40%     |
-| 4k/2        | 651.36ms     | 1640.36ms     | 60.29%     |
-| 4k/3        | 703.36ms     | 1815.67ms     | 61.26%     |
-| **AVERAGE** | **638.34ms** | **1635.84ms** | **60.98%** |
+| Image        | BlazeDiff   | Pixelmatch | Speedup  |
+|--------------|-------------|------------|----------|
+| pixelmatch/1 | 0.30ms      | 0.83ms     | 64.29%   |
+| pixelmatch/2 | 0.34ms      | 2.05ms     | 83.40%   |
+| pixelmatch/3 | 0.21ms      | 0.75ms     | 72.42%   |
+| pixelmatch/4 | 0.86ms      | 4.08ms     | 78.97%   |
+| pixelmatch/5 | 0.09ms      | 0.37ms     | 74.68%   |
+| pixelmatch/6 | 0.19ms      | 0.90ms     | 78.49%   |
+| pixelmatch/7 | 0.52ms      | 1.86ms     | 71.80%   |
+| 4k/1         | 103.69ms    | 291.42ms   | 64.42%   |
+| 4k/2         | 93.19ms     | 291.71ms   | 68.06%   |
+| 4k/3         | 134.28ms    | 367.81ms   | 63.49%   |
+| **AVERAGE**  | **33.37ms** | **96.18ms**| **72.00%** |
 
 *Benchmarks run on MacBook Pro M1 Max, Node.js 22*
 
