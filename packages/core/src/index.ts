@@ -1,11 +1,9 @@
-import type { BlazeDiffOptions } from "@blazediff/types";
-
-type ImageInput = Uint8Array | Uint8ClampedArray;
+import type { BlazeDiffOptions, BlazeDiffImage } from "@blazediff/types";
 
 export default function blazediff(
-  image1: ImageInput,
-  image2: ImageInput,
-  output: ImageInput | void,
+  image1: BlazeDiffImage['data'],
+  image2: BlazeDiffImage['data'],
+  output: BlazeDiffImage['data'] | void,
   width: number,
   height: number,
   options: BlazeDiffOptions = {}
@@ -118,11 +116,10 @@ export default function blazediff(
         const pixelIndex = y * width + x;
         const pos = pixelIndex * 4;
 
-        // squared YUV distance between colors at this pixel position, negative if the img2 pixel is darker
         const delta =
           a32[pixelIndex] === b32[pixelIndex]
             ? 0
-            : colorDelta(image1, image2, pos, pos, false);
+            : luminanceDelta(image1, image2, pos, pos);
 
         // the color difference is above the threshold
         if (Math.abs(delta) > maxDelta) {
@@ -171,17 +168,46 @@ function calculateOptimalBlockSize(width: number, height: number): number {
 }
 
 /** Check if array is valid pixel data */
-function isValidImageInput(arr: unknown): arr is ImageInput {
+function isValidImageInput(arr: unknown): arr is BlazeDiffImage['data'] {
   // work around instanceof Uint8Array not working properly in some Jest environments
   return ArrayBuffer.isView(arr) && (arr as any).BYTES_PER_ELEMENT === 1;
 }
 
 /**
- * Check if a pixel is likely a part of anti-aliasing;
- * based on "Anti-aliased Pixel and Intensity Slope Detector" paper by V. Vysniauskas, 2009
+ * Accurate luminance calculation
+ * Uses standard ITU-R BT.709 luma coefficients
+ */
+function getLuminance(image: BlazeDiffImage['data'], pos: number): number {
+  const r = image[pos];
+  const g = image[pos + 1];
+  const b = image[pos + 2];
+
+  // ITU-R BT.709 luma coefficients (similar to your YIQ but faster)
+  return r * 0.2126 + g * 0.7152 + b * 0.0722;
+}
+
+/**
+ * Calculate the luminance delta between two pixels
+ */
+function luminanceDelta(
+  image1: BlazeDiffImage['data'],
+  image2: BlazeDiffImage['data'],
+  pos1: number,
+  pos2: number
+): number {
+  const luma1 = getLuminance(image1, pos1);
+
+  const luma2 = getLuminance(image2, pos2);
+
+  return luma1 - luma2;
+}
+
+/**
+ * Optimized anti-aliasing detection using luminance-based edge detection
+ * Much faster than the original RGB-based approach
  */
 function antialiased(
-  image: ImageInput,
+  image: BlazeDiffImage['data'],
   x1: number,
   y1: number,
   width: number,
@@ -207,8 +233,8 @@ function antialiased(
     for (let y = y0; y <= y2; y++) {
       if (x === x1 && y === y1) continue;
 
-      // brightness delta between the center pixel and adjacent one
-      const delta = colorDelta(image, image, pos * 4, (y * width + x) * 4, true);
+      // Fast luminance delta instead of complex color delta
+      const delta = luminanceDelta(image, image, pos * 4, (y * width + x) * 4);
 
       // count the number of equal, darker and brighter adjacent pixels
       if (delta === 0) {
@@ -243,7 +269,6 @@ function antialiased(
       hasManySiblings(b32, maxX, maxY, width, height))
   );
 }
-
 /**
  * Check if a pixel has 3+ adjacent pixels of the same color.
  */
@@ -273,62 +298,10 @@ function hasManySiblings(
 }
 
 /**
- * Calculate color difference according to the paper "Measuring perceived color difference
- * using YIQ NTSC transmission color space in mobile applications" by Y. Kotsarenko and F. Ramos
- *
- * https://doaj.org/article/b2e3b5088ba943eebd9af2927fef08ad
- */
-function colorDelta(
-  image1: ImageInput,
-  image2: ImageInput,
-  k: number,
-  m: number,
-  yOnly: boolean
-): number {
-  const r1 = image1[k];
-  const g1 = image1[k + 1];
-  const b1 = image1[k + 2];
-  const a1 = image1[k + 3];
-  const r2 = image2[m];
-  const g2 = image2[m + 1];
-  const b2 = image2[m + 2];
-  const a2 = image2[m + 3];
-
-  let dr = r1 - r2;
-  let dg = g1 - g2;
-  let db = b1 - b2;
-  const da = a1 - a2;
-
-  if (!dr && !dg && !db && !da) return 0;
-
-  if (a1 < 255 || a2 < 255) {
-    // blend pixels with background
-    const rb = 48 + 159 * (k % 2);
-    const gb = 48 + 159 * (((k / 1.618033988749895) | 0) % 2);
-    const bb = 48 + 159 * (((k / 2.618033988749895) | 0) % 2);
-    dr = (r1 * a1 - r2 * a2 - rb * da) / 255;
-    dg = (g1 * a1 - g2 * a2 - gb * da) / 255;
-    db = (b1 * a1 - b2 * a2 - bb * da) / 255;
-  }
-
-  const y = dr * 0.29889531 + dg * 0.58662247 + db * 0.11448223;
-
-  if (yOnly) return y; // brightness difference only
-
-  const i = dr * 0.59597799 - dg * 0.2741761 - db * 0.32180189;
-  const q = dr * 0.21147017 - dg * 0.52261711 + db * 0.31114694;
-
-  const delta = 0.5053 * y * y + 0.299 * i * i + 0.1957 * q * q;
-
-  // encode whether the pixel lightens or darkens in the sign
-  return y > 0 ? -delta : delta;
-}
-
-/**
  * Draw a colored pixel to the output buffer
  */
 function drawPixel(
-  output: ImageInput,
+  output: BlazeDiffImage['data'],
   position: number,
   r: number,
   g: number,
@@ -344,10 +317,10 @@ function drawPixel(
  * Draw a grayscale pixel to the output buffer
  */
 function drawGrayPixel(
-  image: ImageInput,
+  image: BlazeDiffImage['data'],
   index: number,
   alpha: number,
-  output: ImageInput
+  output: BlazeDiffImage['data']
 ): void {
   const value =
     255 +
