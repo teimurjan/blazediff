@@ -149,19 +149,30 @@ BlazeDiff supports multiple image transformers:
 
 ℹ️ 50 iterations (3 warmup)
 
-| Image        | BlazeDiff   | Pixelmatch | Speedup  |
-|--------------|-------------|------------|----------|
-| pixelmatch/1 | 0.30ms      | 0.83ms     | 64.29%   |
-| pixelmatch/2 | 0.34ms      | 2.05ms     | 83.40%   |
-| pixelmatch/3 | 0.21ms      | 0.75ms     | 72.42%   |
-| pixelmatch/4 | 0.86ms      | 4.08ms     | 78.97%   |
-| pixelmatch/5 | 0.09ms      | 0.37ms     | 74.68%   |
-| pixelmatch/6 | 0.19ms      | 0.90ms     | 78.49%   |
-| pixelmatch/7 | 0.52ms      | 1.86ms     | 71.80%   |
-| 4k/1         | 103.69ms    | 291.42ms   | 64.42%   |
-| 4k/2         | 93.19ms     | 291.71ms   | 68.06%   |
-| 4k/3         | 134.28ms    | 367.81ms   | 63.49%   |
-| **AVERAGE**  | **33.37ms** | **96.18ms**| **72.00%** |
+| Image        | BlazeDiff   | Pixelmatch  | Speedup  |
+|--------------|-------------|-------------|----------|
+| pixelmatch/1 | 0.57ms      | 1.04ms      | 45.67%   |
+| pixelmatch/2 | 2.93ms      | 2.56ms      | -14.66%  |
+| pixelmatch/3 | 0.40ms      | 0.94ms      | 57.38%   |
+| pixelmatch/4 | 6.83ms      | 4.98ms      | -37.14%  |
+| pixelmatch/5 | 0.19ms      | 0.47ms      | 59.95%   |
+| pixelmatch/6 | 0.96ms      | 1.14ms      | 16.27%   |
+| pixelmatch/7 | 1.51ms      | 2.33ms      | 35.11%   |
+| 4k/1         | 275.64ms    | 345.94ms    | 20.32%   |
+| 4k/2         | 283.92ms    | 352.60ms    | 19.48%   |
+| 4k/3         | 346.02ms    | 438.87ms    | 21.16%   |
+| **AVERAGE**  | **91.90ms** | **115.09ms**| **22.35%** |
+
+### Binary Performance (with sharp)
+
+ℹ️ 50 iterations (3 warmup)
+
+| Image   | BlazeDiff  | Pixelmatch | Speedup |
+|---------|------------|------------|---------|
+| 4k/1    | 415.26ms   | 1923.01ms  | 78.41%  |
+| 4k/2    | 422.32ms   | 2173.85ms  | 80.57%  |
+| 4k/3    | 417.37ms   | 2369.58ms  | 82.39%  |
+| **AVERAGE** | **418.32ms** | **2155.48ms** | **80.45%** |
 
 *Benchmarks run on MacBook Pro M1 Max, Node.js 22*
 
