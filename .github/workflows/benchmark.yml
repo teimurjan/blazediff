@@ -28,9 +28,10 @@ jobs:
         run: pnpm build
 
       - name: Run Benchmark
-        # 10 iterations, 3 warmup
-        run: pnpm benchmark --iterations=10
+        run: pnpm benchmark --iterations=10 --target=core
 
       - name: Run Benchmark (bin)
-        # 10 iterations, 3 warmup
-        run: pnpm benchmark --iterations=10 --bin
+        run: pnpm benchmark --iterations=10 --target=bin
+
+      - name: Run Benchmark (antialiasing)
+        run: pnpm benchmark --iterations=10000 --target=antialiasing

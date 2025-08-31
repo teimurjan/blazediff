@@ -1,9 +1,8 @@
-import { readdirSync } from "fs";
 import { join } from "path";
 import pixelmatch from "pixelmatch";
 import blazediff from "@blazediff/core";
 import transformer from "@blazediff/pngjs-transformer";
-import { execSync } from "child_process";
+import { ImagePair, safeExecSync } from "./utils";
 
 export interface BenchmarkResult {
   name: string;
@@ -30,14 +29,12 @@ export interface BenchmarkSummary {
 }
 
 export async function runBinBenchmark(
-  fixturesDir: string,
+  imagePairs: ImagePair[],
   iterations: number
 ): Promise<BenchmarkSummary> {
   const results: BenchmarkResult[] = [];
 
-  const fourKImagePairs = await getImagePairs(fixturesDir, "4k");
-
-  for (const pair of fourKImagePairs) {
+  for (const pair of imagePairs) {
     const result = await benchmarkBinImagePair(pair, iterations);
     results.push(result);
   }
@@ -48,20 +45,12 @@ export async function runBinBenchmark(
 }
 
 export async function runBenchmark(
-  fixturesDir: string,
+  imagePairs: ImagePair[],
   iterations: number
 ): Promise<BenchmarkSummary> {
   const results: BenchmarkResult[] = [];
 
-  const pixelmatchImagePairs = await getImagePairs(fixturesDir, "pixelmatch");
-  const fourKImagePairs = await getImagePairs(fixturesDir, "4k");
-
-  for (const pair of pixelmatchImagePairs) {
-    const result = await benchmarkImagePair(pair, iterations);
-    results.push(result);
-  }
-
-  for (const pair of fourKImagePairs) {
+  for (const pair of imagePairs) {
     const result = await benchmarkImagePair(pair, iterations);
     results.push(result);
   }
@@ -71,47 +60,8 @@ export async function runBenchmark(
   return { results, averages };
 }
 
-async function getImagePairs(
-  fixturesDir: string,
-  fixturesSubDir: string
-): Promise<Array<{ a: string; b: string; name: string }>> {
-  const pairs: Array<{ a: string; b: string; name: string }> = [];
-
-  // Look for pairs like 1a.png, 1b.png
-  const dir = join(fixturesDir, fixturesSubDir);
-  const files = readdirSync(dir);
-  const pngFiles = files.filter((f: string) => f.endsWith(".png"));
-
-  const pairMap = new Map<string, { a?: string; b?: string }>();
-
-  for (const file of pngFiles) {
-    const baseName = file.replace(/[ab]\.png$/, "");
-    if (!pairMap.has(baseName)) {
-      pairMap.set(baseName, {});
-    }
-
-    if (file.endsWith("a.png")) {
-      pairMap.get(baseName)!.a = file;
-    } else if (file.endsWith("b.png")) {
-      pairMap.get(baseName)!.b = file;
-    }
-  }
-
-  for (const [name, pair] of pairMap) {
-    if (pair.a && pair.b) {
-      pairs.push({
-        a: join(fixturesDir, fixturesSubDir, pair.a),
-        b: join(fixturesDir, fixturesSubDir, pair.b),
-        name: `${fixturesSubDir}/${name}`,
-      });
-    }
-  }
-
-  return pairs;
-}
-
 async function benchmarkBinImagePair(
-  pair: { a: string; b: string; name: string },
+  pair: ImagePair,
   iterations: number
 ): Promise<BenchmarkResult> {
   const { a, b, name } = pair;
@@ -156,7 +106,7 @@ async function benchmarkBinImagePair(
 }
 
 async function benchmarkImagePair(
-  pair: { a: string; b: string; name: string },
+  pair: ImagePair,
   iterations: number
 ): Promise<BenchmarkResult> {
   const { a, b, name } = pair;
@@ -209,15 +159,6 @@ async function benchmarkImagePair(
     speedup: ((pixelmatchAvgTime - blazediffAvgTime) / pixelmatchAvgTime) * 100,
   };
 }
-
-const safeExecSync = (command: string): string => {
-  try {
-    const result = execSync(command, { encoding: "utf8" });
-    return result.toString();
-  } catch (error: any) {
-    return error.stderr.toString();
-  }
-};
 
 function calculateAverages(results: BenchmarkResult[]) {
   const blazediffTimes = results.map((r) => r.blazediff.timeMs);
