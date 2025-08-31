@@ -1,5 +1,18 @@
 # @blazediff/bin
 
+## 0.4.0
+
+### Minor Changes
+
+- 8a82cd6: Add yiq color delta option to be compatible with pixelmatch
+
+### Patch Changes
+
+- Updated dependencies [8a82cd6]
+  - @blazediff/core@0.4.0
+  - @blazediff/pngjs-transformer@0.4.0
+  - @blazediff/sharp-transformer@0.4.0
+
 ## 0.3.0
 
 ### Patch Changes
