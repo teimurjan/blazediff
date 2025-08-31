@@ -1,5 +1,11 @@
 # @blazediff/core
 
+## 0.3.0
+
+### Minor Changes
+
+- a6673c8: Change FXAA to YCbCr in favor of accuracy
+
 ## 0.2.0
 
 ### Minor Changes
