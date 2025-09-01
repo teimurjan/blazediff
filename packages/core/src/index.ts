@@ -16,7 +16,6 @@ export default function blazediff(
     includeAA,
     diffColorAlt,
     diffMask,
-    yiq,
   } = options;
 
   if (
@@ -121,15 +120,15 @@ export default function blazediff(
         const delta =
           a32[pixelIndex] === b32[pixelIndex]
             ? 0
-            : colorDelta(image1, image2, pos, pos, false, yiq);
+            : colorDelta(image1, image2, pos, pos, false);
 
         // the color difference is above the threshold
         if (Math.abs(delta) > maxDelta) {
           // check it's a real rendering difference or just anti-aliasing
           const isExcludedAA =
             !includeAA &&
-            (antialiased(image1, x, y, width, height, a32, b32, yiq) ||
-              antialiased(image2, x, y, width, height, b32, a32, yiq));
+            (antialiased(image1, x, y, width, height, a32, b32) ||
+              antialiased(image2, x, y, width, height, b32, a32));
           if (isExcludedAA) {
             // one of the pixels is anti-aliasing; draw as yellow and do not count as difference
             // note that we do not include such pixels in a mask
@@ -186,8 +185,7 @@ function antialiased(
   width: number,
   height: number,
   a32: Uint32Array,
-  b32: Uint32Array,
-  yiq = false
+  b32: Uint32Array
 ): boolean {
   const x0 = Math.max(x1 - 1, 0);
   const y0 = Math.max(y1 - 1, 0);
@@ -213,8 +211,7 @@ function antialiased(
         image,
         pos * 4,
         (y * width + x) * 4,
-        true,
-        yiq
+        true
       );
 
       // count the number of equal, darker and brighter adjacent pixels
@@ -279,124 +276,56 @@ function hasManySiblings(
   return false;
 }
 
+/**
+ * Calculate color difference according to the paper "Measuring perceived color difference
+ * using YIQ NTSC transmission color space in mobile applications" by Y. Kotsarenko and F. Ramos
+ *
+ * https://doaj.org/article/b2e3b5088ba943eebd9af2927fef08ad
+ */
 function colorDelta(
   image1: BlazeDiffImage["data"],
   image2: BlazeDiffImage["data"],
   k: number,
   m: number,
-  yOnly: boolean,
-  yiq = false
+  yOnly: boolean
 ): number {
-  if (yiq) {
-    /**
-     * Calculate color difference according to the paper "Measuring perceived color difference
-     * using YIQ NTSC transmission color space in mobile applications" by Y. Kotsarenko and F. Ramos
-     *
-     * https://doaj.org/article/b2e3b5088ba943eebd9af2927fef08ad
-     */
-    const r1 = image1[k];
-    const g1 = image1[k + 1];
-    const b1 = image1[k + 2];
-    const a1 = image1[k + 3];
-    const r2 = image2[m];
-    const g2 = image2[m + 1];
-    const b2 = image2[m + 2];
-    const a2 = image2[m + 3];
+  const r1 = image1[k];
+  const g1 = image1[k + 1];
+  const b1 = image1[k + 2];
+  const a1 = image1[k + 3];
+  const r2 = image2[m];
+  const g2 = image2[m + 1];
+  const b2 = image2[m + 2];
+  const a2 = image2[m + 3];
 
-    let dr = r1 - r2;
-    let dg = g1 - g2;
-    let db = b1 - b2;
-    const da = a1 - a2;
+  let dr = r1 - r2;
+  let dg = g1 - g2;
+  let db = b1 - b2;
+  const da = a1 - a2;
 
-    if (!dr && !dg && !db && !da) return 0;
+  if (!dr && !dg && !db && !da) return 0;
 
-    if (a1 < 255 || a2 < 255) {
-      // blend pixels with background
-      const rb = 48 + 159 * (k % 2);
-      const gb = 48 + 159 * (((k / 1.618033988749895) | 0) % 2);
-      const bb = 48 + 159 * (((k / 2.618033988749895) | 0) % 2);
-      dr = (r1 * a1 - r2 * a2 - rb * da) / 255;
-      dg = (g1 * a1 - g2 * a2 - gb * da) / 255;
-      db = (b1 * a1 - b2 * a2 - bb * da) / 255;
-    }
-
-    const y = dr * 0.29889531 + dg * 0.58662247 + db * 0.11448223;
-
-    if (yOnly) return y; // brightness difference only
-
-    const i = dr * 0.59597799 - dg * 0.2741761 - db * 0.32180189;
-    const q = dr * 0.21147017 - dg * 0.52261711 + db * 0.31114694;
-
-    const delta = 0.5053 * y * y + 0.299 * i * i + 0.1957 * q * q;
-
-    // encode whether the pixel lightens or darkens in the sign
-    return y > 0 ? -delta : delta;
-  } else {
-    /**
-     * Perceptual-ish pixel delta in YCbCr (BT.601).
-     * - Detects ALL changes.
-     * - Faster/simpler than YIQ.
-     * - Sign = brighten/darken (via ΔY).
-     */
-    const r1 = image1[k],
-      g1 = image1[k + 1],
-      b1 = image1[k + 2],
-      a1 = image1[k + 3];
-    const r2 = image2[m],
-      g2 = image2[m + 1],
-      b2 = image2[m + 2],
-      a2 = image2[m + 3];
-
-    let dr = r1 - r2;
-    let dg = g1 - g2;
-    let db = b1 - b2;
-    const da = a1 - a2;
-
-    if (!dr && !dg && !db && !da) return 0;
-
-    // If any alpha is not opaque, blend against a deterministic background
-    if ((a1 | a2) !== 255) {
-      // same spirit as your pattern, but cheap and branchless
-      const rb = 48 + 159 * (k & 1);
-      const gb = 48 + 159 * (((k * 0.6180339887) | 0) & 1);
-      const bb = 48 + 159 * (((k * 1.6180339887) | 0) & 1);
-
-      const inv255 = 1 / 255;
-      const a1f = a1 * inv255,
-        a2f = a2 * inv255,
-        daf = da * inv255;
-
-      dr = r1 * a1f - r2 * a2f - rb * daf;
-      dg = g1 * a1f - g2 * a2f - gb * daf;
-      db = b1 * a1f - b2 * a2f - bb * daf;
-    }
-
-    // --- BT.601 luma (Y) and chroma differences (Cb, Cr)
-    // Y  = 0.299R + 0.587G + 0.114B
-    // Cb = 0.564 (B - Y)
-    // Cr = 0.713 (R - Y)
-    const Yr = 0.299,
-      Yg = 0.587,
-      Yb = 0.114;
-    const kCb = 0.564,
-      kCr = 0.713;
-
-    const dY = Yr * dr + Yg * dg + Yb * db;
-    if (yOnly) return dY;
-
-    const dCb = kCb * (db - dY);
-    const dCr = kCr * (dr - dY);
-
-    // Weight luminance higher than chroma; tweak if you like.
-    const wY = 1.0,
-      wCb = 0.5,
-      wCr = 0.5;
-
-    const delta = wY * dY * dY + wCb * dCb * dCb + wCr * dCr * dCr;
-
-    // encode lighten/darken in the sign via ΔY
-    return dY > 0 ? -delta : delta;
+  if (a1 < 255 || a2 < 255) {
+    // blend pixels with background
+    const rb = 48 + 159 * (k % 2);
+    const gb = 48 + 159 * (((k / 1.618033988749895) | 0) % 2);
+    const bb = 48 + 159 * (((k / 2.618033988749895) | 0) % 2);
+    dr = (r1 * a1 - r2 * a2 - rb * da) / 255;
+    dg = (g1 * a1 - g2 * a2 - gb * da) / 255;
+    db = (b1 * a1 - b2 * a2 - bb * da) / 255;
   }
+
+  const y = dr * 0.29889531 + dg * 0.58662247 + db * 0.11448223;
+
+  if (yOnly) return y; // brightness difference only
+
+  const i = dr * 0.59597799 - dg * 0.2741761 - db * 0.32180189;
+  const q = dr * 0.21147017 - dg * 0.52261711 + db * 0.31114694;
+
+  const delta = 0.5053 * y * y + 0.299 * i * i + 0.1957 * q * q;
+
+  // encode whether the pixel lightens or darkens in the sign
+  return y > 0 ? -delta : delta;
 }
 
 /**

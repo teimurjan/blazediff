@@ -52,7 +52,7 @@ async function runCoreBenchmarks(target: string, iterationsCount: number) {
 
     console.log("\n📊 Summary:");
     console.log(
-      `• BlazeDiff is ${results.averages.speedup.toFixed(2)}x faster on average`
+      `• BlazeDiff is ${results.averages.speedup.toFixed(2)}% faster on average`
     );
     console.log(`• Tested ${results.results.length} image pairs`);
     console.log(
