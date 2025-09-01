@@ -1,5 +1,18 @@
 # @blazediff/bin
 
+## 0.5.0
+
+### Minor Changes
+
+- b9e10a7: Remove YCbCr in favor of one color space performance
+
+### Patch Changes
+
+- Updated dependencies [b9e10a7]
+  - @blazediff/core@0.5.0
+  - @blazediff/pngjs-transformer@0.5.0
+  - @blazediff/sharp-transformer@0.5.0
+
 ## 0.4.0
 
 ### Minor Changes
