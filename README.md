@@ -24,7 +24,6 @@ BlazeDiff is **~up-to 60% faster** than pixelmatch while maintaining the same ac
 - **Zero memory allocation**: Uses `Int32Array` for blocks and `Uint32Array` for images
 - **Early exit optimization**: Returns immediately if no differences are detected
 - **32-bit integer comparisons**: Leverages CPU vectorization for faster pixel matching
-- **YCbCr instead of YIQ**: Utilized a simpler color space encoding for maximum performance 
 
 ### Benchmarks
 
@@ -229,7 +228,6 @@ const diffCount = blazediff(
     diffColor: [255, 0, 0], // Difference color (red)
     includeAA: false,       // Include anti-aliasing in diff
     diffMask: false         // Output only differences
-    yiq: false              // Use YCbCr color space
   }
 );
 
@@ -290,12 +288,6 @@ console.log(`Found ${diffCount} different pixels`);
       <td><code>false</code></td>
       <td>Output only differences (transparent background)</td>
     </tr>
-    <tr>
-      <td><code>yiq</code></td>
-      <td><code>boolean</code></td>
-      <td><code>false</code></td>
-      <td>Use YIQ instead of the default YCbCr color space</td>
-    </tr>
   </tbody>
 </table>
 
@@ -320,8 +312,7 @@ blazediff image1.png image2.png \
   --include-aa \
   --diff-mask \
   --diff-mask \
-  --transformer sharp \
-  --yiq
+  --transformer sharp
 ```
 
 ### ⚡ Transformers
