@@ -1,4 +1,4 @@
-# BlazeDiff 🔥
+# BlazeDiff
 
 <div align="center">
 
@@ -12,11 +12,11 @@
 
 <div align="center"><img src="./assets/logo.png" /></div>
 
-BlazeDiff 🔥 — a blazing-fast, pixel-perfect image comparison library for JavaScript. Up-to 60% faster than [pixelmatch](https://github.com/mapbox/pixelmatch), with identical accuracy and output quality. It uses an innovative block-based algorithm to achieve blazing-fast pixel-by-pixel image diffing. Built on the foundation of [pixelmatch](https://github.com/mapbox/pixelmatch) but with significant optimizations, it's designed for visual testing, CI/CD pipelines, and any application requiring fast, accurate image comparison.
+**BlazeDiff** — a high-performance, pixel-perfect image comparison library for JavaScript. Up-to 60% faster than [pixelmatch](https://github.com/mapbox/pixelmatch), with identical accuracy and output quality. It uses an innovative block-based algorithm to achieve blazing-fast pixel-by-pixel image diffing. Built on the foundation of [pixelmatch](https://github.com/mapbox/pixelmatch) but with significant optimizations, it's designed for visual testing, CI/CD pipelines, and any application requiring fast, accurate image comparison.
 
-*🔄 100% API and Result Compatible: BlazeDiff is fully compatible with [pixelmatch](https://github.com/mapbox/pixelmatch)'s API and produces identical results when using the YIQ color space flag.*
+*100% API and Result Compatible: BlazeDiff is fully compatible with [pixelmatch](https://github.com/mapbox/pixelmatch)'s API and produces identical results when using the YIQ color space flag.*
 
-## 🚀 Performance
+## Performance
 
 BlazeDiff is **~up-to 60% faster** than pixelmatch while maintaining the same accuracy and output quality. The performance improvement comes from:
 
@@ -25,14 +25,14 @@ BlazeDiff is **~up-to 60% faster** than pixelmatch while maintaining the same ac
 - **Early exit optimization**: Returns immediately if no differences are detected
 - **32-bit integer comparisons**: Leverages CPU vectorization for faster pixel matching
 
-### Benchmarks
+## Benchmarks
 
 ### Algorithm (`@blazediff/core`)
 
-ℹ️ 50 iterations (3 warmup)
+*50 iterations (3 warmup)*
 
 ```
-BlazeDiff   | █████████████████████████████████  91.90ms 🔥
+BlazeDiff   | █████████████████████████████████  91.90ms
 Pixelmatch  | ██████████████████████████████████████  115.09ms
 ```
 
@@ -119,10 +119,10 @@ Pixelmatch  | ██████████████████████
 
 ### Binary (`@blazediff/bin` with `@blazediff/sharp-transformer`)
 
-ℹ️ 50 iterations (3 warmup)
+*50 iterations (3 warmup)*
 
 ```
-BlazeDiff   | █████████████  418.32ms 🔥🔥🔥
+BlazeDiff   | █████████████  418.32ms
 Pixelmatch  | ████████████████████████████████████████████████████████████████  2155.48ms
 ```
 
@@ -169,20 +169,7 @@ Pixelmatch  | ██████████████████████
 
 [benchmark.yml](https://github.com/teimurjan/blazediff/actions/workflows/benchmark.yml)
 
-## 🏗️ Architecture
-
-The project is organized into modular packages for maximum flexibility:
-
-```
-@blazediff/
-├── core          # Core comparison algorithm
-├── bin           # Command-line interface
-├── types         # Shared TypeScript types
-├── pngjs-transformer    # PNG.js-based image transformer
-└── sharp-transformer    # Native Sharp-based transformer (faster)
-```
-
-## 📦 Installation
+## Installation
 
 ### Core Library
 ```bash
@@ -202,7 +189,7 @@ pnpm add -g @blazediff/bin
 yarn global add @blazediff/bin
 ```
 
-## 🎯 Usage
+## Usage
 
 ```typescript
 import blazediff from '@blazediff/core';
@@ -234,7 +221,7 @@ const diffCount = blazediff(
 console.log(`Found ${diffCount} different pixels`);
 ```
 
-### 🔧 Configuration Options
+### Configuration Options
 
 <table>
   <thead>
@@ -291,7 +278,7 @@ console.log(`Found ${diffCount} different pixels`);
   </tbody>
 </table>
 
-## 💻 CLI
+## CLI
 
 ```bash
 # Basic comparison
@@ -315,14 +302,14 @@ blazediff image1.png image2.png \
   --transformer sharp
 ```
 
-### ⚡ Transformers
+### Transformers
 
 BlazeDiff supports multiple image transformers:
 
 - **PNG.js Transformer** (`@blazediff/pngjs-transformer`): Pure JavaScript, works everywhere
 - **Sharp Transformer** (`@blazediff/sharp-transformer`): Native bindings, significantly faster
 
-## 🧪 Testing & Development
+## Testing & Development
 
 ```bash
 # Install dependencies
@@ -335,18 +322,18 @@ pnpm build
 pnpm benchmark
 ```
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! Please see the [Contributing Guide](CONTRIBUTING.md) for details.
 
-## 📄 License
+## License
 
 MIT License - see [LICENSE](LICENSE) file for details.
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - Built on the excellent [pixelmatch](https://github.com/mapbox/pixelmatch) algorithm
 
 ---
 
-**Made with ❤️ for blazing-fast image comparison**
+**Built for high-performance image comparison**
