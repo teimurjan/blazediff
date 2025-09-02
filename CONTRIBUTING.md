@@ -1,8 +1,8 @@
-# Contributing to BlazeDiff 🔥
+# Contributing to BlazeDiff
 
-Thank you for your interest in contributing to BlazeDiff! This guide will help you get started with contributing to our blazing-fast image comparison library.
+Thank you for your interest in contributing to BlazeDiff! This guide will help you get started with contributing to our high-performance image comparison library.
 
-## 🚀 Quick Start
+## Quick Start
 
 1. **Fork** the repository
 2. **Clone** your fork locally
@@ -12,7 +12,7 @@ Thank you for your interest in contributing to BlazeDiff! This guide will help y
 6. **Test** your changes
 7. **Submit** a pull request
 
-## 🛠️ Development Setup
+## Development Setup
 
 ### Prerequisites
 
@@ -34,7 +34,7 @@ pnpm install
 pnpm build
 ```
 
-## 🧪 Testing
+## Testing
 
 ### Running Benchmarks
 
@@ -46,46 +46,7 @@ pnpm benchmark
 pnpm benchmark --target=bin
 ```
 
-### Adding Test Images
-
-Place new test images in the appropriate fixture directories:
-- `packages/benchmark/fixtures/pixelmatch/` - For pixelmatch compatibility tests
-- `packages/benchmark/fixtures/4k/` - For high-resolution performance tests
-
-## 📝 Code Style
-
-- **TypeScript**: All code should be written in TypeScript
-- **Naming**: Use descriptive variable and function names
-- **Error Handling**: Include proper error handling and validation
-
-## 🔧 Making Changes
-
-### Adding New Features
-
-1. **Create** a feature branch: `git checkout -b feature/your-feature-name`
-2. **Implement** your feature following the code style guidelines
-3. **Add** appropriate tests and benchmarks
-4. **Update** documentation if needed
-5. **Test** your changes thoroughly
-
-### Fixing Bugs
-
-1. **Create** a bug fix branch: `git checkout -b fix/issue-description`
-2. **Reproduce** the issue with a test case
-3. **Fix** the bug
-4. **Add** regression tests
-5. **Verify** the fix works
-
-### Performance Improvements
-
-1. **Benchmark** the current performance
-2. **Implement** your optimization
-3. **Benchmark** again to verify improvement
-4. **Document** the performance gain
-5. **Ensure** accuracy is maintained
-
-
-## 📤 Submitting Changes
+## Submitting Changes
 
 ### Pull Request Guidelines
 
@@ -122,7 +83,7 @@ perf(core): optimize block-based algorithm
 docs: update API documentation
 ```
 
-## 🐛 Reporting Issues
+## Reporting Issues
 
 When reporting issues, please include:
 
@@ -133,22 +94,14 @@ When reporting issues, please include:
 5. **Screenshots**: If applicable
 6. **Code Example**: Minimal code to reproduce the issue
 
-## 🤝 Community Guidelines
-
-- **Be respectful** and inclusive
-- **Help others** learn and grow
-- **Provide constructive** feedback
-- **Follow** the project's code of conduct
-- **Ask questions** if you're unsure about something
-
-## 📚 Additional Resources
+## Additional Resources
 
 - [README.md](README.md) - Project overview and usage
 - [LICENSE](LICENSE) - Project license
 - [Issues](https://github.com/teimurjan/blazediff/issues) - Bug reports and feature requests
 - [Discussions](https://github.com/teimurjan/blazediff/discussions) - Community discussions
 
-## 🙏 Thank You
+## Thank You
 
 Thank you for contributing to BlazeDiff! Your contributions help make image comparison faster and more accessible for everyone.
 
