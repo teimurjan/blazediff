@@ -4,6 +4,10 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'packages/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
 
 concurrency: ${{ github.workflow }}-${{ github.ref }}
 
