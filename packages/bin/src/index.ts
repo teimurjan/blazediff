@@ -47,6 +47,17 @@ export default async function blazeDiffBin(
   );
   const duration = performance.now() - startTime;
 
+  if (diffCount > 0 && options.outputPath && outputData) {
+    await options.transformer.write(
+      {
+        data: outputData,
+        width: image1.width,
+        height: image1.height,
+      },
+      options.outputPath
+    );
+  }
+
   return {
     diffCount,
     width: image1.width,

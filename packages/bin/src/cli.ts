@@ -205,15 +205,7 @@ async function main(): Promise<void> {
       ).toFixed(2)}%`
     );
 
-    if (options.outputPath && result.outputData) {
-      await transformer.write(
-        {
-          data: result.outputData,
-          width: result.width,
-          height: result.height,
-        },
-        options.outputPath
-      );
+    if (result.diffCount > 0 && result.outputData) {
       console.log(`diff image: ${options.outputPath}`);
     }
 
