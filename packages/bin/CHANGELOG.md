@@ -1,5 +1,17 @@
 # @blazediff/bin
 
+## 0.6.0
+
+### Minor Changes
+
+- faec744: Write to output in exportable binary
+
+### Patch Changes
+
+- @blazediff/core@0.6.0
+- @blazediff/pngjs-transformer@0.6.0
+- @blazediff/sharp-transformer@0.6.0
+
 ## 0.5.0
 
 ### Minor Changes
