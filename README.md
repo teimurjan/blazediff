@@ -21,7 +21,6 @@
 BlazeDiff is **~up-to 60% faster** than pixelmatch while maintaining the same accuracy and output quality. The performance improvement comes from:
 
 - **Block-based algorithm**: First pass creates dynamic-sized blocks and only processes changed blocks
-- **Zero memory allocation**: Uses `Int32Array` for blocks and `Uint32Array` for images
 - **Early exit optimization**: Returns immediately if no differences are detected
 - **32-bit integer comparisons**: Leverages CPU vectorization for faster pixel matching
 
