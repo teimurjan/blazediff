@@ -1,6 +1,6 @@
 {
   "name": "@blazediff/core",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Blazing-fast pixel-by-pixel image comparison with block-based optimization. 20% faster than pixelmatch with zero memory allocation",
   "private": false,
   "publishConfig": {
