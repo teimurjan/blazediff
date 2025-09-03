@@ -16,13 +16,32 @@
 
 *100% API and Result Compatible: BlazeDiff is fully compatible with [pixelmatch](https://github.com/mapbox/pixelmatch)'s API and produces identical results when using the YIQ color space flag.*
 
-## Performance
+## Features
 
 BlazeDiff is **~up-to 60% faster** than pixelmatch while maintaining the same accuracy and output quality. The performance improvement comes from:
 
 - **Block-based algorithm**: First pass creates dynamic-sized blocks and only processes changed blocks
 - **Early exit optimization**: Returns immediately if no differences are detected
 - **32-bit integer comparisons**: Leverages CPU vectorization for faster pixel matching
+- **JPEG and WebP support**: When using the binary with the Sharp transformer, BlazeDiff supports PNG, JPEG and WebP inputs.
+
+<table>
+  <thead>
+    <tr>
+      <th width="33.3%">Expected</th>
+      <th width="33.3%">Actual</th>
+      <th width="33.3%">Diff</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td align="center"><img src="./assets/1a.jpeg" alt="Expected" width="50%" /></td>
+      <td align="center"><img src="./assets/1b.jpeg" alt="Expected" width="50%" /></td>
+      <td align="center"><img src="./assets/1diff.png" alt="Expected" width="50%" /></td>
+    </tr>
+  </tbody>
+</table>
+
 
 ## Benchmarks
 
@@ -289,6 +308,9 @@ blazediff image1.png image2.png -o diff.png -t 0.05
 # Use Sharp transformer for better performance
 blazediff image1.png image2.png --transformer sharp -o diff.png
 
+# JPEG support (requires Sharp transformer)
+blazediff image1.jpg image2.jpg --transformer sharp -o diff.png
+
 # Custom colors and options
 blazediff image1.png image2.png \
   --threshold 0.2 \
@@ -305,8 +327,8 @@ blazediff image1.png image2.png \
 
 BlazeDiff supports multiple image transformers:
 
-- **PNG.js Transformer** (`@blazediff/pngjs-transformer`): Pure JavaScript, works everywhere
-- **Sharp Transformer** (`@blazediff/sharp-transformer`): Native bindings, significantly faster
+- **PNG.js Transformer** (`@blazediff/pngjs-transformer`): Pure JavaScript, works everywhere. Supports PNG.
+- **Sharp Transformer** (`@blazediff/sharp-transformer`): Native bindings, significantly faster. Supports PNG and JPEG.
 
 ## Testing & Development
 
