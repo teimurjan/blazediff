@@ -1,5 +1,19 @@
 # @blazediff/bin
 
+## 0.7.0
+
+### Minor Changes
+
+- 1917cc9: Ensure types are listed in the dependencies
+
+### Patch Changes
+
+- Updated dependencies [1917cc9]
+  - @blazediff/pngjs-transformer@0.7.0
+  - @blazediff/sharp-transformer@0.7.0
+  - @blazediff/core@0.7.0
+  - @blazediff/types@0.7.0
+
 ## 0.6.0
 
 ### Minor Changes
