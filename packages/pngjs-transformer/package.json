@@ -35,10 +35,10 @@
   "homepage": "https://github.com/teimurjan/blazediff",
   "license": "MIT",
   "dependencies": {
-    "pngjs": "7.0.0"
+    "pngjs": "7.0.0",
+    "@blazediff/types": "workspace:*"
   },
   "devDependencies": {
-    "@blazediff/types": "workspace:*",
     "@types/pixelmatch": "^5.2.6",
     "@types/pngjs": "6.0.5",
     "tsup": "8.5.0",

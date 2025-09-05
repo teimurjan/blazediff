@@ -59,10 +59,10 @@ importers:
       '@blazediff/sharp-transformer':
         specifier: workspace:*
         version: link:../sharp-transformer
-    devDependencies:
       '@blazediff/types':
         specifier: workspace:*
         version: link:../types
+    devDependencies:
       '@types/node':
         specifier: ^24.3.0
         version: 24.3.0
@@ -74,10 +74,11 @@ importers:
         version: 5.9.2
 
   packages/core:
-    devDependencies:
+    dependencies:
       '@blazediff/types':
         specifier: workspace:*
         version: link:../types
+    devDependencies:
       '@types/node':
         specifier: ^24.3.0
         version: 24.3.0
@@ -90,13 +91,13 @@ importers:
 
   packages/pngjs-transformer:
     dependencies:
+      '@blazediff/types':
+        specifier: workspace:*
+        version: link:../types
       pngjs:
         specifier: 7.0.0
         version: 7.0.0
     devDependencies:
-      '@blazediff/types':
-        specifier: workspace:*
-        version: link:../types
       '@types/pixelmatch':
         specifier: ^5.2.6
         version: 5.2.6
@@ -112,13 +113,13 @@ importers:
 
   packages/sharp-transformer:
     dependencies:
+      '@blazediff/types':
+        specifier: workspace:*
+        version: link:../types
       sharp:
         specifier: ^0.34.3
         version: 0.34.3
     devDependencies:
-      '@blazediff/types':
-        specifier: workspace:*
-        version: link:../types
       '@types/sharp':
         specifier: ^0.32.0
         version: 0.32.0
