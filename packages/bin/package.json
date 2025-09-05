@@ -44,10 +44,10 @@
   "dependencies": {
     "@blazediff/core": "workspace:*",
     "@blazediff/pngjs-transformer": "workspace:*",
-    "@blazediff/sharp-transformer": "workspace:*"
+    "@blazediff/sharp-transformer": "workspace:*",
+    "@blazediff/types": "workspace:*"
   },
   "devDependencies": {
-    "@blazediff/types": "workspace:*",
     "@types/node": "^24.3.0",
     "tsup": "8.5.0",
     "typescript": "5.9.2"
