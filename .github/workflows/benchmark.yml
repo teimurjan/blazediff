@@ -8,6 +8,7 @@ on:
       - 'packages/**'
       - 'package.json'
       - 'pnpm-lock.yaml'
+      - '.github/workflows/benchmark.yml'
 
 concurrency: ${{ github.workflow }}-${{ github.ref }}
 
@@ -27,9 +28,6 @@ jobs:
 
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
-
-      - name: Build Packages
-        run: pnpm build
 
       - name: Run Benchmark
         run: pnpm benchmark --iterations=50 --target=core
