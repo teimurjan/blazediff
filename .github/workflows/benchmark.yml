@@ -5,10 +5,10 @@ on:
     branches:
       - main
     paths:
-      - 'packages/**'
-      - 'package.json'
-      - 'pnpm-lock.yaml'
-      - '.github/workflows/benchmark.yml'
+      - "packages/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/benchmark.yml"
 
 concurrency: ${{ github.workflow }}-${{ github.ref }}
 
@@ -20,13 +20,14 @@ jobs:
       - name: Checkout Repo
         uses: actions/checkout@v5
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
       - name: Setup Node.js
         uses: actions/setup-node@v5
         with:
-          node-version-file: '.node-version'
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+          node-version-file: ".node-version"
+          cache: "pnpm"
 
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
