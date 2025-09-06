@@ -7,7 +7,7 @@
     "build": "pnpm -r build",
     "changeset": "changeset",
     "release": "changeset publish",
-    "benchmark": "pnpm --filter @blazediff/benchmark start"
+    "benchmark": "pnpm -r build &&pnpm --filter @blazediff/benchmark start"
   },
   "keywords": [],
   "author": "Teimur Gasanov <me@teimurjan.dev> (https://github.com/teimurjan)",

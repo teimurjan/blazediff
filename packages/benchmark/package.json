@@ -22,7 +22,7 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "clean": "rm -rf dist",
-    "start": "pnpm build && node dist/cli.js"
+    "start": "node dist/cli.js"
   },
   "devDependencies": {
     "@blazediff/bin": "workspace:*",

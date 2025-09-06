@@ -2,12 +2,13 @@
 
 import { join } from "path";
 import Table from "cli-table3";
-import { runBenchmark, runBinBenchmark } from "./index";
 import { getImagePairs } from "./utils";
+import { algorithmBenchmark } from "./algorithm";
+import { binaryBenchmark } from "./binary";
 
-async function runCoreBenchmarks(target: string, iterationsCount: number) {
+async function runCoreBenchmarks(target: string, iterations: number) {
   try {
-    const benchmark = target === "bin" ? runBinBenchmark : runBenchmark;
+    const benchmark = target === "bin" ? binaryBenchmark : algorithmBenchmark;
 
     const fourKImagePairs = await getImagePairs(
       join(__dirname, "../fixtures"),
@@ -17,47 +18,71 @@ async function runCoreBenchmarks(target: string, iterationsCount: number) {
       join(__dirname, "../fixtures"),
       "pixelmatch"
     );
-    const imagePairs =
+    const pairs =
       target === "bin"
         ? [...fourKImagePairs]
         : [...pixelmatchImagePairs, ...fourKImagePairs];
 
-    // warmup
-    await benchmark(imagePairs, 3);
-
-    const results = await benchmark(imagePairs, iterationsCount);
+    const warmup = 3;
+    const { blazediff, pixelmatch, speedups } = await benchmark(
+      pairs,
+      iterations,
+      warmup
+    );
 
     const table = new Table({
-      head: ["Image", "BlazeDiff", "Pixelmatch", "Speedup"],
+      head: ["Benchmark", "Pixelmatch", "BlazeDiff", "Speedup"],
       colWidths: [15, 25, 25, 20],
     });
 
-    for (const result of results.results) {
+    let totalPixelmatchTime = 0;
+    let totalBlazeDiffTime = 0;
+
+    for (let i = 0; i < pairs.length; i++) {
+      const { name } = pairs[i];
+      const pixelmatchAverage = pixelmatch[i];
+      const blazediffAverage = blazediff[i];
+
       table.push([
-        result.name,
-        `${result.blazediff.timeMs.toFixed(2)}ms`,
-        `${result.pixelmatch.timeMs.toFixed(2)}ms`,
-        `${result.speedup.toFixed(2)}%`,
+        name,
+        `${pixelmatchAverage.toFixed(2)}ms`,
+        `${blazediffAverage.toFixed(2)}ms`,
+        `${(
+          ((pixelmatchAverage - blazediffAverage) / pixelmatchAverage) *
+          100
+        ).toFixed(2)}%`,
       ]);
+
+      totalPixelmatchTime += pixelmatchAverage;
+      totalBlazeDiffTime += blazediffAverage;
     }
+
+    const totalPixelmatchAverage = totalPixelmatchTime / pairs.length;
+    const totalBlazeDiffAverage = totalBlazeDiffTime / pairs.length;
+    const totalSpeedUp =
+      speedups && speedups.length === pairs.length
+        ? speedups.reduce((a, b) => a + b, 0) / speedups.length
+        : ((totalPixelmatchAverage - totalBlazeDiffAverage) /
+            totalPixelmatchAverage) *
+          100;
 
     table.push([
       "AVERAGE",
-      `${results.averages.blazediff.timeMs.toFixed(2)}ms`,
-      `${results.averages.pixelmatch.timeMs.toFixed(2)}ms`,
-      `${results.averages.speedup.toFixed(2)}%`,
+      `${totalPixelmatchAverage.toFixed(2)}ms`,
+      `${totalBlazeDiffAverage.toFixed(2)}ms`,
+      `${totalSpeedUp.toFixed(2)}%`,
     ]);
 
     console.log(table.toString());
 
     console.log("\n📊 Summary:");
+    console.log(`• BlazeDiff is ${totalSpeedUp.toFixed(2)}% faster on average`);
     console.log(
-      `• BlazeDiff is ${results.averages.speedup.toFixed(2)}% faster on average`
+      `• Tested ${pairs.length} image pairs`
     );
-    console.log(`• Tested ${results.results.length} image pairs`);
     console.log(
-      `• ${iterationsCount} iteration${
-        iterationsCount > 1 ? "s" : ""
+      `• ${iterations} iteration${
+        iterations > 1 ? "s" : ""
       } per image for accuracy`
     );
   } catch (error) {
