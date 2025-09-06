@@ -1,5 +1,11 @@
 # @blazediff/pngjs-transformer
 
+## 0.7.1
+
+### Patch Changes
+
+- @blazediff/types@0.7.1
+
 ## 0.7.0
 
 ### Minor Changes
