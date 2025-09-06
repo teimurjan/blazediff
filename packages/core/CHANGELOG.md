@@ -1,5 +1,12 @@
 # @blazediff/core
 
+## 0.7.1
+
+### Patch Changes
+
+- f61a7ca: Added JIT optimizations giving 3% performance boost
+  - @blazediff/types@0.7.1
+
 ## 0.7.0
 
 ### Minor Changes
