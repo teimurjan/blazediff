@@ -78,7 +78,6 @@ export default function blazediff(
           }
         }
       }
-      
 
       if (!blockIdentical) {
         // Store coordinates for changed blocks
@@ -260,35 +259,25 @@ function hasManySiblings(
   width: number,
   height: number
 ): boolean {
-  const pos = y1 * width + x1;
-  const val = image[pos];
+  const x0 = Math.max(x1 - 1, 0);
+  const y0 = Math.max(y1 - 1, 0);
+  const x2 = Math.min(x1 + 1, width - 1);
+  const y2 = Math.min(y1 + 1, height - 1);
+  const val = image[y1 * width + x1];
+  let zeroes = x1 === x0 || x1 === x2 || y1 === y0 || y1 === y2 ? 1 : 0;
 
-  // Start with 1 if on boundary (matching original logic)
-  let count =
-    x1 === 0 || x1 === width - 1 || y1 === 0 || y1 === height - 1 ? 1 : 0;
-
-  // Check all 8 neighbors with bounds checking
-  // Top row
-  if (y1 > 0) {
-    const topRow = pos - width;
-    if (x1 > 0 && image[topRow - 1] === val) count++;
-    if (image[topRow] === val) count++;
-    if (x1 < width - 1 && image[topRow + 1] === val) count++;
+  // Go through 8 adjacent pixels
+  for (let y = y0; y <= y2; y++) {
+    const yOffset = y * width;
+    for (let x = x0; x <= x2; x++) {
+      if (x === x1 && y === y1) continue;
+      zeroes += +(val === image[yOffset + x]);
+      if (zeroes > 2) {
+        return true;
+      }
+    }
   }
-
-  // Middle row (left and right)
-  if (x1 > 0 && image[pos - 1] === val) count++;
-  if (x1 < width - 1 && image[pos + 1] === val) count++;
-
-  // Bottom row
-  if (y1 < height - 1) {
-    const bottomRow = pos + width;
-    if (x1 > 0 && image[bottomRow - 1] === val) count++;
-    if (image[bottomRow] === val) count++;
-    if (x1 < width - 1 && image[bottomRow + 1] === val) count++;
-  }
-
-  return count > 2;
+  return false;
 }
 
 /**
