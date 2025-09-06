@@ -58,77 +58,77 @@ Pixelmatch  | ██████████████████████
   <thead>
     <tr>
       <th width="500">Image</th>
-      <th width="500">BlazeDiff</th>
       <th width="500">Pixelmatch</th>
+      <th width="500">BlazeDiff</th>
       <th width="500">Speedup</th>
     </tr>
   </thead>
   <tbody>
     <tr>
       <td>pixelmatch/1</td>
-      <td>0.57ms</td>
-      <td>1.04ms</td>
-      <td>45.67%</td>
+      <td>0.60ms</td>
+      <td>0.43ms</td>
+      <td>28.78%</td>
     </tr>
     <tr>
       <td>pixelmatch/2</td>
-      <td>2.93ms</td>
-      <td>2.56ms</td>
-      <td>-14.66%</td>
+      <td>2.03ms</td>
+      <td>1.90ms</td>
+      <td>6.26%</td>
     </tr>
     <tr>
       <td>pixelmatch/3</td>
-      <td>0.40ms</td>
-      <td>0.94ms</td>
-      <td>57.38%</td>
+      <td>0.48ms</td>
+      <td>0.26ms</td>
+      <td>46.20%</td>
     </tr>
     <tr>
       <td>pixelmatch/4</td>
-      <td>6.83ms</td>
-      <td>4.98ms</td>
-      <td>-37.14%</td>
+      <td>3.89ms</td>
+      <td>3.53ms</td>
+      <td>9.32%</td>
     </tr>
     <tr>
       <td>pixelmatch/5</td>
-      <td>0.19ms</td>
-      <td>0.47ms</td>
-      <td>59.95%</td>
+      <td>0.26ms</td>
+      <td>0.12ms</td>
+      <td>52.46%</td>
     </tr>
     <tr>
       <td>pixelmatch/6</td>
-      <td>0.96ms</td>
-      <td>1.14ms</td>
-      <td>16.27%</td>
+      <td>0.81ms</td>
+      <td>0.72ms</td>
+      <td>10.77%</td>
     </tr>
     <tr>
       <td>pixelmatch/7</td>
-      <td>1.51ms</td>
-      <td>2.33ms</td>
-      <td>35.11%</td>
+      <td>1.44ms</td>
+      <td>1.09ms</td>
+      <td>24.37%</td>
     </tr>
     <tr>
       <td>4k/1</td>
-      <td>275.64ms</td>
-      <td>345.94ms</td>
-      <td>20.32%</td>
+      <td>260.94ms</td>
+      <td>232.88ms</td>
+      <td>10.75%</td>
     </tr>
     <tr>
       <td>4k/2</td>
-      <td>283.92ms</td>
-      <td>352.60ms</td>
-      <td>19.48%</td>
+      <td>262.93ms</td>
+      <td>233.82ms</td>
+      <td>11.07%</td>
     </tr>
     <tr>
       <td>4k/3</td>
-      <td>346.02ms</td>
-      <td>438.87ms</td>
-      <td>21.16%</td>
+      <td>329.71ms</td>
+      <td>291.73ms</td>
+      <td>11.52%</td>
     </tr>
     <tr>
       <td><strong>AVERAGE</strong></td>
-      <td><strong>91.90ms</strong></td>
-      <td><strong>115.09ms</strong></td>
-      <td><strong>22.35%</strong></td>
+      <td><strong>86.31ms</strong></td>
+      <td><strong>76.65ms</strong></td>
+      <td><strong>24.20%</strong></td>
     </tr>
   </tbody>
 </table>

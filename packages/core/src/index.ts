@@ -66,8 +66,9 @@ export default function blazediff(
 
       // Check block using 32-bit integer comparison
       outer: for (let y = startY; y < endY; y++) {
+        const yOffset = y * width;
         for (let x = startX; x < endX; x++) {
-          const i = y * width + x;
+          const i = yOffset + x;
           if (a32[i] !== b32[i]) {
             blockIdentical = false;
             break outer;
@@ -77,6 +78,7 @@ export default function blazediff(
           }
         }
       }
+      
 
       if (!blockIdentical) {
         // Store coordinates for changed blocks
@@ -112,29 +114,28 @@ export default function blazediff(
     const endY = changedBlockCoords[coordIndex + 3];
 
     for (let y = startY; y < endY; y++) {
+      const yOffset = y * width;
       for (let x = startX; x < endX; x++) {
-        const pixelIndex = y * width + x;
+        const pixelIndex = yOffset + x;
         const pos = pixelIndex * 4;
 
-        // squared YUV distance between colors at this pixel position, negative if the img2 pixel is darker
         const delta =
           a32[pixelIndex] === b32[pixelIndex]
             ? 0
             : colorDelta(image1, image2, pos, pos, false);
 
-        // the color difference is above the threshold
+        // Color difference is above threshold
         if (Math.abs(delta) > maxDelta) {
-          // check it's a real rendering difference or just anti-aliasing
+          // Check it's a real rendering difference or just anti-aliasing
           const isExcludedAA =
             !includeAA &&
             (antialiased(image1, x, y, width, height, a32, b32) ||
               antialiased(image2, x, y, width, height, b32, a32));
           if (isExcludedAA) {
-            // one of the pixels is anti-aliasing; draw as yellow and do not count as difference
-            // note that we do not include such pixels in a mask
+            // One of the pixels is anti-aliasing
             if (output && !diffMask) drawPixel(output, pos, aaR, aaG, aaB);
           } else {
-            // found substantial difference not caused by anti-aliasing; draw it as such
+            // Found significant difference not caused by anti-aliasing
             if (output) {
               if (delta < 0) {
                 drawPixel(output, pos, altR, altG, altB);
@@ -145,7 +146,7 @@ export default function blazediff(
             diff++;
           }
         } else if (output && !diffMask) {
-          // pixels are similar; draw background as grayscale image blended with white
+          // Pixels are similar
           drawGrayPixel(image1, pos, alpha, output);
         }
       }
@@ -155,17 +156,17 @@ export default function blazediff(
   return diff;
 }
 
+const LOG2_E = Math.LOG2E; // More efficient than Math.log2()
+
 function calculateOptimalBlockSize(width: number, height: number): number {
   const area = width * height;
 
-  // Block size grows roughly with the square root of the image area
-  // Scale factor chosen to match your thresholds
-  const base = 16;
-  const scale = Math.sqrt(area) / 100; // 100 is a tuning constant
+  const scale = Math.sqrt(area) / 100;
+  const rawSize = 16 * Math.sqrt(scale);
 
-  // Round to nearest power-of-two block size
-  const rawSize = base * Math.pow(scale, 0.5);
-  return Math.pow(2, Math.round(Math.log2(rawSize)));
+  // More efficient power-of-2 rounding using bit operations
+  const log2Val = Math.log(rawSize) * LOG2_E;
+  return 1 << Math.round(log2Val); // Bit shift instead of Math.pow(2, x)
 }
 
 /** Check if array is valid pixel data */
@@ -192,6 +193,7 @@ function antialiased(
   const x2 = Math.min(x1 + 1, width - 1);
   const y2 = Math.min(y1 + 1, height - 1);
   const pos = y1 * width + x1;
+  const centerPixelOffset = pos * 4;
   let zeroes = x1 === x0 || x1 === x2 || y1 === y0 || y1 === y2 ? 1 : 0;
   let min = 0;
   let max = 0;
@@ -200,33 +202,33 @@ function antialiased(
   let maxX = 0;
   let maxY = 0;
 
-  // go through 8 adjacent pixels
+  // Go through 8 adjacent pixels
   for (let x = x0; x <= x2; x++) {
     for (let y = y0; y <= y2; y++) {
       if (x === x1 && y === y1) continue;
 
-      // brightness delta between the center pixel and adjacent one
+      // Brightness delta between the center pixel and adjacent one
       const delta = colorDelta(
         image,
         image,
-        pos * 4,
+        centerPixelOffset,
         (y * width + x) * 4,
         true
       );
 
-      // count the number of equal, darker and brighter adjacent pixels
+      // Count the number of equal, darker and brighter adjacent pixels
       if (delta === 0) {
         zeroes++;
-        // if found more than 2 equal siblings, it's definitely not anti-aliasing
+        // If found more than 2 equal siblings, it's definitely not anti-aliasing
         if (zeroes > 2) return false;
 
-        // remember the darkest pixel
+        // Remember the darkest pixel
       } else if (delta < min) {
         min = delta;
         minX = x;
         minY = y;
 
-        // remember the brightest pixel
+        // Remember the brightest pixel
       } else if (delta > max) {
         max = delta;
         maxX = x;
@@ -235,10 +237,10 @@ function antialiased(
     }
   }
 
-  // if there are no both darker and brighter pixels among siblings, it's not anti-aliasing
+  // Of there are no both darker and brighter pixels among siblings, it's not anti-aliasing
   if (min === 0 || max === 0) return false;
 
-  // if either the darkest or the brightest pixel has 3+ equal siblings in both images
+  // If either the darkest or the brightest pixel has 3+ equal siblings in both images
   // (definitely not anti-aliased), this pixel is anti-aliased
   return (
     (hasManySiblings(a32, minX, minY, width, height) &&
@@ -258,22 +260,35 @@ function hasManySiblings(
   width: number,
   height: number
 ): boolean {
-  const x0 = Math.max(x1 - 1, 0);
-  const y0 = Math.max(y1 - 1, 0);
-  const x2 = Math.min(x1 + 1, width - 1);
-  const y2 = Math.min(y1 + 1, height - 1);
-  const val = image[y1 * width + x1];
-  let zeroes = x1 === x0 || x1 === x2 || y1 === y0 || y1 === y2 ? 1 : 0;
+  const pos = y1 * width + x1;
+  const val = image[pos];
 
-  // go through 8 adjacent pixels
-  for (let x = x0; x <= x2; x++) {
-    for (let y = y0; y <= y2; y++) {
-      if (x === x1 && y === y1) continue;
-      zeroes += +(val === image[y * width + x]);
-      if (zeroes > 2) return true;
-    }
+  // Start with 1 if on boundary (matching original logic)
+  let count =
+    x1 === 0 || x1 === width - 1 || y1 === 0 || y1 === height - 1 ? 1 : 0;
+
+  // Check all 8 neighbors with bounds checking
+  // Top row
+  if (y1 > 0) {
+    const topRow = pos - width;
+    if (x1 > 0 && image[topRow - 1] === val) count++;
+    if (image[topRow] === val) count++;
+    if (x1 < width - 1 && image[topRow + 1] === val) count++;
   }
-  return false;
+
+  // Middle row (left and right)
+  if (x1 > 0 && image[pos - 1] === val) count++;
+  if (x1 < width - 1 && image[pos + 1] === val) count++;
+
+  // Bottom row
+  if (y1 < height - 1) {
+    const bottomRow = pos + width;
+    if (x1 > 0 && image[bottomRow - 1] === val) count++;
+    if (image[bottomRow] === val) count++;
+    if (x1 < width - 1 && image[bottomRow + 1] === val) count++;
+  }
+
+  return count > 2;
 }
 
 /**
@@ -308,8 +323,8 @@ function colorDelta(
   if (a1 < 255 || a2 < 255) {
     // blend pixels with background
     const rb = 48 + 159 * (k % 2);
-    const gb = 48 + 159 * (((k / 1.618033988749895) | 0) % 2);
-    const bb = 48 + 159 * (((k / 2.618033988749895) | 0) % 2);
+    const gb = 48 + 159 * (((k / 1.618033988749895) | 0) & 1);
+    const bb = 48 + 159 * (((k / 2.618033988749895) | 0) & 1);
     dr = (r1 * a1 - r2 * a2 - rb * da) / 255;
     dg = (g1 * a1 - g2 * a2 - gb * da) / 255;
     db = (b1 * a1 - b2 * a2 - bb * da) / 255;

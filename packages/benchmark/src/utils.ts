@@ -1,17 +1,17 @@
-import { exec } from "child_process";
+import { execSync } from "child_process";
 import { readdirSync } from "fs";
 import { join } from "path";
 
-export async function safeExec(command: string): Promise<string> {
-  return new Promise<string>((resolve, reject) => {
-    exec(command, (error, stdout, _stderr) => {
-      if (error && !stdout) {
-        reject(error);
-      } else {
-        resolve(stdout);
-      }
-    });
-  });
+export async function safeExecSync(command: string): Promise<string> {
+  try {
+    const stdout = execSync(command).toString();
+    return stdout;
+  } catch (error: any) {
+    if (!error.stdout) {
+      throw error;
+    }
+    return error.stdout.toString();
+  }
 }
 
 export type ImagePair = {
