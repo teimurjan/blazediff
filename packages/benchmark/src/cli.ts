@@ -23,9 +23,11 @@ async function runCoreBenchmarks(target: string, iterations: number) {
         ? [...fourKImagePairs]
         : [...pixelmatchImagePairs, ...fourKImagePairs];
 
+    const pairsShuffled = pairs.sort(() => Math.random() - 0.5);
+
     const warmup = 3;
     const { blazediff, pixelmatch, speedups } = await benchmark(
-      pairs,
+      pairsShuffled,
       iterations,
       warmup
     );
@@ -38,8 +40,8 @@ async function runCoreBenchmarks(target: string, iterations: number) {
     let totalPixelmatchTime = 0;
     let totalBlazeDiffTime = 0;
 
-    for (let i = 0; i < pairs.length; i++) {
-      const { name } = pairs[i];
+    for (let i = 0; i < pairsShuffled.length; i++) {
+      const { name } = pairsShuffled[i];
       const pixelmatchAverage = pixelmatch[i];
       const blazediffAverage = blazediff[i];
 
@@ -77,9 +79,7 @@ async function runCoreBenchmarks(target: string, iterations: number) {
 
     console.log("\n📊 Summary:");
     console.log(`• BlazeDiff is ${totalSpeedUp.toFixed(2)}% faster on average`);
-    console.log(
-      `• Tested ${pairs.length} image pairs`
-    );
+    console.log(`• Tested ${pairs.length} image pairs`);
     console.log(
       `• ${iterations} iteration${
         iterations > 1 ? "s" : ""
