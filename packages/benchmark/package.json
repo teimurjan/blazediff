@@ -5,9 +5,6 @@
   "private": true,
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "bin": {
-    "start": "./dist/cli.js"
-  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -22,7 +19,11 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "clean": "rm -rf dist",
-    "start": "node dist/cli.js"
+    "benchmark": "node dist/index.js",
+    "blazediff": "pnpm benchmark --target=blazediff --variant=algorithm",
+    "pixelmatch": "pnpm benchmark --target=pixelmatch --variant=algorithm",
+    "blazediff:binary": "pnpm benchmark --target=blazediff --variant=binary",
+    "pixelmatch:binary": "pnpm benchmark --target=pixelmatch --variant=binary"
   },
   "devDependencies": {
     "@blazediff/bin": "workspace:*",

@@ -1,6 +1,8 @@
 import { execSync } from "child_process";
 import { readdirSync } from "fs";
 import { join } from "path";
+import { BenchmarkArgs, ImagePair, ImagePairLoaded } from "./types";
+import transformer from "@blazediff/pngjs-transformer";
 
 export async function safeExecSync(command: string): Promise<string> {
   try {
@@ -14,16 +16,10 @@ export async function safeExecSync(command: string): Promise<string> {
   }
 }
 
-export type ImagePair = {
-  a: string;
-  b: string;
-  name: string;
-};
-
-export async function getImagePairs(
+export function getImagePairs(
   fixturesDir: string,
   fixturesSubDir: string
-): Promise<Array<ImagePair>> {
+): Array<ImagePair> {
   const pairs: Array<ImagePair> = [];
 
   // Look for pairs like 1a.png, 1b.png
@@ -57,4 +53,39 @@ export async function getImagePairs(
   }
 
   return pairs;
+}
+
+export async function loadImagePairs(
+  pairs: ImagePair[]
+): Promise<ImagePairLoaded[]> {
+  return Promise.all(
+    pairs.map(async (pair) => {
+      const { a, b, name } = pair;
+      const [imageA, imageB] = await Promise.all([
+        transformer.transform(a),
+        transformer.transform(b),
+      ]);
+      return {
+        a: imageA,
+        b: imageB,
+        name,
+      };
+    })
+  );
+}
+
+export function parseBenchmarkArgs(): BenchmarkArgs {
+  const args = process.argv.slice(2);
+  const iterationsStr = args
+    .find((arg) => arg.startsWith("--iterations="))
+    ?.split("=")[1];
+  const iterations = iterationsStr ? parseInt(iterationsStr, 10) : 25;
+  const target =
+    args.find((arg) => arg.startsWith("--target="))?.split("=")[1] ??
+    "blazediff";
+  const variant =
+    args.find((arg) => arg.startsWith("--variant="))?.split("=")[1] ??
+    "algorithm";
+
+  return { iterations, target, variant };
 }

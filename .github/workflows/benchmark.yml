@@ -32,8 +32,14 @@ jobs:
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Run Benchmark
-        run: pnpm benchmark --iterations=50 --target=core
+      - name: Run Benchmark (blazediff)
+        run: pnpm benchmark:blazediff
 
-      - name: Run Benchmark (bin)
-        run: pnpm benchmark --iterations=50 --target=bin
+      - name: Run Benchmark (pixelmatch)
+        run: pnpm benchmark:pixelmatch
+
+      - name: Run Benchmark (blazediff binary)
+        run: pnpm benchmark:blazediff:binary
+
+      - name: Run Benchmark (pixelmatch binary)
+        run: pnpm benchmark:pixelmatch:binary
