@@ -48,39 +48,75 @@ export async function algorithmBenchmark(
     const pixelmatchDurations: number[] = [];
 
     for (let i = 0; i < iterations; i++) {
-      const blazediffStart = performance.now();
-      const blazediffDiffCount = blazediff(
-        a.data,
-        b.data,
-        undefined,
-        a.width,
-        a.height
-      );
-      const blazediffEnd = performance.now();
-      const blazediffDuration = blazediffEnd - blazediffStart;
-      blazediffDurations.push(blazediffDuration);
+      if (i % 2 === 0) {
+        const blazediffStart = performance.now();
+        const blazediffDiffCount = blazediff(
+          a.data,
+          b.data,
+          undefined,
+          a.width,
+          a.height
+        );
+        const blazediffEnd = performance.now();
+        const blazediffDuration = blazediffEnd - blazediffStart;
+        blazediffDurations.push(blazediffDuration);
 
-      const pixelmatchStart = performance.now();
-      const pixelmatchDiffCount = pixelmatch(
-        a.data,
-        b.data,
-        undefined,
-        a.width,
-        a.height
-      );
-      const pixelmatchEnd = performance.now();
-      const pixelmatchDuration = pixelmatchEnd - pixelmatchStart;
-      pixelmatchDurations.push(pixelmatchDuration);
+        const pixelmatchStart = performance.now();
+        const pixelmatchDiffCount = pixelmatch(
+          a.data,
+          b.data,
+          undefined,
+          a.width,
+          a.height
+        );
+        const pixelmatchEnd = performance.now();
+        const pixelmatchDuration = pixelmatchEnd - pixelmatchStart;
+        pixelmatchDurations.push(pixelmatchDuration);
 
-      if (blazediffDiffCount !== pixelmatchDiffCount) {
-        throw new Error(
-          `Blazediff and Pixelmatch returned different diff counts: ${blazediffDiffCount} vs ${pixelmatchDiffCount} on ${name}`
+        if (blazediffDiffCount !== pixelmatchDiffCount) {
+          throw new Error(
+            `Blazediff and Pixelmatch returned different diff counts: ${blazediffDiffCount} vs ${pixelmatchDiffCount} on ${name}`
+          );
+        }
+
+        speedups.push(
+          ((pixelmatchDuration - blazediffDuration) / pixelmatchDuration) * 100
+        );
+      } else {
+        const pixelmatchStart = performance.now();
+        const pixelmatchDiffCount = pixelmatch(
+          a.data,
+          b.data,
+          undefined,
+          a.width,
+          a.height
+        );
+        const pixelmatchEnd = performance.now();
+        const pixelmatchDuration = pixelmatchEnd - pixelmatchStart;
+        pixelmatchDurations.push(pixelmatchDuration);
+
+        const blazediffStart = performance.now();
+        const blazediffDiffCount = blazediff(
+          a.data,
+          b.data,
+          undefined,
+          a.width,
+          a.height
+        );
+        const blazediffEnd = performance.now();
+        const blazediffDuration = blazediffEnd - blazediffStart;
+        blazediffDurations.push(blazediffDuration);
+
+        if (blazediffDiffCount !== pixelmatchDiffCount) {
+          throw new Error(
+            `Blazediff and Pixelmatch returned different diff counts: ${blazediffDiffCount} vs ${pixelmatchDiffCount} on ${name}`
+          );
+        }
+
+        speedups.push(
+          ((pixelmatchDuration - blazediffDuration) / pixelmatchDuration) * 100
         );
       }
-
-      speedups.push(
-        ((pixelmatchDuration - blazediffDuration) / pixelmatchDuration) * 100
-      );
     }
 
     const averageBlazediff =
