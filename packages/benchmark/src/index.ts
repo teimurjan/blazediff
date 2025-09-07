@@ -80,21 +80,25 @@ const outputResults = (
   pairs: ImagePair[],
   results: AlgorithmBenchmarkResult | BinaryBenchmarkResult
 ) => {
-  // Unshuffle pairs
-  pairs.sort((a, b) => a.name.localeCompare(b.name));
-
   const table = new Table({
     head: ["Benchmark", "Average", "Median"],
     colWidths: [15, 25, 25],
   });
+
+  const rows: string[][] = [];
 
   for (let i = 0; i < pairs.length; i++) {
     const { name } = pairs[i];
     const average = results[i].average;
     const median = results[i].median;
 
-    table.push([name, `${average.toFixed(2)}ms`, `${median.toFixed(2)}ms`]);
+    rows.push([name, `${average.toFixed(2)}ms`, `${median.toFixed(2)}ms`]);
   }
+
+  // Unshuffle rows
+  rows.sort((a, b) => a[0].localeCompare(b[0]));
+
+  table.push(...rows);
 
   console.log(table.toString());
 };
