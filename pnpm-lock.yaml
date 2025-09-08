@@ -29,6 +29,9 @@ importers:
       '@blazediff/types':
         specifier: workspace:*
         version: link:../types
+      '@blazediff/wasm':
+        specifier: workspace:*
+        version: link:../wasm
       '@types/node':
         specifier: ^24.3.0
         version: 24.3.0
@@ -134,6 +137,22 @@ importers:
     devDependencies:
       typescript:
         specifier: ^5.9.2
+        version: 5.9.2
+
+  packages/wasm:
+    dependencies:
+      '@blazediff/types':
+        specifier: workspace:*
+        version: link:../types
+    devDependencies:
+      '@types/node':
+        specifier: ^24.3.0
+        version: 24.3.0
+      tsup:
+        specifier: 8.5.0
+        version: 8.5.0(postcss@8.5.6)(typescript@5.9.2)
+      typescript:
+        specifier: 5.9.2
         version: 5.9.2
 
 packages:

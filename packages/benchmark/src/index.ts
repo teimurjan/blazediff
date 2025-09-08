@@ -69,6 +69,18 @@ async function runBenchmark({ variant, target, iterations }: BenchmarkArgs) {
         });
         outputResults(pairs, results);
       }
+    } else if (variant === "wasm") {
+      const pairsLoaded = await loadImagePairs(pairs);
+
+      if (target === "blazediff") {
+        const { blazediffWasmBenchmark } = await import("./wasm/blazediff");
+        const results = await blazediffWasmBenchmark({
+          pairs: pairsLoaded,
+          iterations,
+          warmup,
+        });
+        outputResults(pairs, results);
+      }
     }
   } catch (error) {
     console.error("❌ Benchmark failed:", error);
@@ -80,9 +92,14 @@ const outputResults = (
   pairs: ImagePair[],
   results: AlgorithmBenchmarkResult | BinaryBenchmarkResult
 ) => {
+  const hasDiff = results.some((result) => "diff" in result);
+  const head = hasDiff
+    ? ["Benchmark", "Average", "Median", "Diff"]
+    : ["Benchmark", "Average", "Median"];
+  const colWidths = hasDiff ? [15, 25, 25, 25] : [15, 25, 25];
   const table = new Table({
-    head: ["Benchmark", "Average", "Median"],
-    colWidths: [15, 25, 25],
+    head,
+    colWidths,
   });
 
   const rows: string[][] = [];
@@ -91,8 +108,16 @@ const outputResults = (
     const { name } = pairs[i];
     const average = results[i].average;
     const median = results[i].median;
+    const diff = hasDiff
+      ? (results[i] as AlgorithmBenchmarkResult[number]).diff
+      : undefined;
 
-    rows.push([name, `${average.toFixed(2)}ms`, `${median.toFixed(2)}ms`]);
+    rows.push([
+      name,
+      `${average.toFixed(2)}ms`,
+      `${median.toFixed(2)}ms`,
+      diff?.toString() ?? "",
+    ]);
   }
 
   // Unshuffle rows
