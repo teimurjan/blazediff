@@ -15,10 +15,14 @@ async function runBenchmark({ variant, target, iterations }: BenchmarkArgs) {
       join(__dirname, "../fixtures"),
       "pixelmatch"
     );
+    const pageImagePairs = getImagePairs(
+      join(__dirname, "../fixtures"),
+      "page"
+    );
     const pairs =
       target === "bin"
-        ? [...fourKImagePairs]
-        : [...pixelmatchImagePairs, ...fourKImagePairs];
+        ? [...fourKImagePairs, ...pageImagePairs]
+        : [...pixelmatchImagePairs, ...fourKImagePairs, ...pageImagePairs];
 
     // Shuffle pairs
     pairs.sort(() => Math.random() - 0.5);
