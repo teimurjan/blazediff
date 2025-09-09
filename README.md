@@ -45,90 +45,106 @@ BlazeDiff is **~up-to 60% faster** than pixelmatch while maintaining the same ac
 
 ## Benchmarks
 
-### Algorithm (`@blazediff/core`)
+### Algorithm (`@blazediff/core` vs `pixelmatch`)
 
 *50 iterations (3 warmup)*
 
-```
-BlazeDiff   | █████████████████████████████████  91.90ms
-Pixelmatch  | ██████████████████████████████████████  115.09ms
-```
+> **~20%** performance boost on average.
 
 <table>
   <thead>
     <tr>
-      <th width="500">Image</th>
+      <th width="500">Benchmark</th>
       <th width="500">Pixelmatch</th>
       <th width="500">BlazeDiff</th>
-      <th width="500">Speedup</th>
+      <th width="500">Time Saved</th>
+      <th width="500">% Improvement</th>
     </tr>
   </thead>
   <tbody>
     <tr>
+      <td>4k/1</td>
+      <td>282.05ms</td>
+      <td>242.31ms</td>
+      <td>39.74ms</td>
+      <td>14.1%</td>
+    </tr>
+    <tr>
+      <td>4k/2</td>
+      <td>275.85ms</td>
+      <td>241.57ms</td>
+      <td>34.28ms</td>
+      <td>12.4%</td>
+    </tr>
+    <tr>
+      <td>4k/3</td>
+      <td>348.24ms</td>
+      <td>299.91ms</td>
+      <td>48.33ms</td>
+      <td>13.9%</td>
+    </tr>
+    <tr>
+      <td>page/1</td>
+      <td>191.12ms</td>
+      <td>94.40ms</td>
+      <td>96.72ms</td>
+      <td>50.6%</td>
+    </tr>
+    <tr>
+      <td>page/2</td>
+      <td>361.73ms</td>
+      <td>332.45ms</td>
+      <td>29.28ms</td>
+      <td>8.1%</td>
+    </tr>
+    <tr>
       <td>pixelmatch/1</td>
       <td>0.60ms</td>
-      <td>0.43ms</td>
-      <td>28.78%</td>
+      <td>0.40ms</td>
+      <td>0.20ms</td>
+      <td>33.3%</td>
     </tr>
     <tr>
       <td>pixelmatch/2</td>
       <td>2.03ms</td>
-      <td>1.90ms</td>
-      <td>6.26%</td>
+      <td>1.92ms</td>
+      <td>0.11ms</td>
+      <td>5.4%</td>
     </tr>
     <tr>
       <td>pixelmatch/3</td>
       <td>0.48ms</td>
-      <td>0.26ms</td>
-      <td>46.20%</td>
+      <td>0.25ms</td>
+      <td>0.23ms</td>
+      <td>47.9%</td>
     </tr>
     <tr>
       <td>pixelmatch/4</td>
-      <td>3.89ms</td>
-      <td>3.53ms</td>
-      <td>9.32%</td>
+      <td>3.86ms</td>
+      <td>3.52ms</td>
+      <td>0.34ms</td>
+      <td>8.8%</td>
     </tr>
     <tr>
       <td>pixelmatch/5</td>
-      <td>0.26ms</td>
-      <td>0.12ms</td>
-      <td>52.46%</td>
+      <td>0.27ms</td>
+      <td>0.18ms</td>
+      <td>0.09ms</td>
+      <td>33.3%</td>
     </tr>
     <tr>
       <td>pixelmatch/6</td>
       <td>0.81ms</td>
-      <td>0.72ms</td>
-      <td>10.77%</td>
+      <td>0.74ms</td>
+      <td>0.07ms</td>
+      <td>8.6%</td>
     </tr>
     <tr>
       <td>pixelmatch/7</td>
-      <td>1.44ms</td>
-      <td>1.09ms</td>
-      <td>24.37%</td>
-    </tr>
-    <tr>
-      <td>4k/1</td>
-      <td>260.94ms</td>
-      <td>232.88ms</td>
-      <td>10.75%</td>
-    </tr>
-    <tr>
-      <td>4k/2</td>
-      <td>262.93ms</td>
-      <td>233.82ms</td>
-      <td>11.07%</td>
-    </tr>
-    <tr>
-      <td>4k/3</td>
-      <td>329.71ms</td>
-      <td>291.73ms</td>
-      <td>11.52%</td>
-    </tr>
-    <tr>
-      <td><strong>AVERAGE</strong></td>
-      <td><strong>86.31ms</strong></td>
-      <td><strong>76.65ms</strong></td>
-      <td><strong>24.20%</strong></td>
+      <td>1.38ms</td>
+      <td>1.04ms</td>
+      <td>0.34ms</td>
+      <td>24.6%</td>
     </tr>
   </tbody>
 </table>
@@ -139,44 +155,53 @@ Pixelmatch  | ██████████████████████
 
 *50 iterations (3 warmup)*
 
-```
-BlazeDiff   | █████████████  418.32ms
-Pixelmatch  | ████████████████████████████████████████████████████████████████  2155.48ms
-```
+> **~80%** performance boost on average.
 
 <table>
   <thead>
     <tr>
-      <th width="500">Image</th>
-      <th width="500">BlazeDiff</th>
+      <th width="500">Benchmark</th>
       <th width="500">Pixelmatch</th>
-      <th width="500">Speedup</th>
+      <th width="500">BlazeDiff</th>
+      <th width="500">Time Saved</th>
+      <th width="500">% Improvement</th>
     </tr>
   </thead>
   <tbody>
     <tr>
       <td>4k/1</td>
-      <td>415.26ms</td>
-      <td>1923.01ms</td>
-      <td>78.41%</td>
+      <td>1659.10ms</td>
+      <td>863.63ms</td>
+      <td>795.47ms</td>
+      <td>47.9%</td>
     </tr>
     <tr>
       <td>4k/2</td>
-      <td>422.32ms</td>
-      <td>2173.85ms</td>
-      <td>80.57%</td>
+      <td>1853.29ms</td>
+      <td>960.11ms</td>
+      <td>893.18ms</td>
+      <td>48.2%</td>
     </tr>
     <tr>
       <td>4k/3</td>
-      <td>417.37ms</td>
-      <td>2369.58ms</td>
-      <td>82.39%</td>
+      <td>2029.28ms</td>
+      <td>1003.78ms</td>
+      <td>1025.50ms</td>
+      <td>50.5%</td>
     </tr>
     <tr>
-      <td><strong>AVERAGE</strong></td>
-      <td><strong>418.32ms</strong></td>
-      <td><strong>2155.48ms</strong></td>
-      <td><strong>80.45%</strong></td>
+      <td>page/1</td>
+      <td>2328.74ms</td>
+      <td>818.71ms</td>
+      <td>1510.03ms</td>
+      <td>64.8%</td>
+    </tr>
+    <tr>
+      <td>page/2</td>
+      <td>1833.51ms</td>
+      <td>913.13ms</td>
+      <td>920.38ms</td>
+      <td>50.2%</td>
     </tr>
   </tbody>
 </table>

@@ -33,7 +33,6 @@
     "@blazediff/types": "workspace:*",
     "@blazediff/wasm": "workspace:*",
     "@types/node": "^24.3.0",
-    "cli-table3": "^0.6.5",
     "pixelmatch": "^7.1.0",
     "pngjs": "^7.0.0",
     "tsup": "^8.5.0",

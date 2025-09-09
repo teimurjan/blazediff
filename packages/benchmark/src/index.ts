@@ -1,14 +1,21 @@
 #!/usr/bin/env node
 
 import { join } from "path";
-import Table from "cli-table3";
-import { getImagePairs, loadImagePairs, parseBenchmarkArgs } from "./utils";
-import { ImagePair } from "./types";
-import { AlgorithmBenchmarkResult } from "./algorithm/types";
-import { BinaryBenchmarkResult } from "./binary/types";
+import {
+  getImagePairs,
+  loadImagePairs,
+  outputResults,
+  parseBenchmarkArgs,
+} from "./utils";
 import { BenchmarkArgs } from "./types";
 
-async function runBenchmark({ variant, target, iterations }: BenchmarkArgs) {
+async function runBenchmark({
+  variant,
+  target,
+  iterations,
+  format,
+  output,
+}: BenchmarkArgs) {
   try {
     const fourKImagePairs = getImagePairs(join(__dirname, "../fixtures"), "4k");
     const pixelmatchImagePairs = getImagePairs(
@@ -41,7 +48,7 @@ async function runBenchmark({ variant, target, iterations }: BenchmarkArgs) {
           iterations,
           warmup,
         });
-        outputResults(pairs, results);
+        outputResults(pairs, results, format, output);
       } else if (target === "pixelmatch") {
         const { pixlematchAlgorithmBenchmark } = await import(
           "./algorithm/pixlematch"
@@ -51,7 +58,7 @@ async function runBenchmark({ variant, target, iterations }: BenchmarkArgs) {
           iterations,
           warmup,
         });
-        outputResults(pairs, results);
+        outputResults(pairs, results, format, output);
       }
     } else if (variant === "binary") {
       if (target === "blazediff") {
@@ -61,7 +68,7 @@ async function runBenchmark({ variant, target, iterations }: BenchmarkArgs) {
           iterations,
           warmup,
         });
-        outputResults(pairs, results);
+        outputResults(pairs, results, format, output);
       } else if (target === "pixelmatch") {
         const { pixlematchBinaryBenchmark } = await import(
           "./binary/pixelmatch"
@@ -71,7 +78,7 @@ async function runBenchmark({ variant, target, iterations }: BenchmarkArgs) {
           iterations,
           warmup,
         });
-        outputResults(pairs, results);
+        outputResults(pairs, results, format, output);
       }
     } else if (variant === "wasm") {
       const pairsLoaded = await loadImagePairs(pairs);
@@ -83,7 +90,7 @@ async function runBenchmark({ variant, target, iterations }: BenchmarkArgs) {
           iterations,
           warmup,
         });
-        outputResults(pairs, results);
+        outputResults(pairs, results, format, output);
       }
     }
   } catch (error) {
@@ -92,59 +99,10 @@ async function runBenchmark({ variant, target, iterations }: BenchmarkArgs) {
   }
 }
 
-const outputResults = (
-  pairs: ImagePair[],
-  results: AlgorithmBenchmarkResult | BinaryBenchmarkResult
-) => {
-  const hasDiff = results.some((result) => "diff" in result);
-  const head = hasDiff
-    ? ["Benchmark", "Average", "Median", "Diff"]
-    : ["Benchmark", "Average", "Median"];
-  const colWidths = hasDiff ? [15, 25, 25, 25] : [15, 25, 25];
-  const table = new Table({
-    head,
-    colWidths,
-  });
-
-  const rows: string[][] = [];
-
-  for (let i = 0; i < pairs.length; i++) {
-    const { name } = pairs[i];
-    const average = results[i].average;
-    const median = results[i].median;
-    const diff = hasDiff
-      ? (results[i] as AlgorithmBenchmarkResult[number]).diff
-      : undefined;
-
-    rows.push([
-      name,
-      `${average.toFixed(2)}ms`,
-      `${median.toFixed(2)}ms`,
-      diff?.toString() ?? "",
-    ]);
-  }
-
-  // Unshuffle rows
-  rows.sort((a, b) => a[0].localeCompare(b[0]));
-
-  table.push(...rows);
-
-  console.log(table.toString());
-};
-
 async function main() {
-  const { iterations, target, variant } = parseBenchmarkArgs();
+  const { iterations, target, variant, format, output } = parseBenchmarkArgs();
 
-  const lines = [
-    `🚀 Running ${target} ${variant} benchmark`,
-    ` - ${iterations} iteration${iterations > 1 ? "s" : ""} per image`,
-    ` - Variant: ${variant}, Target: ${target}`,
-  ];
-  console.log(lines.join("\n"));
-
-  await runBenchmark({ target, variant, iterations });
-
-  console.log("\n");
+  await runBenchmark({ target, variant, iterations, format, output });
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
