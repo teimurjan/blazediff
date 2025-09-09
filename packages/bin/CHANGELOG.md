@@ -1,5 +1,15 @@
 # @blazediff/bin
 
+## 0.7.1
+
+### Patch Changes
+
+- Updated dependencies [f61a7ca]
+  - @blazediff/core@0.7.1
+  - @blazediff/types@0.7.1
+  - @blazediff/pngjs-transformer@0.7.1
+  - @blazediff/sharp-transformer@0.7.1
+
 ## 0.7.0
 
 ### Minor Changes
