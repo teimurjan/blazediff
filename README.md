@@ -49,7 +49,7 @@ BlazeDiff is **~up-to 60% faster** than pixelmatch while maintaining the same ac
 
 *50 iterations (3 warmup)*
 
-> **~20%** performance boost on average.
+> **~20%** performance improvement on average.
 
 <table>
   <thead>
@@ -155,7 +155,7 @@ BlazeDiff is **~up-to 60% faster** than pixelmatch while maintaining the same ac
 
 *50 iterations (3 warmup)*
 
-> **~80%** performance boost on average.
+> **~50%** performance improvement on average.
 
 <table>
   <thead>
