@@ -3,7 +3,7 @@ import { safeExecSync } from "../utils";
 
 const pixelmatch = (a: string, b: string) => {
   const bin = "pnpm --filter @blazediff/benchmark exec pixelmatch";
-  safeExecSync(`${bin} ${a} ${b} --transformer sharp`);
+  safeExecSync(`${bin} ${a} ${b}`);
 };
 
 export function pixlematchBinaryBenchmark({

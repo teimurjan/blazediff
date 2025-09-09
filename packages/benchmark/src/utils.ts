@@ -1,12 +1,14 @@
 import { execSync } from "child_process";
-import { readdirSync } from "fs";
+import { readdirSync, writeFileSync } from "fs";
 import { join } from "path";
 import { BenchmarkArgs, ImagePair, ImagePairLoaded } from "./types";
 import transformer from "@blazediff/pngjs-transformer";
+import { AlgorithmBenchmarkResult } from "./algorithm/types";
+import { BinaryBenchmarkResult } from "./binary/types";
 
 export async function safeExecSync(command: string): Promise<string> {
   try {
-    const stdout = execSync(command).toString();
+    const stdout = execSync(command.trim()).toString();
     return stdout;
   } catch (error: any) {
     if (!error.stdout) {
@@ -86,6 +88,98 @@ export function parseBenchmarkArgs(): BenchmarkArgs {
   const variant =
     args.find((arg) => arg.startsWith("--variant="))?.split("=")[1] ??
     "algorithm";
+  const format = (args
+    .find((arg) => arg.startsWith("--format="))
+    ?.split("=")[1] ?? "markdown") as "markdown" | "json" | undefined;
+  const output =
+    args.find((arg) => arg.startsWith("--output="))?.split("=")[1] ?? "console";
 
-  return { iterations, target, variant };
+  return { iterations, target, variant, format, output };
 }
+
+const getOutput = (
+  pairs: ImagePair[],
+  results: AlgorithmBenchmarkResult | BinaryBenchmarkResult,
+  format: "markdown" | "json" = "markdown"
+) => {
+  const hasDiff = results.some((result) => "diff" in result);
+  const head = hasDiff
+    ? ["Benchmark", "Average", "Median", "Diff"]
+    : ["Benchmark", "Average", "Median"];
+
+  const markdownRows: string[][] = [];
+  const jsonRows: Array<Record<string, any>> = [];
+
+  for (let i = 0; i < pairs.length; i++) {
+    const { name } = pairs[i];
+    const average = results[i].average;
+    const median = results[i].median;
+    const diff = hasDiff
+      ? (results[i] as AlgorithmBenchmarkResult[number]).diff
+      : undefined;
+
+    markdownRows.push([
+      name,
+      `${average.toFixed(2)}ms`,
+      `${median.toFixed(2)}ms`,
+      ...(diff ? [diff.toString()] : []),
+    ]);
+    jsonRows.push({
+      name,
+      average,
+      median,
+      ...(hasDiff ? { diff } : {}),
+    });
+  }
+
+  // Unshuffle rows
+  markdownRows.sort((a, b) => a[0].localeCompare(b[0]));
+  jsonRows.sort((a, b) => a.name.localeCompare(b.name));
+
+  if (format === "json") {
+    return JSON.stringify(jsonRows, null, 2);
+  }
+
+  // Compute column widths for nice padding in Markdown/plaintext
+  const columnCount = head.length;
+  const columnWidths: number[] = new Array(columnCount).fill(0);
+  for (let c = 0; c < columnCount; c++) {
+    let maxWidth = head[c].length;
+    for (let r = 0; r < markdownRows.length; r++) {
+      const cell = markdownRows[r][c] ?? "";
+      if (cell.length > maxWidth) maxWidth = cell.length;
+    }
+    columnWidths[c] = maxWidth;
+  }
+
+  const padCell = (value: string, colIdx: number) => {
+    const cell = value ?? "";
+    const padding = columnWidths[colIdx] - cell.length;
+    return cell + (padding > 0 ? " ".repeat(padding) : "");
+  };
+
+  // Render Markdown table with padded cells
+  const headerLine = `| ${head.map((h, i) => padCell(h, i)).join(" | ")} |`;
+  const separatorLine = `| ${columnWidths
+    .map((w) => (w < 3 ? "-".repeat(3) : "-".repeat(w)))
+    .join(" | ")} |`;
+  const rowLines = markdownRows.map(
+    (r) => `| ${r.map((cell, i) => padCell(cell, i)).join(" | ")} |`
+  );
+  const markdownTable = [headerLine, separatorLine, ...rowLines].join("\n");
+
+  return markdownTable;
+};
+
+export const outputResults = (
+  pairs: ImagePair[],
+  results: AlgorithmBenchmarkResult | BinaryBenchmarkResult,
+  format: "markdown" | "json" = "markdown",
+  output: string = "console"
+) => {
+  if (output === "console") {
+    console.log(getOutput(pairs, results, format));
+  } else {
+    writeFileSync(join(process.cwd(), output), getOutput(pairs, results, format));
+  }
+};

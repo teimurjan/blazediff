@@ -16,4 +16,6 @@ export type BenchmarkArgs = {
   iterations: number;
   target: string;
   variant: string;
+  format?: "markdown" | "json";
+  output?: string;
 };
