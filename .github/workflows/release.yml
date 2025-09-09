@@ -29,6 +29,12 @@ jobs:
         with:
           node-version-file: '.node-version'
           cache: 'pnpm'
+      
+      - name: Setup Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+      
+      - name: Setup wasm-pack
+        run: cargo install wasm-pack
 
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
