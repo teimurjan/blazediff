@@ -59,6 +59,22 @@ async function runBenchmark({
           warmup,
         });
         outputResults(pairs, results, format, output);
+      } else if (target === "sad") {
+        const { sadAlgorithmBenchmark } = await import("./algorithm/sad");
+        const results = sadAlgorithmBenchmark({
+          pairs: pairsLoaded,
+          iterations,
+          warmup,
+        });
+        outputResults(pairs, results, format, output);
+      } else if (target === "ssim") {
+        const { ssimAlgorithmBenchmark } = await import("./algorithm/ssim");
+        const results = ssimAlgorithmBenchmark({
+          pairs: pairsLoaded,
+          iterations,
+          warmup,
+        });
+        outputResults(pairs, results, format, output);
       }
     } else if (variant === "binary") {
       if (target === "blazediff") {

@@ -24,17 +24,22 @@
     "pixelmatch": "pnpm benchmark --target=pixelmatch --variant=algorithm",
     "blazediff:binary": "pnpm benchmark --target=blazediff --variant=binary",
     "pixelmatch:binary": "pnpm benchmark --target=pixelmatch --variant=binary",
-    "blazediff:wasm": "pnpm benchmark --target=blazediff --variant=wasm"
+    "blazediff:wasm": "pnpm benchmark --target=blazediff --variant=wasm",
+    "sad": "pnpm benchmark --target=sad --variant=algorithm",
+    "ssim": "pnpm benchmark --target=ssim --variant=algorithm"
   },
   "devDependencies": {
     "@blazediff/bin": "workspace:*",
+    "@blazediff/sad-bin": "workspace:*",
     "@blazediff/core": "workspace:*",
     "@blazediff/pngjs-transformer": "workspace:*",
+    "@blazediff/sad": "workspace:*",
     "@blazediff/types": "workspace:*",
     "@blazediff/wasm": "workspace:*",
     "@types/node": "^24.3.0",
     "pixelmatch": "^7.1.0",
     "pngjs": "^7.0.0",
+    "ssim.js": "^3.5.0",
     "tsup": "^8.5.0",
     "typescript": "^5.9.2"
   }

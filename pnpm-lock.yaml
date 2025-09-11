@@ -26,6 +26,12 @@ importers:
       '@blazediff/pngjs-transformer':
         specifier: workspace:*
         version: link:../pngjs-transformer
+      '@blazediff/sad':
+        specifier: workspace:*
+        version: link:../sad
+      '@blazediff/sad-bin':
+        specifier: workspace:*
+        version: link:../sad-bin
       '@blazediff/types':
         specifier: workspace:*
         version: link:../types
@@ -41,6 +47,9 @@ importers:
       pngjs:
         specifier: ^7.0.0
         version: 7.0.0
+      ssim.js:
+        specifier: ^3.5.0
+        version: 3.5.0
       tsup:
         specifier: ^8.5.0
         version: 8.5.0(postcss@8.5.6)(typescript@5.9.2)
@@ -104,6 +113,47 @@ importers:
       '@types/pngjs':
         specifier: 6.0.5
         version: 6.0.5
+      tsup:
+        specifier: 8.5.0
+        version: 8.5.0(postcss@8.5.6)(typescript@5.9.2)
+      typescript:
+        specifier: 5.9.2
+        version: 5.9.2
+
+  packages/sad:
+    dependencies:
+      '@blazediff/types':
+        specifier: workspace:*
+        version: link:../types
+    devDependencies:
+      '@types/node':
+        specifier: ^24.3.0
+        version: 24.3.0
+      tsup:
+        specifier: 8.5.0
+        version: 8.5.0(postcss@8.5.6)(typescript@5.9.2)
+      typescript:
+        specifier: 5.9.2
+        version: 5.9.2
+
+  packages/sad-bin:
+    dependencies:
+      '@blazediff/pngjs-transformer':
+        specifier: workspace:*
+        version: link:../pngjs-transformer
+      '@blazediff/sad':
+        specifier: workspace:*
+        version: link:../sad
+      '@blazediff/sharp-transformer':
+        specifier: workspace:*
+        version: link:../sharp-transformer
+      '@blazediff/types':
+        specifier: workspace:*
+        version: link:../types
+    devDependencies:
+      '@types/node':
+        specifier: ^24.3.0
+        version: 24.3.0
       tsup:
         specifier: 8.5.0
         version: 8.5.0(postcss@8.5.6)(typescript@5.9.2)
@@ -1281,6 +1331,9 @@ packages:
   sprintf-js@1.0.3:
     resolution: {integrity: sha512-D9cPgkvLlV3t3IzL0D0YLvGA9Ahk4PcvVwUbN0dSGr1aP0Nrt4AEnTUbuGvquEC0mA64Gqt1fzirlRs5ibXx8g==}
 
+  ssim.js@3.5.0:
+    resolution: {integrity: sha512-Aj6Jl2z6oDmgYFFbQqK7fght19bXdOxY7Tj03nF+03M9gCBAjeIiO8/PlEGMfKDwYpw4q6iBqVq2YuREorGg/g==}
+
   string-width@4.2.3:
     resolution: {integrity: sha512-wKyQRQpjJ0sIp62ErSZdGsjMJWsap5oRNihHhu6G7JVO/9jIB6UyevL+tXuOqrng8j/cxKTWyWUwvSTriiZz/g==}
     engines: {node: '>=8'}
@@ -2446,6 +2499,8 @@ snapshots:
       signal-exit: 4.1.0
 
   sprintf-js@1.0.3: {}
+
+  ssim.js@3.5.0: {}
 
   string-width@4.2.3:
     dependencies:

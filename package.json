@@ -10,7 +10,10 @@
     "benchmark:blazediff": "pnpm --filter @blazediff/benchmark blazediff",
     "benchmark:pixelmatch": "pnpm --filter @blazediff/benchmark pixelmatch",
     "benchmark:blazediff:binary": "pnpm --filter @blazediff/benchmark blazediff:binary",
-    "benchmark:pixelmatch:binary": "pnpm --filter @blazediff/benchmark pixelmatch:binary"
+    "benchmark:pixelmatch:binary": "pnpm --filter @blazediff/benchmark pixelmatch:binary",
+    "benchmark:blazediff:wasm": "pnpm --filter @blazediff/benchmark blazediff:wasm",
+    "benchmark:sad": "pnpm --filter @blazediff/benchmark sad",
+    "benchmark:ssim": "pnpm --filter @blazediff/benchmark ssim"
   },
   "keywords": [],
   "author": "Teimur Gasanov <me@teimurjan.dev> (https://github.com/teimurjan)",
