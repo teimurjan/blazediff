@@ -1,5 +1,16 @@
 # @blazediff/bin
 
+## 0.7.2
+
+### Patch Changes
+
+- df3029a: Update READMEs on NPM
+- Updated dependencies [df3029a]
+  - @blazediff/core@0.7.2
+  - @blazediff/pngjs-transformer@0.7.2
+  - @blazediff/sharp-transformer@0.7.2
+  - @blazediff/types@0.7.2
+
 ## 0.7.1
 
 ### Patch Changes

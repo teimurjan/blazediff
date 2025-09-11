@@ -1,5 +1,11 @@
 # @blazediff/types
 
+## 0.7.2
+
+### Patch Changes
+
+- df3029a: Update READMEs on NPM
+
 ## 0.7.1
 
 ## 0.7.0
