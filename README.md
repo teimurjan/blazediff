@@ -1,4 +1,4 @@
-\# BlazeDiff
+# BlazeDiff
 
 <div align="center">
 
