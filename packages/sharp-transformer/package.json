@@ -1,45 +1,45 @@
 {
-  "name": "@blazediff/sharp-transformer",
-  "version": "0.7.2",
-  "description": "Image transformer using Sharp for the blazediff library",
-  "private": false,
-  "publishConfig": {
-    "access": "public"
-  },
-  "main": "dist/index.js",
-  "module": "dist/index.mjs",
-  "types": "dist/index.d.ts",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.js"
-    }
-  },
-  "files": [
-    "dist"
-  ],
-  "scripts": {
-    "build": "tsup",
-    "dev": "tsup --watch",
-    "clean": "rm -rf dist"
-  },
-  "keywords": [
-    "image",
-    "transformer",
-    "sharp"
-  ],
-  "author": "Teimur Gasanov <me@teimurjan.dev> (https://github.com/teimurjan)",
-  "repository": "https://github.com/teimurjan/blazediff",
-  "homepage": "https://github.com/teimurjan/blazediff",
-  "license": "MIT",
-  "dependencies": {
-    "sharp": "^0.34.3",
-    "@blazediff/types": "workspace:*"
-  },
-  "devDependencies": {
-    "@types/sharp": "^0.32.0",
-    "tsup": "8.5.0",
-    "typescript": "5.9.2"
-  }
+	"name": "@blazediff/sharp-transformer",
+	"version": "0.7.2",
+	"description": "Image transformer using Sharp for the blazediff library",
+	"private": false,
+	"publishConfig": {
+		"access": "public"
+	},
+	"main": "dist/index.js",
+	"module": "dist/index.mjs",
+	"types": "dist/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.mjs",
+			"require": "./dist/index.js"
+		}
+	},
+	"files": [
+		"dist"
+	],
+	"scripts": {
+		"build": "tsup",
+		"dev": "tsup --watch",
+		"clean": "rm -rf dist"
+	},
+	"keywords": [
+		"image",
+		"transformer",
+		"sharp"
+	],
+	"author": "Teimur Gasanov <me@teimurjan.dev> (https://github.com/teimurjan)",
+	"repository": "https://github.com/teimurjan/blazediff",
+	"homepage": "https://github.com/teimurjan/blazediff",
+	"license": "MIT",
+	"dependencies": {
+		"sharp": "^0.34.3",
+		"@blazediff/types": "workspace:*"
+	},
+	"devDependencies": {
+		"@types/sharp": "^0.32.0",
+		"tsup": "8.5.0",
+		"typescript": "5.9.2"
+	}
 }

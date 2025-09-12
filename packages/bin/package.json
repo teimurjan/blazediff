@@ -1,55 +1,55 @@
 {
-  "name": "@blazediff/bin",
-  "version": "0.7.2",
-  "description": "Command-line interface for the blazediff image comparison library",
-  "private": false,
-  "publishConfig": {
-    "access": "public"
-  },
-  "main": "dist/index.js",
-  "module": "dist/index.mjs",
-  "types": "dist/index.d.ts",
-  "bin": {
-    "blazediff": "./dist/cli.js"
-  },
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.js"
-    },
-    "./cli": {
-      "import": "./dist/cli.mjs",
-      "require": "./dist/cli.js"
-    }
-  },
-  "files": [
-    "dist"
-  ],
-  "scripts": {
-    "build": "tsup",
-    "dev": "tsup --watch",
-    "clean": "rm -rf dist"
-  },
-  "keywords": [
-    "cli",
-    "image",
-    "comparison",
-    "diff"
-  ],
-  "author": "Teimur Gasanov <me@teimurjan.dev> (https://github.com/teimurjan)",
-  "repository": "https://github.com/teimurjan/blazediff",
-  "homepage": "https://github.com/teimurjan/blazediff",
-  "license": "MIT",
-  "dependencies": {
-    "@blazediff/core": "workspace:*",
-    "@blazediff/pngjs-transformer": "workspace:*",
-    "@blazediff/sharp-transformer": "workspace:*",
-    "@blazediff/types": "workspace:*"
-  },
-  "devDependencies": {
-    "@types/node": "^24.3.0",
-    "tsup": "8.5.0",
-    "typescript": "5.9.2"
-  }
+	"name": "@blazediff/bin",
+	"version": "0.7.2",
+	"description": "Command-line interface for the blazediff image comparison library",
+	"private": false,
+	"publishConfig": {
+		"access": "public"
+	},
+	"main": "dist/index.js",
+	"module": "dist/index.mjs",
+	"types": "dist/index.d.ts",
+	"bin": {
+		"blazediff": "./dist/cli.js"
+	},
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.mjs",
+			"require": "./dist/index.js"
+		},
+		"./cli": {
+			"import": "./dist/cli.mjs",
+			"require": "./dist/cli.js"
+		}
+	},
+	"files": [
+		"dist"
+	],
+	"scripts": {
+		"build": "tsup",
+		"dev": "tsup --watch",
+		"clean": "rm -rf dist"
+	},
+	"keywords": [
+		"cli",
+		"image",
+		"comparison",
+		"diff"
+	],
+	"author": "Teimur Gasanov <me@teimurjan.dev> (https://github.com/teimurjan)",
+	"repository": "https://github.com/teimurjan/blazediff",
+	"homepage": "https://github.com/teimurjan/blazediff",
+	"license": "MIT",
+	"dependencies": {
+		"@blazediff/core": "workspace:*",
+		"@blazediff/pngjs-transformer": "workspace:*",
+		"@blazediff/sharp-transformer": "workspace:*",
+		"@blazediff/types": "workspace:*"
+	},
+	"devDependencies": {
+		"@types/node": "^24.3.0",
+		"tsup": "8.5.0",
+		"typescript": "5.9.2"
+	}
 }
