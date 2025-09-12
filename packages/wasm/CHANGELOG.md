@@ -1,5 +1,12 @@
 # @blazediff/wasm
 
+## 1.0.0
+
+### Patch Changes
+
+- Updated dependencies [ba6eb13]
+  - @blazediff/types@1.0.0
+
 ## 0.7.2
 
 ### Patch Changes
