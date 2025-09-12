@@ -1,58 +1,55 @@
-import sharp from "sharp";
 import type { BlazeDiffImage, BlazeDiffTransformer } from "@blazediff/types";
+import sharp from "sharp";
 
-async function transform(filePath: string): Promise<BlazeDiffImage> {
-  try {
-    let image = sharp(filePath);
-    const metadata = await image.metadata();
+async function transform(
+	input: string | Buffer<ArrayBuffer>,
+): Promise<BlazeDiffImage> {
+	try {
+		const image = await sharp(input)
+			.ensureAlpha()
+			.raw()
+			.toBuffer({ resolveWithObject: true });
 
-    if (!metadata.width || !metadata.height) {
-      throw new Error(`Invalid image dimensions: ${filePath}`);
-    }
+		if (!image.info.width || !image.info.height) {
+			throw new Error(`Invalid image dimensions: ${input}`);
+		}
 
-    if (metadata.channels !== 4) {
-      image = image.joinChannel(
-        Buffer.alloc(metadata.width * metadata.height, 255),
-        {
-          raw: {
-            width: metadata.width,
-            height: metadata.height,
-            channels: 1,
-          },
-        }
-      );
-    }
-
-    const rawBuffer = await image.raw().toBuffer({ resolveWithObject: true });
-    return {
-      data: rawBuffer.data,
-      width: metadata.width,
-      height: metadata.height,
-    };
-  } catch (error) {
-    throw new Error(`Failed to transform image file ${filePath}: ${error}`);
-  }
+		return {
+			data: image.data,
+			width: image.info.width,
+			height: image.info.height,
+		};
+	} catch (error) {
+		throw new Error(`Failed to transform image file ${input}: ${error}`);
+	}
 }
 
-async function write(image: BlazeDiffImage, filePath: string): Promise<void> {
-  try {
-    const sharpImage = sharp(image.data, {
-      raw: {
-        width: image.width,
-        height: image.height,
-        channels: 4,
-      },
-    });
+async function write(
+	image: BlazeDiffImage,
+	output: string | Buffer<ArrayBuffer>,
+): Promise<void> {
+	try {
+		const sharpImage = sharp(image.data, {
+			raw: {
+				width: image.width,
+				height: image.height,
+				channels: 4,
+			},
+		});
 
-    await sharpImage.png().toFile(filePath);
-  } catch (error) {
-    throw new Error(`Failed to write image file ${filePath}: ${error}`);
-  }
+		if (typeof output === "string") {
+			await sharpImage.png().toFile(output);
+		} else {
+			output.set(await sharpImage.png().toBuffer());
+		}
+	} catch (error) {
+		throw new Error(`Failed to write image file ${output}: ${error}`);
+	}
 }
 
 const transformer: BlazeDiffTransformer = {
-  transform,
-  write,
+	transform,
+	write,
 };
 
 export default transformer;

@@ -1,25 +1,32 @@
 {
-  "name": "@blazediff/root",
-  "version": "0.0.1",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "build": "pnpm -r build",
-    "changeset": "changeset",
-    "release": "changeset publish",
-    "benchmark:blazediff": "pnpm --filter @blazediff/benchmark blazediff",
-    "benchmark:pixelmatch": "pnpm --filter @blazediff/benchmark pixelmatch",
-    "benchmark:blazediff:binary": "pnpm --filter @blazediff/benchmark blazediff:binary",
-    "benchmark:pixelmatch:binary": "pnpm --filter @blazediff/benchmark pixelmatch:binary"
-  },
-  "keywords": [],
-  "author": "Teimur Gasanov <me@teimurjan.dev> (https://github.com/teimurjan)",
-  "repository": "https://github.com/teimurjan/blazediff",
-  "homepage": "https://github.com/teimurjan/blazediff",
-  "license": "MIT",
-  "packageManager": "pnpm@10.8.1",
-  "devDependencies": {
-    "@changesets/changelog-git": "^0.2.1",
-    "@changesets/cli": "^2.29.6"
-  }
+	"name": "@blazediff/root",
+	"version": "0.0.1",
+	"description": "",
+	"main": "index.js",
+	"scripts": {
+		"build": "pnpm -r build",
+		"changeset": "changeset",
+		"release": "changeset publish",
+		"benchmark:blazediff": "pnpm --filter @blazediff/benchmark blazediff",
+		"benchmark:pixelmatch": "pnpm --filter @blazediff/benchmark pixelmatch",
+		"benchmark:blazediff:binary": "pnpm --filter @blazediff/benchmark blazediff:binary",
+		"benchmark:pixelmatch:binary": "pnpm --filter @blazediff/benchmark pixelmatch:binary",
+		"format": "pnpm exec biome format",
+		"format:write": "pnpm exec biome format --write",
+		"check": "pnpm exec biome check",
+		"lint": "pnpm exec biome lint",
+		"lint:write": "pnpm exec biome lint --write",
+		"lint:unsafewrite": "pnpm exec biome lint --unsafe  --write"
+	},
+	"keywords": [],
+	"author": "Teimur Gasanov <me@teimurjan.dev> (https://github.com/teimurjan)",
+	"repository": "https://github.com/teimurjan/blazediff",
+	"homepage": "https://github.com/teimurjan/blazediff",
+	"license": "MIT",
+	"packageManager": "pnpm@10.8.1",
+	"devDependencies": {
+		"@biomejs/biome": "2.2.4",
+		"@changesets/changelog-git": "^0.2.1",
+		"@changesets/cli": "^2.29.6"
+	}
 }
