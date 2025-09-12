@@ -8,7 +8,8 @@
 			"@blazediff/types",
 			"@blazediff/pngjs-transformer",
 			"@blazediff/sharp-transformer",
-			"@blazediff/bin"
+			"@blazediff/bin",
+			"@blazediff/wasm"
 		]
 	],
 	"linked": [],
