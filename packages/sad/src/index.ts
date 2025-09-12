@@ -154,16 +154,10 @@ function generateDiffImage(
       const baseLuma = Math.floor((lumaA + lumaB) / 2);
 
       // Option 1: Pure red for differences
-      output[idx] = Math.min(255, baseLuma + diff * 2); // R (enhanced red)
+      output[idx] = 255; // R (enhanced red)
       output[idx + 1] = baseLuma; // G (keep some grayscale)
       output[idx + 2] = baseLuma; // B (keep some grayscale)
       output[idx + 3] = 255; // A
-
-      // Option 2: If you want pure red highlights, use this instead:
-      // output[idx] = 255;        // Pure red
-      // output[idx + 1] = 0;      // No green
-      // output[idx + 2] = 0;      // No blue
-      // output[idx + 3] = 255;    // A
     }
   }
 }
@@ -241,7 +235,7 @@ export default function sad(
   // Normalize SAD to 0-1 range
   const maxPossibleSAD = processedPixels * 255;
   const normalizedSAD = totalSAD / maxPossibleSAD;
+  const similarity = 1 - (isNaN(normalizedSAD) ? 1 : normalizedSAD);
 
-  // Final NaN check
-  return isNaN(normalizedSAD) ? 0 : normalizedSAD;
+  return similarity;
 }

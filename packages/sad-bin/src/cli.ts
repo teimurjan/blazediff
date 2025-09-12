@@ -163,9 +163,6 @@ async function main(): Promise<void> {
     console.log(`SAD computed in: ${result.duration.toFixed(2)}ms`);
     console.log(`dimensions: ${result.width}x${result.height}`);
     console.log(`SAD value: ${result.diffCount.toFixed(6)}`);
-    console.log(
-      `difference percentage: ${(result.diffCount * 100).toFixed(2)}%`
-    );
 
     if (result.diffCount > 0 && result.outputData) {
       console.log(`diff image: ${options.outputPath}`);
