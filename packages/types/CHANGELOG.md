@@ -1,5 +1,11 @@
 # @blazediff/types
 
+## 1.0.0
+
+### Major Changes
+
+- ba6eb13: Introduce fast buffer compare check for identical images
+
 ## 0.7.2
 
 ### Patch Changes

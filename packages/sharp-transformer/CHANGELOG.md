@@ -1,5 +1,16 @@
 # @blazediff/sharp-transformer
 
+## 1.0.0
+
+### Minor Changes
+
+- ba6eb13: Add Buffer support for both input and output
+
+### Patch Changes
+
+- Updated dependencies [ba6eb13]
+  - @blazediff/types@1.0.0
+
 ## 0.7.2
 
 ### Patch Changes
