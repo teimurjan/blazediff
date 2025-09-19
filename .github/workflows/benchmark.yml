@@ -43,6 +43,9 @@ jobs:
 
       - name: Run Benchmark (blazediff)
         run: pnpm benchmark:blazediff -- --format=json --output=blazediff.json
+      
+      - name: Run Benchmark (wasm)
+        run: pnpm benchmark:blazediff:wasm -- --format=json --output=blazediff_wasm.json
 
       - name: Run Benchmark (pixelmatch)
         run: pnpm benchmark:pixelmatch -- --format=json --output=pixelmatch.json
@@ -50,6 +53,10 @@ jobs:
       - name: Compare and Print Combined Markdown Table (algorithm)
         if: always()
         run: node .github/workflows/scripts/compare-and-print-algorithm.js
+
+      - name: Compare and Print Combined Markdown Table (wasm)
+        if: always()
+        run: node .github/workflows/scripts/compare-and-print-wasn.js
 
       - name: Run Benchmark (blazediff binary)
         run: pnpm benchmark:blazediff:binary -- --format=json --output=blazediff_binary.json

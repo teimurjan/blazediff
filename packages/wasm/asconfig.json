@@ -1,0 +1,28 @@
+{
+	"targets": {
+		"debug": {
+			"outFile": "build/debug.wasm",
+			"textFile": "build/debug.wat",
+			"sourceMap": true,
+			"debug": true
+		},
+		"release": {
+			"outFile": "build/release.wasm",
+			"textFile": "build/release.wat",
+			"sourceMap": false,
+			"optimizeLevel": 3,
+			"shrinkLevel": 0,
+			"converge": false,
+			"noAssert": false,
+			"enable": ["simd", "bulk-memory", "sign-extension", "nontrapping-f2i"],
+			"disable": [],
+			"exportRuntime": true,
+			"bindings": "esm"
+		}
+	},
+	"options": {
+		"enable": ["simd"],
+		"exportRuntime": true,
+		"bindings": "esm"
+	}
+}
