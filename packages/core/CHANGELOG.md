@@ -1,5 +1,15 @@
 # @blazediff/core
 
+## 1.1.0
+
+### Minor Changes
+
+- 4bab346: Ensure the output image for identical images is gray
+
+### Patch Changes
+
+- @blazediff/types@1.1.0
+
 ## 1.0.0
 
 ### Major Changes
