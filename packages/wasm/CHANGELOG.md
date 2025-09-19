@@ -1,5 +1,11 @@
 # @blazediff/wasm
 
+## 1.1.0
+
+### Minor Changes
+
+- 4bab346: Migrate to AssemblyScript
+
 ## 1.0.0
 
 ### Patch Changes

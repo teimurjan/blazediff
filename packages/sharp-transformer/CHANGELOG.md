@@ -1,5 +1,11 @@
 # @blazediff/sharp-transformer
 
+## 1.1.0
+
+### Patch Changes
+
+- @blazediff/types@1.1.0
+
 ## 1.0.0
 
 ### Minor Changes
