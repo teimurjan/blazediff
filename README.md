@@ -40,13 +40,15 @@ BlazeDiff is **1.5x faster** than pixelmatch while maintaining the same accuracy
   </tbody>
 </table>
 
-## Packages
+## Use Cases
 
 BlazeDiff is available in multiple packages to suit different use cases:
 
-- **[@blazediff/core](./packages/core#readme)** - Core JavaScript library for pixel-by-pixel image comparison
-- **[@blazediff/bin](./packages/bin#readme)** - Command-line interface for comparing images directly from the terminal
-- **[@blazediff/wasm](./packages/wasm#readme)** - WebAssembly implementation with SIMD optimization for enhanced performance
+- **[@blazediff/core](./packages/core#readme)** - Core JavaScript library for pixel-by-pixel image comparison. To use the core library in your JavaScript/TypeScript project, see the [installation and usage instructions](./packages/core#readme).
+
+- **[@blazediff/bin](./packages/bin#readme)** - Command-line interface for comparing images directly from the terminal. To use BlazeDiff from the command line, see the [CLI installation and usage guide](./packages/bin#readme).
+
+- **[@blazediff/wasm](./packages/wasm#readme)** - WebAssembly implementation with SIMD optimization for enhanced performance. To use the WASM version for maximum performance, see the [WASM package documentation](./packages/wasm#readme).
 
 
 ## Benchmarks
