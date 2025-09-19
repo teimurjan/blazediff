@@ -50,6 +50,11 @@ export default function blazediff(
 		image2 instanceof Uint8Array &&
 		Buffer.compare(image1, image2) === 0
 	) {
+		for (let i = 0; i < width * height; i++) {
+			if (output && !diffMask) {
+				drawGrayPixel(image1, i * 4, alpha, output);
+			}
+		}
 		return 0;
 	}
 

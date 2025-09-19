@@ -1,53 +1,39 @@
 {
 	"name": "@blazediff/wasm",
 	"version": "1.0.0",
-	"description": "Blazing-fast SIMD-optimized WASM implementation of BlazeDiff image comparison algorithm",
-	"private": false,
-	"publishConfig": {
-		"access": "public"
-	},
+	"description": "AssemblyScript implementation of pixelmatch with SIMD optimization",
 	"main": "dist/index.js",
-	"module": "dist/index.mjs",
+	"module": "dist/index.js",
 	"types": "dist/index.d.ts",
-	"exports": {
-		".": {
-			"types": "./dist/index.d.ts",
-			"import": "./dist/index.mjs",
-			"require": "./dist/index.js"
-		}
-	},
 	"files": [
 		"dist",
-		"pkg"
+		"build/*.js",
+		"build/*.wasm",
+		"build/*.d.ts"
 	],
 	"scripts": {
-		"build": "pnpm build:wasm && tsup",
-		"build:wasm": "wasm-pack build --target nodejs --release --out-dir pkg",
-		"build:dev": "wasm-pack build --target nodejs --dev --out-dir pkg && tsup",
-		"dev": "pnpm build:dev && tsup --watch",
-		"clean": "rm -rf dist pkg pkg-nodejs target",
-		"test": "wasm-pack test --headless --firefox"
-	},
-	"keywords": [
-		"image",
-		"comparison",
-		"diff",
-		"pixel",
-		"visual-testing",
-		"wasm",
-		"simd",
-		"rust"
-	],
-	"author": "Teimur Gasanov <me@teimurjan.dev> (https://github.com/teimurjan)",
-	"repository": "https://github.com/teimurjan/blazediff",
-	"homepage": "https://github.com/teimurjan/blazediff",
-	"license": "MIT",
-	"dependencies": {
-		"@blazediff/types": "workspace:*"
+		"build:wasm": "asc src/core.ts --target release --bindings esm --exportRuntime  --optimize",
+		"build:wasm:debug": "asc src/core.ts --target debug --bindings esm --exportRuntime",
+		"build:ts": "tsup --tsconfig ./tsconfig.build.json",
+		"build": "pnpm build:wasm && pnpm build:ts",
+		"dev": "tsup --watch",
+		"clean": "rm -rf dist"
 	},
 	"devDependencies": {
 		"@types/node": "^24.3.0",
+		"assemblyscript": "^0.28.8",
 		"tsup": "8.5.0",
 		"typescript": "5.9.2"
+	},
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js",
+			"require": "./dist/index.js"
+		},
+		"./wasm": {
+			"import": "./build/release.js",
+			"types": "./build/release.d.ts"
+		}
 	}
 }

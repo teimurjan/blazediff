@@ -1,7 +1,2 @@
-node_modules/
-dist/
-pkg/
-target/
-*.tgz
-.wasm-pack-log
-Cargo.lock
+build
+dist
