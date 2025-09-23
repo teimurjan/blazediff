@@ -36,6 +36,9 @@ jobs:
       - name: Build
         run: pnpm build
 
+      - name: Run Benchmark (pixelmatch)
+        run: pnpm benchmark:pixelmatch -- --format=json --output=pixelmatch.json
+
       - name: Run Benchmark (wasm)
         run: pnpm benchmark:blazediff:wasm -- --format=json --output=blazediff_wasm.json
 
