@@ -1,0 +1,44 @@
+name: Benchmark WASM
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "packages/benchmark"
+      - "packages/wasm"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/benchmark-wasm.yml"
+
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+
+jobs:
+  benchmark-wasm:
+    name: WASM Benchmark
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v5
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version-file: ".node-version"
+          cache: "pnpm"
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+      - name: Run Benchmark (wasm)
+        run: pnpm benchmark:blazediff:wasm -- --format=json --output=blazediff_wasm.json
+
+      - name: Compare and Print Combined Markdown Table (wasm)
+        if: always()
+        run: node .github/workflows/scripts/compare-and-print-wasn.js
