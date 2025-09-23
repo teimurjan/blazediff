@@ -37,10 +37,14 @@ export function getImagePairs(
 			pairMap.set(baseName, {});
 		}
 
+		const pair = pairMap.get(baseName);
+		if (!pair) {
+			continue;
+		}
 		if (file.endsWith("a.png")) {
-			pairMap.get(baseName)!.a = file;
+			pair.a = file;
 		} else if (file.endsWith("b.png")) {
-			pairMap.get(baseName)!.b = file;
+			pair.b = file;
 		}
 	}
 

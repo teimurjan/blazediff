@@ -1,4 +1,4 @@
-import { blazediff } from "@blazediff/wasm";
+import { blazediffSync, initWasm } from "@blazediff/wasm";
 import type { WasmBenchmarkArgs, WasmBenchmarkResult } from "./types";
 
 export async function blazediffWasmBenchmark({
@@ -8,18 +8,23 @@ export async function blazediffWasmBenchmark({
 }: WasmBenchmarkArgs): Promise<WasmBenchmarkResult> {
 	const result: WasmBenchmarkResult = [];
 
+	await initWasm();
+
 	for (const pair of pairs) {
 		const { a, b } = pair;
+
+		// Warmup
 		for (let i = 0; i < warmup; i++) {
-			await blazediff(a.data, b.data, null, a.width, a.height);
+			blazediffSync(a.data, b.data, null, a.width, a.height);
 		}
 
 		const durations: number[] = [];
 		let diffCount = 0;
 
+		// Benchmark
 		for (let i = 0; i < iterations; i++) {
 			const start = performance.now();
-			diffCount = await blazediff(a.data, b.data, null, a.width, a.height);
+			diffCount = blazediffSync(a.data, b.data, null, a.width, a.height);
 			const end = performance.now();
 			const duration = end - start;
 			durations.push(duration);

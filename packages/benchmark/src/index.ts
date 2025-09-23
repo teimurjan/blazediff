@@ -27,12 +27,20 @@ async function runBenchmark({
 		const pageImagePairs = shuffleArray(
 			getImagePairs(join(__dirname, "../fixtures"), "page"),
 		);
+		const sameImagePairs = shuffleArray(
+			getImagePairs(join(__dirname, "../fixtures"), "same"),
+		);
 
-		const pairs =
-			variant === "binary"
-				? [...fourKImagePairs, ...pageImagePairs]
-				: [...pixelmatchImagePairs, ...fourKImagePairs, ...pageImagePairs];
+		const binaryPairs = [...fourKImagePairs, ...pageImagePairs];
+		const algorithmPairs = [
+			...pixelmatchImagePairs,
+			...fourKImagePairs,
+			...pageImagePairs,
+		];
 
+		const pairs = variant === "binary" ? binaryPairs : algorithmPairs;
+
+		// Identical have equal metadata, while same pairs are visually identical
 		const identicalPairs: ImagePair[] = [];
 		for (const pair of pairs) {
 			identicalPairs.push({
@@ -41,8 +49,12 @@ async function runBenchmark({
 				name: `${pair.name} (identical)`,
 			});
 		}
-
 		pairs.push(...identicalPairs);
+
+		// Add same image pairs later to exclude them from identical pairs
+		if (variant === "algorithm") {
+			pairs.push(...sameImagePairs);
+		}
 
 		shuffleArray(pairs);
 

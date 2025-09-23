@@ -339,6 +339,10 @@ BlazeDiff is available in multiple packages to suit different use cases:
 
 [benchmark.yml](https://github.com/teimurjan/blazediff/actions/workflows/benchmark.yml)
 
+### Test Fixtures
+
+The benchmark fixtures used for testing are documented in the [fixtures README](./packages/benchmark/fixtures/README.md).
+
 ## Contributing
 
 Contributions are welcome! Please see the [Contributing Guide](CONTRIBUTING.md) for details.

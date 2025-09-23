@@ -59,14 +59,37 @@ export function blazediff(
 
       let blockIdentical = true;
 
-      // Optimized block comparison with SIMD for suitable block sizes
+      // Optimized block comparison with SIMD
       for (let y = startY; y < endY && blockIdentical; y++) {
         const rowStart = y * width + startX;
         const rowWidth = endX - startX;
         let x: i32 = 0;
 
-        // Use SIMD for processing multiple pixels at once if row is wide enough
-        if (rowWidth >= 4) {
+        // Process 8 pixels at once with two SIMD operations
+        if (rowWidth >= 8) {
+          for (; x <= rowWidth - 8; x += 8) {
+            const idx = (rowStart + x) << 2;
+
+            // Compare first 4 pixels
+            const vec1a = v128.load(img1 + idx);
+            const vec2a = v128.load(img2 + idx);
+            const cmp1 = i8x16.eq(vec1a, vec2a);
+
+            // Compare next 4 pixels
+            const vec1b = v128.load(img1 + idx + 16);
+            const vec2b = v128.load(img2 + idx + 16);
+            const cmp2 = i8x16.eq(vec1b, vec2b);
+
+            // Check if all 8 pixels are identical
+            if (!v128.all_true<i8>(cmp1) || !v128.all_true<i8>(cmp2)) {
+              blockIdentical = false;
+              break;
+            }
+          }
+        }
+
+        // Process 4 pixels at once
+        if (blockIdentical && rowWidth >= 4) {
           for (; x <= rowWidth - 4; x += 4) {
             const idx = (rowStart + x) << 2;
             const vec1 = v128.load(img1 + idx);
@@ -79,18 +102,38 @@ export function blazediff(
           }
         }
 
-        // Handle remaining pixels with scalar comparison
-        for (; x < rowWidth && blockIdentical; x++) {
+        // Handle remaining pixels with SIMD where possible (2 pixels)
+        if (blockIdentical && x <= rowWidth - 2) {
+          const idx = (rowStart + x) << 2;
+          const vec1 = v128.load64_zero(img1 + idx);
+          const vec2 = v128.load64_zero(img2 + idx);
+          const cmp = i8x16.eq(vec1, vec2);
+          if (!v128.all_true<i8>(cmp)) {
+            blockIdentical = false;
+          } else {
+            x += 2;
+          }
+        }
+
+        // Handle single remaining pixel
+        if (blockIdentical && x < rowWidth) {
           const i = rowStart + x;
           const pixel1 = load<u32>(img1 + (i << 2));
           const pixel2 = load<u32>(img2 + (i << 2));
-
           if (pixel1 !== pixel2) {
             blockIdentical = false;
-            break;
           }
+        }
+      }
 
-          if (output && !diffMask) {
+      // Draw gray pixels for identical blocks if needed
+      if (blockIdentical && output && !diffMask) {
+        // Process the entire block with SIMD for gray drawing
+        for (let y = startY; y < endY; y++) {
+          const rowStart = y * width + startX;
+          const rowWidth = endX - startX;
+          for (let x: i32 = 0; x < rowWidth; x++) {
+            const i = rowStart + x;
             drawPixelGray(img1, i << 2, alpha, output);
           }
         }
