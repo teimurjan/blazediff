@@ -30,22 +30,6 @@ jobs:
           node-version-file: ".node-version"
           cache: "pnpm"
 
-      - name: Setup Rust toolchain
-        uses: actions-rust-lang/setup-rust-toolchain@v1
-
-      - name: Setup wasm-pack
-        run: cargo install wasm-pack
-
-      - name: Install wasm-tools
-        run: cargo install wasm-tools
-
-      - name: Install binaryen (wasm-opt)
-        run: |
-          wget https://github.com/WebAssembly/binaryen/releases/latest/download/binaryen-version_124-x86_64-linux.tar.gz
-          tar -xzf binaryen-version_124-x86_64-linux.tar.gz
-          sudo cp binaryen-version_124/bin/* /usr/local/bin/
-          wasm-opt --version
-
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
 

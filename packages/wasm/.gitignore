@@ -1,5 +1,0 @@
-target/
-pkg/
-dist/
-Cargo.lock
-node_modules/
