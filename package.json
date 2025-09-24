@@ -11,7 +11,6 @@
 		"benchmark:pixelmatch": "pnpm --filter @blazediff/benchmark pixelmatch",
 		"benchmark:blazediff:binary": "pnpm --filter @blazediff/benchmark blazediff:binary",
 		"benchmark:pixelmatch:binary": "pnpm --filter @blazediff/benchmark pixelmatch:binary",
-		"benchmark:blazediff:wasm": "pnpm --filter @blazediff/benchmark blazediff:wasm",
 		"format": "pnpm exec biome format",
 		"format:write": "pnpm exec biome format --write",
 		"check": "pnpm exec biome check",

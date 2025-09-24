@@ -6,7 +6,6 @@
 [![NPM Version](https://img.shields.io/npm/v/%40blazediff%2Fcore)](https://www.npmjs.com/package/@blazediff/core)
 [![Benchmark](https://github.com/teimurjan/blazediff/actions/workflows/benchmark-algorithm.yml/badge.svg)](https://github.com/teimurjan/blazediff/actions/workflows/benchmark-algorithm.yml)
 [![Binary Benchmark](https://github.com/teimurjan/blazediff/actions/workflows/benchmark-binary.yml/badge.svg)](https://github.com/teimurjan/blazediff/actions/workflows/benchmark-binary.yml)
-[![Binary WASM](https://github.com/teimurjan/blazediff/actions/workflows/benchmark-wasm.yml/badge.svg)](https://github.com/teimurjan/blazediff/actions/workflows/benchmark-wasm.yml)
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/teimurjan/blazediff)
 
 </div>
@@ -50,9 +49,6 @@ BlazeDiff is available in multiple packages to suit different use cases:
 - **[@blazediff/core](./packages/core#readme)** - Core JavaScript library for pixel-by-pixel image comparison. To use the core library in your JavaScript/TypeScript project, see the [installation and usage instructions](./packages/core#readme).
 
 - **[@blazediff/bin](./packages/bin#readme)** - Command-line interface for comparing images directly from the terminal. To use BlazeDiff from the command line, see the [CLI installation and usage guide](./packages/bin#readme).
-
-- **[@blazediff/wasm](./packages/wasm#readme)** - WebAssembly implementation with SIMD optimization for enhanced performance. To use the WASM version for maximum performance, see the [WASM package documentation](./packages/wasm#readme).
-
 
 ## Benchmarks
 
@@ -342,7 +338,6 @@ BlazeDiff is available in multiple packages to suit different use cases:
 
 - [benchmark.yml](https://github.com/teimurjan/blazediff/actions/workflows/benchmark-algorithm.yml)
 - [benchmark-binary.yml](https://github.com/teimurjan/blazediff/actions/workflows/benchmark-binary.yml)
-- [benchmark-wasm.yml](https://github.com/teimurjan/blazediff/actions/workflows/benchmark-wasm.yml)
 
 ### Test Fixtures
 

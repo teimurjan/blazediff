@@ -104,18 +104,6 @@ async function runBenchmark({
 				});
 				outputResults(pairs, results, format, output);
 			}
-		} else if (variant === "wasm") {
-			const pairsLoaded = await loadImagePairs(pairs);
-
-			if (target === "blazediff") {
-				const { blazediffWasmBenchmark } = await import("./wasm/blazediff");
-				const results = await blazediffWasmBenchmark({
-					pairs: pairsLoaded,
-					iterations,
-					warmup,
-				});
-				outputResults(pairs, results, format, output);
-			}
 		}
 	} catch (error) {
 		console.error("❌ Benchmark failed:", error);

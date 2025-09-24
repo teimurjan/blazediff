@@ -6,8 +6,7 @@
 		"useIgnoreFile": true
 	},
 	"files": {
-		"ignoreUnknown": false,
-		"includes": ["**", "!packages/wasm/src/core/*.ts"]
+		"ignoreUnknown": false
 	},
 	"formatter": {
 		"enabled": true,
