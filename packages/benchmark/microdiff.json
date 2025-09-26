@@ -1,0 +1,50 @@
+[
+  {
+    "name": "complex object - tag addition",
+    "average": 0.0023947052478790285,
+    "median": 0.001999974250793457,
+    "diff": true
+  },
+  {
+    "name": "deep nested - timeout change",
+    "average": 0.0009096618056297302,
+    "median": 0.0008749961853027344,
+    "diff": true
+  },
+  {
+    "name": "large array - single item change",
+    "average": 0.28460208176374435,
+    "median": 0.2795419692993164,
+    "diff": true
+  },
+  {
+    "name": "large identical arrays",
+    "average": 0.05410819891691208,
+    "median": 0.05349993705749512,
+    "diff": false
+  },
+  {
+    "name": "large nested object - multiple small changes",
+    "average": 2.184832657682896,
+    "median": 2.1133750677108765,
+    "diff": true
+  },
+  {
+    "name": "nested object - theme change",
+    "average": 0.0014618625283241273,
+    "median": 0.0014170408248901367,
+    "diff": true
+  },
+  {
+    "name": "simple object - age change",
+    "average": 0.00040802315473556516,
+    "median": 0.0003339052200317383,
+    "diff": true
+  },
+  {
+    "name": "simple object - identical",
+    "average": 0.000145247483253479,
+    "median": 0.00012505054473876953,
+    "diff": false
+  }
+]

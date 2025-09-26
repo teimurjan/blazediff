@@ -1,0 +1,46 @@
+name: Benchmark Object
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "packages/object"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/benchmark-object.yml"
+
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+
+jobs:
+  benchmark-object:
+    name: Object Benchmark
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v5
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version-file: ".node-version"
+          cache: "pnpm"
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+      - name: Run Benchmark (blazediff)
+        run: pnpm benchmark:blazediff:object -- --format=json --output=blazediff.json
+
+      - name: Run Benchmark (microdiff)
+        run: pnpm benchmark:microdiff -- --format=json --output=microdiff.json
+
+      - name: Compare and Print Combined Markdown Table (object)
+        if: always()
+        run: node .github/workflows/scripts/compare-and-print-object.js

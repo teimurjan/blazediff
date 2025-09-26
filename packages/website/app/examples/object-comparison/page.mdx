@@ -1,0 +1,527 @@
+# Object Comparison
+
+Comprehensive examples demonstrating the power and flexibility of `@blazediff/object` for various use cases.
+
+## Installation
+
+```sh npm2yarn
+npm install @blazediff/object
+```
+
+## Basic Usage
+
+### Simple Object Comparison
+
+```javascript
+import diff from '@blazediff/object';
+
+// Property changes
+const changes = diff(
+  { a: 1, b: 2, c: 3 },
+  { a: 1, b: 20, d: 4 }
+);
+
+console.log(changes);
+// Output:
+// [
+//   { type: 2, path: ['b'], value: 20, oldValue: 2 },
+//   { type: 1, path: ['c'], value: undefined, oldValue: 3 },
+//   { type: 0, path: ['d'], value: 4, oldValue: undefined }
+// ]
+```
+
+### Processing Results
+
+```typescript
+import diff, { DifferenceType } from '@blazediff/object';
+
+const changes = diff(oldObj, newObj);
+
+changes.forEach((change) => {
+  const pathStr = change.path.join('.');
+
+  switch (change.type) {
+    case 0: // CREATE
+      console.log(`➕ Added ${pathStr}: ${JSON.stringify(change.value)}`);
+      break;
+    case 1: // REMOVE
+      console.log(`➖ Removed ${pathStr}: ${JSON.stringify(change.oldValue)}`);
+      break;
+    case 2: // CHANGE
+      console.log(`🔄 Changed ${pathStr}: ${JSON.stringify(change.oldValue)} → ${JSON.stringify(change.value)}`);
+      break;
+  }
+});
+```
+
+## Nested Objects
+
+### Deep Nested Changes
+
+```javascript
+// Configuration object comparison
+const oldConfig = {
+  database: {
+    host: 'localhost',
+    port: 5432,
+    ssl: {
+      enabled: false,
+      cert: null
+    }
+  },
+  cache: {
+    redis: {
+      host: 'redis-server',
+      port: 6379
+    }
+  }
+};
+
+const newConfig = {
+  database: {
+    host: 'prod-db.example.com',
+    port: 5432,
+    ssl: {
+      enabled: true,
+      cert: '/path/to/cert.pem'
+    }
+  },
+  cache: {
+    redis: {
+      host: 'redis-server',
+      port: 6379
+    }
+  }
+};
+
+const configChanges = diff(oldConfig, newConfig);
+console.log('Configuration changes:', configChanges);
+// Detects:
+// - database.host change
+// - database.ssl.enabled change
+// - database.ssl.cert change
+```
+
+### User Profile Updates
+
+```javascript
+// User profile management
+const currentProfile = {
+  user: {
+    id: 123,
+    name: 'John Doe',
+    email: 'john@example.com',
+    preferences: {
+      theme: 'dark',
+      notifications: {
+        email: true,
+        push: false,
+        sms: false
+      }
+    },
+    roles: ['user', 'editor']
+  }
+};
+
+const updatedProfile = {
+  user: {
+    id: 123,
+    name: 'John Doe',
+    email: 'john.doe@newcompany.com',
+    preferences: {
+      theme: 'light',
+      notifications: {
+        email: true,
+        push: true,
+        sms: false
+      }
+    },
+    roles: ['user', 'editor', 'admin']
+  }
+};
+
+const profileChanges = diff(currentProfile, updatedProfile);
+
+// Generate audit log
+profileChanges.forEach(change => {
+  console.log(`Profile update: ${change.path.join('.')} changed from ${JSON.stringify(change.oldValue)} to ${JSON.stringify(change.value)}`);
+});
+```
+
+## Array Operations
+
+### Array Element Changes
+
+```javascript
+// Shopping cart management
+const oldCart = {
+  items: [
+    { id: 1, name: 'Laptop', price: 999, quantity: 1 },
+    { id: 2, name: 'Mouse', price: 25, quantity: 2 },
+    { id: 3, name: 'Keyboard', price: 75, quantity: 1 }
+  ],
+  total: 1124
+};
+
+const newCart = {
+  items: [
+    { id: 1, name: 'Laptop', price: 899, quantity: 1 }, // Price changed
+    { id: 2, name: 'Mouse', price: 25, quantity: 3 },   // Quantity changed
+    { id: 3, name: 'Keyboard', price: 75, quantity: 1 },
+    { id: 4, name: 'Monitor', price: 299, quantity: 1 } // New item
+  ],
+  total: 1297
+};
+
+const cartChanges = diff(oldCart, newCart);
+console.log('Cart changes:', cartChanges);
+```
+
+### Large Array Performance
+
+```javascript
+// Large dataset comparison
+const createLargeDataset = (size, changeIndex = -1) => ({
+  users: Array.from({ length: size }, (_, i) => ({
+    id: i,
+    name: `User${i}`,
+    active: changeIndex === i ? false : true,
+    lastLogin: new Date(2024, 0, i % 30 + 1).toISOString()
+  }))
+});
+
+const dataset1 = createLargeDataset(10000);
+const dataset2 = createLargeDataset(10000, 5000); // Change user 5000
+
+console.time('Large array diff');
+const largeChanges = diff(dataset1, dataset2);
+console.timeEnd('Large array diff');
+
+console.log(`Found ${largeChanges.length} changes in 10,000 records`);
+```
+
+## Complex Data Types
+
+### Date and RegExp Handling
+
+```javascript
+// API response with mixed data types
+const oldResponse = {
+  timestamp: new Date('2024-01-01T12:00:00Z'),
+  pattern: /user-\d+/g,
+  metadata: {
+    version: '1.0.0',
+    features: ['auth', 'api']
+  }
+};
+
+const newResponse = {
+  timestamp: new Date('2024-01-02T12:00:00Z'),
+  pattern: /user-\d+/i, // Different flags
+  metadata: {
+    version: '1.1.0',
+    features: ['auth', 'api', 'webhooks']
+  }
+};
+
+const apiChanges = diff(oldResponse, newResponse);
+console.log('API response changes:', apiChanges);
+```
+
+### Mixed Object Types
+
+```javascript
+// Document with various data types
+const document = {
+  id: 'doc-123',
+  content: 'Sample content',
+  metadata: {
+    created: new Date('2024-01-01'),
+    tags: ['draft', 'important'],
+    author: {
+      name: 'John',
+      email: 'john@example.com'
+    },
+    stats: {
+      views: 0,
+      likes: 0
+    }
+  },
+  settings: {
+    public: false,
+    comments: true
+  }
+};
+
+const updatedDocument = {
+  ...document,
+  content: 'Updated content',
+  metadata: {
+    ...document.metadata,
+    tags: ['published', 'important'],
+    stats: {
+      views: 150,
+      likes: 23
+    }
+  },
+  settings: {
+    public: true,
+    comments: true
+  }
+};
+
+const docChanges = diff(document, updatedDocument);
+```
+
+## Real-World Use Cases
+
+### Data Validation
+
+```javascript
+// API response validation
+const validateApiResponse = async (endpoint, expected) => {
+  const response = await fetch(endpoint);
+  const actual = await response.json();
+
+  const differences = diff(expected, actual);
+
+  if (differences.length > 0) {
+    console.error('API validation failed:');
+    differences.forEach(diff => {
+      console.error(`  ${diff.path.join('.')}: expected ${JSON.stringify(diff.oldValue)}, got ${JSON.stringify(diff.value)}`);
+    });
+    return false;
+  }
+
+  console.log('✓ API response matches expected schema');
+  return true;
+};
+
+// Usage
+const expectedSchema = {
+  status: 'success',
+  data: {
+    users: expect.any(Array),
+    count: expect.any(Number)
+  }
+};
+
+await validateApiResponse('/api/users', expectedSchema);
+```
+
+### Configuration Management
+
+```javascript
+// Configuration drift detection
+const detectConfigDrift = (baseline, current) => {
+  const drift = diff(baseline, current);
+
+  if (drift.length === 0) {
+    console.log('✓ Configuration matches baseline');
+    return;
+  }
+
+  console.warn(`⚠ Configuration drift detected (${drift.length} changes):`);
+
+  drift.forEach(change => {
+    const severity = determineSeverity(change.path);
+    const pathStr = change.path.join('.');
+
+    switch (change.type) {
+      case 0: // CREATE
+        console.warn(`  [${severity}] Added ${pathStr}: ${JSON.stringify(change.value)}`);
+        break;
+      case 1: // REMOVE
+        console.warn(`  [${severity}] Removed ${pathStr}: ${JSON.stringify(change.oldValue)}`);
+        break;
+      case 2: // CHANGE
+        console.warn(`  [${severity}] Changed ${pathStr}: ${JSON.stringify(change.oldValue)} → ${JSON.stringify(change.value)}`);
+        break;
+    }
+  });
+};
+
+const determineSeverity = (path) => {
+  const pathStr = path.join('.');
+  if (pathStr.includes('security') || pathStr.includes('auth')) return 'HIGH';
+  if (pathStr.includes('database') || pathStr.includes('api')) return 'MEDIUM';
+  return 'LOW';
+};
+```
+
+### State Management
+
+```javascript
+// Redux state change tracking
+const trackStateChanges = (prevState, nextState, actionType) => {
+  const changes = diff(prevState, nextState);
+
+  if (changes.length > 0) {
+    console.group(`State changes for ${actionType}:`);
+
+    changes.forEach(change => {
+      const pathStr = change.path.join('.');
+      console.log(`  ${pathStr}: ${JSON.stringify(change.oldValue)} → ${JSON.stringify(change.value)}`);
+    });
+
+    console.groupEnd();
+
+    // Log to analytics
+    analytics.track('state_change', {
+      action: actionType,
+      changedPaths: changes.map(c => c.path.join('.')),
+      changeCount: changes.length
+    });
+  }
+};
+
+// Redux middleware integration
+const diffMiddleware = store => next => action => {
+  const prevState = store.getState();
+  const result = next(action);
+  const nextState = store.getState();
+
+  trackStateChanges(prevState, nextState, action.type);
+
+  return result;
+};
+```
+
+### Testing Utilities
+
+```javascript
+// Custom Jest matcher
+const toHaveChangedExactly = (received, expected) => {
+  const changes = diff(received.old, received.new);
+
+  if (changes.length !== expected.length) {
+    return {
+      pass: false,
+      message: () => `Expected ${expected.length} changes but got ${changes.length}`
+    };
+  }
+
+  for (let i = 0; i < expected.length; i++) {
+    const change = changes[i];
+    const exp = expected[i];
+
+    if (change.type !== exp.type ||
+        JSON.stringify(change.path) !== JSON.stringify(exp.path) ||
+        JSON.stringify(change.value) !== JSON.stringify(exp.value)) {
+      return {
+        pass: false,
+        message: () => `Change ${i} doesn't match expected pattern`
+      };
+    }
+  }
+
+  return { pass: true };
+};
+
+// Usage in tests
+expect.extend({ toHaveChangedExactly });
+
+test('user profile update', () => {
+  const oldProfile = { name: 'John', email: 'old@example.com' };
+  const newProfile = { name: 'John', email: 'new@example.com' };
+
+  expect({ old: oldProfile, new: newProfile }).toHaveChangedExactly([
+    {
+      type: 2, // CHANGE
+      path: ['email'],
+      value: 'new@example.com'
+    }
+  ]);
+});
+```
+
+## Performance Optimization
+
+### Circular Reference Handling
+
+```javascript
+// Objects with circular references
+const createCircularStructure = () => {
+  const parent = { name: 'Parent', children: [] };
+  const child1 = { name: 'Child1', parent };
+  const child2 = { name: 'Child2', parent };
+
+  parent.children.push(child1, child2);
+  child1.sibling = child2;
+  child2.sibling = child1;
+
+  return parent;
+};
+
+const struct1 = createCircularStructure();
+const struct2 = createCircularStructure();
+struct2.name = 'Modified Parent';
+
+// Enable cycle detection (default: true)
+const safeChanges = diff(struct1, struct2, { detectCycles: true });
+console.log('Safe circular diff:', safeChanges);
+
+// Disable for performance when structures are known to be acyclic
+const fastChanges = diff(simpleObj1, simpleObj2, { detectCycles: false });
+```
+
+## TypeScript Integration
+
+### Type-Safe Difference Handling
+
+```typescript
+import diff, {
+  Difference,
+  DifferenceType,
+  DifferenceCreate,
+  DifferenceRemove,
+  DifferenceChange
+} from '@blazediff/object';
+
+interface User {
+  id: number;
+  name: string;
+  email: string;
+  active: boolean;
+}
+
+const processUserChanges = (oldUser: User, newUser: User) => {
+  const changes: Difference[] = diff(oldUser, newUser);
+
+  // Type guards for specific operations
+  const creates = changes.filter((c): c is DifferenceCreate =>
+    c.type === DifferenceType.CREATE
+  );
+
+  const removes = changes.filter((c): c is DifferenceRemove =>
+    c.type === DifferenceType.REMOVE
+  );
+
+  const modifications = changes.filter((c): c is DifferenceChange =>
+    c.type === DifferenceType.CHANGE
+  );
+
+  return { creates, removes, modifications };
+};
+
+// Usage with strong typing
+const oldUser: User = {
+  id: 1,
+  name: 'John',
+  email: 'john@old.com',
+  active: true
+};
+
+const newUser: User = {
+  id: 1,
+  name: 'John Doe',
+  email: 'john@new.com',
+  active: true
+};
+
+const { creates, removes, modifications } = processUserChanges(oldUser, newUser);
+```
+
+---
+
+These examples demonstrate the full power and flexibility of `@blazediff/object` across various real-world scenarios. The library excels at detecting changes in complex data structures while maintaining high performance and providing detailed path information for every modification.
