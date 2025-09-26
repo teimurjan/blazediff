@@ -39,3 +39,6 @@ coverage/
 
 # Misc
 *.log
+
+# Pagefind
+_pagefind/
