@@ -6,7 +6,7 @@
 		"dev": "next dev --turbopack",
 		"build": "next build && pnpm postbuild",
 		"start": "next start",
-		"postbuild": "pagefind --site .next/server/app --output-path out/_pagefind"
+		"postbuild": "pagefind --site .next/server/app --output-path public/_pagefind && cp -r ./public/_pagefind ./out"
 	},
 	"dependencies": {
 		"@tabler/icons-react": "^3.35.0",
