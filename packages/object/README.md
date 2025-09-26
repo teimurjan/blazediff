@@ -2,9 +2,8 @@
 
 <div align="center">
 
-[![NPM Version](https://img.shields.io/npm/v/%40blazediff%2Fobject)](https://www.npmjs.com/package/@blazediff/object)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-
+[![npm bundle size](https://img.shields.io/bundlephobia/min/%40blazediff%2Fobject)](https://www.npmjs.com/package/@blazediff/object)
+[![NPM Downloads](https://img.shields.io/npm/dy/%40blazediff%2Fobject)](https://www.npmjs.com/package/@blazediff/object)
 </div>
 
 Lightning-fast structural object comparison with detailed change tracking.
