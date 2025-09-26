@@ -1,31 +1,27 @@
 # @blazediff/object
 
+<div align="center">
+
 [![NPM Version](https://img.shields.io/npm/v/%40blazediff%2Fobject)](https://www.npmjs.com/package/@blazediff/object)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Lightning-fast structural object comparison with detailed change tracking. Part of the [BlazeDiff](https://github.com/teimurjan/blazediff) ecosystem for high-performance difference detection.
+</div>
+
+Lightning-fast structural object comparison with detailed change tracking.
 
 ## Features
 
-- **🚀 High Performance**: Optimized algorithm with intelligent key lookup strategies for large objects
-- **📍 Precise Tracking**: Detailed path tracking for nested object modifications
-- **🔧 Comprehensive Types**: Handles primitives, objects, arrays, dates, regex, and circular references
-- **💾 Memory Efficient**: Minimal overhead with consistent object shapes for V8 optimization
-- **🔄 Cycle Detection**: Built-in circular reference handling with configurable detection
-- **📊 Rich Output**: Detailed difference objects with type, path, value, and oldValue information
+- **High Performance**: Optimized algorithm with intelligent key lookup strategies for large objects
+- **Precise Tracking**: Detailed path tracking for nested object modifications
+- **Comprehensive Types**: Handles primitives, objects, arrays, dates, regex, and circular references
+- **Memory Efficient**: Minimal overhead with consistent object shapes for V8 optimization
+- **Cycle Detection**: Built-in circular reference handling with configurable detection
+- **Rich Output**: Detailed difference objects with type, path, value, and oldValue information
 
 ## Installation
 
 ```bash
 npm install @blazediff/object
-```
-
-```bash
-yarn add @blazediff/object
-```
-
-```bash
-pnpm add @blazediff/object
 ```
 
 ## Quick Start
@@ -123,9 +119,7 @@ enum DifferenceType {
 
 All difference objects maintain consistent shape with `type`, `path`, `value`, and `oldValue` fields for optimal V8 performance.
 
-## Usage Examples
-
-### Basic Object Comparison
+## Usage
 
 ```typescript
 import diff from '@blazediff/object';
@@ -172,158 +166,3 @@ const changes = diff(
 );
 // Detects element changes and additions
 ```
-
-### Handling Different Data Types
-
-```typescript
-// Mixed data types
-const oldObj = {
-  date: new Date('2024-01-01'),
-  regex: /test/g,
-  nested: { count: 5 },
-  list: [1, 2, 3]
-};
-
-const newObj = {
-  date: new Date('2024-01-02'),
-  regex: /test/i,
-  nested: { count: 10 },
-  list: [1, 2, 3, 4]
-};
-
-const changes = diff(oldObj, newObj);
-// Handles Date objects, RegExp, nested objects, and arrays
-```
-
-### Circular Reference Handling
-
-```typescript
-// Objects with circular references
-const obj1 = { name: 'A' };
-obj1.self = obj1;
-
-const obj2 = { name: 'B' };
-obj2.self = obj2;
-
-const changes = diff(obj1, obj2, { detectCycles: true });
-// Safely handles circular references
-```
-
-### Large Object Performance
-
-```typescript
-// Optimized for large objects
-const largeObj1 = {};
-const largeObj2 = {};
-
-// Create objects with many properties
-for (let i = 0; i < 10000; i++) {
-  largeObj1[`key${i}`] = i;
-  largeObj2[`key${i}`] = i === 5000 ? 'changed' : i;
-}
-
-const changes = diff(largeObj1, largeObj2);
-// Efficiently processes large objects with Set-based key lookup
-```
-
-## Configuration Options
-
-### Cycle Detection
-
-```typescript
-// Enable/disable circular reference detection
-const changes = diff(obj1, obj2, { detectCycles: true }); // Default
-const changes = diff(obj1, obj2, { detectCycles: false }); // Faster for acyclic objects
-```
-
-Disabling cycle detection can improve performance for objects guaranteed to not have circular references.
-
-## Performance Characteristics
-
-The algorithm is optimized for real-world usage patterns:
-
-- **Small Objects (< 8 properties)**: Direct array operations without Set overhead
-- **Large Objects (≥ 8 properties)**: Set-based key lookup for O(1) contains operations
-- **Reference Equality**: Early exit for identical object references
-- **Type Mismatches**: Fast detection of incompatible types (array vs object, primitives vs objects)
-- **Memory Efficient**: Consistent object shapes help V8 create stable hidden classes
-
-## Edge Cases Handled
-
-- **Primitive Types**: Strings, numbers, booleans, null, undefined
-- **Special Numbers**: NaN, Infinity, -Infinity, +0, -0
-- **Rich Types**: Date objects, RegExp objects, String/Number objects
-- **Sparse Arrays**: Proper handling of arrays with holes
-- **Property Names**: Empty strings, unicode keys, special property names
-- **Circular References**: Safe traversal with cycle detection
-- **Type Coercion**: Proper comparison without unexpected coercion
-- **Large Datasets**: Efficient processing of objects with thousands of properties
-
-## TypeScript Support
-
-Full TypeScript definitions included:
-
-```typescript
-import diff, { Difference, DifferenceType, DifferenceCreate, DifferenceRemove, DifferenceChange } from '@blazediff/object';
-
-// Type-safe difference handling
-const changes: Difference[] = diff(obj1, obj2);
-
-changes.forEach((change) => {
-  switch (change.type) {
-    case DifferenceType.CREATE:
-      console.log(`Added ${change.path.join('.')}: ${change.value}`);
-      break;
-    case DifferenceType.REMOVE:
-      console.log(`Removed ${change.path.join('.')}: ${change.oldValue}`);
-      break;
-    case DifferenceType.CHANGE:
-      console.log(`Changed ${change.path.join('.')}: ${change.oldValue} → ${change.value}`);
-      break;
-  }
-});
-```
-
-## Testing
-
-The package includes a comprehensive test suite covering:
-
-- ✅ 68 test cases with 100% statement coverage
-- ✅ Primitive type comparisons
-- ✅ Object and array diffing scenarios
-- ✅ Nested structure handling
-- ✅ Type conversion edge cases
-- ✅ Circular reference detection
-- ✅ Performance optimization verification
-- ✅ Large dataset processing
-- ✅ Unicode and special property handling
-
-Run tests:
-```bash
-npm test
-```
-
-Run with coverage:
-```bash
-npm run test:coverage
-```
-
-## Integration with BlazeDiff Ecosystem
-
-`@blazediff/object` works seamlessly with other BlazeDiff packages:
-
-- **[@blazediff/react](../react#readme)** - React components for visualizing object diffs
-- **[@blazediff/ui](../ui#readme)** - Web components for diff display
-- **[@blazediff/core](../core#readme)** - Image comparison capabilities
-
-## Contributing
-
-Contributions are welcome! Please see the [Contributing Guide](../../CONTRIBUTING.md) for details.
-
-## License
-
-MIT License - see [LICENSE](../../LICENSE) file for details.
-
----
-
-**Part of the [BlazeDiff](https://github.com/teimurjan/blazediff) ecosystem for high-performance difference detection**
