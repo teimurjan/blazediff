@@ -1,0 +1,82 @@
+{
+	"name": "@blazediff/ui",
+	"version": "1.1.0",
+	"description": "Unstyled web components for displaying image differences",
+	"private": false,
+	"publishConfig": {
+		"access": "public"
+	},
+	"main": "dist/index.js",
+	"module": "dist/index.mjs",
+	"types": "dist/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.mjs",
+			"require": "./dist/index.js"
+		},
+		"./difference-mode": {
+			"types": "./dist/difference-mode.d.ts",
+			"import": "./dist/difference-mode.mjs",
+			"require": "./dist/difference-mode.js"
+		},
+		"./swipe-mode": {
+			"types": "./dist/swipe-mode.d.ts",
+			"import": "./dist/swipe-mode.mjs",
+			"require": "./dist/swipe-mode.js"
+		},
+		"./two-up-mode": {
+			"types": "./dist/two-up-mode.d.ts",
+			"import": "./dist/two-up-mode.mjs",
+			"require": "./dist/two-up-mode.js"
+		},
+		"./onion-skin-mode": {
+			"types": "./dist/onion-skin-mode.d.ts",
+			"import": "./dist/onion-skin-mode.mjs",
+			"require": "./dist/onion-skin-mode.js"
+		},
+		"./base-element": {
+			"types": "./dist/base-element.d.ts",
+			"import": "./dist/base-element.mjs",
+			"require": "./dist/base-element.js"
+		}
+	},
+	"files": [
+		"dist"
+	],
+	"scripts": {
+		"build": "tsup",
+		"dev": "tsup --watch",
+		"clean": "rm -rf dist",
+		"storybook": "storybook dev -p 6006"
+	},
+	"keywords": [
+		"image",
+		"comparison",
+		"diff",
+		"web-components",
+		"ui",
+		"visual-testing"
+	],
+	"author": "Teimur Gasanov <me@teimurjan.dev> (https://github.com/teimurjan)",
+	"repository": "https://github.com/teimurjan/blazediff",
+	"homepage": "https://github.com/teimurjan/blazediff",
+	"license": "MIT",
+	"dependencies": {
+		"@blazediff/core": "workspace:*",
+		"@blazediff/types": "workspace:*"
+	},
+	"devDependencies": {
+		"@storybook/addon-essentials": "9.0.0-alpha.12",
+		"@storybook/addon-links": "^9.1.8",
+		"@storybook/web-components": "^9.1.8",
+		"@storybook/web-components-vite": "^9.1.8",
+		"@tailwindcss/vite": "^4.1.13",
+		"@types/node": "^24.3.0",
+		"storybook": "^9.1.8",
+		"tailwindcss": "^4.1.13",
+		"tsup": "8.5.0",
+		"typescript": "5.9.2",
+		"vite": "^7.1.7"
+	}
+}

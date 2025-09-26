@@ -1,0 +1,197 @@
+# Image Comparison
+
+import { Tabs } from 'nextra/components'
+
+Learn how to use BlazeDiff for pixel-by-pixel image comparison in various environments.
+
+## Basic Comparison
+
+Compare two images and get the number of different pixels.
+
+<Tabs items={['JavaScript', 'TypeScript', 'Node.js']}>
+  <Tabs.Tab>
+```javascript
+import blazediff from '@blazediff/core';
+
+// In browser with Canvas API
+const canvas1 = document.getElementById('canvas1');
+const canvas2 = document.getElementById('canvas2');
+const ctx1 = canvas1.getContext('2d');
+const ctx2 = canvas2.getContext('2d');
+
+// Load images
+const img1 = new Image();
+const img2 = new Image();
+
+img1.onload = () => {
+  ctx1.drawImage(img1, 0, 0);
+  const data1 = ctx1.getImageData(0, 0, canvas1.width, canvas1.height);
+
+  img2.onload = () => {
+    ctx2.drawImage(img2, 0, 0);
+    const data2 = ctx2.getImageData(0, 0, canvas2.width, canvas2.height);
+
+    // Compare images
+    const diffCanvas = document.createElement('canvas');
+    diffCanvas.width = canvas1.width;
+    diffCanvas.height = canvas1.height;
+    const diffCtx = diffCanvas.getContext('2d');
+    const diffData = diffCtx.createImageData(canvas1.width, canvas1.height);
+
+    const diffPixels = blazediff(
+      data1.data,
+      data2.data,
+      diffData.data,
+      canvas1.width,
+      canvas1.height,
+      { threshold: 0.1 }
+    );
+
+    // Show results
+    diffCtx.putImageData(diffData, 0, 0);
+    document.body.appendChild(diffCanvas);
+    console.log(`Found ${diffPixels} different pixels`);
+  };
+  img2.src = 'image2.png';
+};
+img1.src = 'image1.png';
+```
+  </Tabs.Tab>
+  <Tabs.Tab>
+```typescript
+import blazediff, { BlazeDiffOptions } from '@blazediff/core';
+
+async function compareImages(
+  url1: string,
+  url2: string
+): Promise<number> {
+  const [img1, img2] = await Promise.all([
+    loadImage(url1),
+    loadImage(url2)
+  ]);
+
+  const canvas1 = imageToCanvas(img1);
+  const canvas2 = imageToCanvas(img2);
+
+  const ctx1 = canvas1.getContext('2d')!;
+  const ctx2 = canvas2.getContext('2d')!;
+
+  const data1 = ctx1.getImageData(0, 0, canvas1.width, canvas1.height);
+  const data2 = ctx2.getImageData(0, 0, canvas2.width, canvas2.height);
+
+  const options: BlazeDiffOptions = {
+    threshold: 0.1,
+    includeAA: false,
+    alpha: 0.1
+  };
+
+  return blazediff(
+    data1.data,
+    data2.data,
+    null, // No output needed
+    canvas1.width,
+    canvas1.height,
+    options
+  );
+}
+
+function loadImage(url: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = url;
+  });
+}
+
+function imageToCanvas(img: HTMLImageElement): HTMLCanvasElement {
+  const canvas = document.createElement('canvas');
+  canvas.width = img.width;
+  canvas.height = img.height;
+  const ctx = canvas.getContext('2d')!;
+  ctx.drawImage(img, 0, 0);
+  return canvas;
+}
+```
+  </Tabs.Tab>
+  <Tabs.Tab>
+```javascript
+import blazediff from '@blazediff/core';
+import sharp from 'sharp';
+import fs from 'fs/promises';
+
+async function compareImages(path1, path2, outputPath) {
+  // Load images using Sharp
+  const [img1, img2, metadata] = await Promise.all([
+    sharp(path1).raw().ensureAlpha().toBuffer(),
+    sharp(path2).raw().ensureAlpha().toBuffer(),
+    sharp(path1).metadata()
+  ]);
+
+  const { width, height } = metadata;
+
+  // Create output buffer
+  const diff = Buffer.alloc(width * height * 4);
+
+  // Compare images
+  const diffPixels = blazediff(
+    img1,
+    img2,
+    diff,
+    width,
+    height,
+    {
+      threshold: 0.1,
+      alpha: 0.1,
+      diffColor: [255, 0, 0]
+    }
+  );
+
+  // Save diff image if there are differences
+  if (diffPixels > 0) {
+    await sharp(diff, {
+      raw: {
+        width,
+        height,
+        channels: 4
+      }
+    }).toFile(outputPath);
+
+    console.log(`Saved diff image with ${diffPixels} different pixels`);
+  } else {
+    console.log('Images are identical');
+  }
+
+  return diffPixels;
+}
+
+// Usage
+compareImages('before.png', 'after.png', 'diff.png');
+```
+  </Tabs.Tab>
+</Tabs>
+
+## CLI Usage
+
+Use BlazeDiff from the command line for automated testing and batch processing.
+
+```bash
+# Install globally
+npm install -g blazediff
+
+# Basic comparison
+blazediff image1.png image2.png
+
+# Save diff image
+blazediff image1.png image2.png --output diff.png
+
+# Custom threshold
+blazediff image1.png image2.png --threshold 0.2
+
+# Multiple options
+blazediff before.jpg after.jpg \
+  --output diff.jpg \
+  --threshold 0.1 \
+  --alpha 0.3 \
+  --diff-color 255,0,0
+```

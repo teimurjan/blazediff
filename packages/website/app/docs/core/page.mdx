@@ -1,0 +1,269 @@
+# @blazediff/core
+
+import { Callout } from "nextra/components";
+
+High-performance pixel-by-pixel image comparison library. 1.5x faster than pixelmatch while maintaining identical accuracy.
+
+## Installation
+
+```sh npm2yarn
+npm install @blazediff/core
+```
+
+## Key Features
+
+- **1.5x faster** than pixelmatch on average
+- **88% faster** on identical images with early exit optimization
+- **100% API compatible** with pixelmatch - drop-in replacement
+- **Zero dependencies** - lightweight and efficient
+- **TypeScript support** out of the box
+
+## API Reference
+
+### `blazediff(img1, img2, output, width, height, options?)`
+
+Compares two images pixel by pixel and returns the number of different pixels.
+
+#### Parameters
+
+| Parameter | Type                                      | Description                                 |
+| --------- | ----------------------------------------- | ------------------------------------------- |
+| `img1`    | `Uint8Array \| Uint8ClampedArray`         | Image data of the first image               |
+| `img2`    | `Uint8Array \| Uint8ClampedArray`         | Image data of the second image              |
+| `output`  | `Uint8Array \| Uint8ClampedArray \| null` | Output buffer for the diff image (optional) |
+| `width`   | `number`                                  | Width of the images in pixels               |
+| `height`  | `number`                                  | Height of the images in pixels              |
+| `options` | `BlazeDiffOptions`                        | Comparison options (optional)               |
+
+#### Options
+
+| Option            | Type      | Default       | Description                                      |
+| ----------------- | --------- | ------------- | ------------------------------------------------ |
+| `threshold`       | `number`  | `0.1`         | Matching threshold (0-1). Lower = more sensitive |
+| `includeAA`       | `boolean` | `false`       | Include anti-aliased pixels in diff count        |
+| `alpha`           | `number`  | `0.1`         | Opacity of original image in diff output         |
+| `aaColor`         | `[R,G,B]` | `[255,255,0]` | Color of anti-aliased pixels (yellow)            |
+| `diffColor`       | `[R,G,B]` | `[255,0,0]`   | Color of different pixels (red)                  |
+| `diffColorAlt`    | `[R,G,B]` | `null`        | Alternative color for dark differences           |
+| `diffMask`        | `boolean` | `false`       | Draw diff as a mask with transparent background  |
+| `fastBufferCheck` | `boolean` | `true`        | Use fast buffer comparison for identical images  |
+
+<Callout type="info">
+  **Threshold Guidelines:** - `0.0` - Exact match only - `0.05` - Strict
+  comparison - `0.1` - Default balanced comparison - `0.2` - Lenient comparison
+</Callout>
+
+## Examples
+
+### Basic Usage
+
+```javascript
+import blazediff from "@blazediff/core";
+
+const numDiffPixels = blazediff(
+  img1.data, // First image data
+  img2.data, // Second image data
+  diff.data, // Output diff image
+  width, // Image width
+  height, // Image height
+  { threshold: 0.1 }
+);
+
+console.log(`Found ${numDiffPixels} different pixels`);
+```
+
+### Canvas Integration
+
+```javascript
+import blazediff from "@blazediff/core";
+
+// Get image data from canvases
+const ctx1 = canvas1.getContext("2d");
+const ctx2 = canvas2.getContext("2d");
+const img1 = ctx1.getImageData(0, 0, width, height);
+const img2 = ctx2.getImageData(0, 0, width, height);
+
+// Create output canvas
+const diffCanvas = document.createElement("canvas");
+diffCanvas.width = width;
+diffCanvas.height = height;
+const diffCtx = diffCanvas.getContext("2d");
+const diff = diffCtx.createImageData(width, height);
+
+// Compare images
+const diffPixels = blazediff(img1.data, img2.data, diff.data, width, height, {
+  threshold: 0.1,
+  diffColor: [255, 0, 0],
+});
+
+// Display result
+if (diffPixels > 0) {
+  diffCtx.putImageData(diff, 0, 0);
+  document.body.appendChild(diffCanvas);
+}
+```
+
+### Node.js with Sharp
+
+```javascript
+import blazediff from "@blazediff/core";
+import sharp from "sharp";
+
+async function compareImages(path1, path2) {
+  // Load images as raw pixel data
+  const [img1, img2] = await Promise.all([
+    sharp(path1).raw().ensureAlpha().toBuffer(),
+    sharp(path2).raw().ensureAlpha().toBuffer(),
+  ]);
+
+  // Get image dimensions
+  const { width, height } = await sharp(path1).metadata();
+
+  // Create diff buffer
+  const diff = Buffer.alloc(width * height * 4);
+
+  // Compare
+  const numDiffPixels = blazediff(img1, img2, diff, width, height, {
+    threshold: 0.1,
+  });
+
+  // Save diff image if differences found
+  if (numDiffPixels > 0) {
+    await sharp(diff, {
+      raw: { width, height, channels: 4 },
+    }).toFile("diff.png");
+
+    console.log(`Found ${numDiffPixels} different pixels`);
+  }
+
+  return numDiffPixels;
+}
+```
+
+### Visual Regression Testing
+
+```javascript
+import blazediff from "@blazediff/core";
+import { expect } from "chai";
+
+describe("Visual Regression", () => {
+  it("should match baseline", async () => {
+    const baseline = await loadImage("baseline.png");
+    const current = await takeScreenshot();
+
+    const diffPixels = blazediff(
+      baseline.data,
+      current.data,
+      null, // No output needed for tests
+      baseline.width,
+      baseline.height,
+      { threshold: 0.1 }
+    );
+
+    expect(diffPixels).to.equal(0);
+  });
+});
+```
+
+### Custom Diff Visualization
+
+```javascript
+import blazediff from "@blazediff/core";
+
+// Custom diff colors based on context
+const options = {
+  threshold: 0.1,
+  diffColor: [255, 0, 0], // Red for additions
+  diffColorAlt: [0, 255, 0], // Green for removals
+  aaColor: [255, 255, 0], // Yellow for anti-aliasing
+  alpha: 0.3, // Show original image faintly
+  diffMask: false,
+};
+
+const diffCount = blazediff(
+  before.data,
+  after.data,
+  output.data,
+  width,
+  height,
+  options
+);
+```
+
+## Performance Tips
+
+### 1. Enable Fast Buffer Check
+
+Keep `fastBufferCheck: true` (default) for optimal performance on identical images:
+
+```javascript
+// 88% faster on identical images
+blazediff(img1, img2, output, w, h, { fastBufferCheck: true });
+```
+
+### 2. Reuse Output Buffers
+
+Create buffers once and reuse them:
+
+```javascript
+const diffBuffer = new Uint8ClampedArray(width * height * 4);
+
+// Reuse the same buffer for multiple comparisons
+for (const image of images) {
+  blazediff(baseline, image, diffBuffer, width, height);
+}
+```
+
+### 3. Skip Output for Testing
+
+Pass `null` as output when you only need the diff count:
+
+```javascript
+// Faster when output image isn't needed
+const count = blazediff(img1, img2, null, width, height);
+```
+
+## TypeScript Support
+
+Full TypeScript definitions included:
+
+```typescript
+import blazediff, { BlazeDiffOptions } from "@blazediff/core";
+
+const options: BlazeDiffOptions = {
+  threshold: 0.1,
+  includeAA: false,
+  alpha: 0.1,
+  diffColor: [255, 0, 0],
+  diffColorAlt: null,
+  aaColor: [255, 255, 0],
+  diffMask: false,
+  fastBufferCheck: true,
+};
+
+const diffCount: number = blazediff(img1, img2, output, width, height, options);
+```
+
+## Migration from Pixelmatch
+
+BlazeDiff is a drop-in replacement:
+
+```javascript
+// Before
+import pixelmatch from "pixelmatch";
+const diff = pixelmatch(img1, img2, output, width, height, options);
+
+// After - that's it!
+import blazediff from "@blazediff/core";
+const diff = blazediff(img1, img2, output, width, height, options);
+```
+
+<Callout type="success">
+  No code changes required - same API, same results, 1.5x faster!
+</Callout>
+
+## Links
+
+- [GitHub Repository](https://github.com/teimurjan/blazediff)
+- [NPM Package](https://www.npmjs.com/package/@blazediff/core)
+- [Examples →](/examples/image-comparison)
