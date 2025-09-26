@@ -10,6 +10,7 @@ import {
   IconTerminal2,
   IconBrandReact,
   IconComponents,
+  IconBraces
 } from "@tabler/icons-react";
 import Link from "next/link";
 
@@ -47,54 +48,60 @@ import Link from "next/link";
 
 <div className="flex flex-col gap-4 mt-4">
 
-<div>
-<Link href="/docs/core" className="flex items-center font-semibold gap-2 text-blue-500 dark:text-blue-400">
-  <IconLayoutCollage size={20} className='flex-shrink-0' />
-    <span>@blazediff/core</span>
-</Link>
+  <div>
+    <Link href="/docs/core" className="flex items-center font-semibold gap-2 text-blue-500 dark:text-blue-400">
+      <IconLayoutCollage size={20} className='flex-shrink-0' />
+      <span>@blazediff/core</span>
+    </Link>
 
     <div className="text-gray-600 dark:text-gray-400 m-0 text-sm">
       High-performance pixel-by-pixel image comparison library. 1.5x faster than pixelmatch while maintaining identical accuracy.
     </div>
+  </div>
 
-</div>
-
-<div>
-<Link href="/docs/binary" className="flex items-center font-semibold gap-2 text-blue-500 dark:text-blue-400">
-  <IconTerminal2 size={20} className='flex-shrink-0' />
-    <span>@blazediff/bin</span>
-</Link>
+  <div>
+    <Link href="/docs/binary" className="flex items-center font-semibold gap-2 text-blue-500 dark:text-blue-400">
+      <IconTerminal2 size={20} className='flex-shrink-0' />
+      <span>@blazediff/bin</span>
+    </Link>
 
     <div className="text-gray-600 dark:text-gray-400 m-0 text-sm">
       Command-line interface for the BlazeDiff image comparison library.
     </div>
+  </div>
 
-</div>
+  <div>
+    <Link href="/docs/object" className="flex items-center font-semibold gap-2 text-blue-500 dark:text-blue-400">
+      <IconBraces size={20} className='flex-shrink-0' />
+      <span>@blazediff/object</span>
+    </Link>
 
-<div>
-<Link href="/docs/ui" className="flex items-center font-semibold gap-2 text-blue-500 dark:text-blue-400">
-  <IconComponents size={20} className='flex-shrink-0' />
-    <span>@blazediff/ui</span>
-</Link>
+    <div className="text-gray-600 dark:text-gray-400 m-0 text-sm">
+      Lightning-fast structural object comparison with detailed change tracking. High-performance algorithm optimized for real-world data structures.
+    </div>
+  </div>
+
+  <div>
+    <Link href="/docs/ui" className="flex items-center font-semibold gap-2 text-blue-500 dark:text-blue-400">
+      <IconComponents size={20} className='flex-shrink-0' />
+      <span>@blazediff/ui</span>
+    </Link>
 
     <div className="text-gray-600 dark:text-gray-400 m-0 text-sm">
       Framework-agnostic Web Components for building image comparison interfaces
     </div>
+  </div>
 
-</div>
-
-<div>
-<Link href="/docs/react" className="flex items-center font-semibold gap-2 text-blue-500 dark:text-blue-400">
-  <IconBrandReact size={20} className='flex-shrink-0' />
-    <span>@blazediff/react</span>
-</Link>
+  <div>
+    <Link href="/docs/react" className="flex items-center font-semibold gap-2 text-blue-500 dark:text-blue-400">
+      <IconBrandReact size={20} className='flex-shrink-0' />
+      <span>@blazediff/react</span>
+    </Link>
 
     <div className="text-gray-600 dark:text-gray-400 m-0 text-sm">
-      React hooks and components for seamless integration in React applications
+      React Components for building image comparison interfaces
     </div>
-
-</div>
-
+  </div>
 </div>
 
 ## Use Cases
@@ -108,10 +115,8 @@ import Link from "next/link";
 
 <div className="flex flex-col md:flex-row gap-4 mt-4">
 
-<Link href="/docs/core" className="text-blue-500 dark:text-blue-400">View Documentation</Link>
-
-<Link href="/examples/image-comparison" className="text-blue-500 dark:text-blue-400">Browse Examples</Link>
-
-<Link href="https://github.com/teimurjan/blazediff" className="text-blue-500 dark:text-blue-400">View on GitHub</Link>
+  <Link href="/docs/core" className="text-blue-500 dark:text-blue-400">View Documentation</Link>
+  <Link href="/examples/image-comparison" className="text-blue-500 dark:text-blue-400">Browse Examples</Link>
+  <Link href="https://github.com/teimurjan/blazediff" className="text-blue-500 dark:text-blue-400">View on GitHub</Link>
 
 </div>

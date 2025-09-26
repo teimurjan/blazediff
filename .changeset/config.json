@@ -10,7 +10,8 @@
 			"@blazediff/sharp-transformer",
 			"@blazediff/bin",
 			"@blazediff/ui",
-			"@blazediff/react"
+			"@blazediff/react",
+			"@blazediff/object"
 		]
 	],
 	"linked": [],

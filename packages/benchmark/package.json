@@ -23,11 +23,14 @@
 		"blazediff": "pnpm benchmark --target=blazediff --variant=algorithm",
 		"pixelmatch": "pnpm benchmark --target=pixelmatch --variant=algorithm",
 		"blazediff:binary": "pnpm benchmark --target=blazediff --variant=binary",
-		"pixelmatch:binary": "pnpm benchmark --target=pixelmatch --variant=binary"
+		"pixelmatch:binary": "pnpm benchmark --target=pixelmatch --variant=binary",
+		"blazediff:object": "pnpm benchmark --target=blazediff --variant=object",
+		"microdiff": "pnpm benchmark --target=microdiff --variant=object"
 	},
 	"devDependencies": {
 		"@blazediff/bin": "workspace:*",
 		"@blazediff/core": "workspace:*",
+		"@blazediff/object": "workspace:*",
 		"@blazediff/pngjs-transformer": "workspace:*",
 		"@blazediff/types": "workspace:*",
 		"@types/node": "^24.3.0",
@@ -35,5 +38,8 @@
 		"pngjs": "^7.0.0",
 		"tsup": "^8.5.0",
 		"typescript": "^5.9.2"
+	},
+	"dependencies": {
+		"microdiff": "^1.5.0"
 	}
 }

@@ -1,7 +1,7 @@
 {
-	"name": "@blazediff/core",
+	"name": "@blazediff/object",
 	"version": "1.1.0",
-	"description": "Blazing-fast pixel-by-pixel image comparison with block-based optimization. 1.5x times faster than pixelmatch",
+	"description": "Blazing-fast object comparison",
 	"private": false,
 	"publishConfig": {
 		"access": "public"
@@ -22,14 +22,13 @@
 	"scripts": {
 		"build": "tsup",
 		"dev": "tsup --watch",
-		"clean": "rm -rf dist"
+		"clean": "rm -rf dist",
+		"test": "vitest run"
 	},
 	"keywords": [
-		"image",
+		"object",
 		"comparison",
-		"diff",
-		"pixel",
-		"visual-testing"
+		"diff"
 	],
 	"author": "Teimur Gasanov <me@teimurjan.dev> (https://github.com/teimurjan)",
 	"repository": "https://github.com/teimurjan/blazediff",
@@ -40,7 +39,11 @@
 	},
 	"devDependencies": {
 		"@types/node": "^24.3.0",
+		"@vitest/coverage-v8": "^3.2.4",
+		"@vitest/ui": "^3.2.4",
+		"happy-dom": "^18.0.1",
 		"tsup": "8.5.0",
-		"typescript": "5.9.2"
+		"typescript": "5.9.2",
+		"vitest": "^3.2.4"
 	}
 }

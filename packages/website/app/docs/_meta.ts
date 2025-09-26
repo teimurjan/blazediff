@@ -5,6 +5,9 @@ export default {
 	core: {
 		title: "@blazediff/core",
 	},
+	object: {
+		title: "@blazediff/object",
+	},
 	binary: {
 		title: "@blazediff/bin",
 	},
