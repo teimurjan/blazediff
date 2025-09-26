@@ -2,4 +2,5 @@ packages:
   - packages/*
 
 onlyBuiltDependencies:
+  - esbuild
   - sharp

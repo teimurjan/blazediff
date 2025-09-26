@@ -8,12 +8,14 @@
 			"@blazediff/types",
 			"@blazediff/pngjs-transformer",
 			"@blazediff/sharp-transformer",
-			"@blazediff/bin"
+			"@blazediff/bin",
+			"@blazediff/ui",
+			"@blazediff/react"
 		]
 	],
 	"linked": [],
 	"access": "restricted",
 	"baseBranch": "main",
 	"updateInternalDependencies": "patch",
-	"ignore": ["@blazediff/benchmark"]
+	"ignore": ["@blazediff/benchmark", "@blazediff/website"]
 }

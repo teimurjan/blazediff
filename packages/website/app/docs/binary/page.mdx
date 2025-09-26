@@ -1,0 +1,290 @@
+# @blazediff/bin
+
+import { Callout } from 'nextra/components'
+
+Command-line tool for high-performance image comparison. Supports PNG, JPEG, and WebP formats with 60% better performance than alternatives.
+
+## Installation
+
+### Global Installation
+
+```sh npm2yarn
+npm install -g blazediff
+```
+
+### Local Installation
+
+```sh npm2yarn
+npm install --save-dev blazediff
+```
+
+### Using npx
+
+```sh npm2yarn
+npx blazediff image1.png image2.png
+```
+
+## Features
+
+- **Multiple formats**: PNG, JPEG, WebP support
+- **60% faster** than pixelmatch CLI
+- **Flexible output**: Save diff images or get exit codes
+- **CI/CD ready**: Perfect for automated visual testing
+- **Cross-platform**: Works on Windows, macOS, and Linux
+
+## Usage
+
+### Basic Comparison
+
+```bash
+blazediff image1.png image2.png
+```
+
+### Save Diff Image
+
+```bash
+blazediff image1.png image2.png --output diff.png
+```
+
+### Custom Threshold
+
+```bash
+blazediff image1.png image2.png --threshold 0.2
+```
+
+### All Options
+
+```bash
+blazediff <image1> <image2> [options]
+
+Options:
+  -o, --output <path>      Output diff image path
+  -t, --threshold <n>      Matching threshold (0-1, default: 0.1)
+  -a, --alpha <n>          Opacity of original in diff (0-1, default: 0.1)
+  --diff-color <r,g,b>     Color for different pixels (default: 255,0,0)
+  --aa-color <r,g,b>       Color for anti-aliased pixels (default: 255,255,0)
+  --include-aa             Include anti-aliased pixels in diff count
+  --diff-mask              Output diff mask with transparent background
+  --no-fast-check          Disable fast buffer comparison
+  -h, --help              Display help
+  -v, --version           Display version
+```
+
+## Examples
+
+### Visual Regression Testing
+
+```bash
+#!/bin/bash
+# test-visual-regression.sh
+
+BASELINE_DIR="test/baseline"
+CURRENT_DIR="test/current"
+DIFF_DIR="test/diff"
+
+for file in $BASELINE_DIR/*.png; do
+  filename=$(basename "$file")
+
+  blazediff "$file" "$CURRENT_DIR/$filename" \
+    --output "$DIFF_DIR/$filename" \
+    --threshold 0.1
+
+  if [ $? -ne 0 ]; then
+    echo "Visual regression detected in $filename"
+    exit 1
+  fi
+done
+
+echo "All visual tests passed!"
+```
+
+### CI/CD Integration
+
+#### GitHub Actions
+
+```yaml
+name: Visual Tests
+
+on: [push, pull_request]
+
+jobs:
+  visual-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install blazediff
+        run: npm install -g blazediff
+
+      - name: Run visual tests
+        run: |
+          for file in test/baseline/*.png; do
+            blazediff "$file" "test/current/$(basename $file)" \
+              --threshold 0.1
+          done
+```
+
+#### GitLab CI
+
+```yaml
+visual-tests:
+  stage: test
+  script:
+    - npm install -g blazediff
+    - blazediff test/baseline.png test/current.png --threshold 0.1
+  artifacts:
+    paths:
+      - test/diff/
+    when: on_failure
+```
+
+### Batch Processing
+
+```bash
+#!/bin/bash
+# compare-all.sh
+
+# Compare all PNG files in two directories
+for file in dir1/*.png; do
+  basename=$(basename "$file")
+  blazediff "$file" "dir2/$basename" --output "diff/$basename"
+done
+```
+
+### Different Formats
+
+```bash
+# Compare JPEG images
+blazediff photo1.jpg photo2.jpg --output diff.jpg
+
+# Compare WebP images
+blazediff image1.webp image2.webp --output diff.webp
+
+# Mixed formats (converted internally)
+blazediff image.png image.jpg --output diff.png
+```
+
+### Custom Visualization
+
+```bash
+# Red diff with transparent background
+blazediff img1.png img2.png \
+  --output diff.png \
+  --diff-mask \
+  --diff-color 255,0,0
+
+# Green/red diff for additions/removals
+blazediff before.png after.png \
+  --output changes.png \
+  --diff-color 0,255,0 \
+  --aa-color 255,255,0 \
+  --alpha 0.3
+```
+
+## Exit Codes
+
+The CLI uses exit codes for scripting:
+
+- `0` - Images are identical or within threshold
+- `1` - Images have differences beyond threshold
+- `2` - Error (file not found, invalid format, etc.)
+
+```bash
+blazediff img1.png img2.png
+if [ $? -eq 0 ]; then
+  echo "Images match!"
+else
+  echo "Images differ!"
+fi
+```
+
+## Performance
+
+<Callout type="success">
+60% faster than pixelmatch CLI with Sharp transformer
+</Callout>
+
+### Benchmark Results
+
+| Image Size | pixelmatch CLI | blazediff CLI | Improvement |
+|------------|---------------|---------------|-------------|
+| 4K identical | 1592ms | 546ms | **66% faster** |
+| 4K different | 1944ms | 867ms | 55% faster |
+| Web pages | 2144ms | 744ms | 65% faster |
+| Small images | 245ms | 98ms | 60% faster |
+
+### Performance Tips
+
+1. **Use for large batches**: The performance gain is most noticeable with multiple images
+2. **Enable fast check**: Default `--fast-check` option provides 66% speedup on identical images
+3. **Optimize threshold**: Higher thresholds reduce processing time
+
+## Package.json Scripts
+
+```json
+{
+  "scripts": {
+    "test:visual": "blazediff test/baseline.png test/current.png",
+    "test:visual:all": "for f in test/baseline/*.png; do blazediff \"$f\" \"test/current/$(basename $f)\"; done",
+    "diff:generate": "blazediff before.png after.png --output diff.png"
+  }
+}
+```
+
+## Docker Usage
+
+```dockerfile
+FROM node:18-alpine
+
+RUN npm install -g blazediff
+
+WORKDIR /images
+
+# Compare images
+CMD ["blazediff", "image1.png", "image2.png"]
+```
+
+```bash
+# Build and run
+docker build -t blazediff .
+docker run -v $(pwd)/images:/images blazediff
+```
+
+## Troubleshooting
+
+### Common Issues
+
+**Issue**: "Command not found" after global install
+```bash
+# Add npm global bin to PATH
+export PATH="$PATH:$(npm bin -g)"
+```
+
+**Issue**: "EACCES" permission error
+```bash
+# Install globally with proper permissions
+sudo npm install -g blazediff
+
+# Or use npx instead
+npx blazediff img1.png img2.png
+```
+
+**Issue**: Different results than expected
+```bash
+# Check image formats match
+file image1.png image2.png
+
+# Verify dimensions
+identify image1.png image2.png  # requires ImageMagick
+```
+
+## Links
+
+- [GitHub Repository](https://github.com/teimurjan/blazediff)
+- [NPM Package](https://www.npmjs.com/package/blazediff)
+- [Examples →](/examples/image-comparison)
