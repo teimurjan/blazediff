@@ -4,8 +4,9 @@
 	"private": true,
 	"scripts": {
 		"dev": "next dev --turbopack",
-		"build": "next build",
-		"start": "next start"
+		"build": "next build && pnpm postbuild",
+		"start": "next start",
+		"postbuild": "pagefind --site .next/server/app --output-path out/_pagefind"
 	},
 	"dependencies": {
 		"@tabler/icons-react": "^3.35.0",
@@ -20,6 +21,7 @@
 		"@types/node": "^20",
 		"@types/react": "^19",
 		"@types/react-dom": "^19",
+		"pagefind": "^1.4.0",
 		"postcss": "^8.5.6",
 		"tailwindcss": "^4.1.13",
 		"typescript": "^5.9.2"
