@@ -1,6 +1,7 @@
 # Web Components
 
 import { Tabs } from 'nextra/components'
+import RemoteSourceCode from "../../../components/remote-source-code";
 
 Use BlazeDiff UI components in any framework or vanilla HTML.
 
@@ -10,164 +11,68 @@ Use BlazeDiff UI components in any framework or vanilla HTML.
 npm install @blazediff/ui
 ```
 
-## Basic Usage
+## Overview
 
-```html
-<!DOCTYPE html>
-<html>
-<head>
-  <script type="module">
-    import '@blazediff/ui';
-  </script>
-  <style>
-    .my-container {
-      border-radius: 8px;
-      overflow: hidden;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-      max-width: 800px;
-      margin: 2rem auto;
-    }
+- You can find the full source code for the stories below in the [GitHub repository](https://github.com/teimurjan/blazediff/refs/heads/main/packages/ui/stories).
+- You can also view the stories in the [Storybook](https://blazediff-ui-storybook.vercel.app/).
 
-    .custom-divider {
-      background: linear-gradient(to bottom, #3b82f6, #1d4ed8);
-      width: 4px;
-      box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
-    }
-  </style>
-</head>
-<body>
-  <h1>Before/After Comparison</h1>
+<Tabs items={['swipe-mode', 'two-up-mode', 'onion-skin-mode', 'difference-mode']}>
+  <Tabs.Tab>
 
-  <!-- Swipe comparison -->
-  <blazediff-swipe
-    src1="./original.jpg"
-    src2="./edited.jpg"
-    alt1="Original Photo"
-    alt2="Edited Photo"
-    class-container="my-container"
-    class-divider="custom-divider">
-  </blazediff-swipe>
+    <div className="w-full mx-auto">
+      <iframe
+        src="https://blazediff-ui-storybook.vercel.app/?path=/story/swipe-mode--page&full=1&shortcuts=false&singleStory=true"
+        className="w-full h-96"
+      />
+    </div>
 
-  <!-- Two-up comparison -->
-  <blazediff-twoup
-    src1="./v1.jpg"
-    src2="./v2.jpg"
-    class-container="my-container"
-    class-panel="image-panel">
-  </blazediff-twoup>
+    <RemoteSourceCode
+      language="ts"
+      url="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/packages/ui/stories/swipe-mode.stories.ts"
+    />
 
-  <!-- Onion skin overlay -->
-  <blazediff-onionskin
-    id="onionskin"
-    src1="./base.jpg"
-    src2="./overlay.jpg"
-    opacity="50"
-    text-slider-label="Blend: "
-    class-container="my-container">
-  </blazediff-onionskin>
+  </Tabs.Tab>
+  <Tabs.Tab>
 
-  <!-- Difference visualization -->
-  <blazediff-difference
-    src1="./expected.png"
-    src2="./actual.png"
-    threshold="0.1"
-    alpha="0.2"
-    class-container="my-container">
-  </blazediff-difference>
+    <div className="w-full mx-auto">
+      <iframe
+        src="https://blazediff-ui-storybook.vercel.app/?path=/story/two-up-mode--page&full=1&shortcuts=false&singleStory=true"
+        className="w-full h-96"
+      />
+    </div>
 
-  <script>
-    // Listen for events
-    document.querySelector('blazediff-swipe')
-      .addEventListener('position-change', (e) => {
-        console.log('Swipe position:', e.detail.position);
-      });
+    <RemoteSourceCode
+      language="ts"
+      url="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/packages/ui/stories/two-up-mode.stories.ts"
+    />
 
-    document.querySelector('blazediff-onionskin')
-      .addEventListener('opacity-change', (e) => {
-        console.log('Opacity:', e.detail.opacity);
-      });
+  </Tabs.Tab>
+  <Tabs.Tab>
+    <div className="w-full mx-auto">
+      <iframe
+        src="https://blazediff-ui-storybook.vercel.app/?path=/story/onion-skin-mode--page&full=1&shortcuts=false&singleStory=true"
+        className="w-full h-96"
+      />
+    </div>
 
-    document.querySelector('blazediff-difference')
-      .addEventListener('diff-complete', (e) => {
-        console.log(`Found ${e.detail.diffCount} different pixels`);
-        console.log(`${e.detail.percentage.toFixed(2)}% different`);
-      });
-  </script>
-</body>
-</html>
-```
+    <RemoteSourceCode
+      language="ts"
+      url="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/packages/ui/stories/onion-skin-mode.stories.ts"
+    />
 
-## Available Components
+  </Tabs.Tab>
+  <Tabs.Tab>
+    <div className="w-full mx-auto">
+      <iframe
+        src="https://blazediff-ui-storybook.vercel.app/?path=/story/difference-mode--page&full=1&shortcuts=false&singleStory=true"
+        className="w-full h-96"
+      />
+    </div>
 
-### Swipe Component (`blazediff-swipe`)
+    <RemoteSourceCode
+      language="ts"
+      url="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/packages/ui/stories/difference-mode.stories.ts"
+    />
 
-Interactive swipe comparison with draggable divider.
-
-```html
-<blazediff-swipe
-  src1="./before.jpg"
-  src2="./after.jpg"
-  alt1="Before Image"
-  alt2="After Image"
-  class-container="swipe-container"
-  class-divider="custom-divider">
-</blazediff-swipe>
-```
-
-**Key Attributes:**
-- `src1`, `src2` - Image URLs
-- `alt1`, `alt2` - Alt text for accessibility
-- `class-*` - Custom CSS classes
-
-**Events:**
-- `position-change` - Fired when divider moves
-
-### Two-Up Component (`blazediff-twoup`)
-
-Side-by-side comparison with dimension information.
-
-```html
-<blazediff-twoup
-  src1="./v1.png"
-  src2="./v2.png"
-  class-container="twoup-container"
-  class-panel="image-panel">
-</blazediff-twoup>
-```
-
-**Events:**
-- `images-loaded` - Fired when images load with dimension data
-
-### Onion Skin Component (`blazediff-onionskin`)
-
-Overlay comparison with opacity slider.
-
-```html
-<blazediff-onionskin
-  src1="./base.jpg"
-  src2="./overlay.jpg"
-  opacity="70"
-  text-slider-label="Opacity: "
-  class-slider="custom-slider">
-</blazediff-onionskin>
-```
-
-**Events:**
-- `opacity-change` - Fired when opacity changes
-
-### Difference Component (`blazediff-difference`)
-
-Pixel-level difference visualization using BlazeDiff algorithm.
-
-```html
-<blazediff-difference
-  src1="./expected.png"
-  src2="./actual.png"
-  threshold="0.1"
-  include-aa="false"
-  alpha="0.2">
-</blazediff-difference>
-```
-
-**Events:**
-- `diff-complete` - Fired with difference statistics
+  </Tabs.Tab>
+</Tabs>

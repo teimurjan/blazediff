@@ -274,6 +274,15 @@ importers:
 
   packages/website:
     dependencies:
+      '@blazediff/core':
+        specifier: workspace:*
+        version: link:../core
+      '@blazediff/object':
+        specifier: workspace:*
+        version: link:../object
+      '@blazediff/types':
+        specifier: workspace:*
+        version: link:../types
       '@tabler/icons-react':
         specifier: ^3.35.0
         version: 3.35.0(react@19.1.1)

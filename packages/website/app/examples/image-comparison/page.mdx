@@ -1,197 +1,101 @@
 # Image Comparison
 
-import { Tabs } from 'nextra/components'
+import { Tabs } from "nextra/components";
+import ImageComparison from "../../../components/image-comparison";
 
-Learn how to use BlazeDiff for pixel-by-pixel image comparison in various environments.
+Learn how to use BlazeDiff for different types of comparisons - binary, object, and pixel-by-pixel image comparison.
 
-## Basic Comparison
+## Installation
 
-Compare two images and get the number of different pixels.
-
-<Tabs items={['JavaScript', 'TypeScript', 'Node.js']}>
-  <Tabs.Tab>
-```javascript
-import blazediff from '@blazediff/core';
-
-// In browser with Canvas API
-const canvas1 = document.getElementById('canvas1');
-const canvas2 = document.getElementById('canvas2');
-const ctx1 = canvas1.getContext('2d');
-const ctx2 = canvas2.getContext('2d');
-
-// Load images
-const img1 = new Image();
-const img2 = new Image();
-
-img1.onload = () => {
-  ctx1.drawImage(img1, 0, 0);
-  const data1 = ctx1.getImageData(0, 0, canvas1.width, canvas1.height);
-
-  img2.onload = () => {
-    ctx2.drawImage(img2, 0, 0);
-    const data2 = ctx2.getImageData(0, 0, canvas2.width, canvas2.height);
-
-    // Compare images
-    const diffCanvas = document.createElement('canvas');
-    diffCanvas.width = canvas1.width;
-    diffCanvas.height = canvas1.height;
-    const diffCtx = diffCanvas.getContext('2d');
-    const diffData = diffCtx.createImageData(canvas1.width, canvas1.height);
-
-    const diffPixels = blazediff(
-      data1.data,
-      data2.data,
-      diffData.data,
-      canvas1.width,
-      canvas1.height,
-      { threshold: 0.1 }
-    );
-
-    // Show results
-    diffCtx.putImageData(diffData, 0, 0);
-    document.body.appendChild(diffCanvas);
-    console.log(`Found ${diffPixels} different pixels`);
-  };
-  img2.src = 'image2.png';
-};
-img1.src = 'image1.png';
+```bash npm2yarn
+npm install @blazediff/core
 ```
+
+## Overview
+
+BlazeDiff provides multiple comparison methods optimized for different use cases. Try the interactive demos below to see each method in action.
+
+<Tabs items={['Basic Comparison', 'Custom Threshold', 'Custom Colors']}>
+  <Tabs.Tab>
+
+    <ImageComparison
+      fixtureA="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/packages/benchmark/fixtures/pixelmatch/2a.png"
+      fixtureB="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/packages/benchmark/fixtures/pixelmatch/2b.png"
+    />
+
+```ts
+import blazediff from "@blazediff/core";
+
+// loadImage can either be a browser function or a server function
+const img1 = await loadImage(
+  "https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/packages/benchmark/fixtures/pixelmatch/2a.png"
+);
+const img2 = await loadImage(
+  "https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/packages/benchmark/fixtures/pixelmatch/2b.png"
+);
+const output = new Uint8Array(img1.width * img1.height * 4);
+const width = img1.width;
+const height = img1.height;
+
+const diff = blazediff(img1, img2, output, width, height);
+```
+
   </Tabs.Tab>
+
   <Tabs.Tab>
-```typescript
-import blazediff, { BlazeDiffOptions } from '@blazediff/core';
 
-async function compareImages(
-  url1: string,
-  url2: string
-): Promise<number> {
-  const [img1, img2] = await Promise.all([
-    loadImage(url1),
-    loadImage(url2)
-  ]);
+    <ImageComparison
+      fixtureA="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/packages/benchmark/fixtures/pixelmatch/2a.png"
+      fixtureB="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/packages/benchmark/fixtures/pixelmatch/2b.png"
+      options={{ threshold: 0.5 }}
+    />
 
-  const canvas1 = imageToCanvas(img1);
-  const canvas2 = imageToCanvas(img2);
+```ts
+import blazediff from "@blazediff/core";
 
-  const ctx1 = canvas1.getContext('2d')!;
-  const ctx2 = canvas2.getContext('2d')!;
+// loadImage can either be a browser function or a server function
+const img1 = await loadImage(
+  "https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/packages/benchmark/fixtures/pixelmatch/2a.png"
+);
+const img2 = await loadImage(
+  "https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/packages/benchmark/fixtures/pixelmatch/2b.png"
+);
+const output = new Uint8Array(img1.width * img1.height * 4);
+const width = img1.width;
+const height = img1.height;
 
-  const data1 = ctx1.getImageData(0, 0, canvas1.width, canvas1.height);
-  const data2 = ctx2.getImageData(0, 0, canvas2.width, canvas2.height);
-
-  const options: BlazeDiffOptions = {
-    threshold: 0.1,
-    includeAA: false,
-    alpha: 0.1
-  };
-
-  return blazediff(
-    data1.data,
-    data2.data,
-    null, // No output needed
-    canvas1.width,
-    canvas1.height,
-    options
-  );
-}
-
-function loadImage(url: string): Promise<HTMLImageElement> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = reject;
-    img.src = url;
-  });
-}
-
-function imageToCanvas(img: HTMLImageElement): HTMLCanvasElement {
-  const canvas = document.createElement('canvas');
-  canvas.width = img.width;
-  canvas.height = img.height;
-  const ctx = canvas.getContext('2d')!;
-  ctx.drawImage(img, 0, 0);
-  return canvas;
-}
+const diff = blazediff(img1, img2, output, width, height, { threshold: 0.5 });
 ```
+
   </Tabs.Tab>
+
   <Tabs.Tab>
-```javascript
-import blazediff from '@blazediff/core';
-import sharp from 'sharp';
-import fs from 'fs/promises';
 
-async function compareImages(path1, path2, outputPath) {
-  // Load images using Sharp
-  const [img1, img2, metadata] = await Promise.all([
-    sharp(path1).raw().ensureAlpha().toBuffer(),
-    sharp(path2).raw().ensureAlpha().toBuffer(),
-    sharp(path1).metadata()
-  ]);
+    <ImageComparison
+      fixtureA="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/packages/benchmark/fixtures/pixelmatch/2a.png"
+      fixtureB="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/packages/benchmark/fixtures/pixelmatch/2b.png"
+      options={{ aaColor: [255, 0, 0], diffColor: [0, 255, 0] }}
+    />
 
-  const { width, height } = metadata;
+```ts
+import blazediff from "@blazediff/core";
 
-  // Create output buffer
-  const diff = Buffer.alloc(width * height * 4);
+// loadImage can either be a browser function or a server function
+const img1 = await loadImage(
+  "https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/packages/benchmark/fixtures/pixelmatch/2a.png"
+);
+const img2 = await loadImage(
+  "https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/packages/benchmark/fixtures/pixelmatch/2b.png"
+);
+const output = new Uint8Array(img1.width * img1.height * 4);
+const width = img1.width;
+const height = img1.height;
 
-  // Compare images
-  const diffPixels = blazediff(
-    img1,
-    img2,
-    diff,
-    width,
-    height,
-    {
-      threshold: 0.1,
-      alpha: 0.1,
-      diffColor: [255, 0, 0]
-    }
-  );
-
-  // Save diff image if there are differences
-  if (diffPixels > 0) {
-    await sharp(diff, {
-      raw: {
-        width,
-        height,
-        channels: 4
-      }
-    }).toFile(outputPath);
-
-    console.log(`Saved diff image with ${diffPixels} different pixels`);
-  } else {
-    console.log('Images are identical');
-  }
-
-  return diffPixels;
-}
-
-// Usage
-compareImages('before.png', 'after.png', 'diff.png');
+const diff = blazediff(img1, img2, output, width, height, {
+  aaColor: [255, 0, 0],
+  diffColor: [0, 255, 0],
+});
 ```
+
   </Tabs.Tab>
 </Tabs>
-
-## CLI Usage
-
-Use BlazeDiff from the command line for automated testing and batch processing.
-
-```bash
-# Install globally
-npm install -g blazediff
-
-# Basic comparison
-blazediff image1.png image2.png
-
-# Save diff image
-blazediff image1.png image2.png --output diff.png
-
-# Custom threshold
-blazediff image1.png image2.png --threshold 0.2
-
-# Multiple options
-blazediff before.jpg after.jpg \
-  --output diff.jpg \
-  --threshold 0.1 \
-  --alpha 0.3 \
-  --diff-color 255,0,0
-```
