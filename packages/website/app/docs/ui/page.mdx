@@ -57,7 +57,7 @@ document.body.innerHTML = `
 `;
 ```
 
-## Components
+## API Reference
 
 ### `<blazediff-swipe>`
 
@@ -82,29 +82,6 @@ Interactive swipe component for comparing two images with a draggable divider.
 | ----------------- | ---------------------- | ------------------------------------------- |
 | `position-change` | `{ position: number }` | Fired when divider position changes (0-100) |
 
-#### Example
-
-```html
-<blazediff-swipe
-  id="comparison"
-  src1="original.jpg"
-  src2="edited.jpg"
-  alt1="Original Photo"
-  alt2="Edited Photo"
-  class-container="my-container"
-  class-divider="my-divider"
->
-</blazediff-swipe>
-
-<script>
-  const swipe = document.getElementById("comparison");
-
-  swipe.addEventListener("position-change", (e) => {
-    console.log("Position:", e.detail.position + "%");
-  });
-</script>
-```
-
 ### `<blazediff-twoup>`
 
 Side-by-side comparison component with dimension information.
@@ -127,18 +104,6 @@ Side-by-side comparison component with dimension information.
 | --------------- | ------------------------------------------------------ | ------------------------------ |
 | `images-loaded` | `{ image1: {width, height}, image2: {width, height} }` | Fired when both images load    |
 | `load-error`    | `{ error }`                                            | Fired when image loading fails |
-
-#### Example
-
-```html
-<blazediff-twoup
-  src1="v1.png"
-  src2="v2.png"
-  class-container="two-up-container"
-  class-panel="image-panel"
->
-</blazediff-twoup>
-```
 
 ### `<blazediff-onionskin>`
 
@@ -167,19 +132,6 @@ Overlay comparison with opacity control slider.
 | `images-loaded`  | `{ image1: {width, height}, image2: {width, height} }` | Fired when both images load    |
 | `load-error`     | `{ error }`                                            | Fired when image loading fails |
 
-#### Example
-
-```html
-<blazediff-onionskin
-  src1="base.jpg"
-  src2="overlay.jpg"
-  opacity="70"
-  text-slider-label="Blend:"
-  class-slider="custom-slider"
->
-</blazediff-onionskin>
-```
-
 ### `<blazediff-difference>`
 
 Shows pixel differences using the BlazeDiff comparison algorithm.
@@ -202,64 +154,6 @@ Shows pixel differences using the BlazeDiff comparison algorithm.
 | --------------- | ---------------------------------------------------------------- | ------------------------------- |
 | `diff-complete` | `{ diffCount: number, totalPixels: number, percentage: number }` | Fired when comparison completes |
 | `diff-error`    | `{ error }`                                                      | Fired when comparison fails     |
-
-#### Example
-
-```html
-<blazediff-difference
-  src1="expected.png"
-  src2="actual.png"
-  threshold="0.1"
-  include-aa="false"
-  alpha="0.2"
-  class-canvas="diff-canvas"
->
-</blazediff-difference>
-
-<script>
-  document
-    .querySelector("blazediff-difference")
-    .addEventListener("diff-complete", (e) => {
-      console.log(`Found ${e.detail.diffCount} different pixels`);
-      console.log(`${e.detail.percentage.toFixed(2)}% different`);
-    });
-</script>
-```
-
-## Styling
-
-All components support CSS class customization through `class-*` attributes:
-
-```html
-<blazediff-swipe
-  src1="before.jpg"
-  src2="after.jpg"
-  class-container="my-container"
-  class-image1="image-before"
-  class-image2="image-after"
-  class-divider="slider-line"
->
-</blazediff-swipe>
-```
-
-```css
-.my-container {
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.image-before,
-.image-after {
-  object-fit: cover;
-}
-
-.slider-line {
-  background: linear-gradient(to bottom, #ff006e, #8338ec);
-  width: 4px;
-  box-shadow: 0 0 10px rgba(255, 0, 110, 0.5);
-}
-```
 
 ## Links
 

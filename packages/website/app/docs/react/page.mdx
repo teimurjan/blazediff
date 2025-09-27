@@ -34,280 +34,87 @@ function App() {
 }
 ```
 
-## Components
+## API Reference
 
 ### `<SwipeMode />`
 
-Interactive swipe comparison with draggable divider.
+Interactive swipe component for comparing two images with a draggable divider.
 
-```tsx
-interface SwipeModeProps extends BaseBlazeDiffProps {
-  alt1?: string;
-  alt2?: string;
-  image1ClassName?: string;
-  image2ClassName?: string;
-  dividerClassName?: string;
-  onPositionChange?: (position: number) => void;
-}
-```
+#### Props
 
-#### Example
-
-```jsx
-import { SwipeMode } from '@blazediff/react';
-import { useState } from 'react';
-
-function SwipeComparison() {
-  const [position, setPosition] = useState(50);
-
-  return (
-    <div className="max-w-4xl mx-auto">
-      <SwipeMode
-        src1="/portfolio/original.jpg"
-        src2="/portfolio/edited.jpg"
-        alt1="Original Photo"
-        alt2="Edited Photo"
-        className="rounded-lg shadow-xl"
-        containerClassName="border border-gray-200"
-        dividerClassName="bg-blue-500"
-        onPositionChange={setPosition}
-      />
-      <p className="text-center mt-2">Position: {position.toFixed(0)}%</p>
-    </div>
-  );
-}
-```
+| Prop               | Type                              | Default | Description                          |
+| ------------------ | --------------------------------- | ------- | ------------------------------------ |
+| `src1`             | `string` (required)               | -       | URL of the first image               |
+| `src2`             | `string` (required)               | -       | URL of the second image              |
+| `alt1`             | `string`                          | -       | Alt text for the first image         |
+| `alt2`             | `string`                          | -       | Alt text for the second image        |
+| `className`        | `string`                          | -       | CSS class for the root element       |
+| `containerClassName` | `string`                        | -       | CSS class for the container          |
+| `image1ClassName`  | `string`                          | -       | CSS class for the first image        |
+| `image2ClassName`  | `string`                          | -       | CSS class for the second image       |
+| `dividerClassName` | `string`                          | -       | CSS class for the divider            |
+| `onPositionChange` | `(position: number) => void`      | -       | Callback when divider position changes |
 
 ### `<TwoUpMode />`
 
-Side-by-side comparison with dimension information.
+Side-by-side comparison component with dimension information.
 
-```tsx
-interface TwoUpModeProps extends BaseBlazeDiffProps {
-  containerInnerClassName?: string;
-  panelClassName?: string;
-  imageClassName?: string;
-  dimensionInfoClassName?: string;
-  onImagesLoaded?: (detail: {
-    image1: { width: number; height: number };
-    image2: { width: number; height: number };
-  }) => void;
-  onLoadError?: (error: unknown) => void;
-}
-```
+#### Props
 
-#### Example
-
-```jsx
-import { TwoUpMode } from '@blazediff/react';
-
-function SideBySideComparison() {
-  const handleImagesLoaded = ({ image1, image2 }) => {
-    console.log('Image 1:', image1.width, 'x', image1.height);
-    console.log('Image 2:', image2.width, 'x', image2.height);
-  };
-
-  return (
-    <TwoUpMode
-      src1="/v1.jpg"
-      src2="/v2.jpg"
-      className="max-w-6xl mx-auto"
-      containerClassName="border border-gray-200 rounded-lg"
-      panelClassName="p-4"
-      dimensionInfoClassName="text-sm text-gray-600 mt-2"
-      onImagesLoaded={handleImagesLoaded}
-      onLoadError={(error) => console.error('Load error:', error)}
-    />
-  );
-}
-```
+| Prop                      | Type                                                        | Default | Description                       |
+| ------------------------- | ----------------------------------------------------------- | ------- | --------------------------------- |
+| `src1`                    | `string` (required)                                         | -       | URL of the first image            |
+| `src2`                    | `string` (required)                                         | -       | URL of the second image           |
+| `className`               | `string`                                                    | -       | CSS class for the root element    |
+| `containerClassName`      | `string`                                                    | -       | CSS class for the main container  |
+| `containerInnerClassName` | `string`                                                    | -       | CSS class for the inner container |
+| `panelClassName`          | `string`                                                    | -       | CSS class for each panel          |
+| `imageClassName`          | `string`                                                    | -       | CSS class for images              |
+| `dimensionInfoClassName`  | `string`                                                    | -       | CSS class for dimension info text |
+| `onImagesLoaded`          | `(detail: {image1: {width, height}, image2: {width, height}}) => void` | - | Callback when images load |
+| `onLoadError`             | `(error: unknown) => void`                                 | -       | Callback when loading fails       |
 
 ### `<OnionSkinMode />`
 
 Overlay comparison with opacity control slider.
 
-```tsx
-interface OnionSkinModeProps extends BaseBlazeDiffProps {
-  opacity?: number;
-  imageContainerClassName?: string;
-  imageClassName?: string;
-  sliderContainerClassName?: string;
-  sliderClassName?: string;
-  sliderLabelClassName?: string;
-  sliderLabelText?: string;
-  onOpacityChange?: (opacity: number) => void;
-  onImagesLoaded?: (detail: {
-    image1: { width: number; height: number };
-    image2: { width: number; height: number };
-  }) => void;
-  onLoadError?: (error: unknown) => void;
-}
-```
+#### Props
 
-#### Example
-
-```jsx
-import { OnionSkinMode } from '@blazediff/react';
-import { useState } from 'react';
-
-function OnionSkinComparison() {
-  const [opacity, setOpacity] = useState(50);
-
-  return (
-    <div>
-      <OnionSkinMode
-        src1="/base-layer.png"
-        src2="/overlay-layer.png"
-        opacity={opacity}
-        sliderLabelText="Blend: "
-        className="rounded-lg overflow-hidden"
-        sliderClassName="accent-purple-500"
-        onOpacityChange={setOpacity}
-      />
-      <div className="mt-4 text-center">
-        <p>Current opacity: {opacity}%</p>
-        <button
-          onClick={() => setOpacity(25)}
-          className="mx-2 px-3 py-1 bg-blue-500 text-white rounded"
-        >
-          25%
-        </button>
-        <button
-          onClick={() => setOpacity(50)}
-          className="mx-2 px-3 py-1 bg-blue-500 text-white rounded"
-        >
-          50%
-        </button>
-        <button
-          onClick={() => setOpacity(75)}
-          className="mx-2 px-3 py-1 bg-blue-500 text-white rounded"
-        >
-          75%
-        </button>
-      </div>
-    </div>
-  );
-}
-```
+| Prop                       | Type                                                        | Default | Description                      |
+| -------------------------- | ----------------------------------------------------------- | ------- | -------------------------------- |
+| `src1`                     | `string` (required)                                         | -       | URL of the base image            |
+| `src2`                     | `string` (required)                                         | -       | URL of the overlay image         |
+| `opacity`                  | `number`                                                    | -       | Initial opacity (0-100)          |
+| `className`                | `string`                                                    | -       | CSS class for the root element   |
+| `containerClassName`       | `string`                                                    | -       | CSS class for the main container |
+| `imageContainerClassName`  | `string`                                                    | -       | CSS class for image container    |
+| `imageClassName`           | `string`                                                    | -       | CSS class for images             |
+| `sliderContainerClassName` | `string`                                                    | -       | CSS class for slider container   |
+| `sliderClassName`          | `string`                                                    | -       | CSS class for the slider         |
+| `sliderLabelClassName`     | `string`                                                    | -       | CSS class for slider label       |
+| `sliderLabelText`          | `string`                                                    | -       | Text for the slider label        |
+| `onOpacityChange`          | `(opacity: number) => void`                                | -       | Callback when opacity changes    |
+| `onImagesLoaded`           | `(detail: {image1: {width, height}, image2: {width, height}}) => void` | - | Callback when images load |
+| `onLoadError`              | `(error: unknown) => void`                                 | -       | Callback when loading fails      |
 
 ### `<DifferenceMode />`
 
-Pixel-level difference visualization using BlazeDiff algorithm.
+Shows pixel differences using the BlazeDiff comparison algorithm.
 
-```tsx
-interface DifferenceModeProps extends BaseBlazeDiffProps {
-  threshold?: number;
-  includeAA?: boolean;
-  alpha?: number;
-  canvasClassName?: string;
-  onDiffComplete?: (detail: {
-    diffCount: number;
-    totalPixels: number;
-    percentage: number;
-  }) => void;
-  onDiffError?: (error: unknown) => void;
-}
-```
+#### Props
 
-#### Example
-
-```jsx
-import { DifferenceMode } from '@blazediff/react';
-import { useState } from 'react';
-
-function VisualRegressionTest() {
-  const [diffResult, setDiffResult] = useState(null);
-  const [threshold, setThreshold] = useState(0.1);
-
-  const handleDiffComplete = (result) => {
-    setDiffResult(result);
-    if (result.diffCount > 0) {
-      console.warn(`Visual regression detected: ${result.percentage.toFixed(2)}% different`);
-    }
-  };
-
-  return (
-    <div className="space-y-4">
-      <div className="controls">
-        <label className="block text-sm font-medium mb-2">
-          Threshold: {(threshold * 100).toFixed(0)}%
-          <input
-            type="range"
-            min="0"
-            max="100"
-            value={threshold * 100}
-            onChange={(e) => setThreshold(e.target.value / 100)}
-            className="block w-full mt-1"
-          />
-        </label>
-      </div>
-
-      <DifferenceMode
-        src1="/test/baseline.png"
-        src2="/test/current.png"
-        threshold={threshold}
-        includeAA={false}
-        alpha={0.2}
-        className="border border-gray-200 rounded-lg"
-        canvasClassName="max-w-full h-auto"
-        onDiffComplete={handleDiffComplete}
-        onDiffError={(error) => console.error('Diff error:', error)}
-      />
-
-      {diffResult && (
-        <div className="bg-gray-100 p-4 rounded-lg">
-          <h3 className="font-medium mb-2">Diff Results:</h3>
-          <p>Different pixels: {diffResult.diffCount.toLocaleString()}</p>
-          <p>Total pixels: {diffResult.totalPixels.toLocaleString()}</p>
-          <p>Percentage: {diffResult.percentage.toFixed(4)}%</p>
-          <div className={`mt-2 px-2 py-1 rounded text-sm ${
-            diffResult.diffCount === 0
-              ? 'bg-green-100 text-green-800'
-              : 'bg-red-100 text-red-800'
-          }`}>
-            {diffResult.diffCount === 0 ? '✅ Images are identical' : '⚠️ Differences detected'}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-```
-
-## Base Props
-
-All components extend `BaseBlazeDiffProps`:
-
-```tsx
-interface BaseBlazeDiffProps {
-  src1: string;  // URL of the first image
-  src2: string;  // URL of the second image
-  className?: string;  // CSS class for the component root
-  containerClassName?: string;  // CSS class for the container
-}
-```
-
-## TypeScript Support
-
-Full TypeScript definitions are included:
-
-```tsx
-import {
-  SwipeMode,
-  TwoUpMode,
-  OnionSkinMode,
-  DifferenceMode,
-  type SwipeModeProps,
-  type TwoUpModeProps,
-  type OnionSkinModeProps,
-  type DifferenceModeProps
-} from '@blazediff/react';
-
-// Fully typed component props
-const MyComponent: React.FC<SwipeModeProps> = (props) => {
-  return <SwipeMode {...props} />;
-};
-```
+| Prop                | Type                                                              | Default | Description                     |
+| ------------------- | ----------------------------------------------------------------- | ------- | ------------------------------- |
+| `src1`              | `string` (required)                                               | -       | URL of the first image          |
+| `src2`              | `string` (required)                                               | -       | URL of the second image         |
+| `threshold`         | `number`                                                          | -       | Difference threshold (0-1)      |
+| `includeAA`         | `boolean`                                                         | -       | Include anti-aliased pixels     |
+| `alpha`             | `number`                                                          | -       | Opacity of original image       |
+| `className`         | `string`                                                          | -       | CSS class for the root element  |
+| `containerClassName`| `string`                                                          | -       | CSS class for the container     |
+| `canvasClassName`   | `string`                                                          | -       | CSS class for the canvas        |
+| `onDiffComplete`    | `(detail: {diffCount, totalPixels, percentage}) => void`         | -       | Callback on completion          |
+| `onDiffError`       | `(error: unknown) => void`                                       | -       | Callback on error               |
 
 ## Links
 
