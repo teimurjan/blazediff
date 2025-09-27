@@ -48,7 +48,8 @@
 		"build": "tsup",
 		"dev": "tsup --watch",
 		"clean": "rm -rf dist",
-		"storybook": "storybook dev -p 6006"
+		"storybook": "storybook dev -p 6006",
+		"build-storybook": "storybook build"
 	},
 	"keywords": [
 		"image",
