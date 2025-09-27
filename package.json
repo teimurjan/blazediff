@@ -24,7 +24,7 @@
 	"keywords": [],
 	"author": "Teimur Gasanov <me@teimurjan.dev> (https://github.com/teimurjan)",
 	"repository": "https://github.com/teimurjan/blazediff",
-	"homepage": "https://github.com/teimurjan/blazediff",
+	"homepage": "https://blazediff.dev",
 	"license": "MIT",
 	"packageManager": "pnpm@10.8.1",
 	"devDependencies": {
