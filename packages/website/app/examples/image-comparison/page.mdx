@@ -19,8 +19,8 @@ BlazeDiff provides multiple comparison methods optimized for different use cases
   <Tabs.Tab>
 
     <ImageComparison
-      fixtureA="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/packages/benchmark/fixtures/pixelmatch/2a.png"
-      fixtureB="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/packages/benchmark/fixtures/pixelmatch/2b.png"
+      fixtureA="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/packages/benchmark/fixtures/blazediff/3a.png"
+      fixtureB="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/packages/benchmark/fixtures/blazediff/3b.png"
     />
 
 ```ts
@@ -28,10 +28,10 @@ import blazediff from "@blazediff/core";
 
 // loadImage can either be a browser function or a server function
 const img1 = await loadImage(
-  "https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/packages/benchmark/fixtures/pixelmatch/2a.png"
+  "https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/packages/benchmark/fixtures/blazediff/3a.png"
 );
 const img2 = await loadImage(
-  "https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/packages/benchmark/fixtures/pixelmatch/2b.png"
+  "https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/packages/benchmark/fixtures/blazediff/3b.png"
 );
 const output = new Uint8Array(img1.width * img1.height * 4);
 const width = img1.width;
@@ -45,8 +45,8 @@ const diff = blazediff(img1, img2, output, width, height);
   <Tabs.Tab>
 
     <ImageComparison
-      fixtureA="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/packages/benchmark/fixtures/pixelmatch/2a.png"
-      fixtureB="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/packages/benchmark/fixtures/pixelmatch/2b.png"
+      fixtureA="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/packages/benchmark/fixtures/blazediff/3a.png"
+      fixtureB="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/packages/benchmark/fixtures/blazediff/3b.png"
       options={{ threshold: 0.5 }}
     />
 
@@ -55,10 +55,10 @@ import blazediff from "@blazediff/core";
 
 // loadImage can either be a browser function or a server function
 const img1 = await loadImage(
-  "https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/packages/benchmark/fixtures/pixelmatch/2a.png"
+  "https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/packages/benchmark/fixtures/blazediff/3a.png"
 );
 const img2 = await loadImage(
-  "https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/packages/benchmark/fixtures/pixelmatch/2b.png"
+  "https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/packages/benchmark/fixtures/blazediff/3b.png"
 );
 const output = new Uint8Array(img1.width * img1.height * 4);
 const width = img1.width;
@@ -72,8 +72,8 @@ const diff = blazediff(img1, img2, output, width, height, { threshold: 0.5 });
   <Tabs.Tab>
 
     <ImageComparison
-      fixtureA="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/packages/benchmark/fixtures/pixelmatch/2a.png"
-      fixtureB="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/packages/benchmark/fixtures/pixelmatch/2b.png"
+      fixtureA="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/packages/benchmark/fixtures/blazediff/3a.png"
+      fixtureB="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/packages/benchmark/fixtures/blazediff/3b.png"
       options={{ aaColor: [255, 0, 0], diffColor: [0, 255, 0] }}
     />
 
@@ -82,10 +82,10 @@ import blazediff from "@blazediff/core";
 
 // loadImage can either be a browser function or a server function
 const img1 = await loadImage(
-  "https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/packages/benchmark/fixtures/pixelmatch/2a.png"
+  "https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/packages/benchmark/fixtures/blazediff/3a.png"
 );
 const img2 = await loadImage(
-  "https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/packages/benchmark/fixtures/pixelmatch/2b.png"
+  "https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/packages/benchmark/fixtures/blazediff/3b.png"
 );
 const output = new Uint8Array(img1.width * img1.height * 4);
 const width = img1.width;
