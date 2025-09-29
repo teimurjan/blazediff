@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/web-components-vite";
 import "../src/two-up-mode";
-import { FIXTURE_1_A, FIXTURE_1_B, FIXTURE_4K_1_A } from "./fixtures";
+import { FIXTURE_1_A, FIXTURE_1_B, FIXTURE_2_A } from "./fixtures";
 
 const meta: Meta = {
 	title: "Two-Up Mode",
@@ -26,6 +26,6 @@ export const Page: Story = {
 export const DifferentSizes: Story = {
 	args: {
 		src1: FIXTURE_1_A,
-		src2: FIXTURE_4K_1_A,
+		src2: FIXTURE_2_A,
 	},
 };

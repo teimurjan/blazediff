@@ -24,6 +24,9 @@ async function runBenchmark({
 		const pixelmatchImagePairs = shuffleArray(
 			getImagePairs(join(__dirname, "../fixtures"), "pixelmatch"),
 		);
+		const blazediffImagePairs = shuffleArray(
+			getImagePairs(join(__dirname, "../fixtures"), "blazediff"),
+		);
 		const pageImagePairs = shuffleArray(
 			getImagePairs(join(__dirname, "../fixtures"), "page"),
 		);
@@ -34,6 +37,7 @@ async function runBenchmark({
 		const binaryPairs = [...fourKImagePairs, ...pageImagePairs];
 		const algorithmPairs = [
 			...pixelmatchImagePairs,
+			...blazediffImagePairs,
 			...fourKImagePairs,
 			...pageImagePairs,
 		];

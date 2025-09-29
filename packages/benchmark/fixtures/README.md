@@ -11,6 +11,9 @@ Contains high-resolution 4K test images for performance benchmarking. These fixt
 Contains page-level screenshot comparisons, typically representing full webpage captures for UI testing scenarios.
 
 ### `pixelmatch/`
+Contains test fixtures copied from pixelmatch repository to compare directly.
+
+### `blazediff/`
 Contains test fixtures specifically designed for pixel-level comparison testing, often used to validate accuracy against reference implementations.
 
 ### `same/`

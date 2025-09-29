@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/web-components-vite";
 import "../src/swipe-mode";
-import { FIXTURE_1_A, FIXTURE_1_B } from "./fixtures";
+import { FIXTURE_2_A, FIXTURE_2_B } from "./fixtures";
 
 const meta: Meta = {
 	title: "Swipe Mode",
@@ -28,7 +28,7 @@ type Story = StoryObj;
 
 export const Page: Story = {
 	args: {
-		src1: FIXTURE_1_A,
-		src2: FIXTURE_1_B,
+		src1: FIXTURE_2_A,
+		src2: FIXTURE_2_B,
 	},
 };

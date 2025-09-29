@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { OnionSkinMode } from "../src/OnionSkinMode";
-import { FIXTURE_1_A, FIXTURE_1_B } from "./fixtures";
+import { FIXTURE_2_A, FIXTURE_2_B } from "./fixtures";
 
 const meta: Meta<typeof OnionSkinMode> = {
 	title: "Components/OnionSkinMode",
@@ -26,32 +26,32 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
 	args: {
-		src1: FIXTURE_1_A,
-		src2: FIXTURE_1_B,
+		src1: FIXTURE_2_A,
+		src2: FIXTURE_2_B,
 		opacity: 50,
 	},
 };
 
 export const LowOpacity: Story = {
 	args: {
-		src1: FIXTURE_1_A,
-		src2: FIXTURE_1_B,
+		src1: FIXTURE_2_A,
+		src2: FIXTURE_2_B,
 		opacity: 20,
 	},
 };
 
 export const HighOpacity: Story = {
 	args: {
-		src1: FIXTURE_1_A,
-		src2: FIXTURE_1_B,
+		src1: FIXTURE_2_A,
+		src2: FIXTURE_2_B,
 		opacity: 80,
 	},
 };
 
 export const WithEventHandlers: Story = {
 	args: {
-		src1: FIXTURE_1_A,
-		src2: FIXTURE_1_B,
+		src1: FIXTURE_2_A,
+		src2: FIXTURE_2_B,
 		opacity: 50,
 		onOpacityChange: (opacity) => {
 			console.log("Opacity changed:", opacity);
