@@ -62,6 +62,48 @@ Performance benchmarks comparing BlazeDiff ecosystem components against popular 
       <td>88.3%</td>
     </tr>
     <tr>
+      <td>blazediff/1</td>
+      <td>1.45ms</td>
+      <td>0.70ms</td>
+      <td>0.74ms</td>
+      <td>51.3%</td>
+    </tr>
+    <tr>
+      <td>blazediff/1 (identical)</td>
+      <td>0.50ms</td>
+      <td>0.05ms</td>
+      <td>0.45ms</td>
+      <td>90.0%</td>
+    </tr>
+    <tr>
+      <td>blazediff/2</td>
+      <td>2.73ms</td>
+      <td>1.04ms</td>
+      <td>1.69ms</td>
+      <td>61.9%</td>
+    </tr>
+    <tr>
+      <td>blazediff/2 (identical)</td>
+      <td>0.40ms</td>
+      <td>0.05ms</td>
+      <td>0.35ms</td>
+      <td>87.8%</td>
+    </tr>
+    <tr>
+      <td>blazediff/3</td>
+      <td>10.91ms</td>
+      <td>10.25ms</td>
+      <td>0.67ms</td>
+      <td>6.1%</td>
+    </tr>
+    <tr>
+      <td>blazediff/3 (identical)</td>
+      <td>1.83ms</td>
+      <td>0.20ms</td>
+      <td>1.63ms</td>
+      <td>89.1%</td>
+    </tr>
+    <tr>
       <td>page/1</td>
       <td>321.33ms</td>
       <td>92.50ms</td>
