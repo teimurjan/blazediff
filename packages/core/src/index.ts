@@ -67,8 +67,7 @@ export default function blazediff(
 	const blocksY = Math.ceil(height / blockSize);
 
 	const maxBlocks = blocksX * blocksY;
-	const changedBlocksX = new Int32Array(maxBlocks);
-	const changedBlocksY = new Int32Array(maxBlocks);
+	const changedBlockCoords = new Int32Array(maxBlocks * 2); // x,y pairs
 
 	let changedBlocksCount = 0;
 
@@ -98,8 +97,9 @@ export default function blazediff(
 
 			if (!blockIdentical) {
 				// Store start coordinates for changed blocks
-				changedBlocksX[changedBlocksCount] = startX;
-				changedBlocksY[changedBlocksCount] = startY;
+				const idx = changedBlocksCount * 2;
+				changedBlockCoords[idx] = startX;
+				changedBlockCoords[idx + 1] = startY;
 				changedBlocksCount++;
 			}
 		}
@@ -120,8 +120,9 @@ export default function blazediff(
 
 	// Process only changed blocks
 	for (let blockIdx = 0; blockIdx < changedBlocksCount; blockIdx++) {
-		const startX = changedBlocksX[blockIdx];
-		const startY = changedBlocksY[blockIdx];
+		const idx = blockIdx * 2;
+		const startX = changedBlockCoords[idx];
+		const startY = changedBlockCoords[idx + 1];
 		const endX = Math.min(startX + blockSize, width);
 		const endY = Math.min(startY + blockSize, height);
 
