@@ -1,5 +1,15 @@
 # @blazediff/core
 
+## 1.3.0
+
+### Minor Changes
+
+- 24d135a: Store changed block coordinates in one array for better cache loyalty
+
+### Patch Changes
+
+- @blazediff/types@1.3.0
+
 ## 1.2.0
 
 ### Minor Changes
