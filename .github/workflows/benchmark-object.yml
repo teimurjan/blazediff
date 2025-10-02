@@ -31,7 +31,7 @@ jobs:
         run: pnpm build
 
       - name: Run Benchmark (blazediff)
-        run: pnpm benchmark:blazediff:object -- --format=json --output=blazediff.json
+        run: pnpm benchmark:object -- --format=json --output=blazediff.json
 
       - name: Run Benchmark (microdiff)
         run: pnpm benchmark:microdiff -- --format=json --output=microdiff.json

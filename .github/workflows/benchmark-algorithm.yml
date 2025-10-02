@@ -31,7 +31,7 @@ jobs:
         run: pnpm build
 
       - name: Run Benchmark (blazediff)
-        run: pnpm benchmark:blazediff -- --format=json --output=blazediff.json
+        run: pnpm benchmark:core -- --format=json --output=blazediff.json
 
       - name: Run Benchmark (pixelmatch)
         run: pnpm benchmark:pixelmatch -- --format=json --output=pixelmatch.json

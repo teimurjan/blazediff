@@ -5,27 +5,32 @@ const a = JSON.parse(
 const b = JSON.parse(
 	fs.readFileSync("packages/benchmark/blazediff.json", "utf8"),
 );
-const byName = new Map(b.map((r) => [r.name, r]));
+
+// Strip prefix from names to match them (e.g., "microdiff - pair 1" -> "pair 1")
+const stripPrefix = (name) => name.replace(/^[^-]+-\s*/, "");
+const byName = new Map(b.map((r) => [stripPrefix(r.name), r]));
+
 const rows = [];
 for (const r of a) {
-	const m = byName.get(r.name);
+	const key = stripPrefix(r.name);
+	const m = byName.get(key);
 	if (!m) continue;
-	const px = r.average;
-	const bz = m.average;
+	const px = r.latency.mean;
+	const bz = m.latency.mean;
 	const saved = px - bz;
 	const pct = px ? (saved / px) * 100 : 0;
 	rows.push([
-		r.name,
-		`${px.toFixed(4)}ms`,
-		`${bz.toFixed(4)}ms`,
-		`${saved.toFixed(4)}ms`,
+		key,
+		`${px.toFixed(2)}ms`,
+		`${bz.toFixed(2)}ms`,
+		`${saved.toFixed(2)}ms`,
 		`${pct.toFixed(1)}%`,
 	]);
 }
 rows.sort((x, y) => x[0].localeCompare(y[0]));
 const sum = (arr) => arr.reduce((s, v) => s + v, 0);
-const pxTotal = sum(a.map((x) => x.average));
-const bzTotal = sum(b.map((x) => x.average));
+const pxTotal = sum(a.map((x) => x.latency.mean / 1000));
+const bzTotal = sum(b.map((x) => x.latency.mean / 1000));
 const savedTotal = pxTotal - bzTotal;
 const pctTotal = pxTotal ? (savedTotal / pxTotal) * 100 : 0;
 const head = [

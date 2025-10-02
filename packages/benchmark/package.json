@@ -3,15 +3,6 @@
 	"version": "0.0.1",
 	"description": "Benchmark package for comparing BlazeDiff with pixelmatch",
 	"private": true,
-	"main": "dist/index.js",
-	"types": "dist/index.d.ts",
-	"exports": {
-		".": {
-			"types": "./dist/index.d.ts",
-			"import": "./dist/index.js",
-			"require": "./dist/index.js"
-		}
-	},
 	"files": [
 		"dist"
 	],
@@ -19,13 +10,10 @@
 		"build": "tsup",
 		"dev": "tsup --watch",
 		"clean": "rm -rf dist",
-		"benchmark": "node dist/index.js",
-		"blazediff": "pnpm benchmark --target=blazediff --variant=algorithm",
-		"pixelmatch": "pnpm benchmark --target=pixelmatch --variant=algorithm",
-		"blazediff:binary": "pnpm benchmark --target=blazediff --variant=binary",
-		"pixelmatch:binary": "pnpm benchmark --target=pixelmatch --variant=binary",
-		"blazediff:object": "pnpm benchmark --target=blazediff --variant=object",
-		"microdiff": "pnpm benchmark --target=microdiff --variant=object"
+		"core": "node dist/core-benchmark.js",
+		"pixelmatch": "node dist/pixelmatch-benchmark.js",
+		"object": "node dist/object-benchmark.js",
+		"microdiff": "node dist/microdiff-benchmark.js"
 	},
 	"devDependencies": {
 		"@blazediff/bin": "workspace:*",
@@ -34,12 +22,11 @@
 		"@blazediff/pngjs-transformer": "workspace:*",
 		"@blazediff/types": "workspace:*",
 		"@types/node": "^24.3.0",
+		"microdiff": "^1.5.0",
 		"pixelmatch": "^7.1.0",
 		"pngjs": "^7.0.0",
+		"tinybench": "^5.0.1",
 		"tsup": "^8.5.0",
 		"typescript": "^5.9.2"
-	},
-	"dependencies": {
-		"microdiff": "^1.5.0"
 	}
 }
