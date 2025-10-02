@@ -4,14 +4,8 @@ on:
   push:
     branches:
       - main
-    paths:
-      - "packages/benchmark"
-      - "packages/core"
-      - "package.json"
-      - "pnpm-lock.yaml"
-      - ".github/workflows/benchmark-algorithm.yml"
 
-concurrency: ${{ github.workflow }}-${{ github.ref }}
+concurrency: ${{ github.workflow }}
 
 jobs:
   benchmark-algorithm:
