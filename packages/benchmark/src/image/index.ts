@@ -34,15 +34,12 @@ async function runBenchmark({
 			getImagePairs(join(__dirname, "../fixtures"), "same"),
 		);
 
-		const binaryPairs = [...fourKImagePairs, ...pageImagePairs];
-		const algorithmPairs = [
+		const pairs = [
 			...pixelmatchImagePairs,
 			...blazediffImagePairs,
 			...fourKImagePairs,
 			...pageImagePairs,
 		];
-
-		const pairs = variant === "binary" ? binaryPairs : algorithmPairs;
 
 		// Identical have equal metadata, while same pairs are visually identical
 		const identicalPairs: ImagePair[] = [];
@@ -83,26 +80,6 @@ async function runBenchmark({
 				);
 				const results = pixlematchAlgorithmBenchmark({
 					pairs: pairsLoaded,
-					iterations,
-					warmup,
-				});
-				outputResults(pairs, results, format, output);
-			}
-		} else if (variant === "binary") {
-			if (target === "blazediff") {
-				const { blazediffBinaryBenchmark } = await import("./binary/blazediff");
-				const results = await blazediffBinaryBenchmark({
-					pairs,
-					iterations,
-					warmup,
-				});
-				outputResults(pairs, results, format, output);
-			} else if (target === "pixelmatch") {
-				const { pixlematchBinaryBenchmark } = await import(
-					"./binary/pixelmatch"
-				);
-				const results = await pixlematchBinaryBenchmark({
-					pairs,
 					iterations,
 					warmup,
 				});

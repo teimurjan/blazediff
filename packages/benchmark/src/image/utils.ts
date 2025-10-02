@@ -1,22 +1,8 @@
-import { execSync } from "node:child_process";
 import { readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import transformer from "@blazediff/pngjs-transformer";
 import type { AlgorithmBenchmarkResult } from "./algorithm/types";
-import type { BinaryBenchmarkResult } from "./binary/types";
 import type { BenchmarkArgs, ImagePair, ImagePairLoaded } from "./types";
-
-export function safeExecSync(command: string): string {
-	try {
-		const stdout = execSync(command.trim()).toString();
-		return stdout;
-	} catch (error: any) {
-		if (!error.stdout) {
-			throw error;
-		}
-		return error.stdout.toString();
-	}
-}
 
 export function getImagePairs(
 	fixturesDir: string,
@@ -103,7 +89,7 @@ export function parseBenchmarkArgs(): BenchmarkArgs {
 
 const getOutput = (
 	pairs: ImagePair[],
-	results: AlgorithmBenchmarkResult | BinaryBenchmarkResult,
+	results: AlgorithmBenchmarkResult,
 	format: "markdown" | "json" = "markdown",
 ) => {
 	const hasDiff = results.some((result) => "diff" in result);
@@ -177,7 +163,7 @@ const getOutput = (
 
 export const outputResults = (
 	pairs: ImagePair[],
-	results: AlgorithmBenchmarkResult | BinaryBenchmarkResult,
+	results: AlgorithmBenchmarkResult,
 	format: "markdown" | "json" = "markdown",
 	output: string = "console",
 ) => {
