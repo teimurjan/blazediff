@@ -206,7 +206,7 @@ function antialiased(
 	const x2 = Math.min(x1 + 1, width - 1);
 	const y2 = Math.min(y1 + 1, height - 1);
 	const pos = y1 * width + x1;
-	const centerPixelOffset = pos * 4;
+	const centerPixelOffset = pos << 4;
 	let zeroes = x1 === x0 || x1 === x2 || y1 === y0 || y1 === y2 ? 1 : 0;
 	let min = 0;
 	let max = 0;
