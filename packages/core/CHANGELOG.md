@@ -1,5 +1,15 @@
 # @blazediff/core
 
+## 1.2.0
+
+### Minor Changes
+
+- 630dd96: Optimize block coordinates storage
+
+### Patch Changes
+
+- @blazediff/types@1.2.0
+
 ## 1.1.0
 
 ### Minor Changes
