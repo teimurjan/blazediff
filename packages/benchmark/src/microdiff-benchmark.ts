@@ -14,15 +14,14 @@ async function main() {
 	const bench = new Bench({
 		iterations,
 		warmupIterations: 50,
-		time: 0,
 		now: hrtimeNow,
 	});
 
 	for (let i = 0; i < pairs.length; i++) {
 		const pair = pairs[i];
-		const { a, b } = pair;
+		const { a, b, name } = pair;
 
-		bench.add(`microdiff - pair ${i + 1}`, () => {
+		bench.add(`microdiff - ${name}`, () => {
 			microdiff(a as any, b as any);
 		});
 	}
@@ -36,13 +35,13 @@ async function main() {
 				Name: task.name,
 				"Ops/sec": task.result?.throughput.mean.toFixed(2),
 				"Avg (ms)": task.result?.latency.mean
-					? (task.result.latency.mean / 1000).toFixed(6)
+					? (task.result.latency.mean).toFixed(6)
 					: "N/A",
 				"Min (ms)": task.result?.latency.min
-					? (task.result.latency.min / 1000).toFixed(6)
+					? (task.result.latency.min).toFixed(6)
 					: "N/A",
 				"Max (ms)": task.result?.latency.max
-					? (task.result.latency.max / 1000).toFixed(6)
+					? (task.result.latency.max).toFixed(6)
 					: "N/A",
 			}))
 			.sort((a, b) => a.Name.localeCompare(b.Name)),

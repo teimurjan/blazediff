@@ -7,7 +7,7 @@ const b = JSON.parse(
 );
 
 // Strip prefix from names to match them (e.g., "pixelmatch - 4k/1" -> "4k/1")
-const stripPrefix = (name) => name.replace(/^[^-]+-\s*/, "");
+const stripPrefix = (name) => name.split(" - ")[1];
 const byName = new Map(b.map((r) => [stripPrefix(r.name), r]));
 
 const rows = [];
@@ -29,8 +29,8 @@ for (const r of a) {
 }
 rows.sort((x, y) => x[0].localeCompare(y[0]));
 const sum = (arr) => arr.reduce((s, v) => s + v, 0);
-const pxTotal = sum(a.map((x) => x.latency.mean / 1000));
-const bzTotal = sum(b.map((x) => x.latency.mean / 1000));
+const pxTotal = sum(a.map((x) => x.latency.mean));
+const bzTotal = sum(b.map((x) => x.latency.mean));
 const savedTotal = pxTotal - bzTotal;
 const pctTotal = pxTotal ? (savedTotal / pxTotal) * 100 : 0;
 const head = [

@@ -50,8 +50,8 @@ export default function blazediff(
 		image2 instanceof Uint8Array &&
 		Buffer.compare(image1, image2) === 0
 	) {
-		for (let i = 0; i < width * height; i++) {
-			if (output && !diffMask) {
+		if (output && !diffMask) {
+			for (let i = 0; i < width * height; i++) {
 				drawGrayPixel(image1, i * 4, alpha, output);
 			}
 		}
@@ -89,13 +89,21 @@ export default function blazediff(
 						blockIdentical = false;
 						break outer;
 					}
-					if (output && !diffMask) {
-						drawGrayPixel(image1, i * 4, alpha, output);
-					}
 				}
 			}
 
-			if (!blockIdentical) {
+			if (blockIdentical) {
+				// Draw gray pixels for identical blocks only if output is needed
+				if (output && !diffMask) {
+					for (let y = startY; y < endY; y++) {
+						const yOffset = y * width;
+						for (let x = startX; x < endX; x++) {
+							const i = yOffset + x;
+							drawGrayPixel(image1, i * 4, alpha, output);
+						}
+					}
+				}
+			} else {
 				// Store start coordinates for changed blocks
 				const idx = changedBlocksCount * 2;
 				changedBlockCoords[idx] = startX;
@@ -132,10 +140,15 @@ export default function blazediff(
 				const pixelIndex = yOffset + x;
 				const pos = pixelIndex * 4;
 
-				const delta =
-					a32[pixelIndex] === b32[pixelIndex]
-						? 0
-						: colorDelta(image1, image2, pos, pos, false);
+				// Skip if pixels are identical
+				if (a32[pixelIndex] === b32[pixelIndex]) {
+					if (output && !diffMask) {
+						drawGrayPixel(image1, pos, alpha, output);
+					}
+					continue;
+				}
+
+				const delta = colorDelta(image1, image2, pos, pos, false);
 
 				// Color difference is above threshold
 				if (Math.abs(delta) > maxDelta) {
