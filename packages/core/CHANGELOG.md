@@ -1,5 +1,15 @@
 # @blazediff/core
 
+## 1.4.0
+
+### Minor Changes
+
+- 5719109: Remove drawing pixels when no output, yet images are identical
+
+### Patch Changes
+
+- @blazediff/types@1.4.0
+
 ## 1.3.0
 
 ### Minor Changes

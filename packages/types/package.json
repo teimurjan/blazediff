@@ -1,6 +1,6 @@
 {
 	"name": "@blazediff/types",
-	"version": "1.3.0",
+	"version": "1.4.0",
 	"description": "Shared types for the BlazeDiff project",
 	"private": false,
 	"publishConfig": {
