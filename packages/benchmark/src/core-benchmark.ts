@@ -39,13 +39,13 @@ async function main() {
 				Name: task.name,
 				"Ops/sec": task.result?.throughput.mean.toFixed(2),
 				"Avg (ms)": task.result?.latency.mean
-					? (task.result.latency.mean / 1000).toFixed(6)
+					? task.result.latency.mean.toFixed(4)
 					: "N/A",
 				"Min (ms)": task.result?.latency.min
-					? (task.result.latency.min / 1000).toFixed(6)
+					? task.result.latency.min.toFixed(4)
 					: "N/A",
 				"Max (ms)": task.result?.latency.max
-					? (task.result.latency.max / 1000).toFixed(6)
+					? task.result.latency.max.toFixed(4)
 					: "N/A",
 			}))
 			.sort((a, b) => a.Name.localeCompare(b.Name)),

@@ -74,28 +74,25 @@ function createDifference(
 	valueOrOld: any,
 	oldValue?: any,
 ): Difference {
-	// Ensure path is always a proper array
-	const pathArray = Array.isArray(path) ? path : [path];
-
 	// Consistent object shape regardless of type (numeric comparison is faster)
 	if (type === DifferenceType.CREATE) {
 		return {
 			type: DifferenceType.CREATE,
-			path: pathArray,
+			path: path,
 			value: valueOrOld,
 			oldValue: undefined,
 		};
 	} else if (type === DifferenceType.REMOVE) {
 		return {
 			type: DifferenceType.REMOVE,
-			path: pathArray,
+			path: path,
 			value: undefined,
 			oldValue: valueOrOld,
 		};
 	} else {
 		return {
 			type: DifferenceType.CHANGE,
-			path: pathArray,
+			path: path,
 			value: valueOrOld,
 			oldValue: oldValue,
 		};
@@ -108,31 +105,39 @@ function diffArrays(
 	newArr: any[],
 	options: Options,
 	stack: WeakSet<object>,
+	basePath: (string | number)[],
 ): Difference[] {
 	const diffs: Difference[] = [];
 	const oldLen = oldArr.length;
 	const newLen = newArr.length;
 	const maxLen = Math.max(oldLen, newLen);
+	const basePathLen = basePath.length;
 
 	// Traditional for loop with cached length (best JIT optimization)
 	for (let i = 0; i < maxLen; i = i + 1) {
 		if (i >= newLen) {
-			// Element removed
+			// Element removed - push index temporarily, then restore
+			basePath[basePathLen] = i;
+			basePath.length = basePathLen + 1;
 			diffs[diffs.length] = createDifference(
 				DifferenceType.REMOVE,
-				[i],
+				basePath.slice(),
 				oldArr[i],
 			);
+			basePath.length = basePathLen;
 			continue;
 		}
 
 		if (i >= oldLen) {
-			// Element added
+			// Element added - push index temporarily, then restore
+			basePath[basePathLen] = i;
+			basePath.length = basePathLen + 1;
 			diffs[diffs.length] = createDifference(
 				DifferenceType.CREATE,
-				[i],
+				basePath.slice(),
 				newArr[i],
 			);
+			basePath.length = basePathLen;
 			continue;
 		}
 
@@ -143,7 +148,7 @@ function diffArrays(
 		if (oldVal === newVal) continue;
 		if (Number.isNaN(oldVal) && Number.isNaN(newVal)) continue;
 
-		compareAndAddDifferences(oldVal, newVal, i, options, stack, diffs);
+		compareAndAddDifferences(oldVal, newVal, i, options, stack, diffs, basePath);
 	}
 
 	return diffs;
@@ -151,23 +156,25 @@ function diffArrays(
 
 // Specialized object differ (monomorphic - only handles objects)
 function diffObjects(
-	oldObj: Record<string, any>,
-	newObj: Record<string, any>,
+	oldObj: any,
+	newObj: any,
 	isOldArray: boolean,
 	options: Options,
 	stack: WeakSet<object>,
+	basePath: (string | number)[],
 ): Difference[] {
 	const diffs: Difference[] = [];
 	const oldKeys = Object.keys(oldObj);
 	const newKeys = Object.keys(newObj);
 	const oldKeysLen = oldKeys.length;
 	const newKeysLen = newKeys.length;
+	const basePathLen = basePath.length;
 
 	// Use Set only for larger objects (avoid overhead for small objects)
 	let newKeySet: Set<string> | null = null;
 	let oldKeySet: Set<string> | null = null;
 
-	if (Math.min(oldKeysLen, newKeysLen) > 8) {
+	if (Math.min(oldKeysLen, newKeysLen) > 10) {
 		newKeySet = new Set(newKeys);
 		oldKeySet = new Set(oldKeys);
 	}
@@ -180,14 +187,17 @@ function diffObjects(
 
 		// Optimized key existence check
 		const hasNewKey =
-			newKeySet !== null ? newKeySet.has(key) : newKeys.indexOf(key) !== -1;
+			newKeySet !== null ? newKeySet.has(key) : key in newObj;
 
 		if (!hasNewKey) {
+			basePath[basePathLen] = pathKey;
+			basePath.length = basePathLen + 1;
 			diffs[diffs.length] = createDifference(
 				DifferenceType.REMOVE,
-				[pathKey],
+				basePath.slice(),
 				oldVal,
 			);
+			basePath.length = basePathLen;
 			continue;
 		}
 
@@ -197,7 +207,7 @@ function diffObjects(
 		if (oldVal === newVal) continue;
 		if (Number.isNaN(oldVal) && Number.isNaN(newVal)) continue;
 
-		compareAndAddDifferences(oldVal, newVal, pathKey, options, stack, diffs);
+		compareAndAddDifferences(oldVal, newVal, pathKey, options, stack, diffs, basePath);
 	}
 
 	// Process new keys (additions)
@@ -207,15 +217,18 @@ function diffObjects(
 
 		// Optimized key existence check
 		const hasOldKey =
-			oldKeySet !== null ? oldKeySet.has(key) : oldKeys.indexOf(key) !== -1;
+			oldKeySet !== null ? oldKeySet.has(key) : key in oldObj;
 
 		if (!hasOldKey) {
 			const pathKey = isNewArray ? +key : key;
+			basePath[basePathLen] = pathKey;
+			basePath.length = basePathLen + 1;
 			diffs[diffs.length] = createDifference(
 				DifferenceType.CREATE,
-				[pathKey],
+				basePath.slice(),
 				newObj[key],
 			);
+			basePath.length = basePathLen;
 		}
 	}
 
@@ -230,9 +243,11 @@ function compareAndAddDifferences(
 	options: Options,
 	stack: WeakSet<object>,
 	diffs: Difference[],
+	basePath: (string | number)[],
 ): void {
 	const oldType = typeof oldVal;
 	const newType = typeof newVal;
+	const basePathLen = basePath.length;
 
 	// Handle primitives first (most common case, optimize for this path)
 	if (
@@ -241,12 +256,15 @@ function compareAndAddDifferences(
 		oldVal === null ||
 		newVal === null
 	) {
+		basePath[basePathLen] = pathElement;
+		basePath.length = basePathLen + 1;
 		diffs[diffs.length] = createDifference(
 			DifferenceType.CHANGE,
-			[pathElement],
+			basePath.slice(),
 			newVal,
 			oldVal,
 		);
+		basePath.length = basePathLen;
 		return;
 	}
 
@@ -258,12 +276,15 @@ function compareAndAddDifferences(
 
 	// Handle type mismatches
 	if (oldIsArray !== newIsArray || oldIsRich || newIsRich) {
+		basePath[basePathLen] = pathElement;
+		basePath.length = basePathLen + 1;
 		diffs[diffs.length] = createDifference(
 			DifferenceType.CHANGE,
-			[pathElement],
+			basePath.slice(),
 			newVal,
 			oldVal,
 		);
+		basePath.length = basePathLen;
 		return;
 	}
 
@@ -277,23 +298,28 @@ function compareAndAddDifferences(
 		stack.add(oldVal);
 	}
 
+	// Mutate path in place for recursion
+	basePath[basePathLen] = pathElement;
+	basePath.length = basePathLen + 1;
+
 	let subDiffs: Difference[];
 	if (oldIsArray && newIsArray) {
-		subDiffs = diffArrays(oldVal as any[], newVal as any[], options, stack);
+		subDiffs = diffArrays(oldVal as any[], newVal as any[], options, stack, basePath);
 	} else {
-		subDiffs = diffObjects(oldVal, newVal, false, options, stack);
+		subDiffs = diffObjects(oldVal, newVal, false, options, stack, basePath);
 	}
+
+	// Restore path length
+	basePath.length = basePathLen;
 
 	if (options.detectCycles) {
 		stack.delete(oldVal);
 	}
 
-	// Add sub-differences with updated paths (traditional for loop for JIT)
+	// Add sub-differences directly (no path manipulation needed)
 	const subDiffsLen = subDiffs.length;
 	for (let i = 0; i < subDiffsLen; i = i + 1) {
-		const subDiff = subDiffs[i];
-		subDiff.path.unshift(pathElement);
-		diffs[diffs.length] = subDiff;
+		diffs[diffs.length] = subDiffs[i];
 	}
 }
 
@@ -348,9 +374,9 @@ export default function diff(
 
 	// Route to specialized functions based on types (monomorphic optimization)
 	if (isObjArray && isNewObjArray) {
-		return diffArrays(obj, newObj, options, _stack);
+		return diffArrays(obj, newObj, options, _stack, []);
 	}
 
 	// For objects, use object differ
-	return diffObjects(obj, newObj, false, options, _stack);
+	return diffObjects(obj, newObj, false, options, _stack, []);
 }
