@@ -1,5 +1,15 @@
 # @blazediff/bin
 
+## 1.4.0
+
+### Patch Changes
+
+- Updated dependencies [5719109]
+  - @blazediff/core@1.4.0
+  - @blazediff/types@1.4.0
+  - @blazediff/pngjs-transformer@1.4.0
+  - @blazediff/sharp-transformer@1.4.0
+
 ## 1.3.0
 
 ### Patch Changes
