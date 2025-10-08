@@ -1,5 +1,12 @@
 # @blazediff/types
 
+## 1.4.1
+
+### Patch Changes
+
+- 90cb795: Accept pure buffer in transformers
+- 61003dd: Allow Buffer type for BlazeDiffImage['data']
+
 ## 1.4.0
 
 ## 1.3.0
