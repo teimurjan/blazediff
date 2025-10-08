@@ -1,5 +1,11 @@
 # @blazediff/react
 
+## 1.4.1
+
+### Patch Changes
+
+- @blazediff/ui@1.4.1
+
 ## 1.4.0
 
 ### Patch Changes

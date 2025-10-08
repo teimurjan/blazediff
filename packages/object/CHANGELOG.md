@@ -1,5 +1,13 @@
 # @blazediff/object
 
+## 1.4.1
+
+### Patch Changes
+
+- Updated dependencies [90cb795]
+- Updated dependencies [61003dd]
+  - @blazediff/types@1.4.1
+
 ## 1.4.0
 
 ### Minor Changes
