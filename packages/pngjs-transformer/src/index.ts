@@ -3,7 +3,7 @@ import type { BlazeDiffImage, BlazeDiffTransformer } from "@blazediff/types";
 import { PNG } from "pngjs";
 
 async function transform(
-	input: string | Buffer<ArrayBuffer>,
+	input: string | Buffer,
 ): Promise<BlazeDiffImage> {
 	return new Promise((resolve, reject) => {
 		try {
@@ -23,7 +23,7 @@ async function transform(
 
 async function write(
 	image: BlazeDiffImage,
-	output: string | Buffer<ArrayBuffer>,
+	output: string | Buffer,
 ): Promise<void> {
 	return new Promise((resolve, reject) => {
 		try {

@@ -15,11 +15,8 @@ export interface BlazeDiffImage {
  * BlazeDiffTransformer to transform images to a common format & write the output image
  */
 export interface BlazeDiffTransformer {
-	transform: (input: string | Buffer<ArrayBuffer>) => Promise<BlazeDiffImage>;
-	write: (
-		image: BlazeDiffImage,
-		output: string | Buffer<ArrayBuffer>,
-	) => Promise<void>;
+	transform: (input: string | Buffer) => Promise<BlazeDiffImage>;
+	write: (image: BlazeDiffImage, output: string | Buffer) => Promise<void>;
 }
 
 /**
