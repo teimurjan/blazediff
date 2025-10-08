@@ -1,6 +1,6 @@
 {
 	"name": "@blazediff/sharp-transformer",
-	"version": "1.4.0",
+	"version": "1.4.1",
 	"description": "Image transformer using Sharp for the blazediff library",
 	"private": false,
 	"publishConfig": {

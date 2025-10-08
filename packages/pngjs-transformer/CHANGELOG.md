@@ -1,5 +1,14 @@
 # @blazediff/pngjs-transformer
 
+## 1.4.1
+
+### Patch Changes
+
+- 90cb795: Accept pure buffer in transformers
+- Updated dependencies [90cb795]
+- Updated dependencies [61003dd]
+  - @blazediff/types@1.4.1
+
 ## 1.4.0
 
 ### Patch Changes
