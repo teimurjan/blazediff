@@ -1,9 +1,7 @@
 import type { BlazeDiffImage, BlazeDiffTransformer } from "@blazediff/types";
 import sharp from "sharp";
 
-async function transform(
-	input: string | Buffer<ArrayBuffer>,
-): Promise<BlazeDiffImage> {
+async function transform(input: string | Buffer): Promise<BlazeDiffImage> {
 	try {
 		const image = await sharp(input)
 			.ensureAlpha()
@@ -26,7 +24,7 @@ async function transform(
 
 async function write(
 	image: BlazeDiffImage,
-	output: string | Buffer<ArrayBuffer>,
+	output: string | Buffer,
 ): Promise<void> {
 	try {
 		const sharpImage = sharp(image.data, {
