@@ -6,7 +6,7 @@
  * Image data structure
  */
 export interface BlazeDiffImage {
-	data: Uint8Array | Uint8ClampedArray;
+	data: Buffer | Uint8Array | Uint8ClampedArray;
 	width: number;
 	height: number;
 }
