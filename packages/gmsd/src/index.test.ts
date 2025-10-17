@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { gmsd } from "./index";
+import gmsd from "./index";
 
 describe("GMSD - Gradient Magnitude Similarity Deviation", () => {
 	describe("Identical Images", () => {

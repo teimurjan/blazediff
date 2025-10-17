@@ -1,5 +1,5 @@
 import blazediff, { type CoreOptions } from "@blazediff/core";
-import { type GmsdOptions, gmsd } from "@blazediff/gmsd";
+import gmsd, { type GmsdOptions } from "@blazediff/gmsd";
 
 export interface Image {
 	data: Buffer | Uint8Array | Uint8ClampedArray;
