@@ -1,5 +1,12 @@
 # @blazediff/react
 
+## 1.5.0
+
+### Patch Changes
+
+- Updated dependencies [967eb66]
+  - @blazediff/ui@1.5.0
+
 ## 1.4.1
 
 ### Patch Changes
