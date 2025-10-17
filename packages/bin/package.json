@@ -1,6 +1,6 @@
 {
 	"name": "@blazediff/bin",
-	"version": "1.4.1",
+	"version": "1.5.0",
 	"description": "Command-line interface for the blazediff image comparison library",
 	"private": false,
 	"publishConfig": {

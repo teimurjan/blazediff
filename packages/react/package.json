@@ -1,6 +1,6 @@
 {
 	"name": "@blazediff/react",
-	"version": "1.4.1",
+	"version": "1.5.0",
 	"description": "React components for blazediff image comparison",
 	"main": "dist/index.js",
 	"module": "dist/index.mjs",

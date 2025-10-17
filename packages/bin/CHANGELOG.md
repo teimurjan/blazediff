@@ -1,5 +1,20 @@
 # @blazediff/bin
 
+## 1.5.0
+
+### Minor Changes
+
+- 967eb66: Add GMSD perceptual comparison option
+- 967eb66: Remove @blazediff/types to keep zero deps
+
+### Patch Changes
+
+- Updated dependencies [967eb66]
+  - @blazediff/pngjs-transformer@1.5.0
+  - @blazediff/sharp-transformer@1.5.0
+  - @blazediff/core@1.5.0
+  - @blazediff/gmsd@1.5.0
+
 ## 1.4.1
 
 ### Patch Changes
