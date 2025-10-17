@@ -64,8 +64,7 @@
 	"homepage": "https://blazediff.dev",
 	"license": "MIT",
 	"dependencies": {
-		"@blazediff/core": "workspace:*",
-		"@blazediff/types": "workspace:*"
+		"@blazediff/core": "workspace:*"
 	},
 	"devDependencies": {
 		"@storybook/addon-essentials": "9.0.0-alpha.12",

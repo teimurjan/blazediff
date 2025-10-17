@@ -1,10 +1,13 @@
 import { readFileSync, writeFileSync } from "node:fs";
-import type { BlazeDiffImage, BlazeDiffTransformer } from "@blazediff/types";
 import { PNG } from "pngjs";
 
-async function transform(
-	input: string | Buffer,
-): Promise<BlazeDiffImage> {
+export interface Image {
+	data: Buffer | Uint8Array | Uint8ClampedArray;
+	width: number;
+	height: number;
+}
+
+async function transform(input: string | Buffer): Promise<Image> {
 	return new Promise((resolve, reject) => {
 		try {
 			const buffer = typeof input === "string" ? readFileSync(input) : input;
@@ -22,7 +25,7 @@ async function transform(
 }
 
 async function write(
-	image: BlazeDiffImage,
+	image: Image,
 	output: string | Buffer,
 ): Promise<void> {
 	return new Promise((resolve, reject) => {
@@ -37,7 +40,7 @@ async function write(
 	});
 }
 
-const transformer: BlazeDiffTransformer = {
+const transformer = {
 	transform,
 	write,
 };

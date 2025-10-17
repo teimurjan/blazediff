@@ -1,0 +1,6 @@
+src
+example.mjs
+tsconfig.json
+tsup.config.ts
+node_modules
+*.log

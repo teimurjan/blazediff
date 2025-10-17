@@ -1,9 +1,86 @@
-import type { BlazeDiffImage, BlazeDiffOptions } from "@blazediff/types";
+export interface Image {
+	data: Buffer | Uint8Array | Uint8ClampedArray;
+	width: number;
+	height: number;
+}
 
+export interface CoreOptions {
+	threshold?: number;
+	includeAA?: boolean;
+	alpha?: number;
+	aaColor?: [number, number, number];
+	diffColor?: [number, number, number];
+	diffColorAlt?: [number, number, number];
+	diffMask?: boolean;
+	fastBufferCheck?: boolean;
+}
+
+/**
+ * Compare two images pixel-by-pixel and return the number of different pixels.
+ *
+ * Uses YIQ color space for perceptually accurate color comparison and includes
+ * anti-aliasing detection. Implements block-based optimization for 20% better
+ * performance than traditional pixel-by-pixel comparison.
+ *
+ * @param image1 - First image data (RGBA format, 4 bytes per pixel)
+ * @param image2 - Second image data (RGBA format, 4 bytes per pixel)
+ * @param output - Optional output buffer for diff visualization. If provided, will be filled with:
+ *                 - Grayscale for unchanged pixels (with alpha blending)
+ *                 - aaColor for anti-aliased pixels (if includeAA is false)
+ *                 - diffColor/diffColorAlt for different pixels
+ *                 - Transparent for unchanged pixels (if diffMask is true)
+ * @param width - Image width in pixels
+ * @param height - Image height in pixels
+ * @param options - Comparison options
+ * @param options.threshold - Color difference threshold (0-1). Lower values = more sensitive.
+ *                           Default: 0.1. Recommended: 0.05 for strict, 0.2+ for loose.
+ * @param options.alpha - Background opacity for unchanged pixels in output (0-1). Default: 0.1
+ * @param options.aaColor - RGB color for anti-aliased pixels. Default: [255, 255, 0] (yellow)
+ * @param options.diffColor - RGB color for different pixels. Default: [255, 0, 0] (red)
+ * @param options.diffColorAlt - Optional RGB color for dark differences. Helps distinguish
+ *                               lightening vs darkening changes.
+ * @param options.includeAA - Whether to count anti-aliased pixels as differences. Default: false
+ * @param options.diffMask - If true, output only shows differences (transparent background).
+ *                          Useful for overlay masks. Default: false
+ * @param options.fastBufferCheck - Use Buffer.compare() for fast identical-buffer detection.
+ *                                  Set to false if images are processed differently but look similar.
+ *                                  Default: true
+ * @returns The number of different pixels (excluding anti-aliased pixels unless includeAA is true)
+ *
+ * @throws {Error} If image data is not Uint8Array, Uint8ClampedArray, or Buffer
+ * @throws {Error} If image sizes don't match
+ * @throws {Error} If image data size doesn't match width × height × 4
+ *
+ * @example
+ * ```typescript
+ * import blazediff from '@blazediff/core';
+ *
+ * // Basic comparison
+ * const diffCount = blazediff(image1, image2, undefined, 800, 600);
+ *
+ * // With visualization output
+ * const output = new Uint8ClampedArray(800 * 600 * 4);
+ * const diffCount = blazediff(image1, image2, output, 800, 600, {
+ *   threshold: 0.1,
+ *   diffColor: [255, 0, 0],
+ *   aaColor: [255, 255, 0]
+ * });
+ *
+ * // Strict comparison with diff mask
+ * const diffCount = blazediff(image1, image2, output, 800, 600, {
+ *   threshold: 0.05,
+ *   diffMask: true,
+ *   includeAA: true
+ * });
+ * ```
+ *
+ * @see {@link https://blazediff.dev | Documentation}
+ * @see {@link ./FORMULA.md | Algorithm and Mathematical Foundation}
+ */
 export default function blazediff(
-	image1: BlazeDiffImage["data"],
-	image2: BlazeDiffImage["data"],
-	output: BlazeDiffImage["data"] | undefined,
+	image1: Image["data"],
+	image2: Image["data"],
+	output: Image["data"] | undefined,
 	width: number,
 	height: number,
 	{
@@ -15,7 +92,7 @@ export default function blazediff(
 		diffColorAlt,
 		diffMask,
 		fastBufferCheck = true,
-	}: BlazeDiffOptions = {},
+	}: CoreOptions = {},
 ): number {
 	if (
 		!isValidBlazeDiffImage(image1) ||
@@ -80,7 +157,7 @@ export default function blazediff(
 
 			let blockIdentical = true;
 
-			// Check block using 32-bit integer comparison
+			// Check block using 32-bit integer comparison (with early exit)
 			outer: for (let y = startY; y < endY; y++) {
 				const yOffset = y * width;
 				for (let x = startX; x < endX; x++) {
@@ -196,7 +273,7 @@ function calculateOptimalBlockSize(width: number, height: number): number {
 }
 
 /** Check if array is valid pixel data */
-function isValidBlazeDiffImage(arr: unknown): arr is BlazeDiffImage["data"] {
+function isValidBlazeDiffImage(arr: unknown): arr is Image["data"] {
 	// work around instanceof Uint8Array not working properly in some Jest environments
 	return ArrayBuffer.isView(arr) && (arr as any).BYTES_PER_ELEMENT === 1;
 }
@@ -206,7 +283,7 @@ function isValidBlazeDiffImage(arr: unknown): arr is BlazeDiffImage["data"] {
  * based on "Anti-aliased Pixel and Intensity Slope Detector" paper by V. Vysniauskas, 2009
  */
 function antialiased(
-	image: BlazeDiffImage["data"],
+	image: Image["data"],
 	x1: number,
 	y1: number,
 	width: number,
@@ -324,8 +401,8 @@ function hasManySiblings(
  * https://doaj.org/article/b2e3b5088ba943eebd9af2927fef08ad
  */
 function colorDelta(
-	image1: BlazeDiffImage["data"],
-	image2: BlazeDiffImage["data"],
+	image1: Image["data"],
+	image2: Image["data"],
 	k: number,
 	m: number,
 	yOnly: boolean,
@@ -373,7 +450,7 @@ function colorDelta(
  * Draw a colored pixel to the output buffer
  */
 function drawPixel(
-	output: BlazeDiffImage["data"],
+	output: Image["data"],
 	position: number,
 	r: number,
 	g: number,
@@ -389,10 +466,10 @@ function drawPixel(
  * Draw a grayscale pixel to the output buffer
  */
 function drawGrayPixel(
-	image: BlazeDiffImage["data"],
+	image: Image["data"],
 	index: number,
 	alpha: number,
-	output: BlazeDiffImage["data"],
+	output: Image["data"],
 ): void {
 	const value =
 		255 +

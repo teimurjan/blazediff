@@ -19,6 +19,10 @@ importers:
         version: 2.29.6(@types/node@24.3.0)
 
   packages/benchmark:
+    dependencies:
+      ssim.js:
+        specifier: ^3.5.0
+        version: 3.5.0
     devDependencies:
       '@blazediff/bin':
         specifier: workspace:*
@@ -26,15 +30,18 @@ importers:
       '@blazediff/core':
         specifier: workspace:*
         version: link:../core
+      '@blazediff/gmsd':
+        specifier: workspace:*
+        version: link:../gmsd
       '@blazediff/object':
         specifier: workspace:*
         version: link:../object
       '@blazediff/pngjs-transformer':
         specifier: workspace:*
         version: link:../pngjs-transformer
-      '@blazediff/types':
-        specifier: workspace:*
-        version: link:../types
+      '@opentf/obj-diff':
+        specifier: ^0.12.0
+        version: 0.12.0
       '@types/node':
         specifier: ^24.3.0
         version: 24.3.0
@@ -62,15 +69,15 @@ importers:
       '@blazediff/core':
         specifier: workspace:*
         version: link:../core
+      '@blazediff/gmsd':
+        specifier: workspace:*
+        version: link:../gmsd
       '@blazediff/pngjs-transformer':
         specifier: workspace:*
         version: link:../pngjs-transformer
       '@blazediff/sharp-transformer':
         specifier: workspace:*
         version: link:../sharp-transformer
-      '@blazediff/types':
-        specifier: workspace:*
-        version: link:../types
     devDependencies:
       '@types/node':
         specifier: ^24.3.0
@@ -83,10 +90,6 @@ importers:
         version: 5.9.2
 
   packages/core:
-    dependencies:
-      '@blazediff/types':
-        specifier: workspace:*
-        version: link:../types
     devDependencies:
       '@types/node':
         specifier: ^24.3.0
@@ -98,11 +101,28 @@ importers:
         specifier: 5.9.2
         version: 5.9.2
 
+  packages/gmsd:
+    devDependencies:
+      '@types/node':
+        specifier: ^24.3.0
+        version: 24.3.0
+      '@vitest/ui':
+        specifier: ^3.2.4
+        version: 3.2.4(vitest@3.2.4)
+      ssim.js:
+        specifier: ^3.5.0
+        version: 3.5.0
+      tsup:
+        specifier: 8.5.0
+        version: 8.5.0(jiti@2.6.0)(postcss@8.5.6)(typescript@5.9.2)(yaml@2.8.1)
+      typescript:
+        specifier: 5.9.2
+        version: 5.9.2
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.4(@types/debug@4.1.12)(@types/node@24.3.0)(@vitest/ui@3.2.4)(happy-dom@18.0.1)(jiti@2.6.0)(lightningcss@1.30.1)(yaml@2.8.1)
+
   packages/object:
-    dependencies:
-      '@blazediff/types':
-        specifier: workspace:*
-        version: link:../types
     devDependencies:
       '@types/node':
         specifier: ^24.3.0
@@ -128,16 +148,10 @@ importers:
 
   packages/pngjs-transformer:
     dependencies:
-      '@blazediff/types':
-        specifier: workspace:*
-        version: link:../types
       pngjs:
         specifier: 7.0.0
         version: 7.0.0
     devDependencies:
-      '@types/pixelmatch':
-        specifier: ^5.2.6
-        version: 5.2.6
       '@types/pngjs':
         specifier: 6.0.5
         version: 6.0.5
@@ -205,9 +219,6 @@ importers:
 
   packages/sharp-transformer:
     dependencies:
-      '@blazediff/types':
-        specifier: workspace:*
-        version: link:../types
       sharp:
         specifier: ^0.34.3
         version: 0.34.3
@@ -222,23 +233,11 @@ importers:
         specifier: 5.9.2
         version: 5.9.2
 
-  packages/types:
-    devDependencies:
-      '@types/node':
-        specifier: ^24.3.0
-        version: 24.3.0
-      typescript:
-        specifier: ^5.9.2
-        version: 5.9.2
-
   packages/ui:
     dependencies:
       '@blazediff/core':
         specifier: workspace:*
         version: link:../core
-      '@blazediff/types':
-        specifier: workspace:*
-        version: link:../types
     devDependencies:
       '@storybook/addon-essentials':
         specifier: 9.0.0-alpha.12
@@ -279,12 +278,12 @@ importers:
       '@blazediff/core':
         specifier: workspace:*
         version: link:../core
+      '@blazediff/gmsd':
+        specifier: workspace:*
+        version: link:../gmsd
       '@blazediff/object':
         specifier: workspace:*
         version: link:../object
-      '@blazediff/types':
-        specifier: workspace:*
-        version: link:../types
       '@tabler/icons-react':
         specifier: ^3.35.0
         version: 3.35.0(react@19.1.1)
@@ -1349,6 +1348,14 @@ packages:
     resolution: {integrity: sha512-oGB+UxlgWcgQkgwo8GcEGwemoTFt3FIO9ababBmaGwXIoBKZ+GTy0pP185beGg7Llih/NSHSV2XAs1lnznocSg==}
     engines: {node: '>= 8'}
 
+  '@opentf/obj-diff@0.12.0':
+    resolution: {integrity: sha512-mxgT/RaarPGIcdFeQsdBxY7jFAFoH5L6P5BHOG8c+uytKAzylTchHa7tXhlXRt1bTW0gnqQ6fcTL8ex2GsXo1w==}
+    engines: {node: '>=16.20.2'}
+
+  '@opentf/std@0.12.0':
+    resolution: {integrity: sha512-UVK4sKbjtBmad8rbv3i5iIYR6xGjdBX75JN7uIKTKzZ40MObstuZkUoGfA5OpnVDCCOPLsPqioSYTBENJgcrMw==}
+    engines: {node: '>=16.20.2'}
+
   '@pagefind/darwin-arm64@1.4.0':
     resolution: {integrity: sha512-2vMqkbv3lbx1Awea90gTaBsvpzgRs7MuSgKDxW0m9oV1GPZCZbZBJg/qL83GIUEN2BFlY46dtUZi54pwH+/pTQ==}
     cpu: [arm64]
@@ -2096,9 +2103,6 @@ packages:
 
   '@types/node@24.3.0':
     resolution: {integrity: sha512-aPTXCrfwnDLj4VvXrm+UUCQjNEvJgNA8s5F1cvwQU+3KNltTOkBm1j30uNLyqqPNe7gE3KFzImYoZEfLhp4Yow==}
-
-  '@types/pixelmatch@5.2.6':
-    resolution: {integrity: sha512-wC83uexE5KGuUODn6zkm9gMzTwdY5L0chiK+VrKcDfEjzxh1uadlWTvOmAbCpnM9zx/Ww3f8uKlYQVnO/TrqVg==}
 
   '@types/pngjs@6.0.5':
     resolution: {integrity: sha512-0k5eKfrA83JOZPppLtS2C7OUtyNAl2wKNxfyYl9Q5g9lPkgBl/9hNyAu6HuEH2J4XmIv2znEpkDd0SaZVxW6iQ==}
@@ -4168,6 +4172,9 @@ packages:
   sprintf-js@1.0.3:
     resolution: {integrity: sha512-D9cPgkvLlV3t3IzL0D0YLvGA9Ahk4PcvVwUbN0dSGr1aP0Nrt4AEnTUbuGvquEC0mA64Gqt1fzirlRs5ibXx8g==}
 
+  ssim.js@3.5.0:
+    resolution: {integrity: sha512-Aj6Jl2z6oDmgYFFbQqK7fght19bXdOxY7Tj03nF+03M9gCBAjeIiO8/PlEGMfKDwYpw4q6iBqVq2YuREorGg/g==}
+
   stackback@0.0.2:
     resolution: {integrity: sha512-1XMJE5fQo1jGH6Y/7ebnwPOBEkIEnT4QF32d5R1+VXdXveM0IBMJt8zfaxX1P3QhVwrYe+576+jkANtSS2mBbw==}
 
@@ -5630,6 +5637,12 @@ snapshots:
       '@nodelib/fs.scandir': 2.1.5
       fastq: 1.19.1
 
+  '@opentf/obj-diff@0.12.0':
+    dependencies:
+      '@opentf/std': 0.12.0
+
+  '@opentf/std@0.12.0': {}
+
   '@pagefind/darwin-arm64@1.4.0':
     optional: true
 
@@ -6466,10 +6479,6 @@ snapshots:
   '@types/node@24.3.0':
     dependencies:
       undici-types: 7.10.0
-
-  '@types/pixelmatch@5.2.6':
-    dependencies:
-      '@types/node': 24.3.0
 
   '@types/pngjs@6.0.5':
     dependencies:
@@ -9167,6 +9176,8 @@ snapshots:
       wicked-good-xpath: 1.3.0
 
   sprintf-js@1.0.3: {}
+
+  ssim.js@3.5.0: {}
 
   stackback@0.0.2: {}
 

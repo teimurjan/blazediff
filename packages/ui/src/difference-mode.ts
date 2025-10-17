@@ -1,5 +1,4 @@
-import blazediff from "@blazediff/core";
-import type { BlazeDiffOptions } from "@blazediff/types";
+import blazediff, { type CoreOptions } from "@blazediff/core";
 import { BaseElement } from "./base-element";
 
 export class DifferenceMode extends BaseElement {
@@ -85,7 +84,7 @@ export class DifferenceMode extends BaseElement {
 
 			const output = new Uint8ClampedArray(width * height * 4);
 
-			const options: BlazeDiffOptions = {
+			const options: CoreOptions = {
 				threshold: Number(this.getAttribute("threshold")) || 0.1,
 				includeAA: this.getAttribute("include-aa") === "true",
 				alpha: Number(this.getAttribute("alpha")) || 0.1,

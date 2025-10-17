@@ -34,8 +34,7 @@
 	"homepage": "https://blazediff.dev",
 	"license": "MIT",
 	"dependencies": {
-		"sharp": "^0.34.3",
-		"@blazediff/types": "workspace:*"
+		"sharp": "^0.34.3"
 	},
 	"devDependencies": {
 		"@types/sharp": "^0.32.0",

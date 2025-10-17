@@ -10,8 +10,8 @@
 	},
 	"dependencies": {
 		"@blazediff/core": "workspace:*",
+		"@blazediff/gmsd": "workspace:*",
 		"@blazediff/object": "workspace:*",
-		"@blazediff/types": "workspace:*",
 		"@tabler/icons-react": "^3.35.0",
 		"next": "^15.5.4",
 		"nextra": "^4.5.0",
