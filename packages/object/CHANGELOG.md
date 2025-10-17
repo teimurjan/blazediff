@@ -1,5 +1,11 @@
 # @blazediff/object
 
+## 1.5.0
+
+### Minor Changes
+
+- 967eb66: Remove @blazediff/types to keep zero deps
+
 ## 1.4.1
 
 ### Patch Changes
