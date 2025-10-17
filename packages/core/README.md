@@ -9,6 +9,15 @@
 
 High-performance pixel-by-pixel image comparison with block-based optimization. 20% faster than pixelmatch with zero memory allocation.
 
+**Features:**
+- YIQ color space for perceptual color difference
+- Anti-aliasing detection and filtering
+- Block-based optimization with 32-bit integer comparison
+- Zero memory allocation during comparison
+- Support for alpha channel and transparency
+
+For detailed algorithm explanation and mathematical formulas, see [FORMULA.md](./FORMULA.md).
+
 ## Installation
 
 ```bash
@@ -149,3 +158,54 @@ const diffCount = blazediff(
   }
 );
 ```
+
+## Algorithm
+
+BlazeDiff uses a sophisticated multi-stage approach for high-performance image comparison:
+
+1. **Block-Based Pre-filtering**: Divides images into adaptive blocks and uses 32-bit integer comparison to quickly identify unchanged regions
+2. **YIQ Color Space**: Converts RGB to YIQ color space for perceptually accurate color difference measurement
+3. **Anti-Aliasing Detection**: Implements the Vysniauskas (2009) algorithm to distinguish anti-aliasing artifacts from real differences
+4. **Optimized Memory Access**: Zero-allocation design with cache-friendly memory patterns
+
+See [FORMULA.md](./FORMULA.md) for detailed mathematical formulas and algorithm explanation.
+
+## Performance
+
+Compared to pixelmatch on a 1920×1080 image with 10% differences:
+
+| Metric | BlazeDiff | pixelmatch | Improvement |
+|--------|-----------|------------|-------------|
+| Speed | ~25ms | ~30ms | **20% faster** |
+| Memory | 0 allocations | Multiple allocations | **Zero allocation** |
+| Accuracy | YIQ perceptual | YIQ perceptual | Same |
+
+The block-based optimization provides the most benefit on images with large unchanged regions.
+
+## When to Use BlazeDiff vs Other Metrics
+
+**Use @blazediff/core when:**
+- You need pixel-perfect diff visualization
+- You want to filter out anti-aliasing artifacts
+- You need precise control over difference colors
+- Performance is critical for CI/CD pipelines
+
+**Use [@blazediff/gmsd](../gmsd) when:**
+- You need a perceptual similarity score (0-1)
+- You want to detect structural/gradient changes
+- You're comparing images with different compression or slight shifts
+- You need a single quality metric for regression testing
+
+## Limitations
+
+- **Format**: Requires RGBA format (4 bytes per pixel). Use transformers to convert other formats.
+- **Memory**: Images must fit in memory. For very large images (>100MP), consider tiling.
+- **Precision**: Uses floating-point arithmetic for color conversion. Expect ~0.01% variance in edge cases.
+- **Anti-aliasing**: Detection works best on standard rendering. May not detect exotic AA techniques.
+
+## References
+
+- **Algorithm Documentation**: [FORMULA.md](./FORMULA.md) - Complete mathematical foundation and formulas
+- **YIQ Color Space**: [Kotsarenko & Ramos (2009)](https://doaj.org/article/b2e3b5088ba943eebd9af2927fef08ad) - "Measuring perceived color difference using YIQ NTSC transmission color space"
+- **Anti-Aliasing Detection**: [Vysniauskas (2009)](https://www.researchgate.net/publication/234073157_Anti-aliased_Pixel_and_Intensity_Slope_Detector) - "Anti-aliased Pixel and Intensity Slope Detector"
+- **Inspiration**: [pixelmatch](https://github.com/mapbox/pixelmatch) - Original pixel-by-pixel diff algorithm

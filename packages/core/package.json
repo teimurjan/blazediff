@@ -35,9 +35,6 @@
 	"repository": "https://github.com/teimurjan/blazediff",
 	"homepage": "https://blazediff.dev",
 	"license": "MIT",
-	"dependencies": {
-		"@blazediff/types": "workspace:*"
-	},
 	"devDependencies": {
 		"@types/node": "^24.3.0",
 		"tsup": "8.5.0",

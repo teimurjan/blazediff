@@ -1,7 +1,8 @@
 # Image Comparison
 
 import { Tabs } from "nextra/components";
-import ImageComparison from "../../../components/image-comparison";
+import DiffImageComparison from "../../../components/diff-image-comparison";
+import GmsdImageComparison from "../../../components/gmsd-image-comparison";
 
 Learn how to use BlazeDiff for different types of comparisons - binary, object, and pixel-by-pixel image comparison.
 
@@ -15,10 +16,12 @@ npm install @blazediff/core
 
 BlazeDiff provides multiple comparison methods optimized for different use cases. Try the interactive demos below to see each method in action.
 
+### Pixel-by-pixel Comparison
+
 <Tabs items={['Basic Comparison', 'Custom Threshold', 'Custom Colors']}>
   <Tabs.Tab>
 
-    <ImageComparison
+    <DiffImageComparison
       fixtureA="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/packages/benchmark/fixtures/blazediff/3a.png"
       fixtureB="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/packages/benchmark/fixtures/blazediff/3b.png"
     />
@@ -44,7 +47,7 @@ const diff = blazediff(img1, img2, output, width, height);
 
   <Tabs.Tab>
 
-    <ImageComparison
+    <DiffImageComparison
       fixtureA="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/packages/benchmark/fixtures/blazediff/3a.png"
       fixtureB="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/packages/benchmark/fixtures/blazediff/3b.png"
       options={{ threshold: 0.5 }}
@@ -71,7 +74,7 @@ const diff = blazediff(img1, img2, output, width, height, { threshold: 0.5 });
 
   <Tabs.Tab>
 
-    <ImageComparison
+    <DiffImageComparison
       fixtureA="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/packages/benchmark/fixtures/blazediff/3a.png"
       fixtureB="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/packages/benchmark/fixtures/blazediff/3b.png"
       options={{ aaColor: [255, 0, 0], diffColor: [0, 255, 0] }}
@@ -97,5 +100,55 @@ const diff = blazediff(img1, img2, output, width, height, {
 });
 ```
 
+  </Tabs.Tab>
+</Tabs>
+
+
+### Perceptual Comparison
+
+<Tabs items={['Basic Comparison', 'Custom C-Constant']}>
+  <Tabs.Tab>
+
+    <GmsdImageComparison
+      fixtureA="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/packages/benchmark/fixtures/blazediff/3a.png"
+      fixtureB="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/packages/benchmark/fixtures/blazediff/3b.png"
+    />
+
+    ```ts
+    import { gmsd } from "@blazediff/gmsd";
+
+    const img1 = await loadImage(
+      "https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/packages/benchmark/fixtures/blazediff/3a.png"
+    );
+    const img2 = await loadImage(
+      "https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/packages/benchmark/fixtures/blazediff/3b.png"
+    );
+    const width = img1.width;
+    const height = img1.height;
+    const score = gmsd(img1, img2, undefined, width, height);
+    ```
+  </Tabs.Tab>
+
+  <Tabs.Tab>
+
+    <GmsdImageComparison
+      fixtureA="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/packages/benchmark/fixtures/blazediff/3a.png"
+      fixtureB="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/packages/benchmark/fixtures/blazediff/3b.png"
+      options={{ c: 100 }}
+    />
+
+    ```ts
+    import { gmsd } from "@blazediff/gmsd";
+
+    const img1 = await loadImage(
+      "https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/packages/benchmark/fixtures/blazediff/3a.png"
+    );
+    const img2 = await loadImage(
+      "https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/packages/benchmark/fixtures/blazediff/3b.png"
+    );
+    const width = img1.width;
+    const height = img1.height;
+    const score = gmsd(img1, img2, undefined, width, height, { c: 100 });
+    ```
   </Tabs.Tab>
 </Tabs>

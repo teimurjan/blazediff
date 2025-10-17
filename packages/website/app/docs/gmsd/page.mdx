@@ -1,0 +1,114 @@
+# @blazediff/gmsd
+
+import { Callout } from "nextra/components";
+
+Fast single-threaded GMSD (Gradient Magnitude Similarity Deviation) metric for perceptual image quality assessment. Perfect for CI visual testing where you need a similarity score rather than pixel-by-pixel differences.
+
+## Installation
+
+```sh npm2yarn
+npm install @blazediff/gmsd
+```
+
+## Features
+
+- **Perceptual metric** - Measures gradient similarity, not just pixel differences
+- **Similarity score** - Returns 0-1 value (1 = identical, 0 = completely different)
+- **Compression tolerant** - Detects structural changes even with JPEG artifacts
+- **Fast computation** - Optimized single-threaded implementation for CI environments
+- **GMS map output** - Optional grayscale visualization of gradient similarity
+- **TypeScript support** out of the box
+
+## What is GMSD?
+
+GMSD (Gradient Magnitude Similarity Deviation) is a perceptual image quality metric that:
+- Measures how similar gradient structures are between images
+- Returns a score from 0 to 1 (higher = more similar)
+- Is more tolerant to compression artifacts than pixel-by-pixel comparison
+- Detects structural and edge changes that are perceptually significant
+
+For detailed mathematical explanation, see the [GMSD package FORMULA.md](https://github.com/teimurjan/blazediff/blob/main/packages/gmsd/FORMULA.md).
+
+## API Reference
+
+### `gmsd(image1, image2, output, width, height, options?)`
+
+Compares two images using GMSD metric and returns a similarity score.
+
+#### Parameters
+
+| Parameter | Type                                         | Description                                      |
+| --------- | -------------------------------------------- | ------------------------------------------------ |
+| `image1`  | `Buffer`, `Uint8Array`, or `Uint8ClampedArray`  | Image data of the first image                    |
+| `image2`  | `Buffer`, `Uint8Array`, or `Uint8ClampedArray`  | Image data of the second image                   |
+| `output`  | `Buffer`, `Uint8Array`, `Uint8ClampedArray`, or `undefined` | Optional output buffer for GMS map visualization |
+| `width`   | `number`                                     | Width of the images in pixels                    |
+| `height`  | `number`                                     | Height of the images in pixels                   |
+| `options` | `GmsdOptions`                                | Comparison options (optional)                    |
+
+##### Options
+
+| Option       | Type     | Default | Description                                           |
+| ------------ | -------- | ------- | ----------------------------------------------------- |
+| `downsample` | `0` or `1` | `0`     | Downsample factor (0 = no downsampling, 1 = half)     |
+| `c`          | `number` | `170`   | Constant for numerical stability (tuned for Prewitt)  |
+
+##### Returns
+
+`number` - Similarity score between 0 and 1:
+- `1.0` - Images are identical or perceptually identical
+- `0.95+` - Very high similarity (minor compression artifacts)
+- `0.85-0.95` - High similarity (noticeable but small changes)
+- `0.70-0.85` - Moderate similarity (significant structural differences)
+- `<0.70` - Low similarity (major differences)
+
+<Callout type="info">
+  **Score Guidelines:**
+  - Use threshold `>0.95` for strict regression testing
+  - Use threshold `>0.85` for loose regression testing with compression
+  - Scores below `0.70` indicate substantial visual differences
+</Callout>
+
+
+## When to Use GMSD vs Pixel Diff
+
+**Use @blazediff/gmsd when:**
+- You need a **similarity score** (0-1) for regression thresholds
+- You want to detect **perceptual/structural changes** (edges, gradients)
+- Images may have **compression artifacts** or minor noise
+- You need **tolerance to sub-pixel shifts** or anti-aliasing changes
+- You're doing **quality assessment** or **visual regression testing**
+
+**Use @blazediff/core when:**
+- You need **exact pixel-by-pixel differences**
+- You want **visual diff output** with colored highlights
+- You need to **count specific changed pixels**
+- You want to **filter anti-aliasing** separately
+- You need **precise control** over diff visualization colors
+
+**Use both:**
+```typescript
+import blazediff from '@blazediff/core';
+import { gmsd } from '@blazediff/gmsd';
+
+// Check perceptual similarity first
+const similarity = gmsd(img1, img2, undefined, width, height);
+
+if (similarity < 0.95) {
+  // Generate detailed diff for debugging
+  const diffOutput = new Uint8ClampedArray(width * height * 4);
+  const diffPixels = blazediff(img1, img2, diffOutput, width, height);
+
+  console.log(`Similarity: ${similarity.toFixed(4)}`);
+  console.log(`Different pixels: ${diffPixels}`);
+  await savePNG(diffOutput, width, height, 'diff.png');
+}
+```
+
+## Links
+
+- [GitHub Repository](https://github.com/teimurjan/blazediff)
+- [NPM Package](https://www.npmjs.com/package/@blazediff/gmsd)
+- [FORMULA.md](https://github.com/teimurjan/blazediff/blob/main/packages/gmsd/FORMULA.md) - Mathematical foundation
+- [Original GMSD Paper](http://www4.comp.polyu.edu.hk/~cslzhang/IQA/TIP_IQA_GMSD.pdf) - Xue et al. (2014)
+- [Examples →](/examples/image-comparison)

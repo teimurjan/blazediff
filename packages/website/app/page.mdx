@@ -6,6 +6,7 @@ import {
   IconBolt,
   IconBox,
   IconFeather,
+  IconLayout,
   IconLayoutCollage,
   IconTerminal2,
   IconBrandReact,
@@ -50,12 +51,23 @@ import Link from "next/link";
 
   <div>
     <Link href="/docs/core" className="flex items-center font-semibold gap-2 text-blue-500 dark:text-blue-400">
-      <IconLayoutCollage size={20} className='flex-shrink-0' />
+      <IconLayout size={20} className='flex-shrink-0' />
       <span>@blazediff/core</span>
     </Link>
 
     <div className="text-gray-600 dark:text-gray-400 m-0 text-sm">
       High-performance pixel-by-pixel image comparison library. 1.5x faster than pixelmatch while maintaining identical accuracy.
+    </div>
+  </div>
+
+  <div>
+    <Link href="/docs/gmsd" className="flex items-center font-semibold gap-2 text-blue-500 dark:text-blue-400">
+      <IconLayoutCollage size={20} className='flex-shrink-0' />
+      <span>@blazediff/gmsd</span>
+    </Link>
+
+    <div className="text-gray-600 dark:text-gray-400 m-0 text-sm">
+      Fast single-threaded GMSD (Gradient Magnitude Similarity Deviation) metric for perceptual image quality assessment.
     </div>
   </div>
 

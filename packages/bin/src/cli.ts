@@ -1,7 +1,11 @@
 #!/usr/bin/env node
 
-import type { BlazeDiffTransformer } from "@blazediff/types";
-import blazeDiffBin from "./index";
+import bin, {
+	type DiffModeOptions,
+	type DiffModeResult,
+	type GmsdModeOptions,
+	type GmsdModeResult,
+} from "./index";
 
 function printUsage(): void {
 	console.log(`
@@ -11,7 +15,12 @@ Arguments:
   image1    Path to the first image
   image2    Path to the second image
 
-Options:
+General Options:
+  -m, --mode <mode>         Comparison mode: "diff" or "gmsd" (default: diff)
+  --transformer <name>      Specify transformer to use (e.g. pngjs, sharp)
+  -h, --help                Show this help message
+
+Diff Mode Options (default mode):
   -o, --output <path>       Output path for the diff image
   -t, --threshold <num>     Matching threshold (0 to 1, default: 0.1)
   -a, --alpha <num>         Opacity of original image in diff (default: 0.1)
@@ -20,14 +29,23 @@ Options:
   --diff-color-alt <r,g,b>  Alternative color for dark differences (default: same as diff-color)
   --include-aa              Include anti-aliasing detection
   --diff-mask               Draw diff over transparent background
-  --transformer <name>      Specify transformer to use (e.g. pngjs, sharp)
   --color-space <name>      Specify color space to use (e.g. yiq, ycbcr)
-  -h, --help                Show this help message
+
+GMSD Mode Options (--mode gmsd):
+  -o, --output <path>       Output path for GMS similarity map (grayscale visualization)
+  --downsample <0|1>        Downsample factor: 0=full-res, 1=2x downsample (default: 0)
+  --gmsd-c <num>            Stability constant for GMSD (default: 170)
 
 Examples:
+  # Pixel-by-pixel diff (default)
   blazediff image1.png image2.png
   blazediff image1.png image2.png -o diff.png -t 0.05
   blazediff image1.png image2.png --threshold 0.2 --alpha 0.3
+
+  # GMSD similarity score
+  blazediff image1.png image2.png --mode gmsd
+  blazediff image1.png image2.png --mode gmsd --downsample 1
+  blazediff image1.png image2.png --mode gmsd -o gms-map.png
 `);
 }
 
@@ -48,6 +66,7 @@ function parseArgs(): {
 	image1: string;
 	image2: string;
 	options: {
+		mode?: string;
 		outputPath?: string;
 		threshold?: number;
 		alpha?: number;
@@ -58,6 +77,8 @@ function parseArgs(): {
 		diffMask?: boolean;
 		transformer?: string;
 		colorSpace?: string;
+		downsample?: number;
+		gmsdC?: number;
 	};
 } {
 	const args = process.argv.slice(2);
@@ -154,6 +175,40 @@ function parseArgs(): {
 					i++;
 				}
 				break;
+			case "-m":
+			case "--mode":
+				if (nextArg) {
+					if (nextArg !== "diff" && nextArg !== "gmsd") {
+						throw new Error(
+							`Invalid mode: ${nextArg}. Must be "diff" or "gmsd"`,
+						);
+					}
+					options.mode = nextArg;
+					i++;
+				}
+				break;
+			case "--downsample":
+				if (nextArg) {
+					const downsample = parseInt(nextArg, 10);
+					if (downsample !== 0 && downsample !== 1) {
+						throw new Error(`Invalid downsample: ${nextArg}. Must be 0 or 1`);
+					}
+					options.downsample = downsample;
+					i++;
+				}
+				break;
+			case "--gmsd-c":
+				if (nextArg) {
+					const gmsdC = parseFloat(nextArg);
+					if (Number.isNaN(gmsdC) || gmsdC <= 0) {
+						throw new Error(
+							`Invalid gmsd-c: ${nextArg}. Must be a positive number`,
+						);
+					}
+					options.gmsdC = gmsdC;
+					i++;
+				}
+				break;
 			default:
 				console.error(`Unknown option: ${arg}`);
 				printUsage();
@@ -164,9 +219,7 @@ function parseArgs(): {
 	return { image1, image2, options };
 }
 
-const getTransformer = async (
-	transformer?: string,
-): Promise<BlazeDiffTransformer> => {
+const getTransformer = async (transformer?: string) => {
 	if (!transformer || transformer === "pngjs") {
 		const { default: transformer } = await import(
 			"@blazediff/pngjs-transformer"
@@ -187,39 +240,82 @@ async function main(): Promise<void> {
 		const { image1, image2, options } = parseArgs();
 
 		const transformer = await getTransformer(options.transformer);
-		const result = await blazeDiffBin(image1, image2, {
-			outputPath: options.outputPath,
-			transformer,
-			coreOptions: {
-				threshold: options.threshold,
-				alpha: options.alpha,
-				aaColor: options.aaColor,
-				diffColor: options.diffColor,
-				diffColorAlt: options.diffColorAlt,
-				includeAA: options.includeAA,
-				diffMask: options.diffMask,
-			},
-		});
 
-		console.log(`matched in: ${result.duration.toFixed(2)}ms`);
-		console.log(`dimensions: ${result.width}x${result.height}`);
-		console.log(`different pixels: ${result.diffCount}`);
-		console.log(
-			`error: ${(
-				(result.diffCount / (result.width * result.height)) * 100
-			).toFixed(2)}%`,
-		);
+		let result: DiffModeResult | GmsdModeResult;
 
-		if (result.diffCount > 0 && result.outputData) {
-			console.log(`diff image: ${options.outputPath}`);
+		if (options.mode === "gmsd") {
+			// GMSD mode
+			const binOptions: GmsdModeOptions = {
+				outputPath: options.outputPath,
+				transformer,
+				mode: "gmsd",
+				options: {
+					downsample: (options.downsample as 0 | 1) || 0,
+					c: options.gmsdC,
+				},
+			};
+			result = await bin(image1, image2, binOptions);
+		} else {
+			// Diff mode (default)
+			const binOptions: DiffModeOptions = {
+				outputPath: options.outputPath,
+				transformer,
+				mode: "diff",
+				options: {
+					threshold: options.threshold,
+					alpha: options.alpha,
+					aaColor: options.aaColor,
+					diffColor: options.diffColor,
+					diffColorAlt: options.diffColorAlt,
+					includeAA: options.includeAA,
+					diffMask: options.diffMask,
+				},
+			};
+			result = await bin(image1, image2, binOptions);
 		}
 
-		// Exit with non-zero code if there are differences
-		if (result.diffCount > 0) {
-			process.exit(1);
+		console.log(`completed in: ${result.duration.toFixed(2)}ms`);
+		console.log(`dimensions: ${result.width}x${result.height}`);
+
+		if (result.mode === "gmsd") {
+			// GMSD mode output - TypeScript knows result is GmsdModeResult
+			console.log(
+				`similarity score: ${result.score.toFixed(6)} (0=different, 1=identical)`,
+			);
+			console.log(`similarity: ${(result.score * 100).toFixed(2)}%`);
+
+			if (options.outputPath && result.outputData) {
+				console.log(`GMS map saved to: ${options.outputPath}`);
+			}
+
+			// Exit with non-zero code if images are significantly different
+			// Using a threshold of 0.95 (95% similar)
+			if (result.score < 0.95) {
+				process.exit(1);
+			} else {
+				console.log(`Images are highly similar!`);
+				process.exit(0);
+			}
 		} else {
-			console.log(`Images are identical!`);
-			process.exit(0);
+			// Diff mode output - TypeScript knows result is DiffModeResult
+			console.log(`different pixels: ${result.diffCount}`);
+			console.log(
+				`error: ${(
+					(result.diffCount / (result.width * result.height)) * 100
+				).toFixed(2)}%`,
+			);
+
+			if (result.diffCount > 0 && result.outputData && options.outputPath) {
+				console.log(`diff image: ${options.outputPath}`);
+			}
+
+			// Exit with non-zero code if there are differences
+			if (result.diffCount > 0) {
+				process.exit(1);
+			} else {
+				console.log(`Images are identical!`);
+				process.exit(0);
+			}
 		}
 	} catch (error) {
 		console.error(

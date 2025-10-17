@@ -1,7 +1,7 @@
 {
-	"name": "@blazediff/object",
-	"version": "1.4.1",
-	"description": "Blazing-fast object comparison",
+	"name": "@blazediff/gmsd",
+	"version": "0.1.0",
+	"description": "Fast single-threaded GMSD (Gradient Magnitude Similarity Deviation) metric for CI visual testing",
 	"private": false,
 	"publishConfig": {
 		"access": "public"
@@ -23,12 +23,17 @@
 		"build": "tsup",
 		"dev": "tsup --watch",
 		"clean": "rm -rf dist",
-		"test": "vitest run"
+		"test": "vitest run",
+		"test:watch": "vitest"
 	},
 	"keywords": [
-		"object",
+		"image",
 		"comparison",
-		"diff"
+		"gmsd",
+		"gradient",
+		"similarity",
+		"visual-testing",
+		"ci"
 	],
 	"author": "Teimur Gasanov <me@teimurjan.dev> (https://github.com/teimurjan)",
 	"repository": "https://github.com/teimurjan/blazediff",
@@ -36,9 +41,8 @@
 	"license": "MIT",
 	"devDependencies": {
 		"@types/node": "^24.3.0",
-		"@vitest/coverage-v8": "^3.2.4",
 		"@vitest/ui": "^3.2.4",
-		"happy-dom": "^18.0.1",
+		"ssim.js": "^3.5.0",
 		"tsup": "8.5.0",
 		"typescript": "5.9.2",
 		"vitest": "^3.2.4"

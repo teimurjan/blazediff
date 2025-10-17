@@ -1,4 +1,8 @@
-import type { BlazeDiffImage } from "@blazediff/types";
+export interface Image {
+	data: Buffer | Uint8Array | Uint8ClampedArray;
+	width: number;
+	height: number;
+}
 
 export type ImagePair = {
 	a: string;
@@ -7,8 +11,8 @@ export type ImagePair = {
 };
 
 export type ImagePairLoaded = {
-	a: BlazeDiffImage;
-	b: BlazeDiffImage;
+	a: Image;
+	b: Image;
 	name: string;
 };
 

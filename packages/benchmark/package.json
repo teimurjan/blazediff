@@ -12,15 +12,19 @@
 		"clean": "rm -rf dist",
 		"core": "node dist/core-benchmark.js",
 		"pixelmatch": "node dist/pixelmatch-benchmark.js",
+		"gmsd": "node dist/gmsd-benchmark.js",
+		"ssim": "node dist/ssim-benchmark.js",
 		"object": "node dist/object-benchmark.js",
-		"microdiff": "node dist/microdiff-benchmark.js"
+		"microdiff": "node dist/microdiff-benchmark.js",
+		"opentf-obj-diff": "node dist/opentf-obj-diff-benchmark.js"
 	},
 	"devDependencies": {
 		"@blazediff/bin": "workspace:*",
 		"@blazediff/core": "workspace:*",
+		"@blazediff/gmsd": "workspace:*",
 		"@blazediff/object": "workspace:*",
 		"@blazediff/pngjs-transformer": "workspace:*",
-		"@blazediff/types": "workspace:*",
+		"@opentf/obj-diff": "^0.12.0",
 		"@types/node": "^24.3.0",
 		"microdiff": "^1.5.0",
 		"pixelmatch": "^7.1.0",
@@ -28,5 +32,8 @@
 		"tinybench": "^5.0.1",
 		"tsup": "^8.5.0",
 		"typescript": "^5.9.2"
+	},
+	"dependencies": {
+		"ssim.js": "^3.5.0"
 	}
 }

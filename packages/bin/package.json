@@ -43,9 +43,9 @@
 	"license": "MIT",
 	"dependencies": {
 		"@blazediff/core": "workspace:*",
+		"@blazediff/gmsd": "workspace:*",
 		"@blazediff/pngjs-transformer": "workspace:*",
-		"@blazediff/sharp-transformer": "workspace:*",
-		"@blazediff/types": "workspace:*"
+		"@blazediff/sharp-transformer": "workspace:*"
 	},
 	"devDependencies": {
 		"@types/node": "^24.3.0",

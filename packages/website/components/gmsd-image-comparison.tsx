@@ -1,28 +1,25 @@
 "use client";
 
-import blazediff from "@blazediff/core";
-import type { BlazeDiffOptions } from "@blazediff/types";
+import { type GmsdOptions, gmsd } from "@blazediff/gmsd";
 import { useCallback, useEffect, useState } from "react";
 import { imageToCanvas, loadImage } from "../utils/image";
 
 interface ComparisonResult {
-  diff?: number;
-  total?: number;
-  percentage?: number;
+  score?: number;
   error?: string;
 }
 
-interface ImageComparisonProps {
+interface GmsdImageComparisonProps {
   fixtureA: string;
   fixtureB: string;
-  options: BlazeDiffOptions;
+  options?: GmsdOptions;
 }
 
-export default function ImageComparison({
+export default function GmsdImageComparison({
   fixtureA,
   fixtureB,
   options,
-}: ImageComparisonProps) {
+}: GmsdImageComparisonProps) {
   const [result, setResult] = useState<ComparisonResult | null>(null);
   const [diffImageUrl, setDiffImageUrl] = useState<string | null>(null);
 
@@ -58,8 +55,7 @@ export default function ImageComparison({
 
       const diffData = diffCtx.createImageData(canvas1.width, canvas1.height);
 
-      // Run comparison
-      const diffPixels = blazediff(
+      const score = gmsd(
         data1.data,
         data2.data,
         diffData.data,
@@ -71,13 +67,8 @@ export default function ImageComparison({
       diffCtx.putImageData(diffData, 0, 0);
       setDiffImageUrl(diffCanvas.toDataURL());
 
-      const totalPixels = canvas1.width * canvas1.height;
-      const percentage = ((diffPixels / totalPixels) * 100).toFixed(2);
-
       setResult({
-        diff: diffPixels,
-        total: totalPixels,
-        percentage: parseFloat(percentage),
+        score,
       });
     } catch (error) {
       setResult({ error: (error as Error).message });
@@ -122,10 +113,11 @@ export default function ImageComparison({
             ) : (
               <div className="space-y-2">
                 <p className="text-sm">
-                  Different pixels: {result.diff?.toLocaleString()} /{" "}
-                  {result.total?.toLocaleString()}
+                  Similarity score: {result.score?.toFixed(4)}
                 </p>
-                <p className="text-sm">Difference: {result.percentage}%</p>
+                <p className="text-sm text-gray-500">
+                  (1.0 = identical, 0.0 = completely different)
+                </p>
               </div>
             )}
           </div>

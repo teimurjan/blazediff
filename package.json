@@ -10,6 +10,8 @@
 		"release": "changeset publish",
 		"benchmark:core": "pnpm --filter @blazediff/benchmark core",
 		"benchmark:pixelmatch": "pnpm --filter @blazediff/benchmark pixelmatch",
+		"benchmark:gmsd": "pnpm --filter @blazediff/benchmark gmsd",
+		"benchmark:ssim": "pnpm --filter @blazediff/benchmark ssim",
 		"benchmark:object": "pnpm --filter @blazediff/benchmark object",
 		"benchmark:microdiff": "pnpm --filter @blazediff/benchmark microdiff",
 		"format": "pnpm exec biome format",

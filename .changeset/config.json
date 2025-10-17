@@ -5,7 +5,7 @@
 	"fixed": [
 		[
 			"@blazediff/core",
-			"@blazediff/types",
+			"@blazediff/gmsd",
 			"@blazediff/pngjs-transformer",
 			"@blazediff/sharp-transformer",
 			"@blazediff/bin",

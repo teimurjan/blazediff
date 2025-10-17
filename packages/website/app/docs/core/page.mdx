@@ -22,22 +22,22 @@ npm install @blazediff/core
 
 ## API Reference
 
-### `blazediff(img1, img2, output, width, height, options?)`
+### `blazediff(image1, image2, output, width, height, options?)`
 
 Compares two images pixel by pixel and returns the number of different pixels.
 
 #### Parameters
 
-| Parameter | Type                                      | Description                                 |
-| --------- | ----------------------------------------- | ------------------------------------------- |
-| `img1`    | `Uint8Array \| Uint8ClampedArray`         | Image data of the first image               |
-| `img2`    | `Uint8Array \| Uint8ClampedArray`         | Image data of the second image              |
-| `output`  | `Uint8Array \| Uint8ClampedArray \| null` | Output buffer for the diff image (optional) |
-| `width`   | `number`                                  | Width of the images in pixels               |
-| `height`  | `number`                                  | Height of the images in pixels              |
-| `options` | `BlazeDiffOptions`                        | Comparison options (optional)               |
+| Parameter | Type                                                | Description                                 |
+| --------- | --------------------------------------------------- | ------------------------------------------- |
+| `image1`  | `Buffer \| Uint8Array \| Uint8ClampedArray`         | Image data of the first image               |
+| `image2`  | `Buffer \| Uint8Array \| Uint8ClampedArray`         | Image data of the second image              |
+| `output`  | `Buffer \| Uint8Array \| Uint8ClampedArray \| null` | Output buffer for the diff image (optional) |
+| `width`   | `number`                                            | Width of the images in pixels               |
+| `height`  | `number`                                            | Height of the images in pixels              |
+| `options` | `Options`                                       | Comparison options (optional)               |
 
-#### Options
+##### Options
 
 | Option            | Type      | Default       | Description                                      |
 | ----------------- | --------- | ------------- | ------------------------------------------------ |
@@ -54,7 +54,6 @@ Compares two images pixel by pixel and returns the number of different pixels.
   **Threshold Guidelines:** - `0.0` - Exact match only - `0.05` - Strict
   comparison - `0.1` - Default balanced comparison - `0.2` - Lenient comparison
 </Callout>
-
 
 ## Links
 
