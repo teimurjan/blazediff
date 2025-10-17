@@ -46,7 +46,7 @@ export interface GmsdOptions {
  * @param opts - GMSD options
  * @returns Similarity score [0..1] where 1 means identical
  */
-export function gmsd(
+export default function gmsd(
 	image1: Image["data"],
 	image2: Image["data"],
 	output: Image["data"] | undefined,

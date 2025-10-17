@@ -1,6 +1,6 @@
 "use client";
 
-import { type GmsdOptions, gmsd } from "@blazediff/gmsd";
+import gmsd, { type GmsdOptions } from "@blazediff/gmsd";
 import { useCallback, useEffect, useState } from "react";
 import { imageToCanvas, loadImage } from "../utils/image";
 

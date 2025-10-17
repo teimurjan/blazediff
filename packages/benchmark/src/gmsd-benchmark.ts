@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { gmsd } from "@blazediff/gmsd";
+import gmsd from "@blazediff/gmsd";
 import { Bench, hrtimeNow } from "tinybench";
 import {
 	getBenchmarkImagePairs,
