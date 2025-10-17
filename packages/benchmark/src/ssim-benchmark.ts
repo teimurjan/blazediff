@@ -3,7 +3,7 @@
 import { ssim } from "ssim.js";
 import { Bench, hrtimeNow } from "tinybench";
 import {
-	getBenchmarkImagePairs,
+	getSSIMImagePairs,
 	loadImagePairs,
 	parseBenchmarkArgs,
 } from "./image-utils";
@@ -11,7 +11,7 @@ import {
 async function main() {
 	const { iterations, format, output } = parseBenchmarkArgs();
 
-	const pairs = getBenchmarkImagePairs();
+	const pairs = getSSIMImagePairs();
 	const pairsLoaded = await loadImagePairs(pairs);
 
 	const bench = new Bench({
@@ -40,9 +40,12 @@ async function main() {
 			channels: 4,
 		};
 
-		bench.add(`ssim.js - ${pairs[i].name}`, () => {
-			console.log(pairs[i].name);
-			console.log(ssim(imageA, imageB).mssim);
+		bench.add(`ssim.js (full-res) - ${pairs[i].name}`, () => {
+			ssim(imageA, imageB, { downsample: "original", ssim: "bezkrovny" });
+		});
+
+		bench.add(`ssim.js (2x downsample) - ${pairs[i].name}`, () => {
+			ssim(imageA, imageB, { downsample: "fast", ssim: "bezkrovny" });
 		});
 	}
 
