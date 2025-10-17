@@ -127,3 +127,32 @@ export const getBenchmarkImagePairs = (): Array<ImagePair> => {
 
 	return pairs;
 };
+
+export const getSSIMImagePairs = (): Array<ImagePair> => {
+	const pixelmatchImagePairs = shuffleArray(
+		getImagePairs(join(__dirname, "../fixtures"), "pixelmatch"),
+	);
+	const blazediffImagePairs = shuffleArray(
+		getImagePairs(join(__dirname, "../fixtures"), "blazediff"),
+	);
+
+	const pairs = [
+		...pixelmatchImagePairs,
+		...blazediffImagePairs,
+	];
+
+	// Identical have equal metadata, while same pairs are visually identical
+	const identicalPairs: ImagePair[] = [];
+	for (const pair of pairs) {
+		identicalPairs.push({
+			a: pair.a,
+			b: pair.a,
+			name: `${pair.name} (identical)`,
+		});
+	}
+	pairs.push(...identicalPairs);
+
+	shuffleArray(pairs);
+
+	return pairs;
+};
