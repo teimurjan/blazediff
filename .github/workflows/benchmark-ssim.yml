@@ -34,7 +34,7 @@ jobs:
         run: pnpm benchmark:hitchhikers-ssim -- --format=json --output=ssim.json
 
       - name: Run Benchmark (ssim.js)
-        run: pnpm benchmark:weber-ssim.js -- --format=json --output=weber-ssim-js.json
+        run: pnpm benchmark:weber-ssim.js -- --format=json --output=ssim-js.json
 
       - name: Compare and Print Combined Markdown Table (algorithm)
         if: always()
