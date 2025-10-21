@@ -1,9 +1,7 @@
 import { IconBrandGithub } from "@tabler/icons-react";
 import { Roboto_Mono } from "next/font/google";
 import Image from "next/image";
-// @ts-expect-error
 import { Head } from "nextra/components";
-// @ts-expect-error
 import { getPageMap } from "nextra/page-map";
 import { Footer, Layout, Navbar } from "nextra-theme-docs";
 import "./global.css";
