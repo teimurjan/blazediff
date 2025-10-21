@@ -55,7 +55,7 @@
 	"homepage": "https://blazediff.dev",
 	"license": "MIT",
 	"devDependencies": {
-		"@blazediff/pngjs-transformer": "^1.6.0",
+		"@blazediff/pngjs-transformer": "workspace:*",
 		"@types/node": "^24.3.0",
 		"@vitest/ui": "^3.2.4",
 		"pngjs": "^7.0.0",

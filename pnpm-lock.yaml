@@ -244,8 +244,8 @@ importers:
   packages/ssim:
     devDependencies:
       '@blazediff/pngjs-transformer':
-        specifier: ^1.5.0
-        version: 1.5.0
+        specifier: workspace:*
+        version: link:../pngjs-transformer
       '@types/node':
         specifier: ^24.3.0
         version: 24.3.0
@@ -516,9 +516,6 @@ packages:
     engines: {node: '>=14.21.3'}
     cpu: [x64]
     os: [win32]
-
-  '@blazediff/pngjs-transformer@1.5.0':
-    resolution: {integrity: sha512-YZLocIc87wrjrKczRluDu5+l/+MM7Ykn+7CLaYHMjrmSEguux0i9UFu5g5U8/BapOaZMeLoAnR71i23r2KVS8w==}
 
   '@braintree/sanitize-url@7.1.1':
     resolution: {integrity: sha512-i1L7noDNxtFyL5DmZafWy1wRVhGehQmzZaz1HiN5e7iylJMSZR7ekOV7NsIqa5qBldlLrsKv4HbgFUVlQrz8Mw==}
@@ -4939,10 +4936,6 @@ snapshots:
 
   '@biomejs/cli-win32-x64@2.2.4':
     optional: true
-
-  '@blazediff/pngjs-transformer@1.5.0':
-    dependencies:
-      pngjs: 7.0.0
 
   '@braintree/sanitize-url@7.1.1': {}
 
