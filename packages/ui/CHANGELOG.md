@@ -1,5 +1,11 @@
 # @blazediff/ui
 
+## 1.6.0
+
+### Patch Changes
+
+- @blazediff/core@1.6.0
+
 ## 1.5.0
 
 ### Minor Changes
