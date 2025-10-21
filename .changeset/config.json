@@ -6,6 +6,7 @@
 		[
 			"@blazediff/core",
 			"@blazediff/gmsd",
+			"@blazediff/ssim",
 			"@blazediff/pngjs-transformer",
 			"@blazediff/sharp-transformer",
 			"@blazediff/bin",
