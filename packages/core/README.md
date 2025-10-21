@@ -182,27 +182,6 @@ Compared to pixelmatch on a 1920×1080 image with 10% differences:
 
 The block-based optimization provides the most benefit on images with large unchanged regions.
 
-## When to Use BlazeDiff vs Other Metrics
-
-**Use @blazediff/core when:**
-- You need pixel-perfect diff visualization
-- You want to filter out anti-aliasing artifacts
-- You need precise control over difference colors
-- Performance is critical for CI/CD pipelines
-
-**Use [@blazediff/gmsd](../gmsd) when:**
-- You need a perceptual similarity score (0-1)
-- You want to detect structural/gradient changes
-- You're comparing images with different compression or slight shifts
-- You need a single quality metric for regression testing
-
-## Limitations
-
-- **Format**: Requires RGBA format (4 bytes per pixel). Use transformers to convert other formats.
-- **Memory**: Images must fit in memory. For very large images (>100MP), consider tiling.
-- **Precision**: Uses floating-point arithmetic for color conversion. Expect ~0.01% variance in edge cases.
-- **Anti-aliasing**: Detection works best on standard rendering. May not detect exotic AA techniques.
-
 ## References
 
 - **Algorithm Documentation**: [FORMULA.md](./FORMULA.md) - Complete mathematical foundation and formulas

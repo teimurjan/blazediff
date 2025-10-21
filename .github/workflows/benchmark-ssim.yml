@@ -1,4 +1,4 @@
-name: Benchmark Algorithm
+name: Benchmark SSIM
 
 on:
   push:
@@ -8,8 +8,8 @@ on:
 concurrency: ${{ github.workflow }}
 
 jobs:
-  benchmark-algorithm:
-    name: Algorithm Benchmark
+  benchmark-ssim:
+    name: SSIM Benchmark
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repo
@@ -33,7 +33,7 @@ jobs:
       - name: Run Benchmark (blazediff)
         run: pnpm benchmark:hitchhikers-ssim -- --format=json --output=ssim.json
 
-      - name: Run Benchmark (.js)
+      - name: Run Benchmark (ssim.js)
         run: pnpm benchmark:weber-ssim.js -- --format=json --output=weber-ssim-js.json
 
       - name: Compare and Print Combined Markdown Table (algorithm)

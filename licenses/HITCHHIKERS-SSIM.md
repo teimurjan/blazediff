@@ -36,15 +36,6 @@ The TypeScript implementation in `@blazediff/ssim` is an independent implementat
 
 Our code is licensed under MIT.
 
-## Key Improvements
-
-Hitchhiker's SSIM provides four main enhancements over standard SSIM:
-
-1. **Rectangular Windows:** Uses configurable rectangular windows instead of Gaussian windows
-2. **Integral Images:** Employs summed area tables for O(1) window computation, significantly improving efficiency
-3. **CoV Pooling:** Uses Coefficient of Variation for spatial pooling instead of arithmetic mean
-4. **Adaptive Scaling:** Incorporates Self-Adaptive Scale Transform (SAST) for viewing distance adaptation
-
 ## Citation
 
 ```bibtex

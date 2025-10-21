@@ -26,6 +26,14 @@ jobs:
 
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
+      
+      - name: Install Octave
+        uses: MATPOWER/action-install-octave-linux@v1
+        with:
+          ipopt-libs: true
+      
+      - name: Install Octave Image Package
+        run: octave --eval "pkg install -forge image"
 
       - name: Test
         run: pnpm test

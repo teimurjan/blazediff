@@ -55,55 +55,19 @@ Compares two images using GMSD metric and returns a similarity score.
 
 ##### Returns
 
-`number` - Similarity score between 0 and 1:
-- `1.0` - Images are identical or perceptually identical
-- `0.95+` - Very high similarity (minor compression artifacts)
-- `0.85-0.95` - High similarity (noticeable but small changes)
-- `0.70-0.85` - Moderate similarity (significant structural differences)
-- `<0.70` - Low similarity (major differences)
+`number` - Difference score between 0 and 1:
+- `0.0` - Images are identical or perceptually identical
+- `0.0-0.05` - Very low difference (minor compression artifacts)
+- `0.05-0.15` - Low difference (noticeable but small changes)
+- `0.15-0.35` - Moderate similarity (significant structural differences)
+- `>0.35` - High difference (major differences)
 
 <Callout type="info">
   **Score Guidelines:**
-  - Use threshold `>0.95` for strict regression testing
-  - Use threshold `>0.85` for loose regression testing with compression
-  - Scores below `0.70` indicate substantial visual differences
+  - Use threshold `>0.0` for strict regression testing
+  - Use threshold `>0.15` for loose regression testing with compression
+  - Scores below `0.35` indicate substantial visual differences
 </Callout>
-
-
-## When to Use GMSD vs Pixel Diff
-
-**Use @blazediff/gmsd when:**
-- You need a **similarity score** (0-1) for regression thresholds
-- You want to detect **perceptual/structural changes** (edges, gradients)
-- Images may have **compression artifacts** or minor noise
-- You need **tolerance to sub-pixel shifts** or anti-aliasing changes
-- You're doing **quality assessment** or **visual regression testing**
-
-**Use @blazediff/core when:**
-- You need **exact pixel-by-pixel differences**
-- You want **visual diff output** with colored highlights
-- You need to **count specific changed pixels**
-- You want to **filter anti-aliasing** separately
-- You need **precise control** over diff visualization colors
-
-**Use both:**
-```typescript
-import blazediff from '@blazediff/core';
-import gmsd from '@blazediff/gmsd';
-
-// Check perceptual similarity first
-const similarity = gmsd(img1, img2, undefined, width, height);
-
-if (similarity < 0.95) {
-  // Generate detailed diff for debugging
-  const diffOutput = new Uint8ClampedArray(width * height * 4);
-  const diffPixels = blazediff(img1, img2, diffOutput, width, height);
-
-  console.log(`Similarity: ${similarity.toFixed(4)}`);
-  console.log(`Different pixels: ${diffPixels}`);
-  await savePNG(diffOutput, width, height, 'diff.png');
-}
-```
 
 ## Links
 
