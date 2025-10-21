@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 
-import microdiff from "microdiff";
+import blazediffObject from "@blazediff/object";
 import { Bench, hrtimeNow } from "tinybench";
-import { objectPairs } from "../fixtures/object";
-import { parseBenchmarkArgs } from "./object-utils";
-import { shuffleArray } from "./utils";
+import { objectPairs } from "../../fixtures/object";
+import { shuffleArray } from "../utils";
+import { parseBenchmarkArgs } from "./utils";
 
 async function main() {
 	const { iterations, format, output } = parseBenchmarkArgs();
@@ -21,27 +21,27 @@ async function main() {
 		const pair = pairs[i];
 		const { a, b, name } = pair;
 
-		bench.add(`microdiff - ${name}`, () => {
-			microdiff(a as any, b as any);
+		bench.add(`blazediff-object - ${name}`, () => {
+			blazediffObject(a as any, b as any);
 		});
 	}
 
 	await bench.run();
 
-	console.log("\n📦 Microdiff Benchmark Results:\n");
+	console.log("\n📦 BlazeDiff Object Benchmark Results:\n");
 	console.table(
 		bench.tasks
 			.map((task) => ({
 				Name: task.name,
 				"Ops/sec": task.result?.throughput.mean.toFixed(2),
 				"Avg (ms)": task.result?.latency.mean
-					? (task.result.latency.mean).toFixed(6)
+					? task.result.latency.mean.toFixed(6)
 					: "N/A",
 				"Min (ms)": task.result?.latency.min
-					? (task.result.latency.min).toFixed(6)
+					? task.result.latency.min.toFixed(6)
 					: "N/A",
 				"Max (ms)": task.result?.latency.max
-					? (task.result.latency.max).toFixed(6)
+					? task.result.latency.max.toFixed(6)
 					: "N/A",
 			}))
 			.sort((a, b) => a.Name.localeCompare(b.Name)),

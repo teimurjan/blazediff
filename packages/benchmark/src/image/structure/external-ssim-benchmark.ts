@@ -1,22 +1,22 @@
 #!/usr/bin/env node
 
-import blazediff from "@blazediff/core";
+import ssim from "ssim.js";
 import { Bench, hrtimeNow } from "tinybench";
 import {
-	getBenchmarkImagePairs,
+	getStructureBenchmarkImagePairs,
 	loadImagePairs,
 	parseBenchmarkArgs,
-} from "./image-utils";
+} from "../utils";
 
 async function main() {
 	const { iterations, format, output } = parseBenchmarkArgs();
 
-	const pairs = getBenchmarkImagePairs();
+	const pairs = getStructureBenchmarkImagePairs();
 	const pairsLoaded = await loadImagePairs(pairs);
 
 	const bench = new Bench({
 		iterations,
-		warmupIterations: 5,
+		warmupIterations: 3,
 		time: 0,
 		now: hrtimeNow,
 	});
@@ -25,14 +25,29 @@ async function main() {
 		const pair = pairsLoaded[i];
 		const { a, b } = pair;
 
-		bench.add(`blazediff - ${pairs[i].name}`, () => {
-			blazediff(a.data, b.data, undefined, a.width, a.height);
+		const imageDataA = {
+			data: a.data as Uint8ClampedArray,
+			width: a.width,
+			height: a.height,
+		};
+
+		const imageDataB = {
+			data: b.data as Uint8ClampedArray,
+			width: b.width,
+			height: b.height,
+		};
+
+		bench.add(`ssim.js - ${pairs[i].name}`, () => {
+			ssim(imageDataA, imageDataB, {
+				ssim: "fast",
+				downsample: "original",
+			});
 		});
 	}
 
 	await bench.run();
 
-	console.log("\n🔥 BlazeDiff Core Benchmark Results:\n");
+	console.log("\n📊 ssim.js (External) Benchmark Results:\n");
 	console.table(
 		bench.tasks
 			.map((task) => ({

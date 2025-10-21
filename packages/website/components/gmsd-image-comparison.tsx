@@ -113,10 +113,10 @@ export default function GmsdImageComparison({
             ) : (
               <div className="space-y-2">
                 <p className="text-sm">
-                  Similarity score: {result.score?.toFixed(4)}
+                  Difference score: {result.score?.toFixed(4)}
                 </p>
                 <p className="text-sm text-gray-500">
-                  (1.0 = identical, 0.0 = completely different)
+                  (0.0 = identical, 1.0 = completely different)
                 </p>
               </div>
             )}

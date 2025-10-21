@@ -1,0 +1,67 @@
+{
+	"name": "@blazediff/ssim",
+	"version": "1.4.1",
+	"description": "Fast single-threaded SSIM (Structural Similarity Index) metric for CI visual testing",
+	"private": false,
+	"publishConfig": {
+		"access": "public"
+	},
+	"main": "dist/ssim.js",
+	"module": "dist/ssim.mjs",
+	"types": "dist/ssim.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/ssim.d.ts",
+			"import": "./dist/ssim.mjs",
+			"require": "./dist/ssim.js"
+		},
+		"./ssim": {
+			"types": "./dist/ssim.d.ts",
+			"import": "./dist/ssim.mjs",
+			"require": "./dist/ssim.js"
+		},
+		"./msssim": {
+			"types": "./dist/msssim.d.ts",
+			"import": "./dist/msssim.mjs",
+			"require": "./dist/msssim.js"
+		},
+		"./hitchhikers-ssim": {
+			"types": "./dist/hitchhikers-ssim.d.ts",
+			"import": "./dist/hitchhikers-ssim.mjs",
+			"require": "./dist/hitchhikers-ssim.js"
+		}
+	},
+	"files": [
+		"dist"
+	],
+	"scripts": {
+		"build": "tsup",
+		"dev": "tsup --watch",
+		"clean": "rm -rf dist",
+		"test": "vitest run",
+		"test:watch": "vitest"
+	},
+	"keywords": [
+		"image",
+		"comparison",
+		"ssim",
+		"gradient",
+		"similarity",
+		"visual-testing",
+		"ci"
+	],
+	"author": "Teimur Gasanov <me@teimurjan.dev> (https://github.com/teimurjan)",
+	"repository": "https://github.com/teimurjan/blazediff",
+	"homepage": "https://blazediff.dev",
+	"license": "MIT",
+	"devDependencies": {
+		"@blazediff/pngjs-transformer": "^1.5.0",
+		"@types/node": "^24.3.0",
+		"@vitest/ui": "^3.2.4",
+		"pngjs": "^7.0.0",
+		"ssim.js": "^3.5.0",
+		"tsup": "8.5.0",
+		"typescript": "5.9.2",
+		"vitest": "^3.2.4"
+	}
+}

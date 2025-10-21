@@ -1,0 +1,41 @@
+name: Benchmark Algorithm
+
+on:
+  push:
+    branches:
+      - main
+
+concurrency: ${{ github.workflow }}
+
+jobs:
+  benchmark-algorithm:
+    name: Algorithm Benchmark
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v5
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version-file: ".node-version"
+          cache: "pnpm"
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+      - name: Run Benchmark (blazediff)
+        run: pnpm benchmark:hitchhikers-ssim -- --format=json --output=ssim.json
+
+      - name: Run Benchmark (.js)
+        run: pnpm benchmark:weber-ssim.js -- --format=json --output=weber-ssim-js.json
+
+      - name: Compare and Print Combined Markdown Table (algorithm)
+        if: always()
+        run: node .github/workflows/scripts/compare-and-print-ssim.js

@@ -40,9 +40,10 @@
 	"homepage": "https://blazediff.dev",
 	"license": "MIT",
 	"devDependencies": {
+		"@blazediff/pngjs-transformer": "workspace:*",
 		"@types/node": "^24.3.0",
 		"@vitest/ui": "^3.2.4",
-		"ssim.js": "^3.5.0",
+		"pngjs": "^7.0.0",
 		"tsup": "8.5.0",
 		"typescript": "5.9.2",
 		"vitest": "^3.2.4"

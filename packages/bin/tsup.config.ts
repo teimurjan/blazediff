@@ -16,6 +16,11 @@ export default defineConfig([
 	{
 		entry: {
 			cli: "src/cli.ts",
+			"commands/diff": "src/commands/diff.ts",
+			"commands/gmsd": "src/commands/gmsd.ts",
+			"commands/ssim": "src/commands/ssim.ts",
+			"commands/msssim": "src/commands/msssim.ts",
+			"commands/hitchhikers-ssim": "src/commands/hitchhikers-ssim.ts",
 		},
 		format: "cjs",
 		dts: false,

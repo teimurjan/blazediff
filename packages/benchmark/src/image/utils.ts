@@ -1,8 +1,8 @@
 import { readdirSync } from "node:fs";
 import { join } from "node:path";
 import transformer from "@blazediff/pngjs-transformer";
-import type { BenchmarkArgs, ImagePair, ImagePairLoaded } from "./image-types";
-import { shuffleArray } from "./utils";
+import { shuffleArray } from "../utils";
+import type { BenchmarkArgs, ImagePair, ImagePairLoaded } from "./types";
 
 export function getImagePairs(
 	fixturesDir: string,
@@ -89,19 +89,19 @@ export function parseBenchmarkArgs(): BenchmarkArgs {
 
 export const getBenchmarkImagePairs = (): Array<ImagePair> => {
 	const fourKImagePairs = shuffleArray(
-		getImagePairs(join(__dirname, "../fixtures"), "4k"),
+		getImagePairs(join(__dirname, "../../../fixtures"), "4k"),
 	);
 	const pixelmatchImagePairs = shuffleArray(
-		getImagePairs(join(__dirname, "../fixtures"), "pixelmatch"),
+		getImagePairs(join(__dirname, "../../../fixtures"), "pixelmatch"),
 	);
 	const blazediffImagePairs = shuffleArray(
-		getImagePairs(join(__dirname, "../fixtures"), "blazediff"),
+		getImagePairs(join(__dirname, "../../../fixtures"), "blazediff"),
 	);
 	const pageImagePairs = shuffleArray(
-		getImagePairs(join(__dirname, "../fixtures"), "page"),
+		getImagePairs(join(__dirname, "../../../fixtures"), "page"),
 	);
 	const sameImagePairs = shuffleArray(
-		getImagePairs(join(__dirname, "../fixtures"), "same"),
+		getImagePairs(join(__dirname, "../../../fixtures"), "same"),
 	);
 
 	const pairs = [
@@ -128,14 +128,13 @@ export const getBenchmarkImagePairs = (): Array<ImagePair> => {
 	return pairs;
 };
 
-export const getSSIMImagePairs = (): Array<ImagePair> => {
+export const getStructureBenchmarkImagePairs = (): Array<ImagePair> => {
 	const pixelmatchImagePairs = shuffleArray(
-		getImagePairs(join(__dirname, "../fixtures"), "pixelmatch"),
+		getImagePairs(join(__dirname, "../../../fixtures"), "pixelmatch"),
 	);
 	const blazediffImagePairs = shuffleArray(
-		getImagePairs(join(__dirname, "../fixtures"), "blazediff"),
+		getImagePairs(join(__dirname, "../../../fixtures"), "blazediff"),
 	);
-
 	const pairs = [
 		...pixelmatchImagePairs,
 		...blazediffImagePairs,

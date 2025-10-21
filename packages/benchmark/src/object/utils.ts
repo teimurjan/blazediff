@@ -1,4 +1,4 @@
-import type { BenchmarkArgs } from "./object-types";
+import type { BenchmarkArgs } from "./types";
 
 export function parseBenchmarkArgs(): BenchmarkArgs {
 	const args = process.argv.slice(2);

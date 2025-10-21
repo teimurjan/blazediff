@@ -45,7 +45,8 @@
 		"@blazediff/core": "workspace:*",
 		"@blazediff/gmsd": "workspace:*",
 		"@blazediff/pngjs-transformer": "workspace:*",
-		"@blazediff/sharp-transformer": "workspace:*"
+		"@blazediff/sharp-transformer": "workspace:*",
+		"@blazediff/ssim": "workspace:*"
 	},
 	"devDependencies": {
 		"@types/node": "^24.3.0",
