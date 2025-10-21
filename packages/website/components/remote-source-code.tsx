@@ -1,8 +1,6 @@
 "use server";
 
-// @ts-expect-error
 import { compileMdx } from "nextra/compile";
-// @ts-expect-error
 import { MDXRemote } from "nextra/mdx-remote";
 
 interface RemoteSourceCodeProps {
