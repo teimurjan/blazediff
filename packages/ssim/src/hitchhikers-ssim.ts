@@ -32,7 +32,7 @@ export interface HitchhikersSsimOptions extends SsimOptions {
 	L?: number;
 	/** Window stride for non-overlapping windows (default: windowSize for non-overlapping) */
 	windowStride?: number;
-	/** Use Coefficient of Variation pooling instead of mean (default: false) */
+	/** Use Coefficient of Variation pooling instead of mean (default: true) */
 	covPooling?: boolean;
 }
 

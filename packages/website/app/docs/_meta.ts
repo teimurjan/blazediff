@@ -5,6 +5,9 @@ export default {
 	core: {
 		title: "@blazediff/core",
 	},
+	ssim: {
+		title: "@blazediff/ssim",
+	},
 	gmsd: {
 		title: "@blazediff/gmsd",
 	},
