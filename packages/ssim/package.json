@@ -1,6 +1,6 @@
 {
 	"name": "@blazediff/ssim",
-	"version": "1.4.1",
+	"version": "1.6.0",
 	"description": "Fast single-threaded SSIM (Structural Similarity Index) metric for CI visual testing",
 	"private": false,
 	"publishConfig": {
@@ -55,7 +55,7 @@
 	"homepage": "https://blazediff.dev",
 	"license": "MIT",
 	"devDependencies": {
-		"@blazediff/pngjs-transformer": "^1.5.0",
+		"@blazediff/pngjs-transformer": "^1.6.0",
 		"@types/node": "^24.3.0",
 		"@vitest/ui": "^3.2.4",
 		"pngjs": "^7.0.0",
