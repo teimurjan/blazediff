@@ -122,7 +122,7 @@ export default function SsimImageComparison({
             ) : (
               <div className="space-y-2">
                 <p className="text-sm">
-                  SSIM score: {result.score?.toFixed(6)}
+                  {variant === "ssim" ? "SSIM score" : "Coefficient of Variation"}: {result.score?.toFixed(6)}
                 </p>
                 <p className="text-sm text-gray-500">
                   (1.0 = identical, 0.0 = completely different)

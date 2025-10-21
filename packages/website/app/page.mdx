@@ -11,7 +11,8 @@ import {
   IconTerminal2,
   IconBrandReact,
   IconComponents,
-  IconBraces
+  IconBraces,
+  IconLayoutBoardSplit,
 } from "@tabler/icons-react";
 import Link from "next/link";
 
@@ -58,6 +59,19 @@ import Link from "next/link";
     <div className="text-gray-600 dark:text-gray-400 m-0 text-sm">
       High-performance pixel-by-pixel image comparison library. 1.5x faster than pixelmatch while maintaining identical accuracy.
     </div>
+
+  </div>
+
+  <div>
+    <Link href="/docs/ssim" className="flex items-center font-semibold gap-2 text-blue-500 dark:text-blue-400">
+      <IconLayoutBoardSplit size={20} className='flex-shrink-0' />
+      <span>@blazediff/ssim</span>
+    </Link>
+
+    <div className="text-gray-600 dark:text-gray-400 m-0 text-sm">
+      Fast SSIM (Structural Similarity Index) implementations including standard SSIM, MS-SSIM, and Hitchhiker's SSIM for perceptual image quality measurement.
+    </div>
+
   </div>
 
   <div>
@@ -69,18 +83,9 @@ import Link from "next/link";
     <div className="text-gray-600 dark:text-gray-400 m-0 text-sm">
       Fast single-threaded GMSD (Gradient Magnitude Similarity Deviation) metric for perceptual image quality assessment.
     </div>
+
   </div>
 
-  <div>
-    <Link href="/docs/ssim" className="flex items-center font-semibold gap-2 text-blue-500 dark:text-blue-400">
-      <IconLayoutCollage size={20} className='flex-shrink-0' />
-      <span>@blazediff/ssim</span>
-    </Link>
-
-    <div className="text-gray-600 dark:text-gray-400 m-0 text-sm">
-      Fast SSIM (Structural Similarity Index) implementations including standard SSIM, MS-SSIM, and Hitchhiker's SSIM for perceptual image quality measurement.
-    </div>
-  </div>
 
   <div>
     <Link href="/docs/binary" className="flex items-center font-semibold gap-2 text-blue-500 dark:text-blue-400">
@@ -91,6 +96,7 @@ import Link from "next/link";
     <div className="text-gray-600 dark:text-gray-400 m-0 text-sm">
       Command-line interface for the BlazeDiff image comparison library.
     </div>
+
   </div>
 
   <div>
@@ -102,6 +108,7 @@ import Link from "next/link";
     <div className="text-gray-600 dark:text-gray-400 m-0 text-sm">
       Lightning-fast structural object comparison with detailed change tracking. High-performance algorithm optimized for real-world data structures.
     </div>
+
   </div>
 
   <div>
@@ -113,6 +120,7 @@ import Link from "next/link";
     <div className="text-gray-600 dark:text-gray-400 m-0 text-sm">
       Framework-agnostic Web Components for building image comparison interfaces
     </div>
+
   </div>
 
   <div>
@@ -124,6 +132,7 @@ import Link from "next/link";
     <div className="text-gray-600 dark:text-gray-400 m-0 text-sm">
       React Components for building image comparison interfaces
     </div>
+
   </div>
 </div>
 
@@ -134,27 +143,51 @@ import Link from "next/link";
 - Quality Assurance - Ensure consistency across different versions and environments
 - Real-time Monitoring - Track changes and differences in production systems
 
-
 ## Powering
 
 <div className="flex flex-wrap items-center justify-center gap-8 my-8">
-  <a href="https://github.com/Shopify/react-native-skia" target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-2">
+  <a
+    href="https://github.com/Shopify/react-native-skia"
+    target="_blank"
+    rel="noopener noreferrer"
+    className="flex flex-col items-center gap-2"
+  >
     <img src="/shopify-logo.png" alt="Shopify" className="h-12" />
     <span className="text-sm text-gray-600 dark:text-gray-400">Shopify</span>
   </a>
-  <a href="https://github.com/ant-design/ant-design" target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-2">
+  <a
+    href="https://github.com/ant-design/ant-design"
+    target="_blank"
+    rel="noopener noreferrer"
+    className="flex flex-col items-center gap-2"
+  >
     <img src="/antdesign-logo.png" alt="Ant Design" className="h-12" />
     <span className="text-sm text-gray-600 dark:text-gray-400">Ant Design</span>
   </a>
-  <a href="https://github.com/antvis/antv" target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-2">
+  <a
+    href="https://github.com/antvis/antv"
+    target="_blank"
+    rel="noopener noreferrer"
+    className="flex flex-col items-center gap-2"
+  >
     <img src="/antv-logo.png" alt="AntV" className="h-12" />
     <span className="text-sm text-gray-600 dark:text-gray-400">AntV</span>
   </a>
-  <a href="https://github.com/vega/vega" target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-2">
+  <a
+    href="https://github.com/vega/vega"
+    target="_blank"
+    rel="noopener noreferrer"
+    className="flex flex-col items-center gap-2"
+  >
     <img src="/vega-logo.png" alt="Vega" className="h-12" />
     <span className="text-sm text-gray-600 dark:text-gray-400">Vega</span>
   </a>
-  <a href="https://github.com/apexcharts/apexcharts.js" target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-2">
+  <a
+    href="https://github.com/apexcharts/apexcharts.js"
+    target="_blank"
+    rel="noopener noreferrer"
+    className="flex flex-col items-center gap-2"
+  >
     <img src="/apexcharts-logo.png" alt="ApexCharts" className="h-12" />
     <span className="text-sm text-gray-600 dark:text-gray-400">ApexCharts</span>
   </a>
@@ -164,8 +197,21 @@ import Link from "next/link";
 
 <div className="flex flex-col md:flex-row gap-4 mt-4">
 
-  <Link href="/docs/core" className="text-blue-500 dark:text-blue-400">View Documentation</Link>
-  <Link href="/examples/image-comparison" className="text-blue-500 dark:text-blue-400">Browse Examples</Link>
-  <Link href="https://github.com/teimurjan/blazediff" className="text-blue-500 dark:text-blue-400">View on GitHub</Link>
+{" "}
+<Link href="/docs/core" className="text-blue-500 dark:text-blue-400">
+  View Documentation
+</Link>
+<Link
+  href="/examples/image-comparison"
+  className="text-blue-500 dark:text-blue-400"
+>
+  Browse Examples
+</Link>
+<Link
+  href="https://github.com/teimurjan/blazediff"
+  className="text-blue-500 dark:text-blue-400"
+>
+  View on GitHub
+</Link>
 
 </div>

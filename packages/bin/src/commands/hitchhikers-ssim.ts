@@ -69,7 +69,7 @@ export default async function main(): Promise<void> {
 		const image1 = args[0];
 		const image2 = args[1];
 		const options: Record<string, string | number | boolean> = {
-			covPooling: false, // Default to CoV pooling
+			covPooling: true,
 		};
 
 		for (let i = 2; i < args.length; i++) {
