@@ -1,5 +1,19 @@
 # @blazediff/bin
 
+## 1.6.0
+
+### Minor Changes
+
+- 7a1bbbe: Add SSIM support
+
+### Patch Changes
+
+- @blazediff/core@1.6.0
+- @blazediff/gmsd@1.6.0
+- @blazediff/ssim@1.6.0
+- @blazediff/pngjs-transformer@1.6.0
+- @blazediff/sharp-transformer@1.6.0
+
 ## 1.5.0
 
 ### Minor Changes
