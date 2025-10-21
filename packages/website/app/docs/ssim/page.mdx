@@ -1,0 +1,277 @@
+# @blazediff/ssim
+
+import { Callout, Tabs } from "nextra/components";
+
+Fast SSIM (Structural Similarity Index) implementations for perceptual image quality assessment. Includes standard SSIM, MS-SSIM (Multi-Scale SSIM), and Hitchhiker's SSIM for various use cases and performance requirements.
+
+## Installation
+
+```sh npm2yarn
+npm install @blazediff/ssim
+```
+
+## Features
+
+- **Three SSIM Variants** - Standard SSIM, MS-SSIM, and Hitchhiker's SSIM
+- **Perceptual metric** - Measures structural similarity, not just pixel differences
+- **MATLAB-compatible** - Matches reference implementation with \<0.01% error
+- **High performance** - Optimized implementations with ~4x faster Hitchhiker's SSIM
+- **SSIM map output** - Optional grayscale visualization of similarity
+- **TypeScript support** out of the box
+
+## What is SSIM?
+
+SSIM (Structural Similarity Index) is a perceptual image quality metric that:
+- Measures structural similarity between images (luminance, contrast, structure)
+- Returns a score from 0 to 1 (1 = identical, 0 = completely different)
+- Correlates better with human perception than MSE or PSNR
+- Is widely used in image/video quality assessment
+
+### Variants
+
+- **SSIM** - Standard Gaussian-based implementation, MATLAB-compatible
+- **MS-SSIM** - Multi-scale version for better perceptual correlation
+- **Hitchhiker's SSIM** - Fast rectangular-window version using integral images (~4x faster)
+
+For detailed mathematical explanation, see the [package documentation](https://github.com/teimurjan/blazediff/tree/main/packages/ssim).
+
+## API Reference
+
+<Tabs items={['SSIM', 'MS-SSIM', "Hitchhiker's SSIM"]}>
+  <Tabs.Tab>
+
+### `ssim(image1, image2, output, width, height, options?)`
+
+Compares two images using standard SSIM metric and returns a similarity score.
+
+#### Parameters
+
+| Parameter | Type                                         | Description                                      |
+| --------- | -------------------------------------------- | ------------------------------------------------ |
+| `image1`  | `Buffer`, `Uint8Array`, or `Uint8ClampedArray`  | Image data of the first image                    |
+| `image2`  | `Buffer`, `Uint8Array`, or `Uint8ClampedArray`  | Image data of the second image                   |
+| `output`  | `Buffer`, `Uint8Array`, `Uint8ClampedArray`, or `undefined` | Optional output buffer for SSIM map visualization |
+| `width`   | `number`                                     | Width of the images in pixels                    |
+| `height`  | `number`                                     | Height of the images in pixels                   |
+| `options` | `SsimOptions`                                | Comparison options (optional)                    |
+
+##### Options
+
+| Option       | Type     | Default | Description                                           |
+| ------------ | -------- | ------- | ----------------------------------------------------- |
+| `windowSize` | `number` | `11`    | Size of the Gaussian window                           |
+| `k1`         | `number` | `0.01`  | Algorithm parameter for luminance                     |
+| `k2`         | `number` | `0.03`  | Algorithm parameter for contrast                      |
+| `L`          | `number` | `255`   | Dynamic range of pixel values                         |
+
+##### Returns
+
+`number` - SSIM score between 0 and 1
+
+  </Tabs.Tab>
+
+  <Tabs.Tab>
+
+### `msssim(image1, image2, output, width, height, options?)`
+
+Compares two images using MS-SSIM (Multi-Scale SSIM) metric.
+
+#### Parameters
+
+| Parameter | Type                                         | Description                                      |
+| --------- | -------------------------------------------- | ------------------------------------------------ |
+| `image1`  | `Buffer`, `Uint8Array`, or `Uint8ClampedArray`  | Image data of the first image                    |
+| `image2`  | `Buffer`, `Uint8Array`, or `Uint8ClampedArray`  | Image data of the second image                   |
+| `output`  | `Buffer`, `Uint8Array`, `Uint8ClampedArray`, or `undefined` | Optional output buffer for SSIM map at finest scale |
+| `width`   | `number`                                     | Width of the images in pixels                    |
+| `height`  | `number`                                     | Height of the images in pixels                   |
+| `options` | `MsssimOptions`                              | Comparison options (optional)                    |
+
+##### Options
+
+| Option       | Type       | Default | Description                                           |
+| ------------ | ---------- | ------- | ----------------------------------------------------- |
+| `windowSize` | `number`   | `11`    | Size of the Gaussian window                           |
+| `scales`     | `number`   | `5`     | Number of scales to use                               |
+| `weights`    | `number[]` | `[0.0448, 0.2856, 0.3001, 0.2363, 0.1333]` | Weights for each scale |
+| `method`     | `'product'` or `'sum'` | `'product'` | Aggregation method          |
+
+##### Returns
+
+`number` - MS-SSIM score between 0 and 1
+
+  </Tabs.Tab>
+
+  <Tabs.Tab>
+
+### `hitchhikersSSIM(image1, image2, output, width, height, options?)`
+
+Compares two images using Hitchhiker's SSIM (fast rectangular-window version).
+
+#### Parameters
+
+| Parameter | Type                                         | Description                                      |
+| --------- | -------------------------------------------- | ------------------------------------------------ |
+| `image1`  | `Buffer`, `Uint8Array`, or `Uint8ClampedArray`  | Image data of the first image                    |
+| `image2`  | `Buffer`, `Uint8Array`, or `Uint8ClampedArray`  | Image data of the second image                   |
+| `output`  | `Buffer`, `Uint8Array`, `Uint8ClampedArray`, or `undefined` | Optional output buffer for SSIM map |
+| `width`   | `number`                                     | Width of the images in pixels                    |
+| `height`  | `number`                                     | Height of the images in pixels                   |
+| `options` | `HitchhikersSsimOptions`                     | Comparison options (optional)                    |
+
+##### Options
+
+| Option          | Type      | Default | Description                                           |
+| --------------- | --------- | ------- | ----------------------------------------------------- |
+| `windowSize`    | `number`  | `11`    | Size of the rectangular window                        |
+| `windowStride`  | `number`  | `windowSize` | Stride for window sliding (non-overlapping by default) |
+| `covPooling`    | `boolean` | `true`  | Use Coefficient of Variation pooling (recommended)    |
+| `k1`            | `number`  | `0.01`  | Algorithm parameter for luminance                     |
+| `k2`            | `number`  | `0.03`  | Algorithm parameter for contrast                      |
+| `L`             | `number`  | `255`   | Dynamic range of pixel values                         |
+
+##### Returns
+
+`number` - SSIM score between 0 and 1
+
+**Performance**: ~4x faster than standard SSIM using integral images for O(1) window computation.
+
+  </Tabs.Tab>
+</Tabs>
+
+### Score Interpretation
+
+| Score Range | Similarity Level | Description |
+| ----------- | ---------------- | ----------- |
+| `1.0`       | Identical        | Images are identical or perceptually identical |
+| `0.99+`     | Excellent        | Extremely high similarity (minor compression artifacts) |
+| `0.95-0.99` | Very Good        | High similarity (small compression or noise) |
+| `0.90-0.95` | Good             | Noticeable but acceptable differences |
+| `0.80-0.90` | Fair             | Significant but tolerable differences |
+| `<0.80`     | Poor             | Major structural differences |
+
+<Callout type="info">
+  **Threshold Guidelines:**
+  - Use threshold `>0.99` for strict visual regression testing
+  - Use threshold `>0.95` for standard visual regression testing
+  - Scores below `0.90` indicate substantial visual differences
+</Callout>
+
+## Usage Examples
+
+<Tabs items={['SSIM', 'MS-SSIM', "Hitchhiker's SSIM"]}>
+  <Tabs.Tab>
+
+```typescript
+import ssim from "@blazediff/ssim/ssim";
+
+// Basic usage
+const score = ssim(img1.data, img2.data, undefined, width, height);
+
+// With SSIM map output
+const output = new Uint8ClampedArray(width * height * 4);
+const score = ssim(img1.data, img2.data, output, width, height);
+
+// With custom options
+const score = ssim(img1.data, img2.data, undefined, width, height, {
+  windowSize: 8,
+  k1: 0.01,
+  k2: 0.03,
+});
+```
+
+  </Tabs.Tab>
+
+  <Tabs.Tab>
+
+```typescript
+import msssim from "@blazediff/ssim/msssim";
+
+// Basic usage
+const score = msssim(img1.data, img2.data, undefined, width, height);
+
+// With SSIM map at finest scale
+const output = new Uint8ClampedArray(width * height * 4);
+const score = msssim(img1.data, img2.data, output, width, height);
+
+// With custom scales and weights
+const score = msssim(img1.data, img2.data, undefined, width, height, {
+  scales: 3,
+  weights: [0.33, 0.33, 0.34],
+  method: 'sum',
+});
+```
+
+  </Tabs.Tab>
+
+  <Tabs.Tab>
+
+```typescript
+import hitchhikersSSIM from "@blazediff/ssim/hitchhikers-ssim";
+
+// Basic usage with mean pooling (traditional)
+const score = hitchhikersSSIM(img1.data, img2.data, undefined, width, height);
+
+// With CoV pooling (recommended)
+const score = hitchhikersSSIM(img1.data, img2.data, undefined, width, height, {
+  covPooling: true,
+});
+
+// With custom window and stride
+const score = hitchhikersSSIM(img1.data, img2.data, undefined, width, height, {
+  windowSize: 16,
+  windowStride: 8,  // Overlapping windows
+  covPooling: true,
+});
+```
+
+  </Tabs.Tab>
+</Tabs>
+
+## When to Use Each Variant
+
+**Use SSIM when:**
+- You need **MATLAB-compatible results** for research or comparison
+- You want **high accuracy** with Gaussian weighting
+- You need **automatic downsampling** for large images
+- Performance is not critical
+
+**Use MS-SSIM when:**
+- You need **multi-scale analysis** for better perceptual correlation
+- You're working with images at **different resolutions**
+- You want **better correlation with human perception**
+- You can afford the ~2-3x computation cost
+
+**Use Hitchhiker's SSIM when:**
+- You need **maximum performance** (~4x faster than standard SSIM)
+- You're processing **large images** or **many images**
+- You want **O(1) window computation** regardless of window size
+- You need **flexible window stride** for overlapping/non-overlapping windows
+- CoV pooling provides better perceptual correlation than mean
+
+## CLI Usage
+
+All three variants are available via the `@blazediff/bin` CLI:
+
+```bash
+# Standard SSIM
+blazediff ssim image1.png image2.png
+
+# MS-SSIM
+blazediff msssim image1.png image2.png
+
+# Hitchhiker's SSIM
+blazediff hitchhikers-ssim image1.png image2.png
+
+# With options
+blazediff hitchhikers-ssim image1.png image2.png --window-size 16 --no-cov-pooling
+```
+
+## Links
+
+- [GitHub Repository](https://github.com/teimurjan/blazediff)
+- [NPM Package](https://www.npmjs.com/package/@blazediff/ssim)
+- [SSIM Paper](https://ieeexplore.ieee.org/document/1284395) - Wang et al. (2004)
+- [MS-SSIM Paper](https://ieeexplore.ieee.org/document/1292216) - Wang et al. (2003)
+- [Hitchhiker's SSIM Paper](https://ieeexplore.ieee.org/document/9345560) - Venkataramanan et al. (2021)
+- [Examples →](/examples/image-comparison)

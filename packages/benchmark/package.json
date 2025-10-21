@@ -10,13 +10,16 @@
 		"build": "tsup",
 		"dev": "tsup --watch",
 		"clean": "rm -rf dist",
-		"core": "node dist/core-benchmark.js",
-		"pixelmatch": "node dist/pixelmatch-benchmark.js",
-		"gmsd": "node dist/gmsd-benchmark.js",
-		"ssim": "node dist/ssim-benchmark.js",
-		"object": "node dist/object-benchmark.js",
-		"microdiff": "node dist/microdiff-benchmark.js",
-		"opentf-obj-diff": "node dist/opentf-obj-diff-benchmark.js"
+		"core": "node dist/image/pixel-by-pixel/blazediff-core-benchmark.js",
+		"pixelmatch": "node dist/image/pixel-by-pixel/external-pixelmatch-benchmark.js",
+		"object": "node dist/object/blazediff-object-benchmark.js",
+		"microdiff": "node dist/object/external-microdiff-benchmark.js",
+		"opentf-obj-diff": "node dist/object/external-opentf-obj-diff-benchmark.js",
+		"gmsd": "node dist/image/structure/gmsd-benchmark.js",
+		"ssim": "node dist/image/structure/ssim-benchmark.js",
+		"hitchhikers-ssim": "node dist/image/structure/hitchhikers-ssim-benchmark.js",
+		"ssim.js": "node dist/image/structure/external-ssim-benchmark.js",
+		"weber-ssim.js": "node dist/image/structure/external-ssim-weber-benchmark.js"
 	},
 	"devDependencies": {
 		"@blazediff/bin": "workspace:*",
@@ -24,16 +27,15 @@
 		"@blazediff/gmsd": "workspace:*",
 		"@blazediff/object": "workspace:*",
 		"@blazediff/pngjs-transformer": "workspace:*",
+		"@blazediff/ssim": "workspace:*",
 		"@opentf/obj-diff": "^0.12.0",
 		"@types/node": "^24.3.0",
 		"microdiff": "^1.5.0",
 		"pixelmatch": "^7.1.0",
 		"pngjs": "^7.0.0",
+		"ssim.js": "^3.5.0",
 		"tinybench": "^5.0.1",
 		"tsup": "^8.5.0",
 		"typescript": "^5.9.2"
-	},
-	"dependencies": {
-		"ssim.js": "^3.5.0"
 	}
 }

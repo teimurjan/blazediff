@@ -2,9 +2,9 @@
 
 import { diff } from "@opentf/obj-diff";
 import { Bench, hrtimeNow } from "tinybench";
-import { objectPairs } from "../fixtures/object";
-import { parseBenchmarkArgs } from "./object-utils";
-import { shuffleArray } from "./utils";
+import { objectPairs } from "../../fixtures/object";
+import { shuffleArray } from "../utils";
+import { parseBenchmarkArgs } from "./utils";
 
 async function main() {
 	const { iterations, format, output } = parseBenchmarkArgs();

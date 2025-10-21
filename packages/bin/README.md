@@ -18,12 +18,21 @@ npm install -g @blazediff/bin
 ## Usage
 
 ```bash
-blazediff <image1> <image2> [options]
+blazediff <command> <image1> <image2> [options]
 ```
 
-**Arguments:**
-- `image1` - Path to the first image
-- `image2` - Path to the second image
+## Commands
+
+BlazeDiff supports multiple comparison algorithms, each optimized for different use cases:
+
+### `diff` - Pixel-by-pixel comparison (default)
+Fast pixel-level comparison for detecting visual regressions.
+
+```bash
+blazediff diff image1.png image2.png [options]
+# Or simply:
+blazediff image1.png image2.png [options]
+```
 
 **Options:**
 - `-o, --output <path>` - Output path for the diff image
@@ -34,24 +43,69 @@ blazediff <image1> <image2> [options]
 - `--diff-color-alt <r,g,b>` - Alternative color for dark differences
 - `--include-aa` - Include anti-aliasing detection
 - `--diff-mask` - Draw diff over transparent background
-- `--transformer <name>` - Specify transformer to use (pngjs, sharp)
 - `--color-space <name>` - Specify color space to use (yiq, ycbcr)
+- `--transformer <name>` - Specify transformer to use (pngjs, sharp)
+- `-h, --help` - Show help message
+
+### `gmsd` - Gradient Magnitude Similarity Deviation
+Perceptual quality metric based on gradient similarity.
+
+```bash
+blazediff gmsd image1.png image2.png [options]
+```
+
+**Options:**
+- `-o, --output <path>` - Output path for GMS similarity map
+- `--downsample <0|1>` - Downsample factor (0=full-res, 1=2x, default: 0)
+- `--gmsd-c <num>` - Stability constant (default: 170)
+- `--transformer <name>` - Specify transformer to use (pngjs, sharp)
+- `-h, --help` - Show help message
+
+### `ssim` - Structural Similarity Index
+Industry-standard metric for measuring structural similarity.
+
+```bash
+blazediff ssim image1.png image2.png [options]
+```
+
+**Options:**
+- `-o, --output <path>` - Output path for SSIM map visualization
+- `--transformer <name>` - Specify transformer to use (pngjs, sharp)
+- `-h, --help` - Show help message
+
+### `msssim` - Multi-Scale Structural Similarity Index
+Enhanced SSIM that operates at multiple image scales.
+
+```bash
+blazediff msssim image1.png image2.png [options]
+```
+
+**Options:**
+- `-o, --output <path>` - Output path for MS-SSIM map visualization
+- `--transformer <name>` - Specify transformer to use (pngjs, sharp)
 - `-h, --help` - Show help message
 
 ## Examples
 
 ```bash
-# Basic comparison
+# Pixel-by-pixel diff (default)
 blazediff image1.png image2.png
+blazediff diff image1.png image2.png -o diff.png -t 0.05
 
-# Save diff image with custom threshold
-blazediff image1.png image2.png -o diff.png -t 0.05
+# GMSD similarity metric
+blazediff gmsd image1.png image2.png
+blazediff gmsd image1.png image2.png -o gms-map.png
+
+# SSIM structural similarity
+blazediff ssim image1.png image2.png
+blazediff ssim image1.png image2.png -o ssim-map.png
+
+# MS-SSIM multi-scale similarity
+blazediff msssim image1.png image2.png
+blazediff msssim image1.png image2.png -o msssim-map.png
 
 # Use Sharp transformer for better performance
-blazediff image1.png image2.png --transformer sharp -o diff.png
-
-# JPEG support (requires Sharp transformer)
-blazediff image1.jpg image2.jpg --transformer sharp -o diff.png
+blazediff ssim image1.jpg image2.jpg --transformer sharp
 ```
 
 ## Transformers
@@ -61,5 +115,10 @@ blazediff image1.jpg image2.jpg --transformer sharp -o diff.png
 
 ## Exit Codes
 
+### Diff Mode
 - `0` - Images are identical
 - `1` - Images have differences or error occurred
+
+### GMSD, SSIM, MS-SSIM Modes
+- `0` - Images are highly similar (score >= 0.95)
+- `1` - Images have noticeable differences (score < 0.95) or error occurred

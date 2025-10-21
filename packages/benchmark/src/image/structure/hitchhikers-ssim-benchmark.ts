@@ -1,47 +1,52 @@
 #!/usr/bin/env node
 
-import blazediffObject from "@blazediff/object";
+import hitchhikersSsim from "@blazediff/ssim/hitchhikers-ssim";
 import { Bench, hrtimeNow } from "tinybench";
-import { objectPairs } from "../fixtures/object";
-import { parseBenchmarkArgs } from "./object-utils";
-import { shuffleArray } from "./utils";
+import {
+	getStructureBenchmarkImagePairs,
+	loadImagePairs,
+	parseBenchmarkArgs,
+} from "../utils";
 
 async function main() {
 	const { iterations, format, output } = parseBenchmarkArgs();
 
-	const pairs = shuffleArray([...objectPairs]);
+	const pairs = getStructureBenchmarkImagePairs();
+	const pairsLoaded = await loadImagePairs(pairs);
 
 	const bench = new Bench({
 		iterations,
-		warmupIterations: 50,
+		warmupIterations: 3,
+		time: 0,
 		now: hrtimeNow,
 	});
 
-	for (let i = 0; i < pairs.length; i++) {
-		const pair = pairs[i];
-		const { a, b, name } = pair;
+	for (let i = 0; i < pairsLoaded.length; i++) {
+		const pair = pairsLoaded[i];
+		const { a, b } = pair;
 
-		bench.add(`blazediff-object - ${name}`, () => {
-			blazediffObject(a as any, b as any);
+		bench.add(`hitchhikers-ssim - ${pairs[i].name}`, () => {
+			hitchhikersSsim(a.data, b.data, undefined, a.width, a.height);
 		});
 	}
 
 	await bench.run();
 
-	console.log("\n📦 BlazeDiff Object Benchmark Results:\n");
+	console.log("\n📊 Hitchhiker's SSIM Benchmark Results:\n");
+
 	console.table(
 		bench.tasks
 			.map((task) => ({
 				Name: task.name,
 				"Ops/sec": task.result?.throughput.mean.toFixed(2),
 				"Avg (ms)": task.result?.latency.mean
-					? task.result.latency.mean.toFixed(6)
+					? task.result.latency.mean.toFixed(4)
 					: "N/A",
 				"Min (ms)": task.result?.latency.min
-					? task.result.latency.min.toFixed(6)
+					? task.result.latency.min.toFixed(4)
 					: "N/A",
 				"Max (ms)": task.result?.latency.max
-					? task.result.latency.max.toFixed(6)
+					? task.result.latency.max.toFixed(4)
 					: "N/A",
 			}))
 			.sort((a, b) => a.Name.localeCompare(b.Name)),

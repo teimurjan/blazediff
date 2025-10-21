@@ -131,9 +131,11 @@ BlazeDiff is available in multiple packages to suit different use cases:
 ### Core Libraries
 - **[@blazediff/core](./packages/core#readme)** - Core JavaScript library for pixel-perfect image comparison
 - **[@blazediff/object](./packages/object#readme)** - High-performance object diffing with detailed change tracking
+- **[@blazediff/ssim](./packages/ssim#readme)** - Perceptual quality metrics (SSIM, MS-SSIM)
+- **[@blazediff/gmsd](./packages/gmsd#readme)** - Gradient Magnitude Similarity Deviation metric
 
 ### Command Line Tools
-- **[@blazediff/bin](./packages/bin#readme)** - CLI for image comparison with multiple format support
+- **[@blazediff/bin](./packages/bin#readme)** - CLI with multiple comparison algorithms (diff, GMSD, SSIM, MS-SSIM) and format support
 
 ### UI Components
 - **[@blazediff/react](./packages/react#readme)** - React components for displaying diffs in your applications
@@ -157,9 +159,17 @@ Contributions are welcome! Please see the [Contributing Guide](CONTRIBUTING.md) 
 
 MIT License - see [LICENSE](LICENSE) file for details.
 
+### Algorithm Licenses
+
+The `@blazediff/ssim` package implements perceptual quality metrics based on published research. See the [licenses](./licenses) folder for detailed attribution and licensing information:
+
+- **[SSIM](./licenses/SSIM.md)** - Zhou Wang et al., IEEE 2004
+- **[MS-SSIM](./licenses/MS-SSIM.md)** - Zhou Wang et al., Asilomar 2003
+
 ## Acknowledgments
 
 - Image diffing built on the excellent [pixelmatch](https://github.com/mapbox/pixelmatch) algorithm
+- SSIM and MS-SSIM based on groundbreaking research by Zhou Wang, Alan C. Bovik, and colleagues
 
 ---
 

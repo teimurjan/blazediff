@@ -1,17 +1,17 @@
 #!/usr/bin/env node
 
-import gmsd from "@blazediff/gmsd";
+import blazediff from "@blazediff/core";
 import { Bench, hrtimeNow } from "tinybench";
 import {
-	getSSIMImagePairs,
+	getBenchmarkImagePairs,
 	loadImagePairs,
 	parseBenchmarkArgs,
-} from "./image-utils";
+} from "../utils";
 
 async function main() {
 	const { iterations, format, output } = parseBenchmarkArgs();
 
-	const pairs = getSSIMImagePairs();
+	const pairs = getBenchmarkImagePairs();
 	const pairsLoaded = await loadImagePairs(pairs);
 
 	const bench = new Bench({
@@ -25,23 +25,14 @@ async function main() {
 		const pair = pairsLoaded[i];
 		const { a, b } = pair;
 
-		bench.add(`gmsd (full-res) - ${pairs[i].name}`, () => {
-			gmsd(a.data, b.data, undefined, a.width, a.height, {
-				downsample: 0,
-			});
-		});
-
-		bench.add(`gmsd (2x downsample) - ${pairs[i].name}`, () => {
-			gmsd(a.data, b.data, undefined, a.width, a.height, {
-				downsample: 1,
-			});
+		bench.add(`blazediff - ${pairs[i].name}`, () => {
+			blazediff(a.data, b.data, undefined, a.width, a.height);
 		});
 	}
 
 	await bench.run();
 
-	console.log("\n📊 GMSD Benchmark Results:\n");
-
+	console.log("\n🔥 BlazeDiff Core Benchmark Results:\n");
 	console.table(
 		bench.tasks
 			.map((task) => ({

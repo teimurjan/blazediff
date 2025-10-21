@@ -116,7 +116,3 @@ All components accept className props for styling:
   canvasClassName="my-canvas"
 />
 ```
-
-## License
-
-MIT

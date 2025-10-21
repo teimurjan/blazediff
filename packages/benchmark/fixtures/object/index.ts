@@ -1,4 +1,4 @@
-import type { ObjectPair } from "../../src/object-types";
+import type { ObjectPair } from "../../src/object/types";
 
 export const objectPairs: ObjectPair[] = [
 	{

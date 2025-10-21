@@ -1,5 +1,4 @@
-import blazediff, { type CoreOptions } from "@blazediff/core";
-import gmsd, { type GmsdOptions } from "@blazediff/gmsd";
+// Types only - no algorithm imports to keep the bundle small
 
 export interface Image {
 	data: Buffer | Uint8Array | Uint8ClampedArray;
@@ -12,20 +11,34 @@ export interface Transformer {
 	write: (image: Image, output: string | Buffer) => Promise<void>;
 }
 
-export type ComparisonMode = "diff" | "gmsd";
+export type ComparisonMode = "diff" | "gmsd" | "ssim" | "msssim";
 
 export interface DiffModeOptions {
 	outputPath?: string;
 	transformer: Transformer;
 	mode?: "diff";
-	options?: CoreOptions;
+	options?: Record<string, unknown>;
 }
 
 export interface GmsdModeOptions {
 	outputPath?: string;
 	transformer: Transformer;
 	mode: "gmsd";
-	options?: GmsdOptions;
+	options?: Record<string, unknown>;
+}
+
+export interface SsimModeOptions {
+	outputPath?: string;
+	transformer: Transformer;
+	mode: "ssim";
+	options?: Record<string, unknown>;
+}
+
+export interface MsssimModeOptions {
+	outputPath?: string;
+	transformer: Transformer;
+	mode: "msssim";
+	options?: Record<string, unknown>;
 }
 
 export interface DiffModeResult {
@@ -46,114 +59,26 @@ export interface GmsdModeResult {
 	duration: number;
 }
 
-export type BlazeDiffBinResult = DiffModeResult | GmsdModeResult;
-
-const isGmsdModeOptions = (
-	options: DiffModeOptions | GmsdModeOptions,
-): options is GmsdModeOptions => {
-	return options.mode === "gmsd";
-};
-
-export default async function bin(
-	image1Path: string,
-	image2Path: string,
-	options: GmsdModeOptions,
-): Promise<GmsdModeResult>;
-export default async function bin(
-	image1Path: string,
-	image2Path: string,
-	options: DiffModeOptions,
-): Promise<DiffModeResult>;
-export default async function bin(
-	image1Path: string,
-	image2Path: string,
-	options: DiffModeOptions | GmsdModeOptions,
-): Promise<DiffModeResult | GmsdModeResult> {
-	const [image1, image2] = await Promise.all([
-		options.transformer.transform(image1Path),
-		options.transformer.transform(image2Path),
-	]);
-
-	if (image1.width !== image2.width || image1.height !== image2.height) {
-		throw new Error(
-			`Image dimensions do not match: ${image1.width}x${image1.height} vs ${image2.width}x${image2.height}`,
-		);
-	}
-
-	if (isGmsdModeOptions(options)) {
-		// GMSD mode - compute similarity score
-		let outputData: Uint8Array | undefined;
-		if (options.outputPath) {
-			outputData = new Uint8Array(image1.data.length);
-		}
-
-		const startTime = performance.now();
-		const score = gmsd(
-			image1.data,
-			image2.data,
-			outputData,
-			image1.width,
-			image1.height,
-			options.options || {},
-		);
-		const duration = performance.now() - startTime;
-
-		// Write GMS map if output path is provided
-		if (options.outputPath && outputData) {
-			await options.transformer.write(
-				{
-					data: outputData,
-					width: image1.width,
-					height: image1.height,
-				},
-				options.outputPath,
-			);
-		}
-
-		return {
-			mode: "gmsd",
-			width: image1.width,
-			height: image1.height,
-			outputData,
-			duration,
-			score,
-		} satisfies GmsdModeResult;
-	}
-
-	// Default diff mode
-	let outputData: Uint8Array | undefined;
-	if (options.outputPath) {
-		outputData = new Uint8Array(image1.data.length);
-	}
-
-	const startTime = performance.now();
-	const diffCount = blazediff(
-		image1.data,
-		image2.data,
-		outputData,
-		image1.width,
-		image1.height,
-		options.options || {},
-	);
-	const duration = performance.now() - startTime;
-
-	if (diffCount > 0 && options.outputPath && outputData) {
-		await options.transformer.write(
-			{
-				data: outputData,
-				width: image1.width,
-				height: image1.height,
-			},
-			options.outputPath,
-		);
-	}
-
-	return {
-		mode: "diff",
-		diffCount,
-		width: image1.width,
-		height: image1.height,
-		outputData,
-		duration,
-	} satisfies DiffModeResult;
+export interface SsimModeResult {
+	mode: "ssim";
+	score: number;
+	width: number;
+	height: number;
+	outputData?: Uint8Array;
+	duration: number;
 }
+
+export interface MsssimModeResult {
+	mode: "msssim";
+	score: number;
+	width: number;
+	height: number;
+	outputData?: Uint8Array;
+	duration: number;
+}
+
+export type BlazeDiffBinResult =
+	| DiffModeResult
+	| GmsdModeResult
+	| SsimModeResult
+	| MsssimModeResult;
