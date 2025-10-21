@@ -4,8 +4,8 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![NPM Version](https://img.shields.io/npm/v/%40blazediff%2Fcore)](https://www.npmjs.com/org/blazediff)
-[![Test](https://github.com/teimurjan/blazediff/actions/workflows/benchmark-algorithm.yml/badge.svg)](https://github.com/teimurjan/blazediff/actions/workflows/test.yml)
-[![Release](https://github.com/teimurjan/blazediff/actions/workflows/benchmark-object.yml/badge.svg)](https://github.com/teimurjan/blazediff/actions/workflows/release.yml)
+[![Test](https://github.com/teimurjan/blazediff/actions/workflows/test.yml/badge.svg)](https://github.com/teimurjan/blazediff/actions/workflows/test.yml)
+[![Release](https://github.com/teimurjan/blazediff/actions/workflows/release.yml/badge.svg)](https://github.com/teimurjan/blazediff/actions/workflows/release.yml)
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/teimurjan/blazediff)
 
 </div>
