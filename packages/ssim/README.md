@@ -7,16 +7,16 @@
 
 </div>
 
-Fast single-threaded SSIM (Structural Similarity Index) implementation for perceptual image quality assessment. Perfect for CI visual testing where you need a similarity score based on structural information rather than pixel-by-pixel differences.
+Fast SSIM (Structural Similarity Index) implementations for perceptual image quality assessment. Includes standard SSIM, MS-SSIM (Multi-Scale SSIM), and Hitchhiker's SSIM for various use cases and performance requirements.
 
 **Features:**
-- Academic SSIM and MS-SSIM implementations matching MATLAB references
-- **SSIMULACRA2** - Advanced perceptual metric detecting compression artifacts
-- Perceptual similarity scoring (0-1 scale for SSIM/MS-SSIM, 0-100 for SSIMULACRA2)
-- Optional SSIM map visualization
-- Multi-scale analysis for better perceptual accuracy
-- Zero dependencies
-- TypeScript support out of the box
+- **Three SSIM Variants** - Standard SSIM, MS-SSIM, and Hitchhiker's SSIM
+- **MATLAB-compatible** - Matches reference implementation with <0.01% error
+- **High Performance** - Optimized implementations with ~4x faster Hitchhiker's SSIM
+- **Perceptual Metrics** - Structural similarity scoring (0-1 scale)
+- **SSIM Map Output** - Optional grayscale visualization
+- **Zero Dependencies**
+- **TypeScript Support** out of the box
 
 For detailed algorithm explanation and mathematical formulas, see [FORMULA.md](./FORMULA.md).
 
@@ -40,17 +40,17 @@ Compares two images using the standard SSIM algorithm with automatic downsamplin
   </tr>
   <tr>
     <td><code>image1</code></td>
-    <td>Uint8Array or Uint8ClampedArray</td>
+    <td>Uint8Array, Uint8ClampedArray, or Buffer</td>
     <td>First image data (RGBA format, 4 bytes per pixel)</td>
   </tr>
   <tr>
     <td><code>image2</code></td>
-    <td>Uint8Array or Uint8ClampedArray</td>
+    <td>Uint8Array, Uint8ClampedArray, or Buffer</td>
     <td>Second image data (RGBA format, 4 bytes per pixel)</td>
   </tr>
   <tr>
     <td><code>output</code></td>
-    <td>Uint8Array, Uint8ClampedArray, or undefined</td>
+    <td>Uint8Array, Uint8ClampedArray, Buffer, or undefined</td>
     <td>Optional output buffer for SSIM map visualization (RGBA format)</td>
   </tr>
   <tr>
@@ -70,7 +70,42 @@ Compares two images using the standard SSIM algorithm with automatic downsamplin
   </tr>
 </table>
 
-**Returns:** `number` - MSSIM score (0-1, where 1 is identical)
+**Returns:** `number` - SSIM score (0-1, where 1 is identical)
+
+#### Options
+
+<table>
+  <tr>
+    <th width="500">Option</th>
+    <th width="500">Type</th>
+    <th width="500">Default</th>
+    <th width="500">Description</th>
+  </tr>
+  <tr>
+    <td><code>windowSize</code></td>
+    <td>number</td>
+    <td>11</td>
+    <td>Size of the Gaussian window</td>
+  </tr>
+  <tr>
+    <td><code>k1</code></td>
+    <td>number</td>
+    <td>0.01</td>
+    <td>Algorithm parameter for luminance</td>
+  </tr>
+  <tr>
+    <td><code>k2</code></td>
+    <td>number</td>
+    <td>0.03</td>
+    <td>Algorithm parameter for contrast</td>
+  </tr>
+  <tr>
+    <td><code>L</code></td>
+    <td>number</td>
+    <td>255</td>
+    <td>Dynamic range of pixel values</td>
+  </tr>
+</table>
 
 ### `msssim(image1, image2, output, width, height, options?)`
 
@@ -80,9 +115,46 @@ Same parameters as `ssim()`, but analyzes images at multiple scales (default: 5 
 
 **Returns:** `number` - MS-SSIM score (0-1, where 1 is identical)
 
-### `ssimulacra2(image1, image2, width, height)`
+#### Options
 
-Compares two images using SSIMULACRA2, an advanced perceptual metric that detects compression artifacts, ringing, and blurring.
+<table>
+  <tr>
+    <th width="500">Option</th>
+    <th width="500">Type</th>
+    <th width="500">Default</th>
+    <th width="500">Description</th>
+  </tr>
+  <tr>
+    <td><code>windowSize</code></td>
+    <td>number</td>
+    <td>11</td>
+    <td>Size of the Gaussian window</td>
+  </tr>
+  <tr>
+    <td><code>scales</code></td>
+    <td>number</td>
+    <td>5</td>
+    <td>Number of scales to use</td>
+  </tr>
+  <tr>
+    <td><code>weights</code></td>
+    <td>number[]</td>
+    <td>[0.0448, 0.2856, 0.3001, 0.2363, 0.1333]</td>
+    <td>Weights for each scale</td>
+  </tr>
+  <tr>
+    <td><code>method</code></td>
+    <td>'product' or 'sum'</td>
+    <td>'product'</td>
+    <td>Aggregation method</td>
+  </tr>
+</table>
+
+### `hitchhikersSSIM(image1, image2, output, width, height, options?)`
+
+Compares two images using Hitchhiker's SSIM (fast rectangular-window version with integral images).
+
+**Performance:** ~4x faster than standard SSIM using integral images for O(1) window computation.
 
 <table>
   <tr>
@@ -92,13 +164,18 @@ Compares two images using SSIMULACRA2, an advanced perceptual metric that detect
   </tr>
   <tr>
     <td><code>image1</code></td>
-    <td>Uint8Array or Uint8ClampedArray</td>
+    <td>Uint8Array, Uint8ClampedArray, or Buffer</td>
     <td>First image data (RGBA format, 4 bytes per pixel)</td>
   </tr>
   <tr>
     <td><code>image2</code></td>
-    <td>Uint8Array or Uint8ClampedArray</td>
+    <td>Uint8Array, Uint8ClampedArray, or Buffer</td>
     <td>Second image data (RGBA format, 4 bytes per pixel)</td>
+  </tr>
+  <tr>
+    <td><code>output</code></td>
+    <td>Uint8Array, Uint8ClampedArray, Buffer, or undefined</td>
+    <td>Optional output buffer for SSIM map</td>
   </tr>
   <tr>
     <td><code>width</code></td>
@@ -110,21 +187,16 @@ Compares two images using SSIMULACRA2, an advanced perceptual metric that detect
     <td>number</td>
     <td>Image height in pixels</td>
   </tr>
+  <tr>
+    <td><code>options</code></td>
+    <td>HitchhikersSsimOptions</td>
+    <td>SSIM computation options (optional)</td>
+  </tr>
 </table>
 
-**Returns:** `Ssimulacra2Result` - Object containing:
-- `score` - Perceptual quality score (0-100, higher is better)
-- `scales` - Per-scale measurements for detailed analysis
+**Returns:** `number` - SSIM score (0-1, where 1 is identical)
 
-**Score interpretation:**
-- `100` - Identical or imperceptibly different
-- `90-100` - Very high quality (barely noticeable differences)
-- `70-90` - High quality (minor artifacts)
-- `50-70` - Medium quality (visible artifacts)
-- `30-50` - Low quality (significant artifacts)
-- `<30` - Very low quality (severe artifacts)
-
-##### Options
+#### Options
 
 <table>
   <tr>
@@ -132,41 +204,48 @@ Compares two images using SSIMULACRA2, an advanced perceptual metric that detect
     <th width="500">Type</th>
     <th width="500">Default</th>
     <th width="500">Description</th>
-    <th width="500">Hint</th>
   </tr>
   <tr>
     <td><code>windowSize</code></td>
     <td>number</td>
     <td>11</td>
-    <td>Window size for local SSIM computation</td>
-    <td>Larger windows = smoother results, smaller = more local detail</td>
+    <td>Size of the rectangular window</td>
+  </tr>
+  <tr>
+    <td><code>windowStride</code></td>
+    <td>number</td>
+    <td>windowSize</td>
+    <td>Stride for window sliding (non-overlapping by default)</td>
+  </tr>
+  <tr>
+    <td><code>covPooling</code></td>
+    <td>boolean</td>
+    <td>true</td>
+    <td>Use Coefficient of Variation pooling (recommended)</td>
   </tr>
   <tr>
     <td><code>k1</code></td>
     <td>number</td>
     <td>0.01</td>
-    <td>First stability constant for luminance</td>
-    <td>Default from original SSIM paper, rarely needs adjustment</td>
+    <td>Algorithm parameter for luminance</td>
   </tr>
   <tr>
     <td><code>k2</code></td>
     <td>number</td>
     <td>0.03</td>
-    <td>Second stability constant for contrast/structure</td>
-    <td>Default from original SSIM paper, rarely needs adjustment</td>
+    <td>Algorithm parameter for contrast</td>
   </tr>
   <tr>
-    <td><code>bitDepth</code></td>
+    <td><code>L</code></td>
     <td>number</td>
-    <td>8</td>
-    <td>Bit depth of images (8 = 0-255 range)</td>
-    <td>Use 8 for standard images, adjust for HDR</td>
+    <td>255</td>
+    <td>Dynamic range of pixel values</td>
   </tr>
 </table>
 
 ## Usage
 
-### Basic Comparison
+### Basic SSIM Comparison
 
 ```typescript
 import ssim from '@blazediff/ssim/ssim';
@@ -192,6 +271,24 @@ const score = msssim(image1.data, image2.data, undefined, width, height);
 console.log(`MS-SSIM: ${score.toFixed(4)}`);
 ```
 
+### Hitchhiker's SSIM (Fast)
+
+```typescript
+import hitchhikersSSIM from '@blazediff/ssim/hitchhikers-ssim';
+
+// ~4x faster than standard SSIM
+const score = hitchhikersSSIM(image1.data, image2.data, undefined, width, height);
+
+console.log(`Hitchhiker's SSIM: ${score.toFixed(4)}`);
+
+// With custom options
+const scoreCustom = hitchhikersSSIM(image1.data, image2.data, undefined, width, height, {
+  windowSize: 16,
+  windowStride: 8,  // Overlapping windows
+  covPooling: true, // CoV pooling (recommended)
+});
+```
+
 ### Custom Options
 
 ```typescript
@@ -202,7 +299,7 @@ const score = ssim(image1, image2, undefined, width, height, {
   windowSize: 7,  // Smaller window for more local detail
   k1: 0.01,
   k2: 0.03,
-  bitDepth: 8
+  L: 255
 });
 
 // MS-SSIM with custom scales and method
@@ -210,45 +307,9 @@ import msssim from '@blazediff/ssim/msssim';
 
 const msScore = msssim(image1, image2, undefined, width, height, {
   scales: 5,           // Number of scales (default: 5)
-  method: 'product',   // 'product' or 'wtd' (weighted sum)
+  method: 'product',   // 'product' or 'sum'
   windowSize: 11
 });
-```
-
-### SSIMULACRA2 (Advanced Perceptual Metric)
-
-```typescript
-import ssimulacra2 from '@blazediff/ssim/ssimulacra2';
-
-// Without error map
-const result = ssimulacra2(image1.data, image2.data, undefined, width, height);
-
-console.log(`SSIMULACRA2 Score: ${result.score.toFixed(2)}`); // e.g., "92.45"
-
-// Use in tests with appropriate threshold
-if (result.score < 70) {
-  throw new Error(`Image quality too low: ${result.score}`);
-}
-
-// Access detailed scale information
-console.log(`Processed ${result.scales.length} scales`);
-```
-
-### SSIMULACRA2 with Error Map
-
-```typescript
-import ssimulacra2 from '@blazediff/ssim/ssimulacra2';
-
-// Create output buffer for error map visualization
-const output = new Uint8ClampedArray(width * height * 4);
-
-const result = ssimulacra2(image1.data, image2.data, output, width, height);
-
-// output now contains SSIM' error map from finest scale
-// Black (0) = no error/high similarity
-// White (255) = high error/low similarity
-// Can be saved as PNG or displayed for debugging
-console.log(`Score: ${result.score.toFixed(2)}`);
 ```
 
 ### SSIM Map Visualization
@@ -268,6 +329,38 @@ const score = ssim(image1, image2, output, width, height);
 // Can be saved as PNG or displayed for debugging
 ```
 
+## When to Use Each Variant
+
+**Use SSIM when:**
+- You need **MATLAB-compatible results** for research or comparison
+- You want **high accuracy** with Gaussian weighting
+- You need **automatic downsampling** for large images
+- Performance is not critical
+
+**Use MS-SSIM when:**
+- You need **multi-scale analysis** for better perceptual correlation
+- You're working with images at **different resolutions**
+- You want **better correlation with human perception**
+- You can afford the ~2-3x computation cost
+
+**Use Hitchhiker's SSIM when:**
+- You need **maximum performance** (~4x faster than standard SSIM)
+- You're processing **large images** or **many images**
+- You want **O(1) window computation** regardless of window size
+- You need **flexible window stride** for overlapping/non-overlapping windows
+- CoV pooling provides better perceptual correlation than mean
+
+## Score Interpretation
+
+| Score Range | Similarity Level | Description |
+| ----------- | ---------------- | ----------- |
+| `1.0`       | Identical        | Images are identical or perceptually identical |
+| `0.99+`     | Excellent        | Extremely high similarity (minor compression artifacts) |
+| `0.95-0.99` | Very Good        | High similarity (small compression or noise) |
+| `0.90-0.95` | Good             | Noticeable but acceptable differences |
+| `0.80-0.90` | Fair             | Significant but tolerable differences |
+| `<0.80`     | Poor             | Major structural differences |
+
 ## References
 
 ### SSIM & MS-SSIM
@@ -275,8 +368,11 @@ const score = ssim(image1, image2, output, width, height);
 - **Wang, Z., Simoncelli, E. P., & Bovik, A. C.** (2003). [Multi-scale structural similarity for image quality assessment](https://ieeexplore.ieee.org/document/1292216). IEEE Asilomar Conference on Signals, Systems & Computers.
 - **MATLAB Reference Implementations**: [Zhou Wang's Research Group](https://ece.uwaterloo.ca/~z70wang/research/ssim/)
 
-### SSIMULACRA2
-- **Jon Sneyers** (Cloudinary, 2022-2023). SSIMULACRA 2: Structural SIMilarity Unveiling Local And Compression Related Artifacts
-- **Reference Implementation**: [cloudinary/ssimulacra2](https://github.com/cloudinary/ssimulacra2)
-- **Tuning Datasets**: CID22, TID2013, Kadid10k, KonFiG-IQA
-- **XYB Color Space**: Based on JPEG XL color transformation
+### Hitchhiker's SSIM
+- **Venkataramanan, A. K., Wu, C., Bovik, A. C., Katsavounidis, I., & Shahid, Z.** (2021). [A Hitchhiker's Guide to Structural Similarity](https://ieeexplore.ieee.org/document/9345560). IEEE Access, 9, 28872-28896.
+- **Reference Implementation**: [utlive/enhanced_ssim](https://github.com/utlive/enhanced_ssim)
+- **License**: BSD-2-Clause-Patent (Netflix, Inc.)
+
+## License
+
+See [../../licenses](../../licenses) for algorithm attribution and licensing information.

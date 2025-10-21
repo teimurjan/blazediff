@@ -16,7 +16,6 @@ export type ComparisonMode =
 	| "gmsd"
 	| "ssim"
 	| "msssim"
-	| "ssimulacra2";
 
 export interface DiffModeOptions {
 	outputPath?: string;
@@ -46,11 +45,6 @@ export interface MsssimModeOptions {
 	options?: Record<string, unknown>;
 }
 
-export interface Ssimulacra2ModeOptions {
-	outputPath?: string;
-	transformer: Transformer;
-	mode: "ssimulacra2";
-}
 
 export interface DiffModeResult {
 	mode: "diff";
@@ -88,18 +82,9 @@ export interface MsssimModeResult {
 	duration: number;
 }
 
-export interface Ssimulacra2ModeResult {
-	mode: "ssimulacra2";
-	score: number;
-	width: number;
-	height: number;
-	outputData?: Uint8Array;
-	duration: number;
-}
 
 export type BlazeDiffBinResult =
 	| DiffModeResult
 	| GmsdModeResult
 	| SsimModeResult
 	| MsssimModeResult
-	| Ssimulacra2ModeResult;
