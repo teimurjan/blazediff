@@ -1,2 +1,5 @@
 node_modules
 dist
+fixtures/imgdiff
+venv
+Img-Diff

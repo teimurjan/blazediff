@@ -1,6 +1,66 @@
-# Testing with MATLAB/Octave
+# Testing Guide
 
-This document describes how to run validation tests against MATLAB/Octave reference implementations for SSIM and GMSD.
+This document describes how to run validation tests for SSIM implementations, including:
+1. Validation against MATLAB/Octave reference implementations
+2. Comprehensive comparison using the HuggingFace Img-Diff dataset
+
+---
+
+## Img-Diff Dataset Validation
+
+The HuggingFace [Img-Diff dataset](https://huggingface.co/datasets/datajuicer/Img-Diff) provides high-quality real-world image pairs for comprehensive SSIM validation.
+
+### Quick Start
+
+```bash
+# 1. Clone and extract dataset
+git clone https://huggingface.co/datasets/datajuicer/Img-Diff
+cd Img-Diff && unzip -q object_removal.zip && cd ..
+
+# 2. Convert fixtures (converts JPG to PNG)
+./scripts/prepare-imgdiff-fixtures.sh 50
+
+# 3. Run benchmark
+pnpm analyze
+```
+
+### Results
+
+See **[IMGDIFF_ANALYSIS.md](IMGDIFF_ANALYSIS.md)** for comprehensive analysis including:
+- Performance comparison across all SSIM implementations
+- Correlation analysis with MATLAB reference
+- Score statistics and edge cases
+- Detailed recommendations for production use
+
+### Prerequisites
+
+**ImageMagick or ffmpeg** (for JPG to PNG conversion):
+```bash
+# macOS
+brew install imagemagick
+# or
+brew install ffmpeg
+
+# Ubuntu/Debian
+apt install imagemagick
+# or
+apt install ffmpeg
+```
+
+**Octave** (for MATLAB reference comparison):
+```bash
+# macOS
+brew install octave
+
+# Linux
+apt install octave
+```
+
+---
+
+## MATLAB/Octave Reference Testing
+
+This section describes validation tests against MATLAB/Octave reference implementations for SSIM and GMSD.
 
 ## Prerequisites
 
@@ -131,8 +191,6 @@ chmod +r packages/gmsd/matlab/*.m
 
 ## Manual Verification
 
-### Run SSIM manually
-
 ```bash
 octave --eval "
   pkg load image;
@@ -145,19 +203,3 @@ octave --eval "
   fprintf('SSIM: %.15f\\n', result);
 "
 ```
-
-### Run GMSD manually
-
-```bash
-octave --eval "
-  pkg load image;
-  addpath('packages/gmsd/matlab');
-  img1 = imread('packages/benchmark/fixtures/blazediff/1a.png');
-  img2 = imread('packages/benchmark/fixtures/blazediff/1b.png');
-  if size(img1, 3) == 3, img1 = rgb2gray(img1); end;
-  if size(img2, 3) == 3, img2 = rgb2gray(img2); end;
-  [score, quality_map] = GMSD(double(img1), double(img2));
-  fprintf('GMSD: %.15f\\n', score);
-"
-```
-
