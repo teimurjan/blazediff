@@ -1,5 +1,17 @@
 # @blazediff/bin
 
+## 1.7.0
+
+### Patch Changes
+
+- Updated dependencies [a06efeb]
+- Updated dependencies [a06efeb]
+  - @blazediff/pngjs-transformer@2.0.0
+  - @blazediff/sharp-transformer@2.0.0
+  - @blazediff/core@1.7.0
+  - @blazediff/gmsd@1.7.0
+  - @blazediff/ssim@1.7.0
+
 ## 1.6.0
 
 ### Minor Changes
