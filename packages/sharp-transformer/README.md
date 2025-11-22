@@ -17,21 +17,21 @@ npm install @blazediff/sharp-transformer
 
 ## API
 
-### transform(filePath)
+### read(filePath)
 
 Transform an image file to BlazeDiff image format.
 
 **Parameters:**
 - `filePath` (string) - Path to the image file
 
-**Returns:** Promise<BlazeDiffImage>
+**Returns:** Promise<{ data: Buffer | Uint8Array | Uint8ClampedArray; width: number; height: number; }>
 
 ### write(image, filePath)
 
 Write a BlazeDiff image to a PNG file.
 
 **Parameters:**
-- `image` (BlazeDiffImage) - Image data to write
+- `image` ({ data: Buffer | Uint8Array | Uint8ClampedArray; width: number; height: number; }) - Image data to write
 - `filePath` (string) - Output file path
 
 **Returns:** Promise<void>
@@ -39,12 +39,10 @@ Write a BlazeDiff image to a PNG file.
 ## Usage
 
 ```typescript
-import sharpTransformer from '@blazediff/sharp-transformer';
+import { sharpTransformer } from '@blazediff/sharp-transformer';
 
-// Transform image file
-const image = await sharpTransformer.transform('./image.png');
+const image = await sharpTransformer.read('./image.png');
 
-// Write image to file
 await sharpTransformer.write(image, './output.png');
 ```
 

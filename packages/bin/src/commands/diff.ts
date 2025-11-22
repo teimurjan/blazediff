@@ -168,8 +168,8 @@ export default async function main(): Promise<void> {
 
 		// Load images
 		const [img1, img2] = await Promise.all([
-			transformer.transform(image1),
-			transformer.transform(image2),
+			transformer.read(image1),
+			transformer.read(image2),
 		]);
 
 		if (img1.width !== img2.width || img1.height !== img2.height) {

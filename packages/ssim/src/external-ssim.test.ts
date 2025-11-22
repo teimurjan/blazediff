@@ -54,8 +54,8 @@ describe("ssim.js vs MATLAB Comparison", () => {
 				const img2Path = join(fixturesDir, img2);
 
 				const [image1, image2] = await Promise.all([
-					transformer.transform(img1Path),
-					transformer.transform(img2Path),
+					transformer.read(img1Path),
+					transformer.read(img2Path),
 				]);
 
 				const imageData1 = {
@@ -105,7 +105,7 @@ describe("ssim.js vs MATLAB Comparison", () => {
 		async () => {
 			const img1Path = join(fixturesDir, "1a.png");
 
-			const image1 = await transformer.transform(img1Path);
+			const image1 = await transformer.read(img1Path);
 
 			const imageData1 = {
 				data: image1.data as Uint8ClampedArray,
