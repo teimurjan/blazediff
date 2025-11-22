@@ -1,5 +1,11 @@
 # @blazediff/pngjs-transformer
 
+## 2.0.0
+
+### Major Changes
+
+- a06efeb: Rename transform to read
+
 ## 1.6.0
 
 ## 1.5.0
