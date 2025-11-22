@@ -139,9 +139,9 @@ Compare two images and return the number of different pixels.
 ## Usage
 
 ```typescript
-import blazediff from '@blazediff/core';
+import { diff } from '@blazediff/core';
 
-const diffCount = blazediff(
+const diffCount = diff(
   image1.data,
   image2.data,
   outputData,

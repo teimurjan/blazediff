@@ -6,7 +6,7 @@ export interface Image {
 	height: number;
 }
 
-async function transform(input: string | Buffer): Promise<Image> {
+async function read(input: string | Buffer): Promise<Image> {
 	try {
 		const image = await sharp(input)
 			.ensureAlpha()
@@ -23,7 +23,7 @@ async function transform(input: string | Buffer): Promise<Image> {
 			height: image.info.height,
 		};
 	} catch (error) {
-		throw new Error(`Failed to transform image file ${input}: ${error}`);
+		throw new Error(`Failed to read image file ${input}: ${error}`);
 	}
 }
 
@@ -47,9 +47,9 @@ async function write(image: Image, output: string | Buffer): Promise<void> {
 	}
 }
 
-const transformer = {
-	transform,
+export const sharpTransformer = {
+	read,
 	write,
 };
 
-export default transformer;
+export default sharpTransformer;

@@ -8,7 +8,7 @@
 </div>
 
 
-PNG image transformer using pngjs for the BlazeDiff library.
+PNG image transformer using [pngjs](https://www.npmjs.com/package/pngjs) for the BlazeDiff library.
 
 ## Installation
 
@@ -18,21 +18,21 @@ npm install @blazediff/pngjs-transformer
 
 ## API
 
-### transform(filePath)
+### read(filePath)
 
-Transform a PNG file to BlazeDiff image format.
+Reads a PNG file to image format (Uint8Array).
 
 **Parameters:**
 - `filePath` (string) - Path to the PNG file
 
-**Returns:** Promise<BlazeDiffImage>
+**Returns:** Promise<{ data: Buffer | Uint8Array | Uint8ClampedArray; width: number; height: number; }>
 
 ### write(image, filePath)
 
 Write a BlazeDiff image to a PNG file.
 
 **Parameters:**
-- `image` (BlazeDiffImage) - Image data to write
+- `image` ({ data: Buffer | Uint8Array | Uint8ClampedArray; width: number; height: number; }) - Image data to write
 - `filePath` (string) - Output file path
 
 **Returns:** Promise<void>
@@ -40,12 +40,10 @@ Write a BlazeDiff image to a PNG file.
 ## Usage
 
 ```typescript
-import pngjsTransformer from '@blazediff/pngjs-transformer';
+import { pngjsTransformer } from '@blazediff/pngjs-transformer';
 
-// Transform PNG file
-const image = await pngjsTransformer.transform('./image.png');
+const image = await pngjsTransformer.read('./image.png');
 
-// Write image to file
 await pngjsTransformer.write(image, './output.png');
 ```
 

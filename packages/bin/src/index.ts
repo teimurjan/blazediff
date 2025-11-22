@@ -7,7 +7,7 @@ export interface Image {
 }
 
 export interface Transformer {
-	transform: (input: string | Buffer) => Promise<Image>;
+	read: (input: string | Buffer) => Promise<Image>;
 	write: (image: Image, output: string | Buffer) => Promise<void>;
 }
 
