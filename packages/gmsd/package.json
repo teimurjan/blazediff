@@ -1,6 +1,6 @@
 {
 	"name": "@blazediff/gmsd",
-	"version": "1.6.0",
+	"version": "1.7.0",
 	"description": "Fast single-threaded GMSD (Gradient Magnitude Similarity Deviation) metric for CI visual testing",
 	"private": false,
 	"publishConfig": {
