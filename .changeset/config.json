@@ -1,23 +1,15 @@
 {
-	"$schema": "https://unpkg.com/@changesets/config@3.1.1/schema.json",
-	"changelog": "@changesets/changelog-git",
-	"commit": false,
-	"fixed": [
-		[
-			"@blazediff/core",
-			"@blazediff/gmsd",
-			"@blazediff/ssim",
-			"@blazediff/pngjs-transformer",
-			"@blazediff/sharp-transformer",
-			"@blazediff/bin",
-			"@blazediff/ui",
-			"@blazediff/react",
-			"@blazediff/object"
-		]
-	],
-	"linked": [],
-	"access": "restricted",
-	"baseBranch": "main",
-	"updateInternalDependencies": "patch",
-	"ignore": ["@blazediff/benchmark", "@blazediff/website"]
+  "$schema": "https://unpkg.com/@changesets/config@3.1.1/schema.json",
+  "changelog": "@changesets/changelog-git",
+  "commit": false,
+  "fixed": [
+    ["@blazediff/pngjs-transformer", "@blazediff/sharp-transformer"],
+    ["@blazediff/core", "@blazediff/bin"],
+    ["@blazediff/ui", "@blazediff/react"]
+  ],
+  "linked": [],
+  "access": "restricted",
+  "baseBranch": "main",
+  "updateInternalDependencies": "patch",
+  "ignore": ["@blazediff/benchmark", "@blazediff/website"]
 }
