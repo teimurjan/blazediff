@@ -59,24 +59,29 @@ jobs:
         if: github.event.inputs.platform == 'ubuntu-latest'
         working-directory: packages/benchmark
         run: |
-          ODIFF_RAW="./node_modules/odiff-bin/raw_binaries/odiff-linux-x64"
-          chmod +x "$ODIFF_RAW"
-          ODIFF_BIN="$ODIFF_RAW" bash ./binary-benchmark.sh
+          chmod +x ./node_modules/@blazediff/bin/binaries/blazediff-linux-x64
+          chmod +x ./node_modules/odiff-bin/raw_binaries/odiff-linux-x64
+          BLAZEDIFF_BIN="./node_modules/@blazediff/bin/binaries/blazediff-linux-x64" \
+          ODIFF_BIN="./node_modules/odiff-bin/raw_binaries/odiff-linux-x64" \
+          bash ./binary-benchmark.sh
 
       - name: Run Binary Benchmark (Ubuntu ARM64)
         if: github.event.inputs.platform == 'ubuntu-24.04-arm'
         working-directory: packages/benchmark
         run: |
-          ODIFF_RAW="./node_modules/odiff-bin/raw_binaries/odiff-linux-arm64"
-          chmod +x "$ODIFF_RAW"
-          ODIFF_BIN="$ODIFF_RAW" bash ./binary-benchmark.sh
+          chmod +x ./node_modules/@blazediff/bin/binaries/blazediff-linux-arm64
+          chmod +x ./node_modules/odiff-bin/raw_binaries/odiff-linux-arm64
+          BLAZEDIFF_BIN="./node_modules/@blazediff/bin/binaries/blazediff-linux-arm64" \
+          ODIFF_BIN="./node_modules/odiff-bin/raw_binaries/odiff-linux-arm64" \
+          bash ./binary-benchmark.sh
 
       - name: Run Binary Benchmark (Windows)
         if: startsWith(github.event.inputs.platform, 'windows')
         working-directory: packages/benchmark
-        shell: pwsh
+        shell: bash
         run: |
-          $env:ODIFF_BIN = "./node_modules/odiff-bin/raw_binaries/odiff-windows-x64.exe"
+          BLAZEDIFF_BIN="./node_modules/@blazediff/bin/binaries/blazediff-windows-x64.exe" \
+          ODIFF_BIN="./node_modules/odiff-bin/raw_binaries/odiff-windows-x64.exe" \
           bash ./binary-benchmark.sh
 
       - name: Print Results
