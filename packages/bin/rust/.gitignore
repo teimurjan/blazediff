@@ -1,0 +1,34 @@
+# Build artifacts
+/target/
+**/*.rs.bk
+
+# Cargo lock for libraries (keep for binaries)
+# Cargo.lock
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+
+# Debug
+*.dSYM/
+*.su
+*.idb
+*.pdb
+
+# Test artifacts
+/tmp/
+*.png.diff.png
+
+# Benchmark results
+*.json
+!Cargo.json
+
+# Cross-compilation outputs
+/dist/
+/binaries/

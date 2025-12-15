@@ -1,0 +1,11 @@
+# Cargo configuration for blazediff-rs
+#
+# Note: For cross-compilation, use scripts/build-all.sh which sets appropriate
+# RUSTFLAGS per target. This config is for local development only.
+
+[build]
+jobs = -1
+
+[alias]
+br = "build --release"
+rr = "run --release"

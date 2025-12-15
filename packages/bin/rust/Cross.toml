@@ -1,0 +1,12 @@
+[target.x86_64-unknown-linux-gnu]
+pre-build = ["apt-get update && apt-get install -y zlib1g-dev"]
+
+[target.aarch64-unknown-linux-gnu]
+pre-build = [
+    "dpkg --add-architecture arm64",
+    "apt-get update",
+    "apt-get install -y zlib1g-dev:arm64"
+]
+
+[target.x86_64-pc-windows-gnu]
+pre-build = ["apt-get update && apt-get install -y zlib1g-dev"]

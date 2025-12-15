@@ -23,6 +23,7 @@
 	},
 	"devDependencies": {
 		"@blazediff/bin": "workspace:*",
+		"@blazediff/cli": "workspace:*",
 		"@blazediff/core": "workspace:*",
 		"@blazediff/gmsd": "workspace:*",
 		"@blazediff/object": "workspace:*",
@@ -31,6 +32,7 @@
 		"@opentf/obj-diff": "^0.12.0",
 		"@types/node": "^24.3.0",
 		"microdiff": "^1.5.0",
+		"odiff-bin": "^4.3.2",
 		"pixelmatch": "^7.1.0",
 		"pngjs": "^7.0.0",
 		"ssim.js": "^3.5.0",

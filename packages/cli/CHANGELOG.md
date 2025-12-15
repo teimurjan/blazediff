@@ -1,4 +1,4 @@
-# @blazediff/bin
+# @blazediff/cli
 
 ## 1.7.0
 

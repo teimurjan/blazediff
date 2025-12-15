@@ -1,4 +1,4 @@
-# @blazediff/bin
+# @blazediff/cli
 
 import { Callout, Tabs } from 'nextra/components'
 
@@ -11,19 +11,19 @@ Command-line tool for high-performance image comparison. Supports multiple algor
 ### Global Installation
 
 ```sh npm2yarn
-npm install -g blazediff
+npm install -g @blazediff/cli
 ```
 
 ### Local Installation
 
 ```sh npm2yarn
-npm install --save-dev blazediff
+npm install --save-dev @blazediff/cli
 ```
 
 ### Using npx
 
 ```sh npm2yarn
-npx blazediff diff image1.png image2.png
+npx blazediff-cli diff image1.png image2.png
 ```
 
 ## Features
@@ -40,26 +40,26 @@ npx blazediff diff image1.png image2.png
 <Tabs items={['diff', 'gmsd', 'ssim', 'msssim', 'hitchhikers-ssim']}>
   <Tabs.Tab>
 
-### `blazediff diff`
+### `blazediff-cli diff`
 
 Pixel-perfect image comparison with anti-aliasing detection. 60% faster than [pixelmatch](https://github.com/mapbox/pixelmatch).
 
 #### Basic Usage
 
 ```bash
-blazediff diff image1.png image2.png
+blazediff-cli diff image1.png image2.png
 ```
 
 #### Save Diff Image
 
 ```bash
-blazediff diff image1.png image2.png --output diff.png
+blazediff-cli diff image1.png image2.png --output diff.png
 ```
 
 #### Options
 
 ```bash
-blazediff diff <image1> <image2> [options]
+blazediff-cli diff <image1> <image2> [options]
 
 Options:
   -o, --output <path>      Output diff image path
@@ -100,19 +100,19 @@ GMSD (Gradient Magnitude Similarity Deviation) perceptual quality assessment. Re
 #### Basic Usage
 
 ```bash
-blazediff gmsd image1.png image2.png
+blazediff-cli gmsd image1.png image2.png
 ```
 
 #### Save GMS Map
 
 ```bash
-blazediff gmsd image1.png image2.png --output gms-map.png
+blazediff-cli gmsd image1.png image2.png --output gms-map.png
 ```
 
 #### Options
 
 ```bash
-blazediff gmsd <image1> <image2> [options]
+blazediff-cli gmsd <image1> <image2> [options]
 
 Options:
   -o, --output <path>      Output GMS map image path
@@ -133,10 +133,10 @@ Prints the GMSD score (lower = more similar):
 #### Example
 
 ```bash
-$ blazediff gmsd reference.png test.png
+$ blazediff-cli gmsd reference.png test.png
 GMSD: 0.0234
 
-$ blazediff gmsd reference.png test.png --output gms-map.png
+$ blazediff-cli gmsd reference.png test.png --output gms-map.png
 GMSD: 0.0234
 GMS map saved to: gms-map.png
 ```
@@ -145,26 +145,26 @@ GMS map saved to: gms-map.png
 
   <Tabs.Tab>
 
-### `blazediff ssim`
+### `blazediff-cli ssim`
 
 Standard SSIM (Structural Similarity Index) with Gaussian weighting. MATLAB-compatible with \<0.01% error.
 
 #### Basic Usage
 
 ```bash
-blazediff ssim image1.png image2.png
+blazediff-cli ssim image1.png image2.png
 ```
 
 #### Save SSIM Map
 
 ```bash
-blazediff ssim image1.png image2.png --output ssim-map.png
+blazediff-cli ssim image1.png image2.png --output ssim-map.png
 ```
 
 #### Options
 
 ```bash
-blazediff ssim <image1> <image2> [options]
+blazediff-cli ssim <image1> <image2> [options]
 
 Options:
   -o, --output <path>      Output SSIM map image path
@@ -188,10 +188,10 @@ Prints the SSIM score (higher = more similar):
 #### Example
 
 ```bash
-$ blazediff ssim reference.png test.png
+$ blazediff-cli ssim reference.png test.png
 SSIM: 0.9876
 
-$ blazediff ssim reference.png test.png --output ssim-map.png --window-size 8
+$ blazediff-cli ssim reference.png test.png --output ssim-map.png --window-size 8
 SSIM: 0.9823
 SSIM map saved to: ssim-map.png
 ```
@@ -200,26 +200,26 @@ SSIM map saved to: ssim-map.png
 
   <Tabs.Tab>
 
-### `blazediff msssim`
+### `blazediff-cli msssim`
 
 MS-SSIM (Multi-Scale SSIM) for better perceptual correlation. Analyzes images at multiple scales.
 
 #### Basic Usage
 
 ```bash
-blazediff msssim image1.png image2.png
+blazediff-cli msssim image1.png image2.png
 ```
 
 #### Save MS-SSIM Map
 
 ```bash
-blazediff msssim image1.png image2.png --output msssim-map.png
+blazediff-cli msssim image1.png image2.png --output msssim-map.png
 ```
 
 #### Options
 
 ```bash
-blazediff msssim <image1> <image2> [options]
+blazediff-cli msssim <image1> <image2> [options]
 
 Options:
   -o, --output <path>      Output SSIM map at finest scale
@@ -243,10 +243,10 @@ Prints the MS-SSIM score (higher = more similar):
 #### Example
 
 ```bash
-$ blazediff msssim reference.png test.png
+$ blazediff-cli msssim reference.png test.png
 MS-SSIM: 0.9912
 
-$ blazediff msssim reference.png test.png --scales 3 --method sum
+$ blazediff-cli msssim reference.png test.png --scales 3 --method sum
 MS-SSIM: 0.9876
 ```
 
@@ -254,26 +254,26 @@ MS-SSIM: 0.9876
 
   <Tabs.Tab>
 
-### `blazediff hitchhikers-ssim`
+### `blazediff-cli hitchhikers-ssim`
 
 Hitchhiker's SSIM - fast rectangular-window SSIM using integral images. ~4x faster than standard SSIM.
 
 #### Basic Usage
 
 ```bash
-blazediff hitchhikers-ssim image1.png image2.png
+blazediff-cli hitchhikers-ssim image1.png image2.png
 ```
 
 #### Save SSIM Map
 
 ```bash
-blazediff hitchhikers-ssim image1.png image2.png --output ssim-map.png
+blazediff-cli hitchhikers-ssim image1.png image2.png --output ssim-map.png
 ```
 
 #### Options
 
 ```bash
-blazediff hitchhikers-ssim <image1> <image2> [options]
+blazediff-cli hitchhikers-ssim <image1> <image2> [options]
 
 Options:
   -o, --output <path>      Output SSIM map image path
@@ -299,10 +299,10 @@ Prints the SSIM score (higher = more similar):
 #### Example
 
 ```bash
-$ blazediff hitchhikers-ssim reference.png test.png
+$ blazediff-cli hitchhikers-ssim reference.png test.png
 SSIM: 0.9597
 
-$ blazediff hitchhikers-ssim reference.png test.png --window-size 16 --window-stride 8
+$ blazediff-cli hitchhikers-ssim reference.png test.png --window-size 16 --window-stride 8
 SSIM: 0.9612
 SSIM map saved to: ssim-map.png
 ```
@@ -345,33 +345,6 @@ SSIM map saved to: ssim-map.png
 - You're processing large images or many images
 - You want O(1) window computation
 - You need flexible window stride for overlapping/non-overlapping windows
-
-## CI/CD Integration
-
-### GitHub Actions Example
-
-```yaml
-- name: Visual Regression Test
-  run: |
-    blazediff diff baseline.png test.png --threshold 0.01
-    if [ $? -ne 0 ]; then
-      echo "Visual regression detected!"
-      exit 1
-    fi
-```
-
-### Using SSIM for Perceptual Testing
-
-```bash
-# Get SSIM score
-SCORE=$(blazediff ssim reference.png test.png | grep -oP 'SSIM: \K[0-9.]+')
-
-# Check if score is above threshold
-if (( $(echo "$SCORE < 0.95" | bc -l) )); then
-  echo "Images differ too much: SSIM=$SCORE"
-  exit 1
-fi
-```
 
 ## Links
 

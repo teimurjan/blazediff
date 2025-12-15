@@ -1,0 +1,143 @@
+# @blazediff/bin
+
+import { Callout } from "nextra/components";
+
+The fastest single-threaded image diff in the world. Native Rust implementation with SIMD optimization, 3-4x faster than [odiff](https://github.com/dmtrKovalenko/odiff).
+
+[View Detailed Benchmarks](https://github.com/teimurjan/blazediff/blob/main/BENCHMARKS.md)
+
+## Installation
+
+```sh npm2yarn
+npm install @blazediff/bin
+```
+
+Pre-built binaries are included for all major platforms - no compilation required:
+- macOS ARM64 (Apple Silicon) & x64 (Intel)
+- Linux ARM64 & x64
+- Windows ARM64 & x64
+
+## Features
+
+- **3-4x faster** than odiff on large images
+- **SIMD-accelerated** - NEON on ARM, SSE4.1 on x86
+- **Block-based optimization** - skips unchanged regions
+- **Zero compilation** - pre-built binaries for all platforms
+- **TypeScript support** out of the box
+
+## API Reference
+
+### `compare(basePath, comparePath, diffOutput, options?)`
+
+Compares two PNG images and generates a diff image.
+
+#### Parameters
+
+| Parameter     | Type              | Description                           |
+| ------------- | ----------------- | ------------------------------------- |
+| `basePath`    | `string`          | Path to the base/expected image       |
+| `comparePath` | `string`          | Path to the comparison/actual image   |
+| `diffOutput`  | `string`          | Path where the diff image will be saved |
+| `options`     | `BlazeDiffOptions` | Comparison options (optional)         |
+
+##### Options
+
+| Option             | Type      | Default | Description                                              |
+| ------------------ | --------- | ------- | -------------------------------------------------------- |
+| `threshold`        | `number`  | `0.1`   | Color difference threshold (0.0-1.0). Lower = more strict |
+| `antialiasing`     | `boolean` | `false` | Enable anti-aliasing detection                           |
+| `diffMask`         | `boolean` | `false` | Output only differences with transparent background      |
+| `failOnLayoutDiff` | `boolean` | `false` | Fail immediately if images have different dimensions     |
+
+#### Return Types
+
+```typescript
+type BlazeDiffResult =
+  | { match: true }
+  | { match: false; reason: "layout-diff" }
+  | { match: false; reason: "pixel-diff"; diffCount: number; diffPercentage: number }
+  | { match: false; reason: "file-not-exists"; file: string };
+```
+
+<Callout type="info">
+  **Threshold Guidelines:**
+  - `0.0` - Exact match only
+  - `0.05` - Strict comparison
+  - `0.1` - Default balanced comparison
+  - `0.2` - Lenient comparison
+</Callout>
+
+## Usage
+
+### Programmatic API
+
+```typescript
+import { compare } from '@blazediff/bin';
+
+const result = await compare('expected.png', 'actual.png', 'diff.png', {
+  threshold: 0.1,
+  antialiasing: true,
+});
+
+if (result.match) {
+  console.log('Images are identical!');
+} else if (result.reason === 'pixel-diff') {
+  console.log(`${result.diffCount} pixels differ (${result.diffPercentage.toFixed(2)}%)`);
+} else if (result.reason === 'layout-diff') {
+  console.log('Images have different dimensions');
+}
+```
+
+### CLI Usage
+
+```bash
+# Compare two images
+npx blazediff expected.png actual.png diff.png
+
+# With options
+npx blazediff expected.png actual.png diff.png --threshold 0.05 --antialiasing
+
+# Output as text format
+npx blazediff expected.png actual.png diff.png --output-format text
+```
+
+### CLI Options
+
+```bash
+blazediff [OPTIONS] <IMAGE1> <IMAGE2> <OUTPUT>
+
+Options:
+  -t, --threshold <THRESHOLD>  Color difference threshold (0.0-1.0) [default: 0.1]
+  -a, --antialiasing           Enable anti-aliasing detection
+      --diff-mask              Output only differences (transparent background)
+      --fail-on-layout         Fail on layout (size) difference
+      --output-format <FORMAT> Output format (json or text) [default: json]
+  -h, --help                   Print help
+  -V, --version                Print version
+```
+
+### Exit Codes
+
+- `0` - Images are identical
+- `1` - Images differ (or layout mismatch with `--fail-on-layout`)
+- `2` - Error (file not found, invalid format, etc.)
+
+## Performance
+
+Benchmarked on Apple M1 Pro with 5600x3200 4K images:
+
+| Tool | Time | Comparison |
+|------|------|------------|
+| **blazediff** | ~35ms | - |
+| odiff | ~120ms | 3.4x slower |
+| pixelmatch | ~280ms | 8x slower |
+
+<Callout type="info">
+  **Why so fast?** BlazeDiff uses a two-pass block-based algorithm with SIMD acceleration. The cold pass quickly identifies unchanged 8x8 blocks using 32-bit integer comparison, then the hot pass only processes changed regions with YIQ perceptual color difference.
+</Callout>
+
+## Links
+
+- [GitHub Repository](https://github.com/teimurjan/blazediff)
+- [NPM Package](https://www.npmjs.com/package/@blazediff/native)
+- [Examples →](/examples/image-comparison)

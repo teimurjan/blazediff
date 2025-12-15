@@ -4,7 +4,7 @@
   "commit": false,
   "fixed": [
     ["@blazediff/pngjs-transformer", "@blazediff/sharp-transformer"],
-    ["@blazediff/core", "@blazediff/bin"],
+    ["@blazediff/core", "@blazediff/cli"],
     ["@blazediff/ui", "@blazediff/react"]
   ],
   "linked": [],

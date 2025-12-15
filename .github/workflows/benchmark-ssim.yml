@@ -1,11 +1,11 @@
 name: Benchmark SSIM
 
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch:
 
-concurrency: ${{ github.workflow }}
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
 
 jobs:
   benchmark-ssim:
