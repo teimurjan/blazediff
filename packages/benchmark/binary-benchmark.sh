@@ -6,7 +6,7 @@
 FIXTURES_DIR="./fixtures"
 BLAZEDIFF_CLI_BIN="./node_modules/.bin/blazediff-cli"
 BLAZEDIFF_NATIVE_BIN="./node_modules/.bin/blazediff"
-ODIFF_BIN="./node_modules/.bin/odiff"
+ODIFF_BIN="${ODIFF_BIN:-./node_modules/.bin/odiff}"
 PIXELMATCH_BIN="./node_modules/.bin/pixelmatch"
 WARMUP=5
 RUNS=25

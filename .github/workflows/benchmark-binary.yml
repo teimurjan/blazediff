@@ -39,45 +39,6 @@ jobs:
       - name: Build
         run: pnpm build
 
-      - name: Verify binaries (Unix)
-        if: ${{ !startsWith(github.event.inputs.platform, 'windows') }}
-        working-directory: packages/benchmark
-        run: |
-          echo "=== Platform info ==="
-          uname -a
-          echo ""
-
-          echo "=== Checking blazediff ==="
-          ls -la ./node_modules/.bin/blazediff || true
-          file ./node_modules/.bin/blazediff || true
-          ./node_modules/.bin/blazediff --version || echo "blazediff --version failed"
-
-          echo ""
-          echo "=== Checking odiff ==="
-          ls -la ./node_modules/.bin/odiff || true
-          echo "Symlink target for odiff-bin:"
-          ls -la ./node_modules/odiff-bin || true
-          echo "Contents of odiff-bin/bin/:"
-          ls -la ./node_modules/odiff-bin/bin/ || true
-          echo "Binary file type:"
-          file ./node_modules/odiff-bin/bin/odiff.exe || true
-          echo "Raw binaries available:"
-          ls -la ./node_modules/odiff-bin/raw_binaries/ || true
-
-          # If odiff.exe is empty or wrong, manually run postinstall
-          if [ ! -s ./node_modules/odiff-bin/bin/odiff.exe ]; then
-            echo "odiff.exe is missing or empty, running postinstall..."
-            cd ./node_modules/odiff-bin && node post_install.js && cd -
-          fi
-
-          echo "Testing odiff:"
-          ./node_modules/.bin/odiff --version || echo "odiff --version failed"
-
-          echo ""
-          echo "=== Checking pixelmatch ==="
-          ls -la ./node_modules/.bin/pixelmatch || true
-          ./node_modules/.bin/pixelmatch 2>&1 | head -3 || true
-
       - name: Install hyperfine (Ubuntu x64)
         if: github.event.inputs.platform == 'ubuntu-latest'
         run: |
@@ -90,64 +51,33 @@ jobs:
           wget https://github.com/sharkdp/hyperfine/releases/download/v1.18.0/hyperfine_1.18.0_arm64.deb -O /tmp/hyperfine.deb
           sudo dpkg -i /tmp/hyperfine.deb
 
-      - name: Install hyperfine (macOS)
-        if: startsWith(github.event.inputs.platform, 'macos')
-        run: brew install hyperfine
-
       - name: Install hyperfine (Windows)
         if: startsWith(github.event.inputs.platform, 'windows')
         run: choco install hyperfine -y
 
-      - name: Run Binary Benchmark (Unix)
-        if: ${{ !startsWith(github.event.inputs.platform, 'windows') }}
+      - name: Run Binary Benchmark (Ubuntu x64)
+        if: github.event.inputs.platform == 'ubuntu-latest'
         working-directory: packages/benchmark
-        run: bash ./binary-benchmark.sh
-
-      - name: Verify binaries (Windows)
-        if: startsWith(github.event.inputs.platform, 'windows')
-        working-directory: packages/benchmark
-        shell: pwsh
         run: |
-          Write-Host "=== Platform info ===" -ForegroundColor Cyan
-          [System.Environment]::OSVersion
-          Write-Host ""
+          ODIFF_RAW="./node_modules/odiff-bin/raw_binaries/odiff-linux-x64"
+          chmod +x "$ODIFF_RAW"
+          ODIFF_BIN="$ODIFF_RAW" bash ./binary-benchmark.sh
 
-          Write-Host "=== Checking blazediff ===" -ForegroundColor Cyan
-          Get-Item ./node_modules/.bin/blazediff* -ErrorAction SilentlyContinue | Format-List
-          & ./node_modules/.bin/blazediff --version 2>&1
-
-          Write-Host ""
-          Write-Host "=== Checking odiff ===" -ForegroundColor Cyan
-          Get-Item ./node_modules/.bin/odiff* -ErrorAction SilentlyContinue | Format-List
-          Get-Item ./node_modules/odiff-bin/bin/* -ErrorAction SilentlyContinue | Format-List
-          Get-Item ./node_modules/odiff-bin/raw_binaries/* -ErrorAction SilentlyContinue | Format-List
-          & ./node_modules/.bin/odiff --version 2>&1
-
-          Write-Host ""
-          Write-Host "=== Checking pixelmatch ===" -ForegroundColor Cyan
-          Get-Item ./node_modules/.bin/pixelmatch* -ErrorAction SilentlyContinue | Format-List
+      - name: Run Binary Benchmark (Ubuntu ARM64)
+        if: github.event.inputs.platform == 'ubuntu-24.04-arm'
+        working-directory: packages/benchmark
+        run: |
+          ODIFF_RAW="./node_modules/odiff-bin/raw_binaries/odiff-linux-arm64"
+          chmod +x "$ODIFF_RAW"
+          ODIFF_BIN="$ODIFF_RAW" bash ./binary-benchmark.sh
 
       - name: Run Binary Benchmark (Windows)
         if: startsWith(github.event.inputs.platform, 'windows')
         working-directory: packages/benchmark
         shell: pwsh
         run: |
-          $FIXTURES_DIR = "./fixtures"
-          $BLAZEDIFF = "./node_modules/.bin/blazediff"
-          $ODIFF = "./node_modules/.bin/odiff"
-          $PIXELMATCH = "./node_modules/.bin/pixelmatch"
-
-          New-Item -ItemType Directory -Force -Path ./output | Out-Null
-
-          # Run a subset of benchmarks on Windows
-          hyperfine --warmup 3 --runs 10 -i `
-            -n "blazediff (pixelmatch/1)" "$BLAZEDIFF $FIXTURES_DIR/pixelmatch/1a.png $FIXTURES_DIR/pixelmatch/1b.png ./output/pm1.png --antialiasing" `
-            -n "odiff (pixelmatch/1)" "$ODIFF $FIXTURES_DIR/pixelmatch/1a.png $FIXTURES_DIR/pixelmatch/1b.png ./output/pm1.png --antialiasing" `
-            -n "pixelmatch (pixelmatch/1)" "$PIXELMATCH $FIXTURES_DIR/pixelmatch/1a.png $FIXTURES_DIR/pixelmatch/1b.png ./output/pm1.png" `
-            -n "blazediff (4k/1)" "$BLAZEDIFF $FIXTURES_DIR/4k/1a.png $FIXTURES_DIR/4k/1b.png ./output/4k1.png --antialiasing" `
-            -n "odiff (4k/1)" "$ODIFF $FIXTURES_DIR/4k/1a.png $FIXTURES_DIR/4k/1b.png ./output/4k1.png --antialiasing" `
-            -n "pixelmatch (4k/1)" "$PIXELMATCH $FIXTURES_DIR/4k/1a.png $FIXTURES_DIR/4k/1b.png ./output/4k1.png" `
-            --export-markdown output/benchmark-results.md
+          $env:ODIFF_BIN = "./node_modules/odiff-bin/raw_binaries/odiff-windows-x64.exe"
+          bash ./binary-benchmark.sh
 
       - name: Print Results
         if: always()
