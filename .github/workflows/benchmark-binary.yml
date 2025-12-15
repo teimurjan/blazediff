@@ -39,10 +39,36 @@ jobs:
       - name: Build
         run: pnpm build
 
-      - name: Install hyperfine (Ubuntu)
-        if: startsWith(github.event.inputs.platform, 'ubuntu')
+      - name: Verify binaries (Unix)
+        if: ${{ !startsWith(github.event.inputs.platform, 'windows') }}
+        working-directory: packages/benchmark
         run: |
-          wget https://github.com/sharkdp/hyperfine/releases/download/v1.18.0/hyperfine_1.18.0_amd64.deb -O /tmp/hyperfine.deb || \
+          echo "=== Checking blazediff ==="
+          ls -la ./node_modules/.bin/blazediff || true
+          file ./node_modules/.bin/blazediff || true
+          ./node_modules/.bin/blazediff --version || echo "blazediff --version failed"
+
+          echo ""
+          echo "=== Checking odiff ==="
+          ls -la ./node_modules/.bin/odiff || true
+          ls -la ./node_modules/odiff-bin/bin/ || true
+          file ./node_modules/odiff-bin/bin/odiff.exe || true
+          ./node_modules/.bin/odiff --version || echo "odiff --version failed"
+
+          echo ""
+          echo "=== Checking pixelmatch ==="
+          ls -la ./node_modules/.bin/pixelmatch || true
+          ./node_modules/.bin/pixelmatch 2>&1 | head -3 || true
+
+      - name: Install hyperfine (Ubuntu x64)
+        if: github.event.inputs.platform == 'ubuntu-latest'
+        run: |
+          wget https://github.com/sharkdp/hyperfine/releases/download/v1.18.0/hyperfine_1.18.0_amd64.deb -O /tmp/hyperfine.deb
+          sudo dpkg -i /tmp/hyperfine.deb
+
+      - name: Install hyperfine (Ubuntu ARM64)
+        if: github.event.inputs.platform == 'ubuntu-24.04-arm'
+        run: |
           wget https://github.com/sharkdp/hyperfine/releases/download/v1.18.0/hyperfine_1.18.0_arm64.deb -O /tmp/hyperfine.deb
           sudo dpkg -i /tmp/hyperfine.deb
 

@@ -14,6 +14,19 @@ RUNS=25
 echo "Running binary benchmarks with hyperfine..."
 echo "================================================"
 
+# Verify binaries exist and show versions
+echo "Verifying binaries..."
+echo "blazediff: $(which $BLAZEDIFF_NATIVE_BIN 2>/dev/null || echo 'not found')"
+echo "odiff: $(which $ODIFF_BIN 2>/dev/null || echo 'not found')"
+echo "pixelmatch: $(which $PIXELMATCH_BIN 2>/dev/null || echo 'not found')"
+
+# Test each binary with a quick run
+echo ""
+echo "Testing binaries..."
+$BLAZEDIFF_NATIVE_BIN --version 2>/dev/null || echo "blazediff --version failed"
+$ODIFF_BIN --version 2>/dev/null || echo "odiff --version failed"
+echo ""
+
 # Create output directory
 mkdir -p ./output
 
@@ -47,7 +60,8 @@ echo ""
 
 # Build hyperfine command with all benchmarks
 # Each tool x each image pair = separate benchmark entry
-hyperfine_args=(-i --warmup $WARMUP --runs $RUNS)
+# -N disables shell to avoid shell startup overhead affecting results
+hyperfine_args=(-i -N --warmup $WARMUP --runs $RUNS)
 
 for i in "${!names[@]}"; do
   hyperfine_args+=(-n "blazediff (${names[$i]})" "${blazediff_cmds[$i]}")
