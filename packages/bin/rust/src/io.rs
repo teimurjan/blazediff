@@ -130,7 +130,7 @@ pub fn save_png<P: AsRef<Path>>(image: &Image, path: P) -> Result<(), DiffError>
             return Err(DiffError::PngError("Failed to disable filtering".into()));
         }
 
-        if spng_set_option(ctx, spng_option_SPNG_IMG_COMPRESSION_LEVEL, 0) != 0 {
+        if spng_set_option(ctx, spng_option_SPNG_IMG_COMPRESSION_LEVEL, 1) != 0 {
             return Err(DiffError::PngError("Failed to set compression level".into()));
         }
 
