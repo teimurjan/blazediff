@@ -13,6 +13,7 @@ import {
   IconComponents,
   IconBraces,
   IconLayoutBoardSplit,
+  IconRocket,
 } from "@tabler/icons-react";
 import Link from "next/link";
 
@@ -49,6 +50,18 @@ import Link from "next/link";
 ## Packages
 
 <div className="flex flex-col gap-4 mt-4">
+
+  <div>
+    <Link href="/docs/bin" className="flex items-center font-semibold gap-2 text-blue-500 dark:text-blue-400">
+      <IconRocket size={20} className='flex-shrink-0' />
+      <span>@blazediff/bin</span>
+    </Link>
+
+    <div className="text-gray-600 dark:text-gray-400 m-0 text-sm">
+      The fastest single-threaded image diff in the world. Native Rust implementation with SIMD optimization, 3-4x faster than odiff.
+    </div>
+
+  </div>
 
   <div>
     <Link href="/docs/core" className="flex items-center font-semibold gap-2 text-blue-500 dark:text-blue-400">
@@ -88,9 +101,9 @@ import Link from "next/link";
 
 
   <div>
-    <Link href="/docs/binary" className="flex items-center font-semibold gap-2 text-blue-500 dark:text-blue-400">
+    <Link href="/docs/cli" className="flex items-center font-semibold gap-2 text-blue-500 dark:text-blue-400">
       <IconTerminal2 size={20} className='flex-shrink-0' />
-      <span>@blazediff/bin</span>
+      <span>@blazediff/cli</span>
     </Link>
 
     <div className="text-gray-600 dark:text-gray-400 m-0 text-sm">

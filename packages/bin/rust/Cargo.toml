@@ -1,0 +1,64 @@
+[package]
+name = "blazediff-rs"
+version = "0.1.0"
+edition = "2021"
+authors = ["Teimur Gasanov"]
+description = "High-performance image diffing with block-based optimization and SIMD"
+license = "MIT"
+repository = "https://github.com/teimurjan/blazediff"
+keywords = ["image", "diff", "simd", "visual-regression", "screenshot"]
+categories = ["multimedia::images", "command-line-utilities"]
+build = "build.rs"
+
+[[bin]]
+name = "blazediff"
+path = "src/main.rs"
+
+[lib]
+name = "blazediff"
+path = "src/lib.rs"
+
+[dependencies]
+clap = { version = "4", features = ["derive"] }
+memmap2 = "0.9"
+rayon = "1.10"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[build-dependencies]
+cc = "1.2"
+
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+
+# [[bench]]
+# name = "diff_benchmark"
+# harness = false
+
+# =============================================================================
+# Performance Profiles
+# =============================================================================
+
+[profile.release]
+opt-level = 3
+lto = "fat"              # Full LTO for max optimization (slower build, faster binary)
+codegen-units = 1        # Single codegen unit = better optimization
+panic = "abort"          # No unwinding = smaller/faster binary
+strip = true             # Strip symbols for smaller binary
+debug = false
+
+[profile.release-fast]
+inherits = "release"
+lto = "thin"             # Faster builds, slightly less optimized
+codegen-units = 4
+
+[profile.bench]
+inherits = "release"
+debug = true             # Debug info for profiling
+
+[profile.dev]
+opt-level = 1            # Some optimization in dev for faster iteration
+debug = true
+
+[profile.dev.package."*"]
+opt-level = 3            # Optimize dependencies in dev mode

@@ -14,7 +14,10 @@ export default {
 	object: {
 		title: "@blazediff/object",
 	},
-	binary: {
+	cli: {
+		title: "@blazediff/cli",
+	},
+	bin: {
 		title: "@blazediff/bin",
 	},
 	ui: {

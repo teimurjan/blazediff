@@ -17,13 +17,14 @@
 ## Available Packages
 
 ### Core Libraries
+- **[@blazediff/bin](./packages/bin#readme)** - The fastest single-threaded image diff in the world (Rust + SIMD, 3-4x faster than odiff)
 - **[@blazediff/core](./packages/core#readme)** - Pixel-perfect image comparison (1.5x faster than pixelmatch)
 - **[@blazediff/object](./packages/object#readme)** - High-performance object diffing with detailed change tracking
 - **[@blazediff/ssim](./packages/ssim#readme)** - SSIM, MS-SSIM, and Hitchhiker's SSIM for perceptual quality assessment
 - **[@blazediff/gmsd](./packages/gmsd#readme)** - Gradient Magnitude Similarity Deviation metric
 
 ### Command Line Tools
-- **[@blazediff/bin](./packages/bin#readme)** - CLI with multiple algorithms (diff, GMSD, SSIM, MS-SSIM, Hitchhiker's SSIM)
+- **[@blazediff/cli](./packages/cli#readme)** - JS CLI with multiple algorithms (diff, GMSD, SSIM, MS-SSIM, Hitchhiker's SSIM)
 
 ### UI Components
 - **[@blazediff/react](./packages/react#readme)** - React components for diff visualization
@@ -39,7 +40,8 @@
 
 BlazeDiff delivers significant performance improvements across all components:
 
-- **Image Pixel-by-Pixel**: ~50% faster than pixelmatch (up to 88% on identical images)
+- **Native (Rust)**: 3-4x faster than odiff, 8x faster than pixelmatch on 4K images
+- **Image Pixel-by-Pixel (JS)**: ~50% faster than pixelmatch (up to 88% on identical images)
 - **SSIM**: ~25% faster than ssim.js, ~70% faster with Hitchhiker's SSIM
 - **Object Diff**: ~55% faster than microdiff (up to 96% on identical arrays)
 

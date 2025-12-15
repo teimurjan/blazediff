@@ -7,118 +7,197 @@
 
 </div>
 
-Command-line interface for the BlazeDiff image comparison library.
+The fastest single-threaded image diff in the world. Native Rust implementation with SIMD optimization, 2-3x faster than [odiff](https://github.com/dmtrKovalenko/odiff), 6-10x faster than [pixelmatch](https://github.com/mapbox/pixelmatch).
+
+**Features:**
+- SIMD-accelerated (NEON on ARM, SSE4.1 on x86)
+- Block-based two-pass optimization
+- YIQ perceptual color difference
+- Anti-aliasing detection
+- Cross-platform pre-built binaries (no compilation required)
 
 ## Installation
 
 ```bash
-npm install -g @blazediff/bin
+npm install @blazediff/bin
+```
+
+Pre-built binaries are included for:
+- macOS ARM64 (Apple Silicon)
+- macOS x64 (Intel)
+- Linux ARM64
+- Linux x64
+- Windows ARM64
+- Windows x64
+
+## API
+
+### compare(basePath, comparePath, diffOutput, options?)
+
+Compare two PNG images and generate a diff image.
+
+<table>
+  <tr>
+    <th width="500">Parameter</th>
+    <th width="500">Type</th>
+    <th width="500">Description</th>
+  </tr>
+  <tr>
+    <td><code>basePath</code></td>
+    <td>string</td>
+    <td>Path to the base/expected image</td>
+  </tr>
+  <tr>
+    <td><code>comparePath</code></td>
+    <td>string</td>
+    <td>Path to the comparison/actual image</td>
+  </tr>
+  <tr>
+    <td><code>diffOutput</code></td>
+    <td>string</td>
+    <td>Path where the diff image will be saved</td>
+  </tr>
+  <tr>
+    <td><code>options</code></td>
+    <td>BlazeDiffOptions</td>
+    <td>Comparison options (optional)</td>
+  </tr>
+</table>
+
+<strong>Returns:</strong> `Promise<BlazeDiffResult>`
+
+<table>
+  <tr>
+    <th width="500">Option</th>
+    <th width="500">Type</th>
+    <th width="500">Default</th>
+    <th width="500">Description</th>
+  </tr>
+  <tr>
+    <td><code>threshold</code></td>
+    <td>number</td>
+    <td>0.1</td>
+    <td>Color difference threshold (0.0-1.0). Lower = more strict</td>
+  </tr>
+  <tr>
+    <td><code>antialiasing</code></td>
+    <td>boolean</td>
+    <td>false</td>
+    <td>Enable anti-aliasing detection to exclude AA pixels from diff count</td>
+  </tr>
+  <tr>
+    <td><code>diffMask</code></td>
+    <td>boolean</td>
+    <td>false</td>
+    <td>Output only differences with transparent background</td>
+  </tr>
+  <tr>
+    <td><code>failOnLayoutDiff</code></td>
+    <td>boolean</td>
+    <td>false</td>
+    <td>Fail immediately if images have different dimensions</td>
+  </tr>
+</table>
+
+### Result Types
+
+```typescript
+type BlazeDiffResult =
+  | { match: true }
+  | { match: false; reason: "layout-diff" }
+  | { match: false; reason: "pixel-diff"; diffCount: number; diffPercentage: number }
+  | { match: false; reason: "file-not-exists"; file: string };
 ```
 
 ## Usage
 
-```bash
-blazediff <command> <image1> <image2> [options]
+### Programmatic API
+
+```typescript
+import { compare } from '@blazediff/bin';
+
+const result = await compare('expected.png', 'actual.png', 'diff.png', {
+  threshold: 0.1,
+  antialiasing: true,
+});
+
+if (result.match) {
+  console.log('Images are identical!');
+} else if (result.reason === 'pixel-diff') {
+  console.log(`${result.diffCount} pixels differ (${result.diffPercentage.toFixed(2)}%)`);
+} else if (result.reason === 'layout-diff') {
+  console.log('Images have different dimensions');
+}
 ```
 
-## Commands
-
-BlazeDiff supports multiple comparison algorithms, each optimized for different use cases:
-
-### `diff` - Pixel-by-pixel comparison (default)
-Fast pixel-level comparison for detecting visual regressions.
+### CLI Usage
 
 ```bash
-blazediff diff image1.png image2.png [options]
-# Or simply:
-blazediff image1.png image2.png [options]
+# Compare two images
+npx blazediff expected.png actual.png diff.png
+
+# With options
+npx blazediff expected.png actual.png diff.png --threshold 0.05 --antialiasing
+
+# Output as JSON
+npx blazediff expected.png actual.png diff.png --output-format json
 ```
 
-**Options:**
-- `-o, --output <path>` - Output path for the diff image
-- `-t, --threshold <num>` - Matching threshold (0 to 1, default: 0.1)
-- `-a, --alpha <num>` - Opacity of original image in diff (default: 0.1)
-- `--aa-color <r,g,b>` - Color for anti-aliased pixels (default: 255,255,0)
-- `--diff-color <r,g,b>` - Color for different pixels (default: 255,0,0)
-- `--diff-color-alt <r,g,b>` - Alternative color for dark differences
-- `--include-aa` - Include anti-aliasing detection
-- `--diff-mask` - Draw diff over transparent background
-- `--color-space <name>` - Specify color space to use (yiq, ycbcr)
-- `--transformer <name>` - Specify transformer to use (pngjs, sharp)
-- `-h, --help` - Show help message
+### CLI Options
 
-### `gmsd` - Gradient Magnitude Similarity Deviation
-Perceptual quality metric based on gradient similarity.
+```
+Usage: blazediff [OPTIONS] <IMAGE1> <IMAGE2> <OUTPUT>
 
-```bash
-blazediff gmsd image1.png image2.png [options]
+Arguments:
+  <IMAGE1>  First image path
+  <IMAGE2>  Second image path
+  <OUTPUT>  Output diff image path
+
+Options:
+  -t, --threshold <THRESHOLD>  Color difference threshold (0.0-1.0) [default: 0.1]
+  -a, --antialiasing           Enable anti-aliasing detection
+      --diff-mask              Output only differences (transparent background)
+      --fail-on-layout         Fail on layout (size) difference
+      --output-format <FORMAT> Output format (json or text) [default: json]
+  -h, --help                   Print help
+  -V, --version                Print version
 ```
 
-**Options:**
-- `-o, --output <path>` - Output path for GMS similarity map
-- `--downsample <0|1>` - Downsample factor (0=full-res, 1=2x, default: 0)
-- `--gmsd-c <num>` - Stability constant (default: 170)
-- `--transformer <name>` - Specify transformer to use (pngjs, sharp)
-- `-h, --help` - Show help message
+### Exit Codes
 
-### `ssim` - Structural Similarity Index
-Industry-standard metric for measuring structural similarity.
-
-```bash
-blazediff ssim image1.png image2.png [options]
-```
-
-**Options:**
-- `-o, --output <path>` - Output path for SSIM map visualization
-- `--transformer <name>` - Specify transformer to use (pngjs, sharp)
-- `-h, --help` - Show help message
-
-### `msssim` - Multi-Scale Structural Similarity Index
-Enhanced SSIM that operates at multiple image scales.
-
-```bash
-blazediff msssim image1.png image2.png [options]
-```
-
-**Options:**
-- `-o, --output <path>` - Output path for MS-SSIM map visualization
-- `--transformer <name>` - Specify transformer to use (pngjs, sharp)
-- `-h, --help` - Show help message
-
-## Examples
-
-```bash
-# Pixel-by-pixel diff (default)
-blazediff image1.png image2.png
-blazediff diff image1.png image2.png -o diff.png -t 0.05
-
-# GMSD similarity metric
-blazediff gmsd image1.png image2.png
-blazediff gmsd image1.png image2.png -o gms-map.png
-
-# SSIM structural similarity
-blazediff ssim image1.png image2.png
-blazediff ssim image1.png image2.png -o ssim-map.png
-
-# MS-SSIM multi-scale similarity
-blazediff msssim image1.png image2.png
-blazediff msssim image1.png image2.png -o msssim-map.png
-
-# Use Sharp transformer for better performance
-blazediff ssim image1.jpg image2.jpg --transformer sharp
-```
-
-## Transformers
-
-- **pngjs** - Pure JavaScript, works everywhere. Supports PNG only.
-- **sharp** - Native bindings, significantly faster. Supports PNG and JPEG.
-
-## Exit Codes
-
-### Diff Mode
 - `0` - Images are identical
-- `1` - Images have differences or error occurred
+- `1` - Images differ (or layout mismatch with `--fail-on-layout`)
+- `2` - Error (file not found, invalid format, etc.)
 
-### GMSD, SSIM, MS-SSIM Modes
-- `0` - Images are highly similar (score >= 0.95)
-- `1` - Images have noticeable differences (score < 0.95) or error occurred
+## Performance
+
+Benchmarked on Apple M1 Pro with 5600x3200 4K images:
+
+| Tool | Time | vs blazediff |
+|------|------|--------------|
+| **blazediff** | ~35ms | - |
+| odiff | ~120ms | 3.4x slower |
+| pixelmatch | ~280ms | 8x slower |
+
+Binary sizes (stripped, LTO optimized):
+- macOS ARM64: 686KB
+- macOS x64: 765KB
+- Linux ARM64: 749KB
+- Linux x64: 853KB
+- Windows ARM64: 575KB
+- Windows x64: 798KB
+
+## Algorithm
+
+BlazeDiff uses a two-pass block-based approach with SIMD acceleration:
+
+1. **Cold Pass**: Scans image in 8x8 blocks using 32-bit integer comparison to identify changed regions
+2. **Hot Pass**: Only processes blocks marked as changed, applying YIQ perceptual color difference
+3. **SIMD**: Uses NEON (ARM) or SSE4.1 (x86) for parallel pixel processing
+4. **Anti-aliasing**: Implements Vysniauskas (2009) algorithm to detect AA artifacts
+
+## References
+
+- **YIQ Color Space**: [Kotsarenko & Ramos (2009)](https://doaj.org/article/b2e3b5088ba943eebd9af2927fef08ad) - "Measuring perceived color difference using YIQ NTSC transmission color space"
+- **Anti-Aliasing Detection**: [Vysniauskas (2009)](https://www.researchgate.net/publication/234073157_Anti-aliased_Pixel_and_Intensity_Slope_Detector) - "Anti-aliased Pixel and Intensity Slope Detector"
+- **Inspiration**: [odiff](https://github.com/dmtrKovalenko/odiff) - Fast image comparison tool written in Zig

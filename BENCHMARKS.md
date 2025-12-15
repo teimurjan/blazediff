@@ -6,9 +6,10 @@ Performance benchmarks comparing BlazeDiff ecosystem components against popular 
 
 - [BlazeDiff Benchmarks](#blazediff-benchmarks)
   - [Table of Contents](#table-of-contents)
+  - [Native Binary (`@blazediff/bin` vs `odiff` vs `pixelmatch`)](#native-binary-blazediffbin-vs-odiff-vs-pixelmatch)
   - [Pixel By Pixel](#pixel-by-pixel)
     - [JavaScript (`@blazediff/core` vs `pixelmatch`)](#javascript-blazediffcore-vs-pixelmatch)
-    - [CLI (Binary) (`@blazediff/bin` with `@blazediff/sharp-transformer` vs `pixelmatch`)](#cli-binary-blazediffbin-with-blazediffsharp-transformer-vs-pixelmatch)
+    - [CLI (`@blazediff/cli` with `@blazediff/sharp-transformer` vs `pixelmatch`)](#cli-blazediffcli-with-blazediffsharp-transformer-vs-pixelmatch)
   - [SSIM](#ssim)
     - [Fast Original ( `@blazediff/ssim` using `ssim` vs `ssim.js` using `fast` algorithm)](#fast-original--blazediffssim-using-ssim-vs-ssimjs-using-fast-algorithm)
     - [Optimized (`@blazediff/ssim` using `hitchhikers-ssim` vs `ssim.js` using `weber` algorithm)](#optimized-blazediffssim-using-hitchhikers-ssim-vs-ssimjs-using-weber-algorithm)
@@ -18,6 +19,121 @@ Performance benchmarks comparing BlazeDiff ecosystem components against popular 
     - [Image Fixtures](#image-fixtures)
     - [Object Fixtures](#object-fixtures)
   - [Hardware Specifications](#hardware-specifications)
+
+## Native Binary (`@blazediff/bin` vs `odiff` vs `pixelmatch`)
+
+*25 runs (5 warmup)*
+
+> **2-3x faster than odiff**, **6-10x faster than pixelmatch** on 4K images.
+
+The native Rust binary with SIMD optimization is the fastest single-threaded image diff in the world.
+
+<table>
+  <thead>
+    <tr>
+      <th width="400">Benchmark</th>
+      <th width="300">blazediff (Rust)</th>
+      <th width="300">odiff</th>
+      <th width="300">blazediff-cli (JS)</th>
+      <th width="300">pixelmatch</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>4k/1</strong> (5600×3200)</td>
+      <td><strong>421ms</strong></td>
+      <td>1227ms (2.9x slower)</td>
+      <td>1362ms (3.2x slower)</td>
+      <td>2773ms (6.6x slower)</td>
+    </tr>
+    <tr>
+      <td><strong>4k/2</strong> (5600×3200)</td>
+      <td><strong>477ms</strong></td>
+      <td>1554ms (3.3x slower)</td>
+      <td>1963ms (4.1x slower)</td>
+      <td>3239ms (6.8x slower)</td>
+    </tr>
+    <tr>
+      <td><strong>4k/3</strong> (5600×3200)</td>
+      <td><strong>543ms</strong></td>
+      <td>1738ms (3.2x slower)</td>
+      <td>2148ms (4.0x slower)</td>
+      <td>3632ms (6.7x slower)</td>
+    </tr>
+    <tr>
+      <td><strong>page/1</strong> (3598×16384)</td>
+      <td><strong>594ms</strong></td>
+      <td>1105ms (1.9x slower)</td>
+      <td>1331ms (2.2x slower)</td>
+      <td>5719ms (9.6x slower)</td>
+    </tr>
+    <tr>
+      <td><strong>page/2</strong> (3598×16384)</td>
+      <td><strong>485ms</strong></td>
+      <td>654ms (1.3x slower)</td>
+      <td>1326ms (2.7x slower)</td>
+      <td>3936ms (8.1x slower)</td>
+    </tr>
+    <tr>
+      <td><strong>pixelmatch/1</strong> (512×256)</td>
+      <td><strong>14.7ms</strong></td>
+      <td>17.2ms (1.2x slower)</td>
+      <td>83.8ms (5.7x slower)</td>
+      <td>87.2ms (5.9x slower)</td>
+    </tr>
+    <tr>
+      <td><strong>pixelmatch/2</strong> (400×300)</td>
+      <td><strong>17.0ms</strong> (odiff)</td>
+      <td>17.0ms (1.0x)</td>
+      <td>88.5ms (5.2x slower)</td>
+      <td>76.4ms (4.5x slower)</td>
+    </tr>
+    <tr>
+      <td><strong>pixelmatch/3</strong> (512×256)</td>
+      <td><strong>19.2ms</strong> (odiff)</td>
+      <td>19.2ms (1.0x)</td>
+      <td>84.7ms (4.4x slower)</td>
+      <td>82.1ms (4.3x slower)</td>
+    </tr>
+    <tr>
+      <td><strong>pixelmatch/4</strong> (544×384)</td>
+      <td><strong>18.8ms</strong></td>
+      <td>21.6ms (1.1x slower)</td>
+      <td>101.3ms (5.4x slower)</td>
+      <td>99.1ms (5.3x slower)</td>
+    </tr>
+    <tr>
+      <td><strong>pixelmatch/5</strong> (400×300)</td>
+      <td><strong>15.1ms</strong></td>
+      <td>15.8ms (1.0x)</td>
+      <td>81.1ms (5.4x slower)</td>
+      <td>72.6ms (4.8x slower)</td>
+    </tr>
+    <tr>
+      <td><strong>pixelmatch/6</strong> (400×300)</td>
+      <td><strong>15.4ms</strong></td>
+      <td>38.2ms (2.5x slower)</td>
+      <td>83.7ms (5.4x slower)</td>
+      <td>74.4ms (4.8x slower)</td>
+    </tr>
+    <tr>
+      <td><strong>pixelmatch/7</strong> (513×512)</td>
+      <td><strong>11.7ms</strong> (odiff)</td>
+      <td>11.7ms (1.0x)</td>
+      <td>90.6ms (7.7x slower)</td>
+      <td>92.2ms (7.9x slower)</td>
+    </tr>
+    <tr>
+      <td><strong>same/1</strong> (1498×1160)</td>
+      <td><strong>25.9ms</strong> (odiff)</td>
+      <td>25.9ms (1.0x)</td>
+      <td>91.1ms (3.5x slower)</td>
+      <td>246.7ms (9.5x slower)</td>
+    </tr>
+  </tbody>
+</table>
+
+*Benchmarks run on MacBook Pro M1 Max using hyperfine*
 
 ## Pixel By Pixel
 
@@ -266,7 +382,7 @@ Performance benchmarks comparing BlazeDiff ecosystem components against popular 
 
 *Benchmarks run on MacBook Pro M1 Max, Node.js 22*
 
-### CLI (Binary) (`@blazediff/bin` with `@blazediff/sharp-transformer` vs `pixelmatch`)
+### CLI (`@blazediff/cli` with `@blazediff/sharp-transformer` vs `pixelmatch`)
 
 *50 iterations (3 warmup)*
 
@@ -314,23 +430,23 @@ Performance benchmarks comparing BlazeDiff ecosystem components against popular 
 <td>
 
 ```
-./node_modules/.bin/blazediff ./fixtures/4k/1a.png ./fixtures/4k/1b.png --transformer sharp
+./node_modules/.bin/blazediff-cli ./fixtures/4k/1a.png ./fixtures/4k/1b.png --transformer sharp
   Time (mean ± σ):     573.2 ms ±  17.1 ms    [User: 760.6 ms, System: 58.3 ms]
   Range (min … max):   557.2 ms … 628.6 ms    25 runs
 
-./node_modules/.bin/blazediff ./fixtures/4k/2a.png ./fixtures/4k/2b.png --transformer sharp
+./node_modules/.bin/blazediff-cli ./fixtures/4k/2a.png ./fixtures/4k/2b.png --transformer sharp
   Time (mean ± σ):     647.4 ms ±  23.8 ms    [User: 904.6 ms, System: 66.1 ms]
   Range (min … max):   628.0 ms … 720.6 ms    25 runs
 
-./node_modules/.bin/blazediff ./fixtures/4k/3a.png ./fixtures/4k/3b.png --transformer sharp
+./node_modules/.bin/blazediff-cli ./fixtures/4k/3a.png ./fixtures/4k/3b.png --transformer sharp
   Time (mean ± σ):     714.3 ms ±  17.2 ms    [User: 985.0 ms, System: 69.7 ms]
   Range (min … max):   701.3 ms … 778.8 ms    25 runs
 
-./node_modules/.bin/blazediff ./fixtures/page/1a.png ./fixtures/page/1b.png --transformer sharp
+./node_modules/.bin/blazediff-cli ./fixtures/page/1a.png ./fixtures/page/1b.png --transformer sharp
   Time (mean ± σ):     519.2 ms ±  25.5 ms    [User: 750.5 ms, System: 108.8 ms]
   Range (min … max):   489.1 ms … 570.9 ms    25 runs
 
-./node_modules/.bin/blazediff ./fixtures/page/2a.png ./fixtures/page/2b.png --transformer sharp
+./node_modules/.bin/blazediff-cli ./fixtures/page/2a.png ./fixtures/page/2b.png --transformer sharp
   Time (mean ± σ):     540.9 ms ±  14.1 ms    [User: 600.7 ms, System: 89.2 ms]
   Range (min … max):   525.3 ms … 593.2 ms    25 runs
 ```

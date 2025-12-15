@@ -1,7 +1,7 @@
 {
 	"name": "@blazediff/bin",
 	"version": "1.7.0",
-	"description": "Command-line interface for the blazediff image comparison library",
+	"description": "Native Rust binaries for blazediff - the fastest image diff in the world",
 	"private": false,
 	"publishConfig": {
 		"access": "public"
@@ -9,45 +9,47 @@
 	"main": "dist/index.js",
 	"module": "dist/index.mjs",
 	"types": "dist/index.d.ts",
-	"bin": {
-		"blazediff": "./dist/cli.js"
-	},
 	"exports": {
 		".": {
 			"types": "./dist/index.d.ts",
 			"import": "./dist/index.mjs",
 			"require": "./dist/index.js"
-		},
-		"./cli": {
-			"import": "./dist/cli.mjs",
-			"require": "./dist/cli.js"
 		}
 	},
+	"bin": {
+		"blazediff": "bin/blazediff.exe"
+	},
 	"files": [
-		"dist"
+		"dist",
+		"bin",
+		"binaries",
+		"post_install.js"
 	],
 	"scripts": {
+		"postinstall": "node ./post_install.js",
 		"build": "tsup",
-		"dev": "tsup --watch",
-		"clean": "rm -rf dist"
+		"build:rust": "cd rust && ./scripts/build-all.sh --all",
+		"build:rust:local": "cd rust && cargo build --release && cp target/release/blazediff ../binaries/blazediff-$(node -e \"console.log(process.platform === 'darwin' ? 'macos' : process.platform)-$(process.arch === 'arm64' ? 'arm64' : 'x64')\")",
+		"prepare-binaries": "node ./scripts/prepare-binaries.js",
+		"clean": "rm -rf dist bin"
 	},
 	"keywords": [
-		"cli",
 		"image",
 		"comparison",
-		"diff"
+		"diff",
+		"pixel",
+		"visual-testing",
+		"visual-regression",
+		"screenshot",
+		"native",
+		"rust",
+		"simd",
+		"fast"
 	],
 	"author": "Teimur Gasanov <me@teimurjan.dev> (https://github.com/teimurjan)",
 	"repository": "https://github.com/teimurjan/blazediff",
 	"homepage": "https://blazediff.dev",
 	"license": "MIT",
-	"dependencies": {
-		"@blazediff/core": "workspace:*",
-		"@blazediff/gmsd": "workspace:*",
-		"@blazediff/pngjs-transformer": "workspace:*",
-		"@blazediff/sharp-transformer": "workspace:*",
-		"@blazediff/ssim": "workspace:*"
-	},
 	"devDependencies": {
 		"@types/node": "^24.3.0",
 		"tsup": "8.5.0",

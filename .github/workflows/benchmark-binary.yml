@@ -1,0 +1,87 @@
+name: Benchmark Binary
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: 'Platform to benchmark on'
+        required: true
+        type: choice
+        options:
+          - ubuntu-latest
+          - ubuntu-24.04-arm
+          - windows-latest
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.inputs.platform }}
+  cancel-in-progress: true
+
+jobs:
+  benchmark-binary:
+    name: Binary Benchmark (${{ github.event.inputs.platform }})
+    runs-on: ${{ github.event.inputs.platform }}
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".node-version"
+          cache: "pnpm"
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+      - name: Install hyperfine (Ubuntu)
+        if: startsWith(github.event.inputs.platform, 'ubuntu')
+        run: |
+          wget https://github.com/sharkdp/hyperfine/releases/download/v1.18.0/hyperfine_1.18.0_amd64.deb -O /tmp/hyperfine.deb || \
+          wget https://github.com/sharkdp/hyperfine/releases/download/v1.18.0/hyperfine_1.18.0_arm64.deb -O /tmp/hyperfine.deb
+          sudo dpkg -i /tmp/hyperfine.deb
+
+      - name: Install hyperfine (macOS)
+        if: startsWith(github.event.inputs.platform, 'macos')
+        run: brew install hyperfine
+
+      - name: Install hyperfine (Windows)
+        if: startsWith(github.event.inputs.platform, 'windows')
+        run: choco install hyperfine -y
+
+      - name: Run Binary Benchmark (Unix)
+        if: ${{ !startsWith(github.event.inputs.platform, 'windows') }}
+        working-directory: packages/benchmark
+        run: bash ./binary-benchmark.sh
+
+      - name: Run Binary Benchmark (Windows)
+        if: startsWith(github.event.inputs.platform, 'windows')
+        working-directory: packages/benchmark
+        shell: pwsh
+        run: |
+          $FIXTURES_DIR = "./fixtures"
+          $BLAZEDIFF = "./node_modules/.bin/blazediff"
+          $ODIFF = "./node_modules/.bin/odiff"
+          $PIXELMATCH = "./node_modules/.bin/pixelmatch"
+
+          New-Item -ItemType Directory -Force -Path ./output | Out-Null
+
+          # Run a subset of benchmarks on Windows
+          hyperfine --warmup 3 --runs 10 -i `
+            -n "blazediff (pixelmatch/1)" "$BLAZEDIFF $FIXTURES_DIR/pixelmatch/1a.png $FIXTURES_DIR/pixelmatch/1b.png ./output/pm1.png --antialiasing" `
+            -n "odiff (pixelmatch/1)" "$ODIFF $FIXTURES_DIR/pixelmatch/1a.png $FIXTURES_DIR/pixelmatch/1b.png ./output/pm1.png --antialiasing" `
+            -n "pixelmatch (pixelmatch/1)" "$PIXELMATCH $FIXTURES_DIR/pixelmatch/1a.png $FIXTURES_DIR/pixelmatch/1b.png ./output/pm1.png" `
+            -n "blazediff (4k/1)" "$BLAZEDIFF $FIXTURES_DIR/4k/1a.png $FIXTURES_DIR/4k/1b.png ./output/4k1.png --antialiasing" `
+            -n "odiff (4k/1)" "$ODIFF $FIXTURES_DIR/4k/1a.png $FIXTURES_DIR/4k/1b.png ./output/4k1.png --antialiasing" `
+            -n "pixelmatch (4k/1)" "$PIXELMATCH $FIXTURES_DIR/4k/1a.png $FIXTURES_DIR/4k/1b.png ./output/4k1.png" `
+            --export-markdown output/benchmark-results.md
+
+      - name: Print Results
+        if: always()
+        working-directory: packages/benchmark
+        run: cat output/benchmark-results.md

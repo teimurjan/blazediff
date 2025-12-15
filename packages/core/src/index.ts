@@ -144,7 +144,12 @@ export function diff(
   const blocksY = Math.ceil(height / blockSize);
 
   const maxBlocks = blocksX * blocksY;
-  const changedBlockCoords = new Int32Array(maxBlocks * 2); // x,y pairs
+  // Store single block index instead of x,y pairs - halves memory bandwidth
+  const changedBlocks = new Uint16Array(maxBlocks);
+
+  // Maximum acceptable square distance between two colors;
+  // 35215 is the maximum possible value for the YIQ difference metric
+  const maxDelta = 35215 * threshold * threshold;
 
   let changedBlocksCount = 0;
 
@@ -155,22 +160,27 @@ export function diff(
       const endX = Math.min(startX + blockSize, width);
       const endY = Math.min(startY + blockSize, height);
 
-      let blockIdentical = true;
+      let blockHasDiff = false;
 
-      // Check block using 32-bit integer comparison (with early exit)
+      // Check block using YIQ perceptual threshold (with early exit)
       outer: for (let y = startY; y < endY; y++) {
         const yOffset = y * width;
         for (let x = startX; x < endX; x++) {
           const i = yOffset + x;
-          if (a32[i] !== b32[i]) {
-            blockIdentical = false;
+          // Fast path: skip identical pixels
+          if (a32[i] === b32[i]) continue;
+          // Check if perceptually different
+          const pos = i * 4;
+          const delta = colorDelta(image1, image2, pos, pos, false);
+          if (Math.abs(delta) > maxDelta) {
+            blockHasDiff = true;
             break outer;
           }
         }
       }
 
-      if (blockIdentical) {
-        // Draw gray pixels for identical blocks only if output is needed
+      if (!blockHasDiff) {
+        // Draw gray pixels for perceptually identical blocks
         if (output && !diffMask) {
           for (let y = startY; y < endY; y++) {
             const yOffset = y * width;
@@ -181,11 +191,8 @@ export function diff(
           }
         }
       } else {
-        // Store start coordinates for changed blocks
-        const idx = changedBlocksCount * 2;
-        changedBlockCoords[idx] = startX;
-        changedBlockCoords[idx + 1] = startY;
-        changedBlocksCount++;
+        // Store block index - compute coordinates when needed
+        changedBlocks[changedBlocksCount++] = by * blocksX + bx;
       }
     }
   }
@@ -194,10 +201,6 @@ export function diff(
   if (changedBlocksCount === 0) {
     return 0;
   }
-
-  // Maximum acceptable square distance between two colors;
-  // 35215 is the maximum possible value for the YIQ difference metric
-  const maxDelta = 35215 * threshold * threshold;
   const [aaR, aaG, aaB] = aaColor;
   const [diffR, diffG, diffB] = diffColor;
   const [altR, altG, altB] = diffColorAlt || diffColor;
@@ -205,9 +208,11 @@ export function diff(
 
   // Process only changed blocks
   for (let blockIdx = 0; blockIdx < changedBlocksCount; blockIdx++) {
-    const idx = blockIdx * 2;
-    const startX = changedBlockCoords[idx];
-    const startY = changedBlockCoords[idx + 1];
+    const block = changedBlocks[blockIdx];
+    const bx = block % blocksX;
+    const by = (block / blocksX) | 0;
+    const startX = bx * blockSize;
+    const startY = by * blockSize;
     const endX = Math.min(startX + blockSize, width);
     const endY = Math.min(startY + blockSize, height);
 

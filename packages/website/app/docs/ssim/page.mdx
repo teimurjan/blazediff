@@ -254,20 +254,20 @@ const score = hitchhikersSSIM(img1.data, img2.data, undefined, width, height, {
 
 ## CLI Usage
 
-All three variants are available via the `@blazediff/bin` CLI:
+All three variants are available via the `@blazediff/cli` CLI:
 
 ```bash
 # Standard SSIM
-blazediff ssim image1.png image2.png
+blazediff-cli ssim image1.png image2.png
 
 # MS-SSIM
-blazediff msssim image1.png image2.png
+blazediff-cli msssim image1.png image2.png
 
 # Hitchhiker's SSIM
-blazediff hitchhikers-ssim image1.png image2.png
+blazediff-cli hitchhikers-ssim image1.png image2.png
 
 # With options
-blazediff hitchhikers-ssim image1.png image2.png --window-size 16 --no-cov-pooling
+blazediff-cli hitchhikers-ssim image1.png image2.png --window-size 16 --no-cov-pooling
 ```
 
 ## Links
