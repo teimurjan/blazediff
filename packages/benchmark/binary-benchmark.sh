@@ -60,8 +60,7 @@ echo ""
 
 # Build hyperfine command with all benchmarks
 # Each tool x each image pair = separate benchmark entry
-# -N disables shell to avoid shell startup overhead affecting results
-hyperfine_args=(-i -N --warmup $WARMUP --runs $RUNS)
+hyperfine_args=(-i --warmup $WARMUP --runs $RUNS)
 
 for i in "${!names[@]}"; do
   hyperfine_args+=(-n "blazediff (${names[$i]})" "${blazediff_cmds[$i]}")
