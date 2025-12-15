@@ -43,6 +43,10 @@ jobs:
         if: ${{ !startsWith(github.event.inputs.platform, 'windows') }}
         working-directory: packages/benchmark
         run: |
+          echo "=== Platform info ==="
+          uname -a
+          echo ""
+
           echo "=== Checking blazediff ==="
           ls -la ./node_modules/.bin/blazediff || true
           file ./node_modules/.bin/blazediff || true
@@ -51,8 +55,22 @@ jobs:
           echo ""
           echo "=== Checking odiff ==="
           ls -la ./node_modules/.bin/odiff || true
+          echo "Symlink target for odiff-bin:"
+          ls -la ./node_modules/odiff-bin || true
+          echo "Contents of odiff-bin/bin/:"
           ls -la ./node_modules/odiff-bin/bin/ || true
+          echo "Binary file type:"
           file ./node_modules/odiff-bin/bin/odiff.exe || true
+          echo "Raw binaries available:"
+          ls -la ./node_modules/odiff-bin/raw_binaries/ || true
+
+          # If odiff.exe is empty or wrong, manually run postinstall
+          if [ ! -s ./node_modules/odiff-bin/bin/odiff.exe ]; then
+            echo "odiff.exe is missing or empty, running postinstall..."
+            cd ./node_modules/odiff-bin && node post_install.js && cd -
+          fi
+
+          echo "Testing odiff:"
           ./node_modules/.bin/odiff --version || echo "odiff --version failed"
 
           echo ""
@@ -84,6 +102,30 @@ jobs:
         if: ${{ !startsWith(github.event.inputs.platform, 'windows') }}
         working-directory: packages/benchmark
         run: bash ./binary-benchmark.sh
+
+      - name: Verify binaries (Windows)
+        if: startsWith(github.event.inputs.platform, 'windows')
+        working-directory: packages/benchmark
+        shell: pwsh
+        run: |
+          Write-Host "=== Platform info ===" -ForegroundColor Cyan
+          [System.Environment]::OSVersion
+          Write-Host ""
+
+          Write-Host "=== Checking blazediff ===" -ForegroundColor Cyan
+          Get-Item ./node_modules/.bin/blazediff* -ErrorAction SilentlyContinue | Format-List
+          & ./node_modules/.bin/blazediff --version 2>&1
+
+          Write-Host ""
+          Write-Host "=== Checking odiff ===" -ForegroundColor Cyan
+          Get-Item ./node_modules/.bin/odiff* -ErrorAction SilentlyContinue | Format-List
+          Get-Item ./node_modules/odiff-bin/bin/* -ErrorAction SilentlyContinue | Format-List
+          Get-Item ./node_modules/odiff-bin/raw_binaries/* -ErrorAction SilentlyContinue | Format-List
+          & ./node_modules/.bin/odiff --version 2>&1
+
+          Write-Host ""
+          Write-Host "=== Checking pixelmatch ===" -ForegroundColor Cyan
+          Get-Item ./node_modules/.bin/pixelmatch* -ErrorAction SilentlyContinue | Format-List
 
       - name: Run Binary Benchmark (Windows)
         if: startsWith(github.event.inputs.platform, 'windows')
