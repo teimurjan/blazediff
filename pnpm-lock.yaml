@@ -86,6 +86,9 @@ importers:
 
   packages/cli:
     dependencies:
+      '@blazediff/bin':
+        specifier: workspace:*
+        version: link:../bin
       '@blazediff/core':
         specifier: workspace:*
         version: link:../core

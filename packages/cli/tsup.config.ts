@@ -16,7 +16,8 @@ export default defineConfig([
 	{
 		entry: {
 			cli: "src/cli.ts",
-			"commands/diff": "src/commands/diff.ts",
+			"commands/bin": "src/commands/bin.ts",
+			"commands/core": "src/commands/core.ts",
 			"commands/gmsd": "src/commands/gmsd.ts",
 			"commands/ssim": "src/commands/ssim.ts",
 			"commands/msssim": "src/commands/msssim.ts",
@@ -29,6 +30,13 @@ export default defineConfig([
 		clean: false,
 		treeshake: false,
 		minify: false,
-		noExternal: ["@blazediff/*"],
+		noExternal: [
+			"@blazediff/core",
+			"@blazediff/gmsd",
+			"@blazediff/ssim",
+			"@blazediff/pngjs-transformer",
+			"@blazediff/sharp-transformer",
+		],
+		external: ["@blazediff/bin"], // Don't bundle - binary path relies on __dirname
 	},
 ]);

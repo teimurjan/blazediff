@@ -18,20 +18,35 @@ npm install -g @blazediff/cli
 ## Usage
 
 ```bash
-blazediff <command> <image1> <image2> [options]
+blazediff-cli <command> <image1> <image2> [options]
 ```
 
 ## Commands
 
 BlazeDiff supports multiple comparison algorithms, each optimized for different use cases:
 
-### `diff` - Pixel-by-pixel comparison (default)
-Fast pixel-level comparison for detecting visual regressions.
+### `bin` - Native binary comparison (default)
+The fastest option. Uses the native Rust binary with SIMD optimization for maximum performance.
 
 ```bash
-blazediff diff image1.png image2.png [options]
-# Or simply:
-blazediff image1.png image2.png [options]
+blazediff-cli image1.png image2.png diff.png [options]
+# Or explicitly:
+blazediff-cli bin image1.png image2.png diff.png [options]
+```
+
+**Options:**
+- `-t, --threshold <num>` - Color difference threshold (0 to 1, default: 0.1)
+- `-a, --antialiasing` - Enable anti-aliasing detection
+- `--diff-mask` - Output only differences (transparent background)
+- `--fail-on-layout` - Fail immediately if images have different dimensions
+- `-c, --compression <num>` - PNG compression level (0-9, default: 0)
+- `-h, --help` - Show help message
+
+### `core` - JavaScript pixel comparison
+Pure JavaScript implementation. Slower than `bin` but offers more customization options.
+
+```bash
+blazediff-cli core image1.png image2.png [options]
 ```
 
 **Options:**
@@ -51,7 +66,7 @@ blazediff image1.png image2.png [options]
 Perceptual quality metric based on gradient similarity.
 
 ```bash
-blazediff gmsd image1.png image2.png [options]
+blazediff-cli gmsd image1.png image2.png [options]
 ```
 
 **Options:**
@@ -65,7 +80,7 @@ blazediff gmsd image1.png image2.png [options]
 Industry-standard metric for measuring structural similarity.
 
 ```bash
-blazediff ssim image1.png image2.png [options]
+blazediff-cli ssim image1.png image2.png [options]
 ```
 
 **Options:**
@@ -77,7 +92,7 @@ blazediff ssim image1.png image2.png [options]
 Enhanced SSIM that operates at multiple image scales.
 
 ```bash
-blazediff msssim image1.png image2.png [options]
+blazediff-cli msssim image1.png image2.png [options]
 ```
 
 **Options:**
@@ -85,39 +100,50 @@ blazediff msssim image1.png image2.png [options]
 - `--transformer <name>` - Specify transformer to use (pngjs, sharp)
 - `-h, --help` - Show help message
 
+### `hitchhikers-ssim` - Fast SSIM
+Integral image-based SSIM implementation for faster computation.
+
+```bash
+blazediff-cli hitchhikers-ssim image1.png image2.png [options]
+```
+
 ## Examples
 
 ```bash
-# Pixel-by-pixel diff (default)
-blazediff image1.png image2.png
-blazediff diff image1.png image2.png -o diff.png -t 0.05
+# Native binary diff (default, fastest)
+blazediff-cli image1.png image2.png diff.png
+blazediff-cli bin image1.png image2.png diff.png -t 0.05 -a
+
+# JavaScript pixel diff (more options)
+blazediff-cli core image1.png image2.png -o diff.png -t 0.05
 
 # GMSD similarity metric
-blazediff gmsd image1.png image2.png
-blazediff gmsd image1.png image2.png -o gms-map.png
+blazediff-cli gmsd image1.png image2.png
+blazediff-cli gmsd image1.png image2.png -o gms-map.png
 
 # SSIM structural similarity
-blazediff ssim image1.png image2.png
-blazediff ssim image1.png image2.png -o ssim-map.png
+blazediff-cli ssim image1.png image2.png
+blazediff-cli ssim image1.png image2.png -o ssim-map.png
 
 # MS-SSIM multi-scale similarity
-blazediff msssim image1.png image2.png
-blazediff msssim image1.png image2.png -o msssim-map.png
+blazediff-cli msssim image1.png image2.png
+blazediff-cli msssim image1.png image2.png -o msssim-map.png
 
-# Use Sharp transformer for better performance
-blazediff ssim image1.jpg image2.jpg --transformer sharp
+# Use Sharp transformer for better performance (core/gmsd/ssim)
+blazediff-cli core image1.jpg image2.jpg --transformer sharp
 ```
 
-## Transformers
+## Transformers (for `core`, `gmsd`, `ssim`, `msssim`)
 
 - **pngjs** - Pure JavaScript, works everywhere. Supports PNG only.
 - **sharp** - Native bindings, significantly faster. Supports PNG and JPEG.
 
 ## Exit Codes
 
-### Diff Mode
+### bin/core Mode
 - `0` - Images are identical
-- `1` - Images have differences or error occurred
+- `1` - Images have differences
+- `2` - Error (file not found, invalid format, etc.)
 
 ### GMSD, SSIM, MS-SSIM Modes
 - `0` - Images are highly similar (score >= 0.95)

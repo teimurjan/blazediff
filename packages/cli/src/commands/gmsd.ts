@@ -4,7 +4,7 @@ import gmsd, { type GmsdOptions } from "@blazediff/gmsd";
 
 function printUsage(): void {
 	console.log(`
-Usage: blazediff gmsd <image1> <image2> [options]
+Usage: blazediff-cli gmsd <image1> <image2> [options]
 
 Arguments:
   image1    Path to the first image

@@ -4,7 +4,7 @@ import hitchhikersSSIM from "@blazediff/ssim/hitchhikers-ssim";
 
 function printUsage(): void {
 	console.log(`
-Usage: blazediff hitchhikers-ssim <image1> <image2> [options]
+Usage: blazediff-cli hitchhikers-ssim <image1> <image2> [options]
 
 Arguments:
   image1    Path to the first image

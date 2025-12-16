@@ -4,7 +4,7 @@ import ssim from "@blazediff/ssim/ssim";
 
 function printUsage(): void {
 	console.log(`
-Usage: blazediff ssim <image1> <image2> [options]
+Usage: blazediff-cli ssim <image1> <image2> [options]
 
 Arguments:
   image1    Path to the first image
