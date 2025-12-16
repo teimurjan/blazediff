@@ -177,11 +177,10 @@ Options:
 
 Benchmarked on Apple M1 Pro with 5600x3200 4K images:
 
-| Tool | Time | vs blazediff |
+| Tool | Benchmark Time | vs blazediff |
 |------|------|--------------|
-| **blazediff** | ~35ms | - |
-| odiff | ~120ms | 3.4x slower |
-| pixelmatch | ~280ms | 8x slower |
+| **blazediff** | ~327ms | - |
+| odiff | ~1215ms | 3.4x slower |
 
 Binary sizes (stripped, LTO optimized) - **~3x smaller than odiff**:
 
