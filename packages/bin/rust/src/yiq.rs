@@ -8,10 +8,17 @@ pub const YIQ_I: [f64; 3] = [0.59597799, -0.2741761, -0.32180189];
 pub const YIQ_Q: [f64; 3] = [0.21147017, -0.52261711, 0.31114694];
 pub const YIQ_WEIGHTS: [f64; 3] = [0.5053, 0.299, 0.1957];
 pub const MAX_YIQ_DELTA: f64 = 35215.0;
+pub const MAX_YIQ_DELTA_F32: f32 = 35215.0;
 pub const COLOR_DELTA_SHIFT: u32 = 12;
 
 const PHI: f64 = 1.618033988749895;
 const PHI2: f64 = 2.618033988749895;
+
+// f32 YIQ coefficients for hot paths
+const YIQ_Y_F32: [f32; 3] = [0.29889531, 0.58662247, 0.11448223];
+const YIQ_I_F32: [f32; 3] = [0.59597799, -0.2741761, -0.32180189];
+const YIQ_Q_F32: [f32; 3] = [0.21147017, -0.52261711, 0.31114694];
+const YIQ_WEIGHTS_F32: [f32; 3] = [0.5053, 0.299, 0.1957];
 
 #[inline(always)]
 pub fn unpack_pixel(pixel: u32) -> (u8, u8, u8, u8) {
@@ -164,9 +171,57 @@ pub fn threshold_to_max_delta(threshold: f64) -> f64 {
 }
 
 #[inline]
+pub fn threshold_to_max_delta_f32(threshold: f64) -> f32 {
+    MAX_YIQ_DELTA_F32 * (threshold * threshold) as f32
+}
+
+#[inline]
 pub fn threshold_to_max_delta_fixed(threshold: f64) -> i64 {
     let max_delta = threshold_to_max_delta(threshold);
     (max_delta * ((1 << COLOR_DELTA_SHIFT) as f64)) as i64
+}
+
+/// Fast f32 YIQ delta for hot paths (handles alpha with white background blend)
+#[inline]
+pub fn color_delta_f32(pixel_a: u32, pixel_b: u32) -> f32 {
+    if pixel_a == pixel_b {
+        return 0.0;
+    }
+
+    let r1 = (pixel_a & 0xFF) as f32;
+    let g1 = ((pixel_a >> 8) & 0xFF) as f32;
+    let b1 = ((pixel_a >> 16) & 0xFF) as f32;
+    let a1 = ((pixel_a >> 24) & 0xFF) as f32;
+
+    let r2 = (pixel_b & 0xFF) as f32;
+    let g2 = ((pixel_b >> 8) & 0xFF) as f32;
+    let b2 = ((pixel_b >> 16) & 0xFF) as f32;
+    let a2 = ((pixel_b >> 24) & 0xFF) as f32;
+
+    // Alpha blending with white background (fast path for opaque)
+    let (dr, dg, db) = if a1 >= 255.0 && a2 >= 255.0 {
+        (r1 - r2, g1 - g2, b1 - b2)
+    } else {
+        // Blend with white: result = 255 + (color - 255) * alpha/255
+        let inv255 = 1.0 / 255.0;
+        let br1 = 255.0 + (r1 - 255.0) * a1 * inv255;
+        let bg1 = 255.0 + (g1 - 255.0) * a1 * inv255;
+        let bb1 = 255.0 + (b1 - 255.0) * a1 * inv255;
+        let br2 = 255.0 + (r2 - 255.0) * a2 * inv255;
+        let bg2 = 255.0 + (g2 - 255.0) * a2 * inv255;
+        let bb2 = 255.0 + (b2 - 255.0) * a2 * inv255;
+        (br1 - br2, bg1 - bg2, bb1 - bb2)
+    };
+
+    // YIQ calculation
+    let y = dr * YIQ_Y_F32[0] + dg * YIQ_Y_F32[1] + db * YIQ_Y_F32[2];
+    let i = dr * YIQ_I_F32[0] + dg * YIQ_I_F32[1] + db * YIQ_I_F32[2];
+    let q = dr * YIQ_Q_F32[0] + dg * YIQ_Q_F32[1] + db * YIQ_Q_F32[2];
+
+    let delta = YIQ_WEIGHTS_F32[0] * y * y + YIQ_WEIGHTS_F32[1] * i * i + YIQ_WEIGHTS_F32[2] * q * q;
+
+    // Encode lightening/darkening in sign
+    if y > 0.0 { -delta } else { delta }
 }
 
 #[cfg(test)]
