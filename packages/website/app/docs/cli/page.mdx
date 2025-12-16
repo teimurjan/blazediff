@@ -2,7 +2,7 @@
 
 import { Callout, Tabs } from 'nextra/components'
 
-Command-line tool for high-performance image comparison. Supports multiple algorithms (pixel-perfect diff, GMSD, SSIM, MS-SSIM, Hitchhiker's SSIM) with PNG, JPEG, and WebP format support.
+Command-line tool for high-performance image comparison. Supports multiple algorithms including the native Rust binary (fastest), JavaScript pixel diff, GMSD, SSIM, MS-SSIM, and Hitchhiker's SSIM.
 
 [View Detailed Benchmarks](https://github.com/teimurjan/blazediff/blob/main/BENCHMARKS.md)
 
@@ -23,12 +23,13 @@ npm install --save-dev @blazediff/cli
 ### Using npx
 
 ```sh npm2yarn
-npx blazediff-cli diff image1.png image2.png
+npx blazediff-cli image1.png image2.png diff.png
 ```
 
 ## Features
 
-- **Multiple Algorithms**: Pixel-perfect diff, GMSD, SSIM, MS-SSIM, Hitchhiker's SSIM
+- **Native Binary**: Rust + SIMD for maximum performance (3-4x faster than odiff)
+- **Multiple Algorithms**: Pixel diff, GMSD, SSIM, MS-SSIM, Hitchhiker's SSIM
 - **Multiple Formats**: PNG, JPEG, WebP support
 - **High Performance**: Optimized implementations for all algorithms
 - **Flexible Output**: Save diff/similarity maps or get exit codes
@@ -37,29 +38,86 @@ npx blazediff-cli diff image1.png image2.png
 
 ## Available Commands
 
-<Tabs items={['diff', 'gmsd', 'ssim', 'msssim', 'hitchhikers-ssim']}>
+<Tabs items={['bin (default)', 'core', 'gmsd', 'ssim', 'msssim', 'hitchhikers-ssim']}>
   <Tabs.Tab>
 
-### `blazediff-cli diff`
+### `blazediff-cli bin` (default)
 
-Pixel-perfect image comparison with anti-aliasing detection. 60% faster than [pixelmatch](https://github.com/mapbox/pixelmatch).
+Native Rust binary with SIMD optimization. The fastest option - **3-4x faster** than odiff on large images.
 
 #### Basic Usage
 
 ```bash
-blazediff-cli diff image1.png image2.png
+# Default command (bin)
+blazediff-cli image1.png image2.png diff.png
+
+# Or explicitly
+blazediff-cli bin image1.png image2.png diff.png
 ```
 
-#### Save Diff Image
+#### With Options
 
 ```bash
-blazediff-cli diff image1.png image2.png --output diff.png
+blazediff-cli image1.png image2.png diff.png --threshold 0.05 --antialiasing
 ```
 
 #### Options
 
 ```bash
-blazediff-cli diff <image1> <image2> [options]
+blazediff-cli bin <image1> <image2> <output> [options]
+
+Options:
+  -t, --threshold <n>      Color difference threshold (0-1, default: 0.1)
+  -a, --antialiasing       Enable anti-aliasing detection
+  --diff-mask              Output only differences (transparent background)
+  --fail-on-layout         Fail immediately if images have different dimensions
+  -c, --compression <n>    PNG compression level (0-9, default: 0)
+  -h, --help               Display help
+```
+
+#### Exit Codes
+
+- `0` - Images are identical
+- `1` - Images have differences
+- `2` - Error (file not found, invalid format, etc.)
+
+```bash
+blazediff-cli image1.png image2.png diff.png
+if [ $? -eq 0 ]; then
+  echo "Images match!"
+else
+  echo "Images differ!"
+fi
+```
+
+<Callout type="info">
+  **Why so fast?** Uses a two-pass block-based algorithm with SIMD acceleration (NEON on ARM, SSE4.1 on x86). The cold pass quickly identifies unchanged blocks, then the hot pass only processes changed regions.
+</Callout>
+
+  </Tabs.Tab>
+
+  <Tabs.Tab>
+
+### `blazediff-cli core`
+
+Pure JavaScript pixel-by-pixel comparison. Slower than `bin` but offers more customization options like custom diff colors and color spaces.
+
+#### Basic Usage
+
+```bash
+blazediff-cli core image1.png image2.png
+```
+
+#### Save Diff Image
+
+```bash
+blazediff-cli core image1.png image2.png --output diff.png
+```
+
+#### Options
+
+```bash
+blazediff-cli core <image1> <image2> [options]
 
 Options:
   -o, --output <path>      Output diff image path
@@ -69,19 +127,18 @@ Options:
   --aa-color <r,g,b>       Color for anti-aliased pixels (default: 255,255,0)
   --include-aa             Include anti-aliased pixels in diff count
   --diff-mask              Output diff mask with transparent background
-  --no-fast-check          Disable fast buffer comparison
-  -h, --help              Display help
-  -v, --version           Display version
+  --color-space <name>     Color space to use (yiq, ycbcr)
+  --transformer <name>     Image transformer (pngjs, sharp)
+  -h, --help               Display help
 ```
 
 #### Exit Codes
 
 - `0` - Images are identical or within threshold
 - `1` - Images have differences beyond threshold
-- `2` - Error (file not found, invalid format, etc.)
 
 ```bash
-blazediff diff image1.png image2.png
+blazediff-cli core image1.png image2.png
 if [ $? -eq 0 ]; then
   echo "Images match!"
 else
@@ -93,7 +150,7 @@ fi
 
   <Tabs.Tab>
 
-### `blazediff gmsd`
+### `blazediff-cli gmsd`
 
 GMSD (Gradient Magnitude Similarity Deviation) perceptual quality assessment. Returns a similarity score from 0-1.
 
@@ -118,7 +175,6 @@ Options:
   -o, --output <path>      Output GMS map image path
   --downsample <n>         Downsample factor (0 or 1, default: 0)
   -h, --help              Display help
-  -v, --version           Display version
 ```
 
 #### Output
@@ -172,7 +228,6 @@ Options:
   --k1 <n>                 Algorithm parameter (default: 0.01)
   --k2 <n>                 Algorithm parameter (default: 0.03)
   -h, --help              Display help
-  -v, --version           Display version
 ```
 
 #### Output
@@ -227,7 +282,6 @@ Options:
   --scales <n>             Number of scales (default: 5)
   --method <type>          Aggregation method: product or sum (default: product)
   -h, --help              Display help
-  -v, --version           Display version
 ```
 
 #### Output
@@ -283,7 +337,6 @@ Options:
   --k1 <n>                 Algorithm parameter (default: 0.01)
   --k2 <n>                 Algorithm parameter (default: 0.03)
   -h, --help              Display help
-  -v, --version           Display version
 ```
 
 #### Output
@@ -316,11 +369,17 @@ SSIM map saved to: ssim-map.png
 
 ## When to Use Each Algorithm
 
-**Use `diff` when:**
-- You need pixel-perfect comparison
-- You want to visualize exact pixel differences
-- You need anti-aliasing detection
-- Performance is critical (fastest for pixel differences)
+**Use `bin` (default) when:**
+- You need maximum performance
+- You're running in CI/CD pipelines
+- You're comparing large images (4K+)
+- You want the smallest binary footprint
+
+**Use `core` when:**
+- You need custom diff colors
+- You want to customize the color space
+- You need fine-grained control over output appearance
+- You're already using pngjs/sharp in your pipeline
 
 **Use `gmsd` when:**
 - You need a similarity score for CI/CD
@@ -349,5 +408,5 @@ SSIM map saved to: ssim-map.png
 ## Links
 
 - [GitHub Repository](https://github.com/teimurjan/blazediff)
-- [NPM Package](https://www.npmjs.com/package/blazediff)
+- [NPM Package](https://www.npmjs.com/package/@blazediff/cli)
 - [Examples →](/examples/image-comparison)

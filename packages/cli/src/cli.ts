@@ -2,10 +2,11 @@
 
 function printUsage(): void {
 	console.log(`
-Usage: blazediff <command> <image1> <image2> [options]
+Usage: blazediff-cli<command> <image1> <image2> [options]
 
 Commands:
-  diff               Pixel-by-pixel comparison (default)
+	bin                Pixel-by-pixel comparison (Rust + SIMD) (default)
+  core               Pixel-by-pixel comparison (JavaScript)
   gmsd               Gradient Magnitude Similarity Deviation metric
   ssim               Structural Similarity Index (Gaussian-based)
   msssim             Multi-Scale Structural Similarity Index
@@ -15,17 +16,17 @@ Options:
   -h, --help    Show this help message
 
 Examples:
-  blazediff diff image1.png image2.png -o diff.png
-  blazediff gmsd image1.png image2.png
-  blazediff ssim image1.png image2.png -o ssim-map.png
-  blazediff msssim image1.png image2.png
-  blazediff hitchhikers-ssim image1.png image2.png
+  blazediff-cli core image1.png image2.png -o diff.png
+  blazediff-cli gmsd image1.png image2.png
+  blazediff-cli ssim image1.png image2.png -o ssim-map.png
+  blazediff-cli msssim image1.png image2.png
+  blazediff-cli hitchhikers-ssim image1.png image2.png
 
   # Default command (diff) if no command specified
-  blazediff image1.png image2.png
+  blazediff-cli image1.png image2.png
 
 For command-specific help, use:
-  blazediff <command> --help
+  blazediff-cli <command> --help
 `);
 }
 
@@ -40,7 +41,7 @@ async function main(): Promise<void> {
 	const command = args[0];
 
 	// Check if first arg is a command or a file path
-	const validCommands = ["diff", "gmsd", "ssim", "msssim", "hitchhikers-ssim"];
+	const validCommands = ["bin", "core", "gmsd", "ssim", "msssim", "hitchhikers-ssim"];
 	const isCommand = validCommands.includes(command);
 
 	// Show main help only if help flag is passed without a command
@@ -54,8 +55,11 @@ async function main(): Promise<void> {
 		process.argv = [process.argv[0], process.argv[1], ...args.slice(1)];
 
 		switch (command) {
-			case "diff":
-				await import("./commands/diff");
+			case "bin":
+				await import("./commands/bin");
+				break;
+			case "core":
+				await import("./commands/core");
 				break;
 			case "gmsd":
 				await import("./commands/gmsd");
@@ -71,8 +75,8 @@ async function main(): Promise<void> {
 				break;
 		}
 	} else {
-		// Default to diff command if no command specified
-		await import("./commands/diff");
+		// Default to bin command if no command specified
+		await import("./commands/bin");
 	}
 }
 

@@ -32,8 +32,11 @@ interface JsonOutput {
 
 const BINARY_PATH = path.join(__dirname, "..", "bin", "blazediff.exe");
 
-function buildArgs(diffOutput: string, options?: BlazeDiffOptions): string[] {
-	const args = [diffOutput, "--output-format=json"];
+function buildArgs(diffOutput?: string, options?: BlazeDiffOptions): string[] {
+	const args: string[] = [];
+	if (diffOutput) args.push(diffOutput);
+	args.push("--output-format=json");
+
 	if (!options) return args;
 
 	if (options.threshold !== undefined) args.push(`--threshold=${options.threshold}`);
@@ -63,11 +66,15 @@ function detectMissingFile(error: string, basePath: string, comparePath: string)
 }
 
 /**
- * Compare two PNG images and generate a diff image.
+ * Compare two PNG images and optionally generate a diff image.
  *
  * @example
  * ```ts
+ * // With diff output
  * const result = await compare('expected.png', 'actual.png', 'diff.png');
+ *
+ * // Without diff output (faster, just returns comparison result)
+ * const result = await compare('expected.png', 'actual.png');
  *
  * if (result.match) {
  *   console.log('Images identical');
@@ -79,7 +86,7 @@ function detectMissingFile(error: string, basePath: string, comparePath: string)
 export async function compare(
 	basePath: string,
 	comparePath: string,
-	diffOutput: string,
+	diffOutput?: string,
 	options?: BlazeDiffOptions,
 ): Promise<BlazeDiffResult> {
 	const args = [basePath, comparePath, ...buildArgs(diffOutput, options)];

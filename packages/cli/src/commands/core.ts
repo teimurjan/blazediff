@@ -17,7 +17,7 @@ function parseRGB(colorStr: string): [number, number, number] {
 
 function printUsage(): void {
 	console.log(`
-Usage: blazediff diff <image1> <image2> [options]
+Usage: blazediff-cli core <image1> <image2> [options]
 
 Arguments:
   image1    Path to the first image

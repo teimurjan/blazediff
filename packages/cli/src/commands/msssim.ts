@@ -4,7 +4,7 @@ import msssim from "@blazediff/ssim/msssim";
 
 function printUsage(): void {
 	console.log(`
-Usage: blazediff msssim <image1> <image2> [options]
+Usage: blazediff-cli msssim <image1> <image2> [options]
 
 Arguments:
   image1    Path to the first image
