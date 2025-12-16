@@ -8,4 +8,5 @@ export default defineConfig({
 	sourcemap: true,
 	clean: true,
 	treeshake: true,
+	external: ["@blazediff/bin"], // Don't bundle - binary path relies on __dirname
 });

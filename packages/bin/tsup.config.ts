@@ -8,4 +8,5 @@ export default defineConfig({
 	sourcemap: false,
 	minify: false,
 	target: "node18",
+	shims: true, // Provides __dirname and __filename shims for ESM
 });
