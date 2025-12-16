@@ -1,5 +1,11 @@
 # @blazediff/bin
 
+## 2.1.0
+
+### Minor Changes
+
+- 8c5b92d: Make diffOutput function argument optional
+
 ## 2.0.1
 
 ### Patch Changes
