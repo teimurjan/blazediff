@@ -1,5 +1,11 @@
 # @blazediff/core
 
+## 1.8.0
+
+### Minor Changes
+
+- 499b4d3: Ensure fast path compares both bytes and color delta
+
 ## 1.7.0
 
 ### Minor Changes

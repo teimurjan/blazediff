@@ -1,6 +1,6 @@
 {
 	"name": "@blazediff/bin",
-	"version": "1.7.0",
+	"version": "2.0.0",
 	"description": "Native Rust binaries for blazediff - the fastest image diff in the world",
 	"private": false,
 	"publishConfig": {
