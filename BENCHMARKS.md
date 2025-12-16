@@ -6,7 +6,7 @@ Performance benchmarks comparing BlazeDiff ecosystem components against popular 
 
 - [BlazeDiff Benchmarks](#blazediff-benchmarks)
   - [Table of Contents](#table-of-contents)
-  - [Native Binary (`@blazediff/bin` vs `odiff` vs `pixelmatch`)](#native-binary-blazediffbin-vs-odiff-vs-pixelmatch)
+  - [Native Binary (`@blazediff/bin` vs `odiff`)](#native-binary-blazediffbin-vs-odiff)
   - [Pixel By Pixel](#pixel-by-pixel)
     - [JavaScript (`@blazediff/core` vs `pixelmatch`)](#javascript-blazediffcore-vs-pixelmatch)
     - [CLI (`@blazediff/cli` with `@blazediff/sharp-transformer` vs `pixelmatch`)](#cli-blazediffcli-with-blazediffsharp-transformer-vs-pixelmatch)
@@ -20,11 +20,11 @@ Performance benchmarks comparing BlazeDiff ecosystem components against popular 
     - [Object Fixtures](#object-fixtures)
   - [Hardware Specifications](#hardware-specifications)
 
-## Native Binary (`@blazediff/bin` vs `odiff` vs `pixelmatch`)
+## Native Binary (`@blazediff/bin` vs `odiff`)
 
 *25 runs (5 warmup)*
 
-> **2-3x faster than odiff**, **6-10x faster than pixelmatch** on 4K images.
+> **3-4x faster than odiff** on 4K images.
 
 The native Rust binary with SIMD optimization is the fastest single-threaded image diff in the world.
 
@@ -33,102 +33,89 @@ The native Rust binary with SIMD optimization is the fastest single-threaded ima
     <tr>
       <th width="400">Benchmark</th>
       <th width="300">blazediff (Rust)</th>
-      <th width="300">odiff</th>
-      <th width="300">blazediff-cli (JS)</th>
-      <th width="300">pixelmatch</th>
+      <th width="300">odiff (Zig)</th>
     </tr>
   </thead>
   <tbody>
     <tr>
       <td><strong>4k/1</strong> (5600×3200)</td>
-      <td><strong>421ms</strong></td>
-      <td>1227ms (2.9x slower)</td>
-      <td>1362ms (3.2x slower)</td>
-      <td>2773ms (6.6x slower)</td>
+      <td><strong>327ms</strong></td>
+      <td>1215ms (3.7x slower)</td>
     </tr>
     <tr>
       <td><strong>4k/2</strong> (5600×3200)</td>
-      <td><strong>477ms</strong></td>
-      <td>1554ms (3.3x slower)</td>
-      <td>1963ms (4.1x slower)</td>
-      <td>3239ms (6.8x slower)</td>
+      <td><strong>397ms</strong></td>
+      <td>1604ms (4.0x slower)</td>
     </tr>
     <tr>
       <td><strong>4k/3</strong> (5600×3200)</td>
-      <td><strong>543ms</strong></td>
-      <td>1738ms (3.2x slower)</td>
-      <td>2148ms (4.0x slower)</td>
-      <td>3632ms (6.7x slower)</td>
+      <td><strong>416ms</strong></td>
+      <td>1753ms (4.2x slower)</td>
     </tr>
     <tr>
       <td><strong>page/1</strong> (3598×16384)</td>
-      <td><strong>594ms</strong></td>
-      <td>1105ms (1.9x slower)</td>
-      <td>1331ms (2.2x slower)</td>
-      <td>5719ms (9.6x slower)</td>
+      <td><strong>640ms</strong></td>
+      <td>1085ms (1.7x slower)</td>
     </tr>
     <tr>
       <td><strong>page/2</strong> (3598×16384)</td>
-      <td><strong>485ms</strong></td>
-      <td>654ms (1.3x slower)</td>
-      <td>1326ms (2.7x slower)</td>
-      <td>3936ms (8.1x slower)</td>
-    </tr>
-    <tr>
-      <td><strong>pixelmatch/1</strong> (512×256)</td>
-      <td><strong>14.7ms</strong></td>
-      <td>17.2ms (1.2x slower)</td>
-      <td>83.8ms (5.7x slower)</td>
-      <td>87.2ms (5.9x slower)</td>
-    </tr>
-    <tr>
-      <td><strong>pixelmatch/2</strong> (400×300)</td>
-      <td><strong>17.0ms</strong> (odiff)</td>
-      <td>17.0ms (1.0x)</td>
-      <td>88.5ms (5.2x slower)</td>
-      <td>76.4ms (4.5x slower)</td>
-    </tr>
-    <tr>
-      <td><strong>pixelmatch/3</strong> (512×256)</td>
-      <td><strong>19.2ms</strong> (odiff)</td>
-      <td>19.2ms (1.0x)</td>
-      <td>84.7ms (4.4x slower)</td>
-      <td>82.1ms (4.3x slower)</td>
-    </tr>
-    <tr>
-      <td><strong>pixelmatch/4</strong> (544×384)</td>
-      <td><strong>18.8ms</strong></td>
-      <td>21.6ms (1.1x slower)</td>
-      <td>101.3ms (5.4x slower)</td>
-      <td>99.1ms (5.3x slower)</td>
-    </tr>
-    <tr>
-      <td><strong>pixelmatch/5</strong> (400×300)</td>
-      <td><strong>15.1ms</strong></td>
-      <td>15.8ms (1.0x)</td>
-      <td>81.1ms (5.4x slower)</td>
-      <td>72.6ms (4.8x slower)</td>
-    </tr>
-    <tr>
-      <td><strong>pixelmatch/6</strong> (400×300)</td>
-      <td><strong>15.4ms</strong></td>
-      <td>38.2ms (2.5x slower)</td>
-      <td>83.7ms (5.4x slower)</td>
-      <td>74.4ms (4.8x slower)</td>
-    </tr>
-    <tr>
-      <td><strong>pixelmatch/7</strong> (513×512)</td>
-      <td><strong>11.7ms</strong> (odiff)</td>
-      <td>11.7ms (1.0x)</td>
-      <td>90.6ms (7.7x slower)</td>
-      <td>92.2ms (7.9x slower)</td>
+      <td><strong>339ms</strong></td>
+      <td>613ms (1.8x slower)</td>
     </tr>
     <tr>
       <td><strong>same/1</strong> (1498×1160)</td>
-      <td><strong>25.9ms</strong> (odiff)</td>
-      <td>25.9ms (1.0x)</td>
-      <td>91.1ms (3.5x slower)</td>
-      <td>246.7ms (9.5x slower)</td>
+      <td><strong>13ms</strong></td>
+      <td>12ms (1.0x)</td>
+    </tr>
+    <tr>
+      <td><strong>blazediff/1</strong> (362×354)</td>
+      <td><strong>4ms</strong></td>
+      <td>6ms (1.3x slower)</td>
+    </tr>
+    <tr>
+      <td><strong>blazediff/2</strong> (362×354)</td>
+      <td><strong>4ms</strong></td>
+      <td>5ms (1.1x slower)</td>
+    </tr>
+    <tr>
+      <td><strong>blazediff/3</strong> (1024×1024)</td>
+      <td><strong>29ms</strong></td>
+      <td>50ms (1.8x slower)</td>
+    </tr>
+    <tr>
+      <td><strong>pixelmatch/1</strong> (512×256)</td>
+      <td><strong>3ms</strong></td>
+      <td>5ms (1.7x slower)</td>
+    </tr>
+    <tr>
+      <td><strong>pixelmatch/2</strong> (400×300)</td>
+      <td>7ms</td>
+      <td><strong>5ms</strong> (1.3x faster)</td>
+    </tr>
+    <tr>
+      <td><strong>pixelmatch/3</strong> (512×256)</td>
+      <td><strong>4ms</strong></td>
+      <td>5ms (1.3x slower)</td>
+    </tr>
+    <tr>
+      <td><strong>pixelmatch/4</strong> (544×384)</td>
+      <td><strong>8ms</strong></td>
+      <td>14ms (1.8x slower)</td>
+    </tr>
+    <tr>
+      <td><strong>pixelmatch/5</strong> (400×300)</td>
+      <td><strong>3ms</strong></td>
+      <td>3ms (1.0x)</td>
+    </tr>
+    <tr>
+      <td><strong>pixelmatch/6</strong> (400×300)</td>
+      <td><strong>4ms</strong></td>
+      <td>8ms (1.8x slower)</td>
+    </tr>
+    <tr>
+      <td><strong>pixelmatch/7</strong> (513×512)</td>
+      <td><strong>4ms</strong></td>
+      <td>8ms (2.0x slower)</td>
     </tr>
   </tbody>
 </table>

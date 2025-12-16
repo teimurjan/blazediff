@@ -7,14 +7,14 @@
 
 </div>
 
-The fastest single-threaded image diff in the world. Native Rust implementation with SIMD optimization, 2-3x faster than [odiff](https://github.com/dmtrKovalenko/odiff), 6-10x faster than [pixelmatch](https://github.com/mapbox/pixelmatch).
+The fastest single-threaded image diff in the world. Native Rust implementation with SIMD optimization, **3-4x faster** and **3x smaller** than [odiff](https://github.com/dmtrKovalenko/odiff).
 
 **Features:**
 - SIMD-accelerated (NEON on ARM, SSE4.1 on x86)
 - Block-based two-pass optimization
 - YIQ perceptual color difference
 - Anti-aliasing detection
-- Cross-platform pre-built binaries (no compilation required)
+- Cross-platform pre-built binaries (~700KB-900KB, no compilation required)
 
 ## Installation
 
@@ -22,7 +22,7 @@ The fastest single-threaded image diff in the world. Native Rust implementation 
 npm install @blazediff/bin
 ```
 
-Pre-built binaries are included for:
+Pre-built [binaries](https://github.com/teimurjan/blazediff/tree/main/packages/bin/binaries) are included for:
 - macOS ARM64 (Apple Silicon)
 - macOS x64 (Intel)
 - Linux ARM64
@@ -183,13 +183,16 @@ Benchmarked on Apple M1 Pro with 5600x3200 4K images:
 | odiff | ~120ms | 3.4x slower |
 | pixelmatch | ~280ms | 8x slower |
 
-Binary sizes (stripped, LTO optimized):
-- macOS ARM64: 686KB
-- macOS x64: 765KB
-- Linux ARM64: 749KB
-- Linux x64: 853KB
-- Windows ARM64: 575KB
-- Windows x64: 798KB
+Binary sizes (stripped, LTO optimized) - **~3x smaller than odiff**:
+
+| Platform | blazediff | odiff |
+|----------|-----------|-------|
+| macOS ARM64 | 702 KB | 2.2 MB |
+| macOS x64 | 773 KB | 2.6 MB |
+| Linux ARM64 | 753 KB | 2.3 MB |
+| Linux x64 | 869 KB | 2.9 MB |
+| Windows ARM64 | 580 KB | 2.4 MB |
+| Windows x64 | 915 KB | 3.0 MB |
 
 ## Algorithm
 
