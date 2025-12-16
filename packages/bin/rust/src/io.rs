@@ -77,7 +77,7 @@ pub fn load_png<P: AsRef<Path>>(path: P) -> Result<Image, DiffError> {
     }
 }
 
-pub fn load_two_pngs<P1: AsRef<Path> + Sync, P2: AsRef<Path> + Sync>(
+pub fn load_pngs<P1: AsRef<Path> + Sync, P2: AsRef<Path> + Sync>(
     path1: P1,
     path2: P2,
 ) -> Result<(Image, Image), DiffError> {
@@ -94,6 +94,14 @@ pub fn load_two_pngs<P1: AsRef<Path> + Sync, P2: AsRef<Path> + Sync>(
 }
 
 pub fn save_png<P: AsRef<Path>>(image: &Image, path: P) -> Result<(), DiffError> {
+    save_png_with_compression(image, path, 0)
+}
+
+pub fn save_png_with_compression<P: AsRef<Path>>(
+    image: &Image,
+    path: P,
+    compression: u8,
+) -> Result<(), DiffError> {
     unsafe {
         let ctx = spng_ctx_new(spng_ctx_flags_SPNG_CTX_ENCODER as c_int);
         if ctx.is_null() {
@@ -130,7 +138,9 @@ pub fn save_png<P: AsRef<Path>>(image: &Image, path: P) -> Result<(), DiffError>
             return Err(DiffError::PngError("Failed to disable filtering".into()));
         }
 
-        if spng_set_option(ctx, spng_option_SPNG_IMG_COMPRESSION_LEVEL, 0) != 0 {
+        // Compression level 0-9 (0=store/fastest, 9=best compression)
+        let level = compression.min(9) as c_int;
+        if spng_set_option(ctx, spng_option_SPNG_IMG_COMPRESSION_LEVEL, level) != 0 {
             return Err(DiffError::PngError("Failed to set compression level".into()));
         }
 

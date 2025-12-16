@@ -139,6 +139,9 @@ npx blazediff expected.png actual.png diff.png
 # With options
 npx blazediff expected.png actual.png diff.png --threshold 0.05 --antialiasing
 
+# With higher compression (smaller output file, slower)
+npx blazediff expected.png actual.png diff.png -c 6
+
 # Output as JSON
 npx blazediff expected.png actual.png diff.png --output-format json
 ```
@@ -158,6 +161,7 @@ Options:
   -a, --antialiasing           Enable anti-aliasing detection
       --diff-mask              Output only differences (transparent background)
       --fail-on-layout         Fail on layout (size) difference
+  -c, --compression <LEVEL>    PNG compression level (0-9, 0=fastest/largest, 9=slowest/smallest) [default: 0]
       --output-format <FORMAT> Output format (json or text) [default: json]
   -h, --help                   Print help
   -V, --version                Print version

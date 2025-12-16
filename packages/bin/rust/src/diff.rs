@@ -1005,9 +1005,10 @@ pub fn diff(
     let a32 = image1.as_u32();
     let b32 = image2.as_u32();
     let max_delta = threshold_to_max_delta_f32(options.threshold);
+    let draw_background = output.is_some() && !options.diff_mask;
 
-    // Cold pass: identify changed blocks without filling gray (deferred)
-    let mut changed_blocks: Vec<u16> = Vec::with_capacity((blocks_x * blocks_y) as usize / 4);
+    // Cold pass: identify changed blocks, draw gray for unchanged (single pass)
+    let mut changed_blocks: Vec<(u32, u32, u32, u32)> = Vec::new();
 
     for by in 0..blocks_y {
         for bx in 0..blocks_x {
@@ -1016,74 +1017,25 @@ pub fn diff(
             let end_x = (start_x + block_size).min(width);
             let end_y = (start_y + block_size).min(height);
 
-            if block_has_perceptual_diff(a32, b32, width, start_x, start_y, end_x, end_y, max_delta)
-            {
-                changed_blocks.push((by * blocks_x + bx) as u16);
+            if block_has_perceptual_diff(a32, b32, width, start_x, start_y, end_x, end_y, max_delta) {
+                changed_blocks.push((start_x, start_y, end_x, end_y));
+            } else if draw_background {
+                if let Some(ref mut out) = output {
+                    fill_block_gray(image1, out, options.alpha, start_x, start_y, end_x, end_y);
+                }
             }
         }
     }
 
-    // Early exit for identical images (no gray fill work needed!)
+    // Early exit for identical images
     if changed_blocks.is_empty() {
         return Ok(DiffResult::new(0, total_pixels));
-    }
-
-    // Deferred gray fill: only fill unchanged blocks now that we know there are diffs
-    let draw_background = output.is_some() && !options.diff_mask;
-    if draw_background {
-        if let Some(ref mut out) = output {
-            let total_blocks = (blocks_x * blocks_y) as usize;
-
-            // Use bitset for large block counts, sorted vec for small
-            if total_blocks > 256 {
-                // Bitset approach - O(1) lookup, O(n) memory where n = total_blocks / 8
-                let mut changed_bits = vec![0u8; (total_blocks + 7) / 8];
-                for &idx in &changed_blocks {
-                    let i = idx as usize;
-                    changed_bits[i / 8] |= 1 << (i % 8);
-                }
-
-                for by in 0..blocks_y {
-                    for bx in 0..blocks_x {
-                        let block_idx = (by * blocks_x + bx) as usize;
-                        if changed_bits[block_idx / 8] & (1 << (block_idx % 8)) == 0 {
-                            let start_x = bx * block_size;
-                            let start_y = by * block_size;
-                            let end_x = (start_x + block_size).min(width);
-                            let end_y = (start_y + block_size).min(height);
-                            fill_block_gray(image1, out, options.alpha, start_x, start_y, end_x, end_y);
-                        }
-                    }
-                }
-            } else {
-                // Small block count - linear search is faster than hashing
-                for by in 0..blocks_y {
-                    for bx in 0..blocks_x {
-                        let block_idx = (by * blocks_x + bx) as u16;
-                        if !changed_blocks.contains(&block_idx) {
-                            let start_x = bx * block_size;
-                            let start_y = by * block_size;
-                            let end_x = (start_x + block_size).min(width);
-                            let end_y = (start_y + block_size).min(height);
-                            fill_block_gray(image1, out, options.alpha, start_x, start_y, end_x, end_y);
-                        }
-                    }
-                }
-            }
-        }
     }
 
     // Hot pass: process changed blocks
     let mut diff_count = 0u32;
 
-    for &block_idx in &changed_blocks {
-        let bx = (block_idx as u32) % blocks_x;
-        let by = (block_idx as u32) / blocks_x;
-        let start_x = bx * block_size;
-        let start_y = by * block_size;
-        let end_x = (start_x + block_size).min(width);
-        let end_y = (start_y + block_size).min(height);
-
+    for &(start_x, start_y, end_x, end_y) in &changed_blocks {
         for y in start_y..end_y {
             diff_count += process_hot_row(
                 image1, image2, a32, b32, y, start_x, end_x, max_delta, options, &mut output,
