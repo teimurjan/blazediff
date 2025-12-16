@@ -1,5 +1,18 @@
 # @blazediff/cli
 
+## 2.0.0
+
+### Major Changes
+
+- 8c5b92d: Make bin default cli option
+
+  - Rename diff to core
+
+### Patch Changes
+
+- Updated dependencies [8c5b92d]
+  - @blazediff/bin@2.1.0
+
 ## 1.8.0
 
 ### Patch Changes
