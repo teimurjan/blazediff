@@ -7,6 +7,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 DIST_DIR="$PROJECT_DIR/dist"
+BINARIES_DIR="$PROJECT_DIR/../binaries"
 
 # Target triple -> friendly name (bash 3.2 compatible)
 get_friendly_name() {
@@ -166,6 +167,31 @@ build_macos() {
     ls -lh "$DIST_DIR"/blazediff-macos-*
 }
 
+sync_to_binaries() {
+    echo ""
+    echo "Syncing binaries to $BINARIES_DIR..."
+    mkdir -p "$BINARIES_DIR"
+
+    local synced=0
+    for binary in "$DIST_DIR"/blazediff-*; do
+        if [[ -f "$binary" ]]; then
+            local name=$(basename "$binary")
+            cp "$binary" "$BINARIES_DIR/$name"
+            chmod +x "$BINARIES_DIR/$name"
+            echo "  -> $BINARIES_DIR/$name"
+            ((synced++))
+        fi
+    done
+
+    if [[ $synced -gt 0 ]]; then
+        echo ""
+        echo "Synced $synced binaries to $BINARIES_DIR"
+        ls -lh "$BINARIES_DIR"
+    else
+        echo "  No binaries to sync"
+    fi
+}
+
 # Default targets for --all
 # Windows x64: MinGW via cross
 # Windows ARM64: MSVC via cargo-xwin (requires llvm in PATH)
@@ -223,9 +249,11 @@ cd "$PROJECT_DIR"
 case "$MODE" in
     native)
         build_native
+        sync_to_binaries
         ;;
     macos)
         build_macos
+        sync_to_binaries
         ;;
     target)
         current_target=$(rustc -vV | grep host | cut -d' ' -f2)
@@ -238,6 +266,7 @@ case "$MODE" in
             check_cross
             build_target "$SPECIFIC_TARGET" true
         fi
+        sync_to_binaries
         ;;
     all)
         echo "Building all platforms..."
@@ -271,5 +300,6 @@ case "$MODE" in
 
         echo "Builds complete. Available binaries:"
         ls -lh "$DIST_DIR" 2>/dev/null || echo "  No binaries built"
+        sync_to_binaries
         ;;
 esac
