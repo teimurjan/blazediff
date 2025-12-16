@@ -60,6 +60,7 @@ pub struct DiffOptions {
     pub diff_color: [u8; 3],      // red
     pub diff_color_alt: Option<[u8; 3]>,
     pub diff_mask: bool,          // transparent background mode
+    pub compression: u8,          // PNG compression level 0-9 (0=fastest, 9=smallest)
 }
 
 impl Default for DiffOptions {
@@ -72,6 +73,7 @@ impl Default for DiffOptions {
             diff_color: [255, 0, 0],
             diff_color_alt: None,
             diff_mask: false,
+            compression: 0, // fastest by default
         }
     }
 }

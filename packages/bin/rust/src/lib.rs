@@ -29,5 +29,5 @@ pub mod yiq;
 
 // Re-export main types and functions
 pub use diff::diff;
-pub use io::{load_png, load_two_pngs, save_png};
+pub use io::{load_png, load_pngs, save_png, save_png_with_compression};
 pub use types::{DiffError, DiffOptions, DiffResult, Image};
