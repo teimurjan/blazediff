@@ -11,6 +11,7 @@
 		"dev": "tsup --watch",
 		"clean": "rm -rf dist",
 		"core": "node dist/image/pixel-by-pixel/blazediff-core-benchmark.js",
+		"binary": "node dist/image/pixel-by-pixel/blazediff-bin-benchmark.js",
 		"pixelmatch": "node dist/image/pixel-by-pixel/external-pixelmatch-benchmark.js",
 		"object": "node dist/object/blazediff-object-benchmark.js",
 		"microdiff": "node dist/object/external-microdiff-benchmark.js",
