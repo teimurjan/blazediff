@@ -1,0 +1,2 @@
+# Mark C library as vendored (excluded from GitHub language statistics)
+libspng/** linguist-vendored
