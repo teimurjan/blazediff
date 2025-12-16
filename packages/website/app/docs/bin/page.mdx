@@ -2,7 +2,7 @@
 
 import { Callout } from "nextra/components";
 
-The fastest single-threaded image diff in the world. Native Rust implementation with SIMD optimization, 3-4x faster than [odiff](https://github.com/dmtrKovalenko/odiff).
+The fastest single-threaded image diff in the world. Native Rust implementation with SIMD optimization, **3-4x faster** and **3x smaller** than [odiff](https://github.com/dmtrKovalenko/odiff).
 
 [View Detailed Benchmarks](https://github.com/teimurjan/blazediff/blob/main/BENCHMARKS.md)
 
@@ -20,6 +20,7 @@ Pre-built binaries are included for all major platforms - no compilation require
 ## Features
 
 - **3-4x faster** than odiff on large images
+- **3x smaller** binaries (~700KB-900KB vs ~2-3MB)
 - **SIMD-accelerated** - NEON on ARM, SSE4.1 on x86
 - **Block-based optimization** - skips unchanged regions
 - **Zero compilation** - pre-built binaries for all platforms
@@ -128,13 +129,20 @@ Options:
 
 ## Performance
 
-Benchmarked on Apple M1 Pro with 5600x3200 4K images:
+Benchmarked on Apple M1 Max with 5600x3200 4K images:
 
 | Tool | Time | Comparison |
 |------|------|------------|
-| **blazediff** | ~35ms | - |
-| odiff | ~120ms | 3.4x slower |
-| pixelmatch | ~280ms | 8x slower |
+| **blazediff** | ~327ms | - |
+| odiff | ~1215ms | 3.7x slower |
+
+Binary sizes (stripped, LTO optimized):
+
+| Platform | blazediff | odiff |
+|----------|-----------|-------|
+| macOS ARM64 | 702 KB | 2.2 MB |
+| Linux x64 | 869 KB | 2.9 MB |
+| Windows x64 | 915 KB | 3.0 MB |
 
 <Callout type="info">
   **Why so fast?** BlazeDiff uses a two-pass block-based algorithm with SIMD acceleration. The cold pass quickly identifies unchanged 8x8 blocks using 32-bit integer comparison, then the hot pass only processes changed regions with YIQ perceptual color difference.
