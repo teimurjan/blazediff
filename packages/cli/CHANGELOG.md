@@ -1,5 +1,12 @@
 # @blazediff/cli
 
+## 1.8.0
+
+### Patch Changes
+
+- Updated dependencies [499b4d3]
+  - @blazediff/core@1.8.0
+
 ## 1.7.0
 
 ### Patch Changes
