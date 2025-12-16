@@ -1,5 +1,11 @@
 # @blazediff/bin
 
+## 2.0.1
+
+### Patch Changes
+
+- de2a393: Fixed \_\_dirname not found
+
 ## 2.0.0
 
 ### Major Changes
