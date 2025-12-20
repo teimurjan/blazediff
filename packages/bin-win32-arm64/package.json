@@ -1,0 +1,19 @@
+{
+	"name": "@blazediff/bin-win32-arm64",
+	"version": "2.1.0",
+	"description": "blazediff binary for Windows ARM64",
+	"os": ["win32"],
+	"cpu": ["arm64"],
+	"bin": {
+		"blazediff": "./blazediff.exe"
+	},
+	"files": ["blazediff.exe"],
+	"private": false,
+	"publishConfig": {
+		"access": "public"
+	},
+	"author": "Teimur Gasanov <me@teimurjan.dev> (https://github.com/teimurjan)",
+	"repository": "https://github.com/teimurjan/blazediff",
+	"homepage": "https://blazediff.dev",
+	"license": "MIT"
+}

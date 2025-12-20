@@ -2,7 +2,17 @@
 	"$schema": "https://unpkg.com/@changesets/config@3.1.1/schema.json",
 	"changelog": "@changesets/changelog-git",
 	"commit": false,
-	"fixed": [],
+	"fixed": [
+		[
+			"@blazediff/bin",
+			"@blazediff/bin-darwin-arm64",
+			"@blazediff/bin-darwin-x64",
+			"@blazediff/bin-linux-arm64",
+			"@blazediff/bin-linux-x64",
+			"@blazediff/bin-win32-arm64",
+			"@blazediff/bin-win32-x64"
+		]
+	],
 	"linked": [],
 	"access": "restricted",
 	"baseBranch": "main",

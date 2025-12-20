@@ -2,12 +2,13 @@
 set -euo pipefail
 
 # Cross-platform release build script for blazediff
-# Outputs binaries to dist/ directory with odiff-compatible naming
+# Outputs binaries to dist/ directory and syncs to platform-specific packages
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+ROOT_DIR="$(dirname "$PROJECT_DIR")"
 DIST_DIR="$PROJECT_DIR/dist"
-BINARIES_DIR="$PROJECT_DIR/../binaries"
+PACKAGES_DIR="$ROOT_DIR/packages"
 
 # Target triple -> friendly name (bash 3.2 compatible)
 get_friendly_name() {
@@ -21,6 +22,19 @@ get_friendly_name() {
         x86_64-pc-windows-msvc|x86_64-pc-windows-gnu) echo "windows-x64" ;;
         aarch64-pc-windows-msvc|aarch64-pc-windows-gnu) echo "windows-arm64" ;;
         *) echo "$1" ;;
+    esac
+}
+
+# Target triple -> package directory name
+get_package_name() {
+    case "$1" in
+        aarch64-apple-darwin) echo "bin-darwin-arm64" ;;
+        x86_64-apple-darwin) echo "bin-darwin-x64" ;;
+        aarch64-unknown-linux-gnu) echo "bin-linux-arm64" ;;
+        x86_64-unknown-linux-gnu) echo "bin-linux-x64" ;;
+        x86_64-pc-windows-msvc|x86_64-pc-windows-gnu) echo "bin-win32-x64" ;;
+        aarch64-pc-windows-msvc|aarch64-pc-windows-gnu) echo "bin-win32-arm64" ;;
+        *) echo "" ;;
     esac
 }
 
@@ -167,26 +181,48 @@ build_macos() {
     ls -lh "$DIST_DIR"/blazediff-macos-*
 }
 
-sync_to_binaries() {
+sync_to_packages() {
     echo ""
-    echo "Syncing binaries to $BINARIES_DIR..."
-    mkdir -p "$BINARIES_DIR"
+    echo "Syncing binaries to platform packages..."
 
     local synced=0
     for binary in "$DIST_DIR"/blazediff-*; do
         if [[ -f "$binary" ]]; then
             local name=$(basename "$binary")
-            cp "$binary" "$BINARIES_DIR/$name"
-            chmod +x "$BINARIES_DIR/$name"
-            echo "  -> $BINARIES_DIR/$name"
-            ((synced++))
+            local target=""
+
+            # Map binary name to target triple for package lookup
+            case "$name" in
+                blazediff-macos-arm64) target="aarch64-apple-darwin" ;;
+                blazediff-macos-x64) target="x86_64-apple-darwin" ;;
+                blazediff-linux-arm64) target="aarch64-unknown-linux-gnu" ;;
+                blazediff-linux-x64) target="x86_64-unknown-linux-gnu" ;;
+                blazediff-windows-arm64.exe) target="aarch64-pc-windows-msvc" ;;
+                blazediff-windows-x64.exe) target="x86_64-pc-windows-gnu" ;;
+                *) continue ;;
+            esac
+
+            local pkg_name=$(get_package_name "$target")
+            if [[ -n "$pkg_name" ]]; then
+                local pkg_dir="$PACKAGES_DIR/$pkg_name"
+                if [[ -d "$pkg_dir" ]]; then
+                    # Determine output filename based on platform
+                    local output_name="blazediff"
+                    if [[ "$name" == *".exe" ]]; then
+                        output_name="blazediff.exe"
+                    fi
+                    cp "$binary" "$pkg_dir/$output_name"
+                    chmod +x "$pkg_dir/$output_name"
+                    echo "  -> $pkg_dir/$output_name"
+                    ((synced++))
+                fi
+            fi
         fi
     done
 
     if [[ $synced -gt 0 ]]; then
         echo ""
-        echo "Synced $synced binaries to $BINARIES_DIR"
-        ls -lh "$BINARIES_DIR"
+        echo "Synced $synced binaries to platform packages"
     else
         echo "  No binaries to sync"
     fi
@@ -249,11 +285,11 @@ cd "$PROJECT_DIR"
 case "$MODE" in
     native)
         build_native
-        sync_to_binaries
+        sync_to_packages
         ;;
     macos)
         build_macos
-        sync_to_binaries
+        sync_to_packages
         ;;
     target)
         current_target=$(rustc -vV | grep host | cut -d' ' -f2)
@@ -266,7 +302,7 @@ case "$MODE" in
             check_cross
             build_target "$SPECIFIC_TARGET" true
         fi
-        sync_to_binaries
+        sync_to_packages
         ;;
     all)
         echo "Building all platforms..."
@@ -300,6 +336,6 @@ case "$MODE" in
 
         echo "Builds complete. Available binaries:"
         ls -lh "$DIST_DIR" 2>/dev/null || echo "  No binaries built"
-        sync_to_binaries
+        sync_to_packages
         ;;
 esac
