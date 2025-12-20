@@ -1,5 +1,9 @@
 import { execFile } from "node:child_process";
+import { existsSync } from "node:fs";
+import { createRequire } from "node:module";
+import os from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
@@ -30,7 +34,66 @@ interface JsonOutput {
 	error?: string;
 }
 
-const BINARY_PATH = path.join(__dirname, "..", "bin", "blazediff.exe");
+const PLATFORM_PACKAGES: Record<string, { packageName: string; packageDir: string }> = {
+	"darwin-arm64": { packageName: "@blazediff/bin-darwin-arm64", packageDir: "bin-darwin-arm64" },
+	"darwin-x64": { packageName: "@blazediff/bin-darwin-x64", packageDir: "bin-darwin-x64" },
+	"linux-arm64": { packageName: "@blazediff/bin-linux-arm64", packageDir: "bin-linux-arm64" },
+	"linux-x64": { packageName: "@blazediff/bin-linux-x64", packageDir: "bin-linux-x64" },
+	"win32-arm64": { packageName: "@blazediff/bin-win32-arm64", packageDir: "bin-win32-arm64" },
+	"win32-x64": { packageName: "@blazediff/bin-win32-x64", packageDir: "bin-win32-x64" },
+};
+
+function resolveBinaryPath(): string {
+	const platform = os.platform();
+	const arch = os.arch();
+	const key = `${platform}-${arch}`;
+	const platformInfo = PLATFORM_PACKAGES[key];
+
+	if (!platformInfo) {
+		throw new Error(
+			`Unsupported platform: ${key}. Supported: ${Object.keys(PLATFORM_PACKAGES).join(", ")}`,
+		);
+	}
+
+	const binaryName = platform === "win32" ? "blazediff.exe" : "blazediff";
+
+	// Try to resolve from installed optional dependency
+	try {
+		const require = createRequire(import.meta.url);
+		const packagePath = require.resolve(`${platformInfo.packageName}/package.json`);
+		const packageDir = path.dirname(packagePath);
+		const binaryPath = path.join(packageDir, binaryName);
+		if (existsSync(binaryPath)) {
+			return binaryPath;
+		}
+	} catch {
+		// Optional dependency not installed, try sibling package fallback
+	}
+
+	// Fallback for monorepo development: look for sibling package
+	const currentDir = path.dirname(fileURLToPath(import.meta.url));
+	const packagesDir = path.resolve(currentDir, "..", "..");
+	const siblingPath = path.join(packagesDir, platformInfo.packageDir, binaryName);
+
+	if (existsSync(siblingPath)) {
+		return siblingPath;
+	}
+
+	throw new Error(
+		`Platform package ${platformInfo.packageName} is not installed. ` +
+			`This usually means the optional dependency wasn't installed for your platform. ` +
+			`Try reinstalling with: npm install @blazediff/bin`,
+	);
+}
+
+let cachedBinaryPath: string | null = null;
+
+function getBinaryPathInternal(): string {
+	if (!cachedBinaryPath) {
+		cachedBinaryPath = resolveBinaryPath();
+	}
+	return cachedBinaryPath;
+}
 
 function buildArgs(diffOutput?: string, options?: BlazeDiffOptions): string[] {
 	const args: string[] = [];
@@ -89,10 +152,11 @@ export async function compare(
 	diffOutput?: string,
 	options?: BlazeDiffOptions,
 ): Promise<BlazeDiffResult> {
+	const binaryPath = getBinaryPathInternal();
 	const args = [basePath, comparePath, ...buildArgs(diffOutput, options)];
 
 	try {
-		await execFileAsync(BINARY_PATH, args);
+		await execFileAsync(binaryPath, args);
 		return { match: true };
 	} catch (err) {
 		const { code, stdout, stderr } = err as { code?: number; stdout?: string; stderr?: string };
@@ -132,5 +196,5 @@ export async function compare(
 
 /** Get the path to the blazediff binary for direct CLI usage. */
 export function getBinaryPath(): string {
-	return BINARY_PATH;
+	return getBinaryPathInternal();
 }

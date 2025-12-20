@@ -4,7 +4,9 @@
 	"description": "",
 	"main": "index.js",
 	"scripts": {
+		"postinstall": "node ./scripts/link-local-bin.js",
 		"build": "pnpm -r --filter=!@blazediff/website build",
+		"build:rust": "cd rust && ./scripts/build-all.sh --all",
 		"test": "pnpm -r test",
 		"changeset": "changeset",
 		"release": "changeset publish",

@@ -1,0 +1,19 @@
+{
+	"name": "@blazediff/bin-linux-x64",
+	"version": "2.1.0",
+	"description": "blazediff binary for Linux x64",
+	"os": ["linux"],
+	"cpu": ["x64"],
+	"bin": {
+		"blazediff": "./blazediff"
+	},
+	"files": ["blazediff"],
+	"private": false,
+	"publishConfig": {
+		"access": "public"
+	},
+	"author": "Teimur Gasanov <me@teimurjan.dev> (https://github.com/teimurjan)",
+	"repository": "https://github.com/teimurjan/blazediff",
+	"homepage": "https://blazediff.dev",
+	"license": "MIT"
+}

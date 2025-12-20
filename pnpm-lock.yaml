@@ -84,6 +84,18 @@ importers:
         specifier: 5.9.2
         version: 5.9.2
 
+  packages/bin-darwin-arm64: {}
+
+  packages/bin-darwin-x64: {}
+
+  packages/bin-linux-arm64: {}
+
+  packages/bin-linux-x64: {}
+
+  packages/bin-win32-arm64: {}
+
+  packages/bin-win32-x64: {}
+
   packages/cli:
     dependencies:
       '@blazediff/bin':
