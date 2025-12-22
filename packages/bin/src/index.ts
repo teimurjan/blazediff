@@ -24,7 +24,12 @@ export interface BlazeDiffOptions {
 export type BlazeDiffResult =
 	| { match: true }
 	| { match: false; reason: "layout-diff" }
-	| { match: false; reason: "pixel-diff"; diffCount: number; diffPercentage: number }
+	| {
+			match: false;
+			reason: "pixel-diff";
+			diffCount: number;
+			diffPercentage: number;
+	  }
 	| { match: false; reason: "file-not-exists"; file: string };
 
 interface JsonOutput {
@@ -34,13 +39,34 @@ interface JsonOutput {
 	error?: string;
 }
 
-const PLATFORM_PACKAGES: Record<string, { packageName: string; packageDir: string }> = {
-	"darwin-arm64": { packageName: "@blazediff/bin-darwin-arm64", packageDir: "bin-darwin-arm64" },
-	"darwin-x64": { packageName: "@blazediff/bin-darwin-x64", packageDir: "bin-darwin-x64" },
-	"linux-arm64": { packageName: "@blazediff/bin-linux-arm64", packageDir: "bin-linux-arm64" },
-	"linux-x64": { packageName: "@blazediff/bin-linux-x64", packageDir: "bin-linux-x64" },
-	"win32-arm64": { packageName: "@blazediff/bin-win32-arm64", packageDir: "bin-win32-arm64" },
-	"win32-x64": { packageName: "@blazediff/bin-win32-x64", packageDir: "bin-win32-x64" },
+const PLATFORM_PACKAGES: Record<
+	string,
+	{ packageName: string; packageDir: string }
+> = {
+	"darwin-arm64": {
+		packageName: "@blazediff/bin-darwin-arm64",
+		packageDir: "bin-darwin-arm64",
+	},
+	"darwin-x64": {
+		packageName: "@blazediff/bin-darwin-x64",
+		packageDir: "bin-darwin-x64",
+	},
+	"linux-arm64": {
+		packageName: "@blazediff/bin-linux-arm64",
+		packageDir: "bin-linux-arm64",
+	},
+	"linux-x64": {
+		packageName: "@blazediff/bin-linux-x64",
+		packageDir: "bin-linux-x64",
+	},
+	"win32-arm64": {
+		packageName: "@blazediff/bin-win32-arm64",
+		packageDir: "bin-win32-arm64",
+	},
+	"win32-x64": {
+		packageName: "@blazediff/bin-win32-x64",
+		packageDir: "bin-win32-x64",
+	},
 };
 
 function resolveBinaryPath(): string {
@@ -60,7 +86,9 @@ function resolveBinaryPath(): string {
 	// Try to resolve from installed optional dependency
 	try {
 		const require = createRequire(import.meta.url);
-		const packagePath = require.resolve(`${platformInfo.packageName}/package.json`);
+		const packagePath = require.resolve(
+			`${platformInfo.packageName}/package.json`,
+		);
 		const packageDir = path.dirname(packagePath);
 		const binaryPath = path.join(packageDir, binaryName);
 		if (existsSync(binaryPath)) {
@@ -73,7 +101,11 @@ function resolveBinaryPath(): string {
 	// Fallback for monorepo development: look for sibling package
 	const currentDir = path.dirname(fileURLToPath(import.meta.url));
 	const packagesDir = path.resolve(currentDir, "..", "..");
-	const siblingPath = path.join(packagesDir, platformInfo.packageDir, binaryName);
+	const siblingPath = path.join(
+		packagesDir,
+		platformInfo.packageDir,
+		binaryName,
+	);
 
 	if (existsSync(siblingPath)) {
 		return siblingPath;
@@ -102,11 +134,13 @@ function buildArgs(diffOutput?: string, options?: BlazeDiffOptions): string[] {
 
 	if (!options) return args;
 
-	if (options.threshold !== undefined) args.push(`--threshold=${options.threshold}`);
+	if (options.threshold !== undefined)
+		args.push(`--threshold=${options.threshold}`);
 	if (options.antialiasing) args.push("--antialiasing");
 	if (options.diffMask) args.push("--diff-mask");
 	if (options.failOnLayoutDiff) args.push("--fail-on-layout");
-	if (options.compression !== undefined) args.push(`--compression=${options.compression}`);
+	if (options.compression !== undefined)
+		args.push(`--compression=${options.compression}`);
 
 	return args;
 }
@@ -119,7 +153,11 @@ function parseJsonOutput(text: string): JsonOutput | null {
 	}
 }
 
-function detectMissingFile(error: string, basePath: string, comparePath: string): string | null {
+function detectMissingFile(
+	error: string,
+	basePath: string,
+	comparePath: string,
+): string | null {
 	if (!/Failed to load images:.*(?:No such file|not found)/i.test(error)) {
 		return null;
 	}
@@ -159,7 +197,11 @@ export async function compare(
 		await execFileAsync(binaryPath, args);
 		return { match: true };
 	} catch (err) {
-		const { code, stdout, stderr } = err as { code?: number; stdout?: string; stderr?: string };
+		const { code, stdout, stderr } = err as {
+			code?: number;
+			stdout?: string;
+			stderr?: string;
+		};
 		const output = stdout || stderr || "";
 
 		// Exit code 1: images differ (pixel diff or layout diff)

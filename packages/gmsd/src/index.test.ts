@@ -90,7 +90,9 @@ describe("GMSD - MATLAB Comparison", async () => {
 
 		console.log(`\n1a vs 1b:`);
 		console.log(`  @blazediff/gmsd: ${tsResult.toFixed(6)} (lower = better)`);
-		console.log(`  MATLAB:          ${matlabResult.toFixed(6)} (lower = better)`);
+		console.log(
+			`  MATLAB:          ${matlabResult.toFixed(6)} (lower = better)`,
+		);
 		console.log(
 			`  Diff:            ${difference.toFixed(6)} (${percentDiff.toFixed(2)}%)`,
 		);
@@ -127,7 +129,9 @@ describe("GMSD - MATLAB Comparison", async () => {
 
 		console.log(`\n2a vs 2b:`);
 		console.log(`  @blazediff/gmsd: ${tsResult.toFixed(6)} (lower = better)`);
-		console.log(`  MATLAB:          ${matlabResult.toFixed(6)} (lower = better)`);
+		console.log(
+			`  MATLAB:          ${matlabResult.toFixed(6)} (lower = better)`,
+		);
 		console.log(
 			`  Diff:            ${difference.toFixed(6)} (${percentDiff.toFixed(2)}%)`,
 		);
@@ -166,7 +170,9 @@ describe("GMSD - MATLAB Comparison", async () => {
 
 			console.log(`\n3a vs 3b:`);
 			console.log(`  @blazediff/gmsd: ${tsResult.toFixed(6)} (lower = better)`);
-			console.log(`  MATLAB:          ${matlabResult.toFixed(6)} (lower = better)`);
+			console.log(
+				`  MATLAB:          ${matlabResult.toFixed(6)} (lower = better)`,
+			);
 			console.log(
 				`  Diff:            ${difference.toFixed(6)} (${percentDiff.toFixed(2)}%)`,
 			);
@@ -197,10 +203,10 @@ describe("GMSD - MATLAB Comparison", async () => {
 		const matlabResult = runMatlabGmsd(img1Path, img1Path);
 
 		console.log(`\nIdentical images:`);
+		console.log(`  @blazediff/gmsd: ${tsResult.toFixed(6)} (0.0 = perfect)`);
 		console.log(
-			`  @blazediff/gmsd: ${tsResult.toFixed(6)} (0.0 = perfect)`,
+			`  MATLAB:          ${matlabResult.toFixed(6)} (0.0 = perfect)`,
 		);
-		console.log(`  MATLAB:          ${matlabResult.toFixed(6)} (0.0 = perfect)`);
 
 		// Both implementations: 0 = perfect match
 		expect(tsResult).toBe(0);

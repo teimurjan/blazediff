@@ -103,7 +103,14 @@ export default async function main(): Promise<void> {
 
 		// Run SSIM
 		const startTime = performance.now();
-		const score = ssim(img1.data, img2.data, outputData, img1.width, img1.height, {});
+		const score = ssim(
+			img1.data,
+			img2.data,
+			outputData,
+			img1.width,
+			img1.height,
+			{},
+		);
 		const duration = performance.now() - startTime;
 
 		// Write output if needed

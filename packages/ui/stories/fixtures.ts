@@ -6,4 +6,3 @@ export const FIXTURE_2_A =
 	"https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/packages/benchmark/fixtures/blazediff/2a.png";
 export const FIXTURE_2_B =
 	"https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/packages/benchmark/fixtures/blazediff/2b.png";
-

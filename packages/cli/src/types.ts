@@ -11,11 +11,7 @@ export interface Transformer {
 	write: (image: Image, output: string | Buffer) => Promise<void>;
 }
 
-export type ComparisonMode =
-	| "diff"
-	| "gmsd"
-	| "ssim"
-	| "msssim"
+export type ComparisonMode = "diff" | "gmsd" | "ssim" | "msssim";
 
 export interface DiffModeOptions {
 	outputPath?: string;
@@ -44,7 +40,6 @@ export interface MsssimModeOptions {
 	mode: "msssim";
 	options?: Record<string, unknown>;
 }
-
 
 export interface DiffModeResult {
 	mode: "diff";
@@ -82,9 +77,8 @@ export interface MsssimModeResult {
 	duration: number;
 }
 
-
 export type BlazeDiffBinResult =
 	| DiffModeResult
 	| GmsdModeResult
 	| SsimModeResult
-	| MsssimModeResult
+	| MsssimModeResult;
