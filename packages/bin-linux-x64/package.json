@@ -2,6 +2,7 @@
 	"name": "@blazediff/bin-linux-x64",
 	"version": "3.0.0",
 	"description": "blazediff binary for Linux x64",
+	"main": "blazediff.node",
 	"os": [
 		"linux"
 	],
@@ -12,7 +13,8 @@
 		"blazediff": "./blazediff"
 	},
 	"files": [
-		"blazediff"
+		"blazediff",
+		"blazediff.node"
 	],
 	"private": false,
 	"publishConfig": {

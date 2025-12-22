@@ -4,6 +4,7 @@ packages:
 onlyBuiltDependencies:
   - esbuild
   - sharp
+  - odiff-bin
 
 ignoredOptionalDependencies:
   - "@blazediff/bin-*"

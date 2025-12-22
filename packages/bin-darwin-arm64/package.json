@@ -2,6 +2,7 @@
 	"name": "@blazediff/bin-darwin-arm64",
 	"version": "3.0.0",
 	"description": "blazediff binary for macOS ARM64 (Apple Silicon)",
+	"main": "blazediff.node",
 	"os": [
 		"darwin"
 	],
@@ -12,7 +13,8 @@
 		"blazediff": "./blazediff"
 	},
 	"files": [
-		"blazediff"
+		"blazediff",
+		"blazediff.node"
 	],
 	"private": false,
 	"publishConfig": {

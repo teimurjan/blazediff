@@ -2,6 +2,7 @@
 	"name": "@blazediff/bin-darwin-x64",
 	"version": "3.0.0",
 	"description": "blazediff binary for macOS x64 (Intel)",
+	"main": "blazediff.node",
 	"os": [
 		"darwin"
 	],
@@ -12,7 +13,8 @@
 		"blazediff": "./blazediff"
 	},
 	"files": [
-		"blazediff"
+		"blazediff",
+		"blazediff.node"
 	],
 	"private": false,
 	"publishConfig": {

@@ -6,13 +6,12 @@ Performance benchmarks comparing BlazeDiff ecosystem components against popular 
 
 - [BlazeDiff Benchmarks](#blazediff-benchmarks)
   - [Table of Contents](#table-of-contents)
-  - [Native Binary (`@blazediff/bin` vs `odiff`)](#native-binary-blazediffbin-vs-odiff)
+  - [Native Binary (`@blazediff/bin` vs `odiff`) (image IO included)](#native-binary-blazediffbin-vs-odiff-image-io-included)
   - [Pixel By Pixel](#pixel-by-pixel)
-    - [JavaScript (`@blazediff/core` vs `pixelmatch`)](#javascript-blazediffcore-vs-pixelmatch)
-    - [CLI (`@blazediff/cli` with `@blazediff/sharp-transformer` vs `pixelmatch`)](#cli-blazediffcli-with-blazediffsharp-transformer-vs-pixelmatch)
+    - [JavaScript (`@blazediff/core` vs `pixelmatch`) (image IO excluded)](#javascript-blazediffcore-vs-pixelmatch-image-io-excluded)
   - [SSIM](#ssim)
-    - [Fast Original ( `@blazediff/ssim` using `ssim` vs `ssim.js` using `fast` algorithm)](#fast-original--blazediffssim-using-ssim-vs-ssimjs-using-fast-algorithm)
-    - [Optimized (`@blazediff/ssim` using `hitchhikers-ssim` vs `ssim.js` using `weber` algorithm)](#optimized-blazediffssim-using-hitchhikers-ssim-vs-ssimjs-using-weber-algorithm)
+    - [Fast Original ( `@blazediff/ssim` using `ssim` vs `ssim.js` using `fast` algorithm) (image IO excluded)](#fast-original--blazediffssim-using-ssim-vs-ssimjs-using-fast-algorithm-image-io-excluded)
+    - [Hitchhikers SSIM SSIM (`@blazediff/ssim` using `hitchhikers-ssim` vs `ssim.js` using `weber` algorithm) (image IO excluded)](#hitchhikers-ssim-ssim-blazediffssim-using-hitchhikers-ssim-vs-ssimjs-using-weber-algorithm-image-io-excluded)
   - [Object (`@blazediff/object` vs `microdiff`)](#object-blazediffobject-vs-microdiff)
   - [GitHub Actions](#github-actions)
   - [Test Fixtures](#test-fixtures)
@@ -20,7 +19,7 @@ Performance benchmarks comparing BlazeDiff ecosystem components against popular 
     - [Object Fixtures](#object-fixtures)
   - [Hardware Specifications](#hardware-specifications)
 
-## Native Binary (`@blazediff/bin` vs `odiff`)
+## Native Binary (`@blazediff/bin` vs `odiff`) (image IO included)
 
 *25 runs (5 warmup)*
 
@@ -124,7 +123,7 @@ The native Rust binary with SIMD optimization is the fastest single-threaded ima
 
 ## Pixel By Pixel
 
-### JavaScript (`@blazediff/core` vs `pixelmatch`)
+### JavaScript (`@blazediff/core` vs `pixelmatch`) (image IO excluded)
 
 *50 iterations (5 warmup)*
 
@@ -369,84 +368,9 @@ The native Rust binary with SIMD optimization is the fastest single-threaded ima
 
 *Benchmarks run on MacBook Pro M1 Max, Node.js 22*
 
-### CLI (`@blazediff/cli` with `@blazediff/sharp-transformer` vs `pixelmatch`)
-
-*50 iterations (3 warmup)*
-
-> **~60%** performance improvement on average.
-
-<table>
-  <thead>
-    <tr>
-      <th width="500">
-        Pixelmatch
-      </th>
-      <th width="500">
-        BlazeDiff
-      </th>
-    </tr>
-  </thead>
-</thead>
-<tbody>
-<tr>
-<td>
-
-```
-./node_modules/.bin/pixelmatch ./fixtures/4k/1a.png ./fixtures/4k/1b.png
-  Time (mean ± σ):      1.454 s ±  0.045 s    [User: 1.427 s, System: 0.058 s]
-  Range (min … max):    1.425 s …  1.647 s    25 runs
-
-./node_modules/.bin/pixelmatch ./fixtures/4k/2a.png ./fixtures/4k/2b.png
-  Time (mean ± σ):      1.611 s ±  0.010 s    [User: 1.585 s, System: 0.063 s]
-  Range (min … max):    1.601 s …  1.650 s    25 runs
-
-./node_modules/.bin/pixelmatch ./fixtures/4k/3a.png ./fixtures/4k/3b.png
-  Time (mean ± σ):      1.779 s ±  0.016 s    [User: 1.755 s, System: 0.070 s]
-  Range (min … max):    1.763 s …  1.822 s    25 runs
-
-./node_modules/.bin/pixelmatch ./fixtures/page/1a.png ./fixtures/page/1b.png
-  Time (mean ± σ):      2.144 s ±  0.070 s    [User: 2.045 s, System: 0.166 s]
-  Range (min … max):    2.060 s …  2.336 s    25 runs
-
-./node_modules/.bin/pixelmatch ./fixtures/page/2a.png ./fixtures/page/2b.png
-  Time (mean ± σ):      1.546 s ±  0.034 s    [User: 1.504 s, System: 0.067 s]
-  Range (min … max):    1.502 s …  1.650 s    25 runs
-```
-
-</td>
-<td>
-
-```
-./node_modules/.bin/blazediff-cli ./fixtures/4k/1a.png ./fixtures/4k/1b.png --transformer sharp
-  Time (mean ± σ):     573.2 ms ±  17.1 ms    [User: 760.6 ms, System: 58.3 ms]
-  Range (min … max):   557.2 ms … 628.6 ms    25 runs
-
-./node_modules/.bin/blazediff-cli ./fixtures/4k/2a.png ./fixtures/4k/2b.png --transformer sharp
-  Time (mean ± σ):     647.4 ms ±  23.8 ms    [User: 904.6 ms, System: 66.1 ms]
-  Range (min … max):   628.0 ms … 720.6 ms    25 runs
-
-./node_modules/.bin/blazediff-cli ./fixtures/4k/3a.png ./fixtures/4k/3b.png --transformer sharp
-  Time (mean ± σ):     714.3 ms ±  17.2 ms    [User: 985.0 ms, System: 69.7 ms]
-  Range (min … max):   701.3 ms … 778.8 ms    25 runs
-
-./node_modules/.bin/blazediff-cli ./fixtures/page/1a.png ./fixtures/page/1b.png --transformer sharp
-  Time (mean ± σ):     519.2 ms ±  25.5 ms    [User: 750.5 ms, System: 108.8 ms]
-  Range (min … max):   489.1 ms … 570.9 ms    25 runs
-
-./node_modules/.bin/blazediff-cli ./fixtures/page/2a.png ./fixtures/page/2b.png --transformer sharp
-  Time (mean ± σ):     540.9 ms ±  14.1 ms    [User: 600.7 ms, System: 89.2 ms]
-  Range (min … max):   525.3 ms … 593.2 ms    25 runs
-```
-
-</td>
-</tbody>
-</table>
-
-*Benchmarks run on MacBook Pro M1 Max, Node.js 22*
-
 ## SSIM
 
-### Fast Original ( `@blazediff/ssim` using `ssim` vs `ssim.js` using `fast` algorithm)
+### Fast Original ( `@blazediff/ssim` using `ssim` vs `ssim.js` using `fast` algorithm) (image IO excluded)
 
 *25 iterations (3 warmup)*
 
@@ -606,7 +530,7 @@ The native Rust binary with SIMD optimization is the fastest single-threaded ima
   </tbody>
 </table>
 
-### Optimized (`@blazediff/ssim` using `hitchhikers-ssim` vs `ssim.js` using `weber` algorithm)
+### Hitchhikers SSIM SSIM (`@blazediff/ssim` using `hitchhikers-ssim` vs `ssim.js` using `weber` algorithm) (image IO excluded)
 
 *25 iterations (3 warmup)*
 

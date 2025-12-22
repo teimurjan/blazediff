@@ -12,13 +12,6 @@ pub struct __sbuf {
     pub _base: *mut ::std::os::raw::c_uchar,
     pub _size: ::std::os::raw::c_int,
 }
-#[allow(clippy::unnecessary_operation, clippy::identity_op)]
-const _: () = {
-    ["Size of __sbuf"][::std::mem::size_of::<__sbuf>() - 16usize];
-    ["Alignment of __sbuf"][::std::mem::align_of::<__sbuf>() - 8usize];
-    ["Offset of field: __sbuf::_base"][::std::mem::offset_of!(__sbuf, _base) - 0usize];
-    ["Offset of field: __sbuf::_size"][::std::mem::offset_of!(__sbuf, _size) - 8usize];
-};
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct __sFILEX {
@@ -68,31 +61,6 @@ pub struct __sFILE {
     pub _blksize: ::std::os::raw::c_int,
     pub _offset: fpos_t,
 }
-#[allow(clippy::unnecessary_operation, clippy::identity_op)]
-const _: () = {
-    ["Size of __sFILE"][::std::mem::size_of::<__sFILE>() - 152usize];
-    ["Alignment of __sFILE"][::std::mem::align_of::<__sFILE>() - 8usize];
-    ["Offset of field: __sFILE::_p"][::std::mem::offset_of!(__sFILE, _p) - 0usize];
-    ["Offset of field: __sFILE::_r"][::std::mem::offset_of!(__sFILE, _r) - 8usize];
-    ["Offset of field: __sFILE::_w"][::std::mem::offset_of!(__sFILE, _w) - 12usize];
-    ["Offset of field: __sFILE::_flags"][::std::mem::offset_of!(__sFILE, _flags) - 16usize];
-    ["Offset of field: __sFILE::_file"][::std::mem::offset_of!(__sFILE, _file) - 18usize];
-    ["Offset of field: __sFILE::_bf"][::std::mem::offset_of!(__sFILE, _bf) - 24usize];
-    ["Offset of field: __sFILE::_lbfsize"][::std::mem::offset_of!(__sFILE, _lbfsize) - 40usize];
-    ["Offset of field: __sFILE::_cookie"][::std::mem::offset_of!(__sFILE, _cookie) - 48usize];
-    ["Offset of field: __sFILE::_close"][::std::mem::offset_of!(__sFILE, _close) - 56usize];
-    ["Offset of field: __sFILE::_read"][::std::mem::offset_of!(__sFILE, _read) - 64usize];
-    ["Offset of field: __sFILE::_seek"][::std::mem::offset_of!(__sFILE, _seek) - 72usize];
-    ["Offset of field: __sFILE::_write"][::std::mem::offset_of!(__sFILE, _write) - 80usize];
-    ["Offset of field: __sFILE::_ub"][::std::mem::offset_of!(__sFILE, _ub) - 88usize];
-    ["Offset of field: __sFILE::_extra"][::std::mem::offset_of!(__sFILE, _extra) - 104usize];
-    ["Offset of field: __sFILE::_ur"][::std::mem::offset_of!(__sFILE, _ur) - 112usize];
-    ["Offset of field: __sFILE::_ubuf"][::std::mem::offset_of!(__sFILE, _ubuf) - 116usize];
-    ["Offset of field: __sFILE::_nbuf"][::std::mem::offset_of!(__sFILE, _nbuf) - 119usize];
-    ["Offset of field: __sFILE::_lb"][::std::mem::offset_of!(__sFILE, _lb) - 120usize];
-    ["Offset of field: __sFILE::_blksize"][::std::mem::offset_of!(__sFILE, _blksize) - 136usize];
-    ["Offset of field: __sFILE::_offset"][::std::mem::offset_of!(__sFILE, _offset) - 144usize];
-};
 pub type FILE = __sFILE;
 pub const spng_errno_SPNG_IO_ERROR: spng_errno = -2;
 pub const spng_errno_SPNG_IO_EOF: spng_errno = -1;
@@ -247,23 +215,6 @@ pub struct spng_ihdr {
     pub filter_method: u8,
     pub interlace_method: u8,
 }
-#[allow(clippy::unnecessary_operation, clippy::identity_op)]
-const _: () = {
-    ["Size of spng_ihdr"][::std::mem::size_of::<spng_ihdr>() - 16usize];
-    ["Alignment of spng_ihdr"][::std::mem::align_of::<spng_ihdr>() - 4usize];
-    ["Offset of field: spng_ihdr::width"][::std::mem::offset_of!(spng_ihdr, width) - 0usize];
-    ["Offset of field: spng_ihdr::height"][::std::mem::offset_of!(spng_ihdr, height) - 4usize];
-    ["Offset of field: spng_ihdr::bit_depth"]
-        [::std::mem::offset_of!(spng_ihdr, bit_depth) - 8usize];
-    ["Offset of field: spng_ihdr::color_type"]
-        [::std::mem::offset_of!(spng_ihdr, color_type) - 9usize];
-    ["Offset of field: spng_ihdr::compression_method"]
-        [::std::mem::offset_of!(spng_ihdr, compression_method) - 10usize];
-    ["Offset of field: spng_ihdr::filter_method"]
-        [::std::mem::offset_of!(spng_ihdr, filter_method) - 11usize];
-    ["Offset of field: spng_ihdr::interlace_method"]
-        [::std::mem::offset_of!(spng_ihdr, interlace_method) - 12usize];
-};
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct spng_plte_entry {
@@ -272,33 +223,12 @@ pub struct spng_plte_entry {
     pub blue: u8,
     pub alpha: u8,
 }
-#[allow(clippy::unnecessary_operation, clippy::identity_op)]
-const _: () = {
-    ["Size of spng_plte_entry"][::std::mem::size_of::<spng_plte_entry>() - 4usize];
-    ["Alignment of spng_plte_entry"][::std::mem::align_of::<spng_plte_entry>() - 1usize];
-    ["Offset of field: spng_plte_entry::red"]
-        [::std::mem::offset_of!(spng_plte_entry, red) - 0usize];
-    ["Offset of field: spng_plte_entry::green"]
-        [::std::mem::offset_of!(spng_plte_entry, green) - 1usize];
-    ["Offset of field: spng_plte_entry::blue"]
-        [::std::mem::offset_of!(spng_plte_entry, blue) - 2usize];
-    ["Offset of field: spng_plte_entry::alpha"]
-        [::std::mem::offset_of!(spng_plte_entry, alpha) - 3usize];
-};
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct spng_plte {
     pub n_entries: u32,
     pub entries: [spng_plte_entry; 256usize],
 }
-#[allow(clippy::unnecessary_operation, clippy::identity_op)]
-const _: () = {
-    ["Size of spng_plte"][::std::mem::size_of::<spng_plte>() - 1028usize];
-    ["Alignment of spng_plte"][::std::mem::align_of::<spng_plte>() - 4usize];
-    ["Offset of field: spng_plte::n_entries"]
-        [::std::mem::offset_of!(spng_plte, n_entries) - 0usize];
-    ["Offset of field: spng_plte::entries"][::std::mem::offset_of!(spng_plte, entries) - 4usize];
-};
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct spng_trns {
@@ -309,19 +239,6 @@ pub struct spng_trns {
     pub n_type3_entries: u32,
     pub type3_alpha: [u8; 256usize],
 }
-#[allow(clippy::unnecessary_operation, clippy::identity_op)]
-const _: () = {
-    ["Size of spng_trns"][::std::mem::size_of::<spng_trns>() - 268usize];
-    ["Alignment of spng_trns"][::std::mem::align_of::<spng_trns>() - 4usize];
-    ["Offset of field: spng_trns::gray"][::std::mem::offset_of!(spng_trns, gray) - 0usize];
-    ["Offset of field: spng_trns::red"][::std::mem::offset_of!(spng_trns, red) - 2usize];
-    ["Offset of field: spng_trns::green"][::std::mem::offset_of!(spng_trns, green) - 4usize];
-    ["Offset of field: spng_trns::blue"][::std::mem::offset_of!(spng_trns, blue) - 6usize];
-    ["Offset of field: spng_trns::n_type3_entries"]
-        [::std::mem::offset_of!(spng_trns, n_type3_entries) - 8usize];
-    ["Offset of field: spng_trns::type3_alpha"]
-        [::std::mem::offset_of!(spng_trns, type3_alpha) - 12usize];
-};
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct spng_chrm_int {
@@ -334,27 +251,6 @@ pub struct spng_chrm_int {
     pub blue_x: u32,
     pub blue_y: u32,
 }
-#[allow(clippy::unnecessary_operation, clippy::identity_op)]
-const _: () = {
-    ["Size of spng_chrm_int"][::std::mem::size_of::<spng_chrm_int>() - 32usize];
-    ["Alignment of spng_chrm_int"][::std::mem::align_of::<spng_chrm_int>() - 4usize];
-    ["Offset of field: spng_chrm_int::white_point_x"]
-        [::std::mem::offset_of!(spng_chrm_int, white_point_x) - 0usize];
-    ["Offset of field: spng_chrm_int::white_point_y"]
-        [::std::mem::offset_of!(spng_chrm_int, white_point_y) - 4usize];
-    ["Offset of field: spng_chrm_int::red_x"]
-        [::std::mem::offset_of!(spng_chrm_int, red_x) - 8usize];
-    ["Offset of field: spng_chrm_int::red_y"]
-        [::std::mem::offset_of!(spng_chrm_int, red_y) - 12usize];
-    ["Offset of field: spng_chrm_int::green_x"]
-        [::std::mem::offset_of!(spng_chrm_int, green_x) - 16usize];
-    ["Offset of field: spng_chrm_int::green_y"]
-        [::std::mem::offset_of!(spng_chrm_int, green_y) - 20usize];
-    ["Offset of field: spng_chrm_int::blue_x"]
-        [::std::mem::offset_of!(spng_chrm_int, blue_x) - 24usize];
-    ["Offset of field: spng_chrm_int::blue_y"]
-        [::std::mem::offset_of!(spng_chrm_int, blue_y) - 28usize];
-};
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct spng_chrm {
@@ -367,21 +263,6 @@ pub struct spng_chrm {
     pub blue_x: f64,
     pub blue_y: f64,
 }
-#[allow(clippy::unnecessary_operation, clippy::identity_op)]
-const _: () = {
-    ["Size of spng_chrm"][::std::mem::size_of::<spng_chrm>() - 64usize];
-    ["Alignment of spng_chrm"][::std::mem::align_of::<spng_chrm>() - 8usize];
-    ["Offset of field: spng_chrm::white_point_x"]
-        [::std::mem::offset_of!(spng_chrm, white_point_x) - 0usize];
-    ["Offset of field: spng_chrm::white_point_y"]
-        [::std::mem::offset_of!(spng_chrm, white_point_y) - 8usize];
-    ["Offset of field: spng_chrm::red_x"][::std::mem::offset_of!(spng_chrm, red_x) - 16usize];
-    ["Offset of field: spng_chrm::red_y"][::std::mem::offset_of!(spng_chrm, red_y) - 24usize];
-    ["Offset of field: spng_chrm::green_x"][::std::mem::offset_of!(spng_chrm, green_x) - 32usize];
-    ["Offset of field: spng_chrm::green_y"][::std::mem::offset_of!(spng_chrm, green_y) - 40usize];
-    ["Offset of field: spng_chrm::blue_x"][::std::mem::offset_of!(spng_chrm, blue_x) - 48usize];
-    ["Offset of field: spng_chrm::blue_y"][::std::mem::offset_of!(spng_chrm, blue_y) - 56usize];
-};
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct spng_iccp {
@@ -389,16 +270,6 @@ pub struct spng_iccp {
     pub profile_len: usize,
     pub profile: *mut ::std::os::raw::c_char,
 }
-#[allow(clippy::unnecessary_operation, clippy::identity_op)]
-const _: () = {
-    ["Size of spng_iccp"][::std::mem::size_of::<spng_iccp>() - 96usize];
-    ["Alignment of spng_iccp"][::std::mem::align_of::<spng_iccp>() - 8usize];
-    ["Offset of field: spng_iccp::profile_name"]
-        [::std::mem::offset_of!(spng_iccp, profile_name) - 0usize];
-    ["Offset of field: spng_iccp::profile_len"]
-        [::std::mem::offset_of!(spng_iccp, profile_len) - 80usize];
-    ["Offset of field: spng_iccp::profile"][::std::mem::offset_of!(spng_iccp, profile) - 88usize];
-};
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct spng_sbit {
@@ -408,20 +279,6 @@ pub struct spng_sbit {
     pub blue_bits: u8,
     pub alpha_bits: u8,
 }
-#[allow(clippy::unnecessary_operation, clippy::identity_op)]
-const _: () = {
-    ["Size of spng_sbit"][::std::mem::size_of::<spng_sbit>() - 5usize];
-    ["Alignment of spng_sbit"][::std::mem::align_of::<spng_sbit>() - 1usize];
-    ["Offset of field: spng_sbit::grayscale_bits"]
-        [::std::mem::offset_of!(spng_sbit, grayscale_bits) - 0usize];
-    ["Offset of field: spng_sbit::red_bits"][::std::mem::offset_of!(spng_sbit, red_bits) - 1usize];
-    ["Offset of field: spng_sbit::green_bits"]
-        [::std::mem::offset_of!(spng_sbit, green_bits) - 2usize];
-    ["Offset of field: spng_sbit::blue_bits"]
-        [::std::mem::offset_of!(spng_sbit, blue_bits) - 3usize];
-    ["Offset of field: spng_sbit::alpha_bits"]
-        [::std::mem::offset_of!(spng_sbit, alpha_bits) - 4usize];
-};
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct spng_text {
@@ -434,23 +291,6 @@ pub struct spng_text {
     pub language_tag: *mut ::std::os::raw::c_char,
     pub translated_keyword: *mut ::std::os::raw::c_char,
 }
-#[allow(clippy::unnecessary_operation, clippy::identity_op)]
-const _: () = {
-    ["Size of spng_text"][::std::mem::size_of::<spng_text>() - 128usize];
-    ["Alignment of spng_text"][::std::mem::align_of::<spng_text>() - 8usize];
-    ["Offset of field: spng_text::keyword"][::std::mem::offset_of!(spng_text, keyword) - 0usize];
-    ["Offset of field: spng_text::type_"][::std::mem::offset_of!(spng_text, type_) - 80usize];
-    ["Offset of field: spng_text::length"][::std::mem::offset_of!(spng_text, length) - 88usize];
-    ["Offset of field: spng_text::text"][::std::mem::offset_of!(spng_text, text) - 96usize];
-    ["Offset of field: spng_text::compression_flag"]
-        [::std::mem::offset_of!(spng_text, compression_flag) - 104usize];
-    ["Offset of field: spng_text::compression_method"]
-        [::std::mem::offset_of!(spng_text, compression_method) - 105usize];
-    ["Offset of field: spng_text::language_tag"]
-        [::std::mem::offset_of!(spng_text, language_tag) - 112usize];
-    ["Offset of field: spng_text::translated_keyword"]
-        [::std::mem::offset_of!(spng_text, translated_keyword) - 120usize];
-};
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct spng_bkgd {
@@ -460,29 +300,11 @@ pub struct spng_bkgd {
     pub blue: u16,
     pub plte_index: u16,
 }
-#[allow(clippy::unnecessary_operation, clippy::identity_op)]
-const _: () = {
-    ["Size of spng_bkgd"][::std::mem::size_of::<spng_bkgd>() - 10usize];
-    ["Alignment of spng_bkgd"][::std::mem::align_of::<spng_bkgd>() - 2usize];
-    ["Offset of field: spng_bkgd::gray"][::std::mem::offset_of!(spng_bkgd, gray) - 0usize];
-    ["Offset of field: spng_bkgd::red"][::std::mem::offset_of!(spng_bkgd, red) - 2usize];
-    ["Offset of field: spng_bkgd::green"][::std::mem::offset_of!(spng_bkgd, green) - 4usize];
-    ["Offset of field: spng_bkgd::blue"][::std::mem::offset_of!(spng_bkgd, blue) - 6usize];
-    ["Offset of field: spng_bkgd::plte_index"]
-        [::std::mem::offset_of!(spng_bkgd, plte_index) - 8usize];
-};
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct spng_hist {
     pub frequency: [u16; 256usize],
 }
-#[allow(clippy::unnecessary_operation, clippy::identity_op)]
-const _: () = {
-    ["Size of spng_hist"][::std::mem::size_of::<spng_hist>() - 512usize];
-    ["Alignment of spng_hist"][::std::mem::align_of::<spng_hist>() - 2usize];
-    ["Offset of field: spng_hist::frequency"]
-        [::std::mem::offset_of!(spng_hist, frequency) - 0usize];
-};
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct spng_phys {
@@ -490,15 +312,6 @@ pub struct spng_phys {
     pub ppu_y: u32,
     pub unit_specifier: u8,
 }
-#[allow(clippy::unnecessary_operation, clippy::identity_op)]
-const _: () = {
-    ["Size of spng_phys"][::std::mem::size_of::<spng_phys>() - 12usize];
-    ["Alignment of spng_phys"][::std::mem::align_of::<spng_phys>() - 4usize];
-    ["Offset of field: spng_phys::ppu_x"][::std::mem::offset_of!(spng_phys, ppu_x) - 0usize];
-    ["Offset of field: spng_phys::ppu_y"][::std::mem::offset_of!(spng_phys, ppu_y) - 4usize];
-    ["Offset of field: spng_phys::unit_specifier"]
-        [::std::mem::offset_of!(spng_phys, unit_specifier) - 8usize];
-};
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct spng_splt_entry {
@@ -508,21 +321,6 @@ pub struct spng_splt_entry {
     pub alpha: u16,
     pub frequency: u16,
 }
-#[allow(clippy::unnecessary_operation, clippy::identity_op)]
-const _: () = {
-    ["Size of spng_splt_entry"][::std::mem::size_of::<spng_splt_entry>() - 10usize];
-    ["Alignment of spng_splt_entry"][::std::mem::align_of::<spng_splt_entry>() - 2usize];
-    ["Offset of field: spng_splt_entry::red"]
-        [::std::mem::offset_of!(spng_splt_entry, red) - 0usize];
-    ["Offset of field: spng_splt_entry::green"]
-        [::std::mem::offset_of!(spng_splt_entry, green) - 2usize];
-    ["Offset of field: spng_splt_entry::blue"]
-        [::std::mem::offset_of!(spng_splt_entry, blue) - 4usize];
-    ["Offset of field: spng_splt_entry::alpha"]
-        [::std::mem::offset_of!(spng_splt_entry, alpha) - 6usize];
-    ["Offset of field: spng_splt_entry::frequency"]
-        [::std::mem::offset_of!(spng_splt_entry, frequency) - 8usize];
-};
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct spng_splt {
@@ -531,17 +329,6 @@ pub struct spng_splt {
     pub n_entries: u32,
     pub entries: *mut spng_splt_entry,
 }
-#[allow(clippy::unnecessary_operation, clippy::identity_op)]
-const _: () = {
-    ["Size of spng_splt"][::std::mem::size_of::<spng_splt>() - 96usize];
-    ["Alignment of spng_splt"][::std::mem::align_of::<spng_splt>() - 8usize];
-    ["Offset of field: spng_splt::name"][::std::mem::offset_of!(spng_splt, name) - 0usize];
-    ["Offset of field: spng_splt::sample_depth"]
-        [::std::mem::offset_of!(spng_splt, sample_depth) - 80usize];
-    ["Offset of field: spng_splt::n_entries"]
-        [::std::mem::offset_of!(spng_splt, n_entries) - 84usize];
-    ["Offset of field: spng_splt::entries"][::std::mem::offset_of!(spng_splt, entries) - 88usize];
-};
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct spng_time {
@@ -552,17 +339,6 @@ pub struct spng_time {
     pub minute: u8,
     pub second: u8,
 }
-#[allow(clippy::unnecessary_operation, clippy::identity_op)]
-const _: () = {
-    ["Size of spng_time"][::std::mem::size_of::<spng_time>() - 8usize];
-    ["Alignment of spng_time"][::std::mem::align_of::<spng_time>() - 2usize];
-    ["Offset of field: spng_time::year"][::std::mem::offset_of!(spng_time, year) - 0usize];
-    ["Offset of field: spng_time::month"][::std::mem::offset_of!(spng_time, month) - 2usize];
-    ["Offset of field: spng_time::day"][::std::mem::offset_of!(spng_time, day) - 3usize];
-    ["Offset of field: spng_time::hour"][::std::mem::offset_of!(spng_time, hour) - 4usize];
-    ["Offset of field: spng_time::minute"][::std::mem::offset_of!(spng_time, minute) - 5usize];
-    ["Offset of field: spng_time::second"][::std::mem::offset_of!(spng_time, second) - 6usize];
-};
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct spng_offs {
@@ -570,28 +346,12 @@ pub struct spng_offs {
     pub y: i32,
     pub unit_specifier: u8,
 }
-#[allow(clippy::unnecessary_operation, clippy::identity_op)]
-const _: () = {
-    ["Size of spng_offs"][::std::mem::size_of::<spng_offs>() - 12usize];
-    ["Alignment of spng_offs"][::std::mem::align_of::<spng_offs>() - 4usize];
-    ["Offset of field: spng_offs::x"][::std::mem::offset_of!(spng_offs, x) - 0usize];
-    ["Offset of field: spng_offs::y"][::std::mem::offset_of!(spng_offs, y) - 4usize];
-    ["Offset of field: spng_offs::unit_specifier"]
-        [::std::mem::offset_of!(spng_offs, unit_specifier) - 8usize];
-};
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct spng_exif {
     pub length: usize,
     pub data: *mut ::std::os::raw::c_char,
 }
-#[allow(clippy::unnecessary_operation, clippy::identity_op)]
-const _: () = {
-    ["Size of spng_exif"][::std::mem::size_of::<spng_exif>() - 16usize];
-    ["Alignment of spng_exif"][::std::mem::align_of::<spng_exif>() - 8usize];
-    ["Offset of field: spng_exif::length"][::std::mem::offset_of!(spng_exif, length) - 0usize];
-    ["Offset of field: spng_exif::data"][::std::mem::offset_of!(spng_exif, data) - 8usize];
-};
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct spng_chunk {
@@ -600,15 +360,6 @@ pub struct spng_chunk {
     pub type_: [u8; 4usize],
     pub crc: u32,
 }
-#[allow(clippy::unnecessary_operation, clippy::identity_op)]
-const _: () = {
-    ["Size of spng_chunk"][::std::mem::size_of::<spng_chunk>() - 24usize];
-    ["Alignment of spng_chunk"][::std::mem::align_of::<spng_chunk>() - 8usize];
-    ["Offset of field: spng_chunk::offset"][::std::mem::offset_of!(spng_chunk, offset) - 0usize];
-    ["Offset of field: spng_chunk::length"][::std::mem::offset_of!(spng_chunk, length) - 8usize];
-    ["Offset of field: spng_chunk::type_"][::std::mem::offset_of!(spng_chunk, type_) - 12usize];
-    ["Offset of field: spng_chunk::crc"][::std::mem::offset_of!(spng_chunk, crc) - 16usize];
-};
 pub const spng_location_SPNG_AFTER_IHDR: spng_location = 1;
 pub const spng_location_SPNG_AFTER_PLTE: spng_location = 2;
 pub const spng_location_SPNG_AFTER_IDAT: spng_location = 8;
@@ -621,19 +372,6 @@ pub struct spng_unknown_chunk {
     pub data: *mut ::std::os::raw::c_void,
     pub location: spng_location,
 }
-#[allow(clippy::unnecessary_operation, clippy::identity_op)]
-const _: () = {
-    ["Size of spng_unknown_chunk"][::std::mem::size_of::<spng_unknown_chunk>() - 32usize];
-    ["Alignment of spng_unknown_chunk"][::std::mem::align_of::<spng_unknown_chunk>() - 8usize];
-    ["Offset of field: spng_unknown_chunk::type_"]
-        [::std::mem::offset_of!(spng_unknown_chunk, type_) - 0usize];
-    ["Offset of field: spng_unknown_chunk::length"]
-        [::std::mem::offset_of!(spng_unknown_chunk, length) - 8usize];
-    ["Offset of field: spng_unknown_chunk::data"]
-        [::std::mem::offset_of!(spng_unknown_chunk, data) - 16usize];
-    ["Offset of field: spng_unknown_chunk::location"]
-        [::std::mem::offset_of!(spng_unknown_chunk, location) - 24usize];
-};
 pub const spng_option_SPNG_KEEP_UNKNOWN_CHUNKS: spng_option = 1;
 pub const spng_option_SPNG_IMG_COMPRESSION_LEVEL: spng_option = 2;
 pub const spng_option_SPNG_IMG_WINDOW_BITS: spng_option = 3;
@@ -668,18 +406,6 @@ pub struct spng_alloc {
     pub calloc_fn: spng_calloc_fn,
     pub free_fn: spng_free_fn,
 }
-#[allow(clippy::unnecessary_operation, clippy::identity_op)]
-const _: () = {
-    ["Size of spng_alloc"][::std::mem::size_of::<spng_alloc>() - 32usize];
-    ["Alignment of spng_alloc"][::std::mem::align_of::<spng_alloc>() - 8usize];
-    ["Offset of field: spng_alloc::malloc_fn"]
-        [::std::mem::offset_of!(spng_alloc, malloc_fn) - 0usize];
-    ["Offset of field: spng_alloc::realloc_fn"]
-        [::std::mem::offset_of!(spng_alloc, realloc_fn) - 8usize];
-    ["Offset of field: spng_alloc::calloc_fn"]
-        [::std::mem::offset_of!(spng_alloc, calloc_fn) - 16usize];
-    ["Offset of field: spng_alloc::free_fn"][::std::mem::offset_of!(spng_alloc, free_fn) - 24usize];
-};
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct spng_row_info {
@@ -688,18 +414,6 @@ pub struct spng_row_info {
     pub pass: ::std::os::raw::c_int,
     pub filter: u8,
 }
-#[allow(clippy::unnecessary_operation, clippy::identity_op)]
-const _: () = {
-    ["Size of spng_row_info"][::std::mem::size_of::<spng_row_info>() - 16usize];
-    ["Alignment of spng_row_info"][::std::mem::align_of::<spng_row_info>() - 4usize];
-    ["Offset of field: spng_row_info::scanline_idx"]
-        [::std::mem::offset_of!(spng_row_info, scanline_idx) - 0usize];
-    ["Offset of field: spng_row_info::row_num"]
-        [::std::mem::offset_of!(spng_row_info, row_num) - 4usize];
-    ["Offset of field: spng_row_info::pass"][::std::mem::offset_of!(spng_row_info, pass) - 8usize];
-    ["Offset of field: spng_row_info::filter"]
-        [::std::mem::offset_of!(spng_row_info, filter) - 12usize];
-};
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct spng_ctx {

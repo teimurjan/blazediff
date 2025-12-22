@@ -1,0 +1,9 @@
+[submodule "rust/vendor/libjpeg-turbo"]
+	path = rust/vendor/libjpeg-turbo
+	url = https://github.com/libjpeg-turbo/libjpeg-turbo
+[submodule "rust/vendor/libspng"]
+	path = rust/vendor/libspng
+	url = git@github.com:randy408/libspng.git
+[submodule "rust/vendor/miniz"]
+	path = rust/vendor/miniz
+	url = https://github.com/richgel999/miniz.git

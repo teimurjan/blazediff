@@ -2,6 +2,7 @@
 	"name": "@blazediff/bin-win32-arm64",
 	"version": "3.0.0",
 	"description": "blazediff binary for Windows ARM64",
+	"main": "blazediff.node",
 	"os": [
 		"win32"
 	],
@@ -12,7 +13,8 @@
 		"blazediff": "./blazediff.exe"
 	},
 	"files": [
-		"blazediff.exe"
+		"blazediff.exe",
+		"blazediff.node"
 	],
 	"private": false,
 	"publishConfig": {
