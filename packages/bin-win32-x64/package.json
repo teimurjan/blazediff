@@ -1,6 +1,6 @@
 {
 	"name": "@blazediff/bin-win32-x64",
-	"version": "2.1.0",
+	"version": "3.0.0",
 	"description": "blazediff binary for Windows x64",
 	"os": [
 		"win32"
