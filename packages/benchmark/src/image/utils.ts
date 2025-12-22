@@ -135,10 +135,7 @@ export const getStructureBenchmarkImagePairs = (): Array<ImagePair> => {
 	const blazediffImagePairs = shuffleArray(
 		getImagePairs(join(__dirname, "../../../fixtures"), "blazediff"),
 	);
-	const pairs = [
-		...pixelmatchImagePairs,
-		...blazediffImagePairs,
-	];
+	const pairs = [...pixelmatchImagePairs, ...blazediffImagePairs];
 
 	// Identical have equal metadata, while same pairs are visually identical
 	const identicalPairs: ImagePair[] = [];

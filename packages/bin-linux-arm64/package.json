@@ -2,12 +2,18 @@
 	"name": "@blazediff/bin-linux-arm64",
 	"version": "2.1.0",
 	"description": "blazediff binary for Linux ARM64",
-	"os": ["linux"],
-	"cpu": ["arm64"],
+	"os": [
+		"linux"
+	],
+	"cpu": [
+		"arm64"
+	],
 	"bin": {
 		"blazediff": "./blazediff"
 	},
-	"files": ["blazediff"],
+	"files": [
+		"blazediff"
+	],
 	"private": false,
 	"publishConfig": {
 		"access": "public"

@@ -4,3 +4,6 @@ packages:
 onlyBuiltDependencies:
   - esbuild
   - sharp
+
+ignoredOptionalDependencies:
+  - "@biomejs/cli*-"

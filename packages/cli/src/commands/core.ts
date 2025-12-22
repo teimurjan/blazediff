@@ -232,8 +232,7 @@ export default async function main(): Promise<void> {
 		console.log(`different pixels: ${result.diffCount}`);
 		console.log(
 			`error: ${(
-				(result.diffCount / (result.width * result.height)) *
-				100
+				(result.diffCount / (result.width * result.height)) * 100
 			).toFixed(2)}%`,
 		);
 

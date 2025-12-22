@@ -41,13 +41,7 @@ function compareAndPrint({ fileA, fileB, nameA, nameB, precision = 2 }) {
 	const savedTotal = aTotal - bTotal;
 	const pctTotal = aTotal ? (savedTotal / aTotal) * 100 : 0;
 
-	const head = [
-		"Benchmark",
-		nameA,
-		nameB,
-		"Time Saved",
-		"% Improvement",
-	];
+	const head = ["Benchmark", nameA, nameB, "Time Saved", "% Improvement"];
 
 	const padColumns = (row, widths) => {
 		return row.map((cell, i) => cell.padEnd(widths[i])).join(" | ");

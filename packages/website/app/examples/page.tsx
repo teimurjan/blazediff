@@ -1,5 +1,5 @@
-import { redirect } from 'next/navigation';
+import { redirect } from "next/navigation";
 
 export default function ExamplesPage() {
-  redirect('/examples/image-comparison');
+	redirect("/examples/image-comparison");
 }

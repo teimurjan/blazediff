@@ -41,7 +41,14 @@ async function main(): Promise<void> {
 	const command = args[0];
 
 	// Check if first arg is a command or a file path
-	const validCommands = ["bin", "core", "gmsd", "ssim", "msssim", "hitchhikers-ssim"];
+	const validCommands = [
+		"bin",
+		"core",
+		"gmsd",
+		"ssim",
+		"msssim",
+		"hitchhikers-ssim",
+	];
 	const isCommand = validCommands.includes(command);
 
 	// Show main help only if help flag is passed without a command

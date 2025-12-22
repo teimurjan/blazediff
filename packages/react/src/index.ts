@@ -1,4 +1,3 @@
-
 export { DifferenceMode } from "./DifferenceMode";
 export { OnionSkinMode } from "./OnionSkinMode";
 export { SwipeMode } from "./SwipeMode";

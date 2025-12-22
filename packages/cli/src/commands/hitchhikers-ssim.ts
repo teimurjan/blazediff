@@ -120,7 +120,9 @@ export default async function main(): Promise<void> {
 			}
 		}
 
-		const transformer = await getTransformer(options.transformer as string | undefined);
+		const transformer = await getTransformer(
+			options.transformer as string | undefined,
+		);
 
 		// Load images
 		const [img1, img2] = await Promise.all([
@@ -159,7 +161,14 @@ export default async function main(): Promise<void> {
 
 		// Run Hitchhiker's SSIM
 		const startTime = performance.now();
-		const score = hitchhikersSSIM(img1.data, img2.data, outputData, img1.width, img1.height, ssimOptions);
+		const score = hitchhikersSSIM(
+			img1.data,
+			img2.data,
+			outputData,
+			img1.width,
+			img1.height,
+			ssimOptions,
+		);
 		const duration = performance.now() - startTime;
 
 		// Write output if needed
@@ -186,7 +195,9 @@ export default async function main(): Promise<void> {
 
 		console.log(`completed in: ${result.duration.toFixed(2)}ms`);
 		console.log(`dimensions: ${result.width}x${result.height}`);
-		console.log(`window: ${result.windowSize}x${result.windowSize} (stride: ${result.windowStride})`);
+		console.log(
+			`window: ${result.windowSize}x${result.windowSize} (stride: ${result.windowStride})`,
+		);
 		console.log(`pooling: ${result.poolingMethod}`);
 		console.log(
 			`Hitchhiker's SSIM score: ${result.score.toFixed(6)} (0=different, 1=identical)`,
