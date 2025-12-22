@@ -19,6 +19,8 @@ export interface BlazeDiffOptions {
 	failOnLayoutDiff?: boolean;
 	/** PNG compression level (0-9, 0=fastest/largest, 9=slowest/smallest) */
 	compression?: number;
+	/** JPEG quality (1-100). Default: 90 */
+	quality?: number;
 }
 
 export type BlazeDiffResult =
@@ -37,6 +39,34 @@ interface JsonOutput {
 	diffPercentage: number;
 	identical: boolean;
 	error?: string;
+}
+
+/** N-API binding result structure */
+interface NapiDiffResult {
+	matchResult: boolean;
+	reason: string | null;
+	diffCount: number | null;
+	diffPercentage: number | null;
+}
+
+/** N-API binding options structure */
+interface NapiDiffOptions {
+	threshold?: number;
+	antialiasing?: boolean;
+	diffMask?: boolean;
+	failOnLayout?: boolean;
+	compression?: number;
+	quality?: number;
+}
+
+/** Native binding interface */
+interface NativeBinding {
+	compare(
+		basePath: string,
+		comparePath: string,
+		diffOutput: string | null,
+		options: NapiDiffOptions | null,
+	): NapiDiffResult;
 }
 
 const PLATFORM_PACKAGES: Record<
@@ -68,6 +98,109 @@ const PLATFORM_PACKAGES: Record<
 		packageDir: "bin-win32-x64",
 	},
 };
+
+// Cache for native binding
+let nativeBinding: NativeBinding | null = null;
+let nativeBindingAttempted = false;
+
+/**
+ * Try to load the native N-API binding for better performance.
+ * Returns null if loading fails (fallback to execFile will be used).
+ */
+function tryLoadNativeBinding(): NativeBinding | null {
+	if (nativeBindingAttempted) {
+		return nativeBinding;
+	}
+	nativeBindingAttempted = true;
+
+	const platform = os.platform();
+	const arch = os.arch();
+	const key = `${platform}-${arch}`;
+	const platformInfo = PLATFORM_PACKAGES[key];
+
+	if (!platformInfo) {
+		return null;
+	}
+
+	try {
+		const require = createRequire(import.meta.url);
+		// Try to require the native .node file from the platform package
+		const binding = require(platformInfo.packageName) as NativeBinding;
+		if (typeof binding?.compare === "function") {
+			nativeBinding = binding;
+			return binding;
+		}
+	} catch {
+		// Native binding not available, will use execFile fallback
+	}
+
+	// Also try sibling package fallback for monorepo development
+	try {
+		const currentDir = path.dirname(fileURLToPath(import.meta.url));
+		const packagesDir = path.resolve(currentDir, "..", "..");
+		const nodePath = path.join(
+			packagesDir,
+			platformInfo.packageDir,
+			"blazediff.node",
+		);
+		if (existsSync(nodePath)) {
+			const require = createRequire(import.meta.url);
+			const binding = require(nodePath) as NativeBinding;
+			if (typeof binding?.compare === "function") {
+				nativeBinding = binding;
+				return binding;
+			}
+		}
+	} catch {
+		// Fallback also failed
+	}
+
+	return null;
+}
+
+/**
+ * Convert N-API result to BlazeDiffResult
+ */
+function convertNapiResult(result: NapiDiffResult): BlazeDiffResult {
+	if (result.matchResult) {
+		return { match: true };
+	}
+
+	if (result.reason === "layout-diff") {
+		return { match: false, reason: "layout-diff" };
+	}
+
+	if (result.reason === "pixel-diff") {
+		return {
+			match: false,
+			reason: "pixel-diff",
+			diffCount: result.diffCount ?? 0,
+			diffPercentage: result.diffPercentage ?? 0,
+		};
+	}
+
+	// Fallback (shouldn't happen)
+	return {
+		match: false,
+		reason: "pixel-diff",
+		diffCount: result.diffCount ?? 0,
+		diffPercentage: result.diffPercentage ?? 0,
+	};
+}
+
+/**
+ * Convert BlazeDiffOptions to NapiDiffOptions
+ */
+function convertToNapiOptions(options?: BlazeDiffOptions): NapiDiffOptions {
+	return {
+		threshold: options?.threshold,
+		antialiasing: options?.antialiasing,
+		diffMask: options?.diffMask,
+		failOnLayout: options?.failOnLayoutDiff,
+		compression: options?.compression,
+		quality: options?.quality,
+	};
+}
 
 function resolveBinaryPath(): string {
 	const platform = os.platform();
@@ -141,6 +274,7 @@ function buildArgs(diffOutput?: string, options?: BlazeDiffOptions): string[] {
 	if (options.failOnLayoutDiff) args.push("--fail-on-layout");
 	if (options.compression !== undefined)
 		args.push(`--compression=${options.compression}`);
+	if (options.quality !== undefined) args.push(`--quality=${options.quality}`);
 
 	return args;
 }
@@ -167,24 +301,9 @@ function detectMissingFile(
 }
 
 /**
- * Compare two PNG images and optionally generate a diff image.
- *
- * @example
- * ```ts
- * // With diff output
- * const result = await compare('expected.png', 'actual.png', 'diff.png');
- *
- * // Without diff output (faster, just returns comparison result)
- * const result = await compare('expected.png', 'actual.png');
- *
- * if (result.match) {
- *   console.log('Images identical');
- * } else if (result.reason === 'pixel-diff') {
- *   console.log(`${result.diffCount} pixels differ`);
- * }
- * ```
+ * Compare using execFile (fallback when native binding is unavailable)
  */
-export async function compare(
+async function execFileCompare(
 	basePath: string,
 	comparePath: string,
 	diffOutput?: string,
@@ -236,7 +355,70 @@ export async function compare(
 	}
 }
 
+/**
+ * Compare two images (PNG or JPEG) and optionally generate a diff image.
+ *
+ * Uses native N-API bindings when available for ~10-100x better performance
+ * on small images (no process spawn overhead). Falls back to execFile if
+ * native bindings are unavailable.
+ *
+ * @example
+ * ```ts
+ * // With diff output
+ * const result = await compare('expected.png', 'actual.png', 'diff.png');
+ *
+ * // Without diff output (faster, just returns comparison result)
+ * const result = await compare('expected.png', 'actual.png');
+ *
+ * if (result.match) {
+ *   console.log('Images identical');
+ * } else if (result.reason === 'pixel-diff') {
+ *   console.log(`${result.diffCount} pixels differ`);
+ * }
+ * ```
+ */
+export async function compare(
+	basePath: string,
+	comparePath: string,
+	diffOutput?: string,
+	options?: BlazeDiffOptions,
+): Promise<BlazeDiffResult> {
+	// Try native binding first for better performance
+	const binding = tryLoadNativeBinding();
+	if (binding) {
+		try {
+			const result = binding.compare(
+				basePath,
+				comparePath,
+				diffOutput ?? null,
+				convertToNapiOptions(options),
+			);
+			return convertNapiResult(result);
+		} catch (err) {
+			// Check if it's a file-not-exists error
+			const message = err instanceof Error ? err.message : String(err);
+			const missingFile = detectMissingFile(message, basePath, comparePath);
+			if (missingFile) {
+				return { match: false, reason: "file-not-exists", file: missingFile };
+			}
+			// Re-throw other errors
+			throw err;
+		}
+	}
+
+	// Fallback to execFile
+	return execFileCompare(basePath, comparePath, diffOutput, options);
+}
+
 /** Get the path to the blazediff binary for direct CLI usage. */
 export function getBinaryPath(): string {
 	return getBinaryPathInternal();
+}
+
+/**
+ * Check if native N-API bindings are available.
+ * Returns true if the native module loaded successfully.
+ */
+export function hasNativeBinding(): boolean {
+	return tryLoadNativeBinding() !== null;
 }

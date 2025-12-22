@@ -10,11 +10,16 @@
 The fastest single-threaded image diff in the world. Native Rust implementation with SIMD optimization, **3-4x faster** and **3x smaller** than [odiff](https://github.com/dmtrKovalenko/odiff).
 
 **Features:**
+- **PNG & JPEG support** - auto-detected by file extension
 - SIMD-accelerated (NEON on ARM, SSE4.1 on x86)
 - Block-based two-pass optimization
 - YIQ perceptual color difference
 - Anti-aliasing detection
 - Cross-platform pre-built binaries (~700KB-900KB, no compilation required)
+
+**Vendored Libraries:**
+- [libspng](https://libspng.org/) - Fast PNG decoding/encoding with SIMD
+- [libjpeg-turbo](https://libjpeg-turbo.org/) - High-performance JPEG codec with SIMD
 
 ## Installation
 
@@ -34,7 +39,7 @@ Pre-built [binaries](https://github.com/teimurjan/blazediff/tree/main/packages/b
 
 ### compare(basePath, comparePath, diffOutput, options?)
 
-Compare two PNG images and generate a diff image.
+Compare two images (PNG or JPEG) and generate a diff image. Format is auto-detected from file extension.
 
 <table>
   <tr>
@@ -133,14 +138,23 @@ if (result.match) {
 ### CLI Usage
 
 ```bash
-# Compare two images
+# Compare two PNG images
 npx blazediff expected.png actual.png diff.png
+
+# Compare two JPEG images
+npx blazediff expected.jpg actual.jpg diff.jpg
+
+# Mixed formats (PNG input, JPEG output)
+npx blazediff expected.png actual.png diff.jpg
 
 # With options
 npx blazediff expected.png actual.png diff.png --threshold 0.05 --antialiasing
 
-# With higher compression (smaller output file, slower)
+# With higher PNG compression (smaller output file, slower)
 npx blazediff expected.png actual.png diff.png -c 6
+
+# With JPEG quality setting
+npx blazediff expected.jpg actual.jpg diff.jpg -q 85
 
 # Output as JSON
 npx blazediff expected.png actual.png diff.png --output-format json
@@ -149,23 +163,33 @@ npx blazediff expected.png actual.png diff.png --output-format json
 ### CLI Options
 
 ```
-Usage: blazediff [OPTIONS] <IMAGE1> <IMAGE2> <OUTPUT>
+Usage: blazediff [OPTIONS] <IMAGE1> <IMAGE2> [OUTPUT]
 
 Arguments:
-  <IMAGE1>  First image path
-  <IMAGE2>  Second image path
-  <OUTPUT>  Output diff image path
+  <IMAGE1>  First image path (PNG or JPEG)
+  <IMAGE2>  Second image path (PNG or JPEG)
+  [OUTPUT]  Output diff image path (optional, format detected from extension)
 
 Options:
   -t, --threshold <THRESHOLD>  Color difference threshold (0.0-1.0) [default: 0.1]
   -a, --antialiasing           Enable anti-aliasing detection
       --diff-mask              Output only differences (transparent background)
       --fail-on-layout         Fail on layout (size) difference
-  -c, --compression <LEVEL>    PNG compression level (0-9, 0=fastest/largest, 9=slowest/smallest) [default: 0]
+  -c, --compression <LEVEL>    PNG compression level (0-9, 0=fastest, 9=smallest) [default: 0]
+  -q, --quality <QUALITY>      JPEG quality (1-100) [default: 90]
       --output-format <FORMAT> Output format (json or text) [default: json]
   -h, --help                   Print help
   -V, --version                Print version
 ```
+
+### Supported Formats
+
+| Format | Extensions | Notes |
+|--------|------------|-------|
+| PNG | `.png` | Lossless, supports transparency |
+| JPEG | `.jpg`, `.jpeg` | Lossy, smaller file sizes |
+
+Input images can be mixed formats (e.g., compare PNG to JPEG). Output format is determined by the output file extension.
 
 ### Exit Codes
 
@@ -175,7 +199,7 @@ Options:
 
 ## Performance
 
-Benchmarked on Apple M1 Pro with 5600x3200 4K images:
+Benchmarked on Apple M1 Pro with 5600x3200 4K PNG images:
 
 | Tool | Benchmark Time | vs blazediff |
 |------|------|--------------|

@@ -62,11 +62,13 @@ print_usage() {
     echo "  --native           Build for current platform (optimized for this CPU)"
     echo "  --macos            Build both macOS targets (arm64 + x64)"
     echo "  --all              Build all platforms (requires cross)"
+    echo "  --napi             Also build N-API .node files for Node.js bindings"
     echo "  --list             List supported targets"
     echo "  --help             Show this help"
     echo ""
-    echo "Output naming: blazediff-{os}-{arch}[.exe]"
+    echo "Output naming: blazediff-{os}-{arch}[.exe|.node]"
     echo "Example: blazediff-macos-arm64, blazediff-linux-x64, blazediff-windows-x64.exe"
+    echo "N-API:   blazediff-macos-arm64.node, blazediff-linux-x64.node"
 }
 
 check_cross() {
@@ -165,6 +167,104 @@ build_native() {
     echo "Built: $dst ($size)"
 }
 
+# Build N-API .node file for native target
+build_native_napi() {
+    echo "Building native N-API release (optimized for this CPU)..."
+
+    RUSTFLAGS="-C target-cpu=native" cargo build --release --features napi --lib
+
+    mkdir -p "$DIST_DIR"
+
+    local os arch
+    case "$(uname -s)" in
+        Darwin) os="macos" ;;
+        Linux) os="linux" ;;
+        MINGW*|MSYS*|CYGWIN*) os="windows" ;;
+        *) os="unknown" ;;
+    esac
+
+    case "$(uname -m)" in
+        arm64|aarch64) arch="arm64" ;;
+        x86_64|amd64) arch="x64" ;;
+        *) arch="unknown" ;;
+    esac
+
+    # Find the cdylib output
+    local lib_ext="" lib_prefix="lib"
+    if [[ "$os" == "windows" ]]; then
+        lib_ext=".dll"
+        lib_prefix=""
+    elif [[ "$os" == "macos" ]]; then
+        lib_ext=".dylib"
+    else
+        lib_ext=".so"
+    fi
+
+    local src="$PROJECT_DIR/target/release/${lib_prefix}blazediff${lib_ext}"
+    local dst="$DIST_DIR/blazediff-${os}-${arch}.node"
+
+    if [[ -f "$src" ]]; then
+        cp "$src" "$dst"
+        local size=$(ls -lh "$dst" | awk '{print $5}')
+        echo "Built N-API: $dst ($size)"
+    else
+        echo "Warning: N-API library not found at $src"
+    fi
+}
+
+# Build N-API .node file for a specific target
+build_napi_target() {
+    local target="$1"
+    local use_cross="${2:-false}"
+    local friendly_name=$(get_friendly_name "$target")
+    local output_name="blazediff-${friendly_name}.node"
+
+    echo "Building N-API $output_name ($target)..."
+
+    mkdir -p "$DIST_DIR"
+
+    local flags=$(get_rustflags "$target")
+
+    if [[ "$target" == "aarch64-pc-windows-msvc" ]]; then
+        if ! command -v cargo-xwin &> /dev/null; then
+            echo "  Error: cargo-xwin required for $target (cargo install cargo-xwin)"
+            return 1
+        fi
+        if [[ -d "/opt/homebrew/opt/llvm/bin" ]]; then
+            PATH="/opt/homebrew/opt/llvm/bin:$PATH" RUSTFLAGS="$flags" cargo xwin build --release --target "$target" --features napi --lib
+        else
+            RUSTFLAGS="$flags" cargo xwin build --release --target "$target" --features napi --lib
+        fi
+    elif [[ "$use_cross" == "true" ]]; then
+        RUSTFLAGS="$flags" cross build --release --target "$target" --features napi --lib
+    else
+        RUSTFLAGS="$flags" cargo build --release --target "$target" --features napi --lib
+    fi
+
+    # Find the cdylib output (.so on Linux, .dylib on macOS, .dll on Windows)
+    local lib_ext="" lib_prefix="lib"
+    if [[ "$target" == *"windows"* ]]; then
+        lib_ext=".dll"
+        lib_prefix=""
+    elif [[ "$target" == *"darwin"* ]]; then
+        lib_ext=".dylib"
+    else
+        lib_ext=".so"
+    fi
+
+    local src="$PROJECT_DIR/target/$target/release/${lib_prefix}blazediff${lib_ext}"
+    local dst="$DIST_DIR/${output_name}"
+
+    if [[ -f "$src" ]]; then
+        cp "$src" "$dst"
+        local size=$(ls -lh "$dst" | awk '{print $5}')
+        echo "  -> $dst ($size)"
+    else
+        echo "  Warning: N-API library not found at $src"
+        return 1
+    fi
+}
+
 build_macos() {
     echo "Building macOS binaries..."
 
@@ -193,12 +293,12 @@ sync_to_packages() {
 
             # Map binary name to target triple for package lookup
             case "$name" in
-                blazediff-macos-arm64) target="aarch64-apple-darwin" ;;
-                blazediff-macos-x64) target="x86_64-apple-darwin" ;;
-                blazediff-linux-arm64) target="aarch64-unknown-linux-gnu" ;;
-                blazediff-linux-x64) target="x86_64-unknown-linux-gnu" ;;
-                blazediff-windows-arm64.exe) target="aarch64-pc-windows-msvc" ;;
-                blazediff-windows-x64.exe) target="x86_64-pc-windows-gnu" ;;
+                blazediff-macos-arm64|blazediff-macos-arm64.node) target="aarch64-apple-darwin" ;;
+                blazediff-macos-x64|blazediff-macos-x64.node) target="x86_64-apple-darwin" ;;
+                blazediff-linux-arm64|blazediff-linux-arm64.node) target="aarch64-unknown-linux-gnu" ;;
+                blazediff-linux-x64|blazediff-linux-x64.node) target="x86_64-unknown-linux-gnu" ;;
+                blazediff-windows-arm64.exe|blazediff-windows-arm64.node) target="aarch64-pc-windows-msvc" ;;
+                blazediff-windows-x64.exe|blazediff-windows-x64.node) target="x86_64-pc-windows-gnu" ;;
                 *) continue ;;
             esac
 
@@ -206,13 +306,15 @@ sync_to_packages() {
             if [[ -n "$pkg_name" ]]; then
                 local pkg_dir="$PACKAGES_DIR/$pkg_name"
                 if [[ -d "$pkg_dir" ]]; then
-                    # Determine output filename based on platform
+                    # Determine output filename based on file type
                     local output_name="blazediff"
                     if [[ "$name" == *".exe" ]]; then
                         output_name="blazediff.exe"
+                    elif [[ "$name" == *".node" ]]; then
+                        output_name="blazediff.node"
                     fi
                     cp "$binary" "$pkg_dir/$output_name"
-                    chmod +x "$pkg_dir/$output_name"
+                    [[ "$output_name" != *.node ]] && chmod +x "$pkg_dir/$output_name"
                     echo "  -> $pkg_dir/$output_name"
                     ((synced++))
                 fi
@@ -222,9 +324,9 @@ sync_to_packages() {
 
     if [[ $synced -gt 0 ]]; then
         echo ""
-        echo "Synced $synced binaries to platform packages"
+        echo "Synced $synced files to platform packages"
     else
-        echo "  No binaries to sync"
+        echo "  No files to sync"
     fi
 }
 
@@ -236,6 +338,7 @@ ALL_TARGETS="aarch64-apple-darwin x86_64-apple-darwin aarch64-unknown-linux-gnu 
 # Parse arguments
 MODE="native"
 SPECIFIC_TARGET=""
+BUILD_NAPI="false"
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -254,6 +357,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --all)
             MODE="all"
+            shift
+            ;;
+        --napi)
+            BUILD_NAPI="true"
             shift
             ;;
         --list)
@@ -285,22 +392,40 @@ cd "$PROJECT_DIR"
 case "$MODE" in
     native)
         build_native
+        if [[ "$BUILD_NAPI" == "true" ]]; then
+            build_native_napi
+        fi
         sync_to_packages
         ;;
     macos)
         build_macos
+        if [[ "$BUILD_NAPI" == "true" ]]; then
+            echo ""
+            echo "Building macOS N-API bindings..."
+            build_napi_target "aarch64-apple-darwin" false || true
+            build_napi_target "x86_64-apple-darwin" false || true
+        fi
         sync_to_packages
         ;;
     target)
         current_target=$(rustc -vV | grep host | cut -d' ' -f2)
         if [[ "$SPECIFIC_TARGET" == "$current_target" ]]; then
             build_target "$SPECIFIC_TARGET" false
+            if [[ "$BUILD_NAPI" == "true" ]]; then
+                build_napi_target "$SPECIFIC_TARGET" false || true
+            fi
         elif [[ "$(uname -s)" == "Darwin" && "$SPECIFIC_TARGET" == *"apple-darwin"* ]]; then
             rustup target add "$SPECIFIC_TARGET" 2>/dev/null || true
             build_target "$SPECIFIC_TARGET" false
+            if [[ "$BUILD_NAPI" == "true" ]]; then
+                build_napi_target "$SPECIFIC_TARGET" false || true
+            fi
         else
             check_cross
             build_target "$SPECIFIC_TARGET" true
+            if [[ "$BUILD_NAPI" == "true" ]]; then
+                build_napi_target "$SPECIFIC_TARGET" true || true
+            fi
         fi
         sync_to_packages
         ;;
@@ -319,23 +444,35 @@ case "$MODE" in
             # Native target or same-OS target on macOS
             if [[ "$target" == "$current_target" ]]; then
                 build_target "$target" false || echo "  Skipped $target"
+                if [[ "$BUILD_NAPI" == "true" ]]; then
+                    build_napi_target "$target" false || echo "  Skipped N-API for $target"
+                fi
             elif [[ "$(uname -s)" == "Darwin" && "$target" == *"apple-darwin"* ]]; then
                 rustup target add "$target" 2>/dev/null || true
                 build_target "$target" false || echo "  Skipped $target"
+                if [[ "$BUILD_NAPI" == "true" ]]; then
+                    build_napi_target "$target" false || echo "  Skipped N-API for $target"
+                fi
             elif [[ "$target" == "aarch64-pc-windows-msvc" ]]; then
                 # Windows ARM64 uses cargo-xwin, not cross
                 rustup target add "$target" 2>/dev/null || true
                 build_target "$target" false || echo "  Skipped $target (cargo-xwin failed)"
+                if [[ "$BUILD_NAPI" == "true" ]]; then
+                    build_napi_target "$target" false || echo "  Skipped N-API for $target"
+                fi
             elif [[ "$has_cross" == "true" ]]; then
                 build_target "$target" true || echo "  Skipped $target (cross-compilation failed)"
+                if [[ "$BUILD_NAPI" == "true" ]]; then
+                    build_napi_target "$target" true || echo "  Skipped N-API for $target"
+                fi
             else
                 echo "Skipping $target (requires cross)"
             fi
             echo ""
         done
 
-        echo "Builds complete. Available binaries:"
-        ls -lh "$DIST_DIR" 2>/dev/null || echo "  No binaries built"
+        echo "Builds complete. Available files:"
+        ls -lh "$DIST_DIR" 2>/dev/null || echo "  No files built"
         sync_to_packages
         ;;
 esac

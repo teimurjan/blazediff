@@ -20,7 +20,7 @@ async function main() {
 		const pair = pairs[i];
 
 		bench.add(`blazediff - ${pairs[i].name}`, async () => {
-			await compare(pair.a, pair.b, "./test.png");
+			await compare(pair.a, pair.b, "/tmp/test.png", { antialiasing: true });
 		});
 	}
 
