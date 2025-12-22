@@ -6,4 +6,4 @@ onlyBuiltDependencies:
   - sharp
 
 ignoredOptionalDependencies:
-  - "@biomejs/cli*-"
+  - "@blazediff/bin-*"
