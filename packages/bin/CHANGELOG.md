@@ -1,5 +1,12 @@
 # @blazediff/bin
 
+## 3.1.0
+
+### Minor Changes
+
+- f3ff5dc: Add jpeg support
+- f3ff5dc: Include N-API bindings to avoid spawning processes
+
 ## 3.0.0
 
 ### Major Changes
