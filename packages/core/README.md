@@ -172,15 +172,19 @@ See [FORMULA.md](./FORMULA.md) for detailed mathematical formulas and algorithm 
 
 ## Performance
 
-Compared to pixelmatch on a 1920×1080 image with 10% differences:
+> **Median: 82%** | Arithmetic mean: 65% | Weighted average: 42%
 
-| Metric | BlazeDiff | pixelmatch | Improvement |
-|--------|-----------|------------|-------------|
-| Speed | ~25ms | ~30ms | **20% faster** |
-| Memory | 0 allocations | Multiple allocations | **Zero allocation** |
-| Accuracy | YIQ perceptual | YIQ perceptual | Same |
+Benchmarked against pixelmatch across various image sizes (50 iterations, 5 warmup):
 
-The block-based optimization provides the most benefit on images with large unchanged regions.
+| Benchmark | Pixelmatch | BlazeDiff | Improvement |
+|-----------|------------|-----------|-------------|
+| 4k/1 (5600×3200) | 302ms | 212ms | **30%** |
+| 4k/1 (identical) | 19ms | 2.4ms | **88%** |
+| page/1 (3598×16384) | 332ms | 93ms | **72%** |
+| page/1 (identical) | 63ms | 7.7ms | **88%** |
+| small images | 0.4-4ms | 0.1-2ms | **55-90%** |
+
+The block-based optimization provides the most benefit on identical images (~88% faster) and images with large unchanged regions.
 
 ## References
 
