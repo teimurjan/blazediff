@@ -1,5 +1,11 @@
 # @blazediff/core
 
+## 1.9.0
+
+### Minor Changes
+
+- a0fc05f: Better JIT optimization for color delta
+
 ## 1.8.0
 
 ### Minor Changes
