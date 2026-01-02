@@ -1,5 +1,12 @@
 # @blazediff/ui
 
+## 1.6.3
+
+### Patch Changes
+
+- Updated dependencies [a0fc05f]
+  - @blazediff/core@1.9.0
+
 ## 1.6.2
 
 ### Patch Changes
