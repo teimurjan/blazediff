@@ -106,10 +106,10 @@ export const getBenchmarkImagePairs = (): Array<ImagePair> => {
 
 	const pairs = [
 		...pixelmatchImagePairs,
-		// ...blazediffImagePairs,
+		...blazediffImagePairs,
 		...fourKImagePairs,
-		// ...pageImagePairs,
-		// ...sameImagePairs,
+		...pageImagePairs,
+		...sameImagePairs,
 	];
 
 	// Identical have equal metadata, while same pairs are visually identical
