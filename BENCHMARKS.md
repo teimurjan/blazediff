@@ -127,7 +127,8 @@ The native Rust binary with SIMD optimization is the fastest single-threaded ima
 
 *50 iterations (5 warmup)*
 
-> **~50%** performance improvement on average.
+> **Median: 82%** | Arithmetic mean: 65% | Weighted average: 42%
+
 <table>
   <thead>
     <tr>
@@ -141,122 +142,122 @@ The native Rust binary with SIMD optimization is the fastest single-threaded ima
   <tbody>
     <tr>
       <td>4k/1</td>
-      <td>295.88ms</td>
-      <td>224.94ms</td>
-      <td>70.94ms</td>
-      <td>24.0%</td>
+      <td>302.29ms</td>
+      <td>211.92ms</td>
+      <td>90.37ms</td>
+      <td>29.9%</td>
     </tr>
     <tr>
       <td>4k/1 (identical)</td>
-      <td>19.76ms</td>
-      <td>2.32ms</td>
-      <td>17.44ms</td>
-      <td>88.3%</td>
+      <td>19.18ms</td>
+      <td>2.39ms</td>
+      <td>16.79ms</td>
+      <td>87.5%</td>
     </tr>
     <tr>
       <td>4k/2</td>
-      <td>295.09ms</td>
-      <td>222.20ms</td>
-      <td>72.89ms</td>
-      <td>24.7%</td>
+      <td>300.89ms</td>
+      <td>215.40ms</td>
+      <td>85.49ms</td>
+      <td>28.4%</td>
     </tr>
     <tr>
       <td>4k/2 (identical)</td>
-      <td>21.74ms</td>
-      <td>2.64ms</td>
-      <td>19.10ms</td>
+      <td>21.39ms</td>
+      <td>2.61ms</td>
+      <td>18.79ms</td>
       <td>87.8%</td>
     </tr>
     <tr>
       <td>4k/3</td>
-      <td>372.94ms</td>
-      <td>281.28ms</td>
-      <td>91.66ms</td>
-      <td>24.6%</td>
+      <td>378.13ms</td>
+      <td>263.82ms</td>
+      <td>114.31ms</td>
+      <td>30.2%</td>
     </tr>
     <tr>
       <td>4k/3 (identical)</td>
-      <td>26.10ms</td>
-      <td>3.23ms</td>
-      <td>22.87ms</td>
-      <td>87.6%</td>
+      <td>25.67ms</td>
+      <td>3.20ms</td>
+      <td>22.48ms</td>
+      <td>87.5%</td>
     </tr>
     <tr>
       <td>blazediff/1</td>
-      <td>2.53ms</td>
-      <td>0.66ms</td>
-      <td>1.87ms</td>
-      <td>73.9%</td>
+      <td>2.57ms</td>
+      <td>0.68ms</td>
+      <td>1.89ms</td>
+      <td>73.7%</td>
     </tr>
     <tr>
       <td>blazediff/1 (identical)</td>
-      <td>0.47ms</td>
-      <td>0.04ms</td>
-      <td>0.43ms</td>
-      <td>90.7%</td>
+      <td>0.46ms</td>
+      <td>0.05ms</td>
+      <td>0.41ms</td>
+      <td>90.2%</td>
     </tr>
     <tr>
       <td>blazediff/2</td>
-      <td>2.67ms</td>
-      <td>1.04ms</td>
-      <td>1.63ms</td>
-      <td>61.0%</td>
+      <td>2.69ms</td>
+      <td>1.12ms</td>
+      <td>1.57ms</td>
+      <td>58.3%</td>
     </tr>
     <tr>
       <td>blazediff/2 (identical)</td>
-      <td>0.39ms</td>
+      <td>0.38ms</td>
       <td>0.04ms</td>
       <td>0.35ms</td>
-      <td>90.8%</td>
+      <td>90.4%</td>
     </tr>
     <tr>
       <td>blazediff/3</td>
-      <td>14.57ms</td>
-      <td>9.50ms</td>
-      <td>5.06ms</td>
-      <td>34.8%</td>
+      <td>14.87ms</td>
+      <td>9.01ms</td>
+      <td>5.85ms</td>
+      <td>39.4%</td>
     </tr>
     <tr>
       <td>blazediff/3 (identical)</td>
-      <td>1.80ms</td>
-      <td>0.19ms</td>
-      <td>1.61ms</td>
-      <td>89.3%</td>
+      <td>1.75ms</td>
+      <td>0.20ms</td>
+      <td>1.56ms</td>
+      <td>88.8%</td>
     </tr>
     <tr>
       <td>page/1</td>
-      <td>321.20ms</td>
-      <td>91.74ms</td>
-      <td>229.46ms</td>
-      <td>71.4%</td>
+      <td>331.94ms</td>
+      <td>92.77ms</td>
+      <td>239.17ms</td>
+      <td>72.1%</td>
     </tr>
     <tr>
       <td>page/1 (identical)</td>
-      <td>64.25ms</td>
-      <td>7.83ms</td>
-      <td>56.42ms</td>
+      <td>63.18ms</td>
+      <td>7.68ms</td>
+      <td>55.50ms</td>
       <td>87.8%</td>
     </tr>
     <tr>
       <td>page/2</td>
-      <td>416.32ms</td>
-      <td>276.19ms</td>
-      <td>140.13ms</td>
-      <td>33.7%</td>
+      <td>421.89ms</td>
+      <td>306.72ms</td>
+      <td>115.18ms</td>
+      <td>27.3%</td>
     </tr>
     <tr>
       <td>page/2 (identical)</td>
-      <td>45.37ms</td>
-      <td>5.68ms</td>
-      <td>39.68ms</td>
-      <td>87.5%</td>
+      <td>44.76ms</td>
+      <td>5.37ms</td>
+      <td>39.39ms</td>
+      <td>88.0%</td>
     </tr>
     <tr>
       <td>pixelmatch/1</td>
-      <td>0.86ms</td>
-      <td>0.38ms</td>
-      <td>0.47ms</td>
-      <td>55.3%</td>
+      <td>0.87ms</td>
+      <td>0.39ms</td>
+      <td>0.48ms</td>
+      <td>55.0%</td>
     </tr>
     <tr>
       <td>pixelmatch/1 (identical)</td>
@@ -267,100 +268,100 @@ The native Rust binary with SIMD optimization is the fastest single-threaded ima
     </tr>
     <tr>
       <td>pixelmatch/2</td>
-      <td>2.11ms</td>
-      <td>1.86ms</td>
-      <td>0.25ms</td>
-      <td>11.9%</td>
+      <td>2.12ms</td>
+      <td>2.18ms</td>
+      <td>-0.06ms</td>
+      <td>-2.8%</td>
     </tr>
     <tr>
       <td>pixelmatch/2 (identical)</td>
       <td>0.07ms</td>
       <td>0.01ms</td>
       <td>0.06ms</td>
-      <td>90.3%</td>
+      <td>90.0%</td>
     </tr>
     <tr>
       <td>pixelmatch/3</td>
-      <td>0.77ms</td>
-      <td>0.25ms</td>
-      <td>0.51ms</td>
-      <td>66.9%</td>
+      <td>0.78ms</td>
+      <td>0.26ms</td>
+      <td>0.53ms</td>
+      <td>67.3%</td>
     </tr>
     <tr>
       <td>pixelmatch/3 (identical)</td>
       <td>0.14ms</td>
       <td>0.01ms</td>
       <td>0.13ms</td>
-      <td>90.1%</td>
+      <td>90.3%</td>
     </tr>
     <tr>
       <td>pixelmatch/4</td>
-      <td>4.07ms</td>
-      <td>3.43ms</td>
-      <td>0.64ms</td>
-      <td>15.7%</td>
+      <td>4.20ms</td>
+      <td>3.93ms</td>
+      <td>0.27ms</td>
+      <td>6.5%</td>
     </tr>
     <tr>
       <td>pixelmatch/4 (identical)</td>
-      <td>0.20ms</td>
+      <td>0.19ms</td>
       <td>0.02ms</td>
-      <td>0.18ms</td>
-      <td>90.5%</td>
+      <td>0.17ms</td>
+      <td>90.3%</td>
     </tr>
     <tr>
       <td>pixelmatch/5</td>
-      <td>0.38ms</td>
-      <td>0.12ms</td>
+      <td>0.39ms</td>
+      <td>0.13ms</td>
       <td>0.26ms</td>
-      <td>68.9%</td>
+      <td>67.3%</td>
     </tr>
     <tr>
       <td>pixelmatch/5 (identical)</td>
       <td>0.07ms</td>
       <td>0.01ms</td>
       <td>0.06ms</td>
-      <td>90.1%</td>
+      <td>89.7%</td>
     </tr>
     <tr>
       <td>pixelmatch/6</td>
-      <td>0.92ms</td>
-      <td>0.72ms</td>
-      <td>0.20ms</td>
-      <td>21.3%</td>
+      <td>0.94ms</td>
+      <td>0.80ms</td>
+      <td>0.14ms</td>
+      <td>15.3%</td>
     </tr>
     <tr>
       <td>pixelmatch/6 (identical)</td>
       <td>0.07ms</td>
       <td>0.01ms</td>
       <td>0.06ms</td>
-      <td>87.2%</td>
+      <td>90.0%</td>
     </tr>
     <tr>
       <td>pixelmatch/7</td>
-      <td>1.90ms</td>
-      <td>1.04ms</td>
-      <td>0.86ms</td>
-      <td>45.4%</td>
+      <td>1.92ms</td>
+      <td>0.98ms</td>
+      <td>0.94ms</td>
+      <td>48.9%</td>
     </tr>
     <tr>
       <td>pixelmatch/7 (identical)</td>
-      <td>0.28ms</td>
+      <td>0.27ms</td>
       <td>0.03ms</td>
-      <td>0.25ms</td>
-      <td>90.9%</td>
+      <td>0.24ms</td>
+      <td>90.3%</td>
     </tr>
     <tr>
       <td>same/1</td>
-      <td>1.92ms</td>
-      <td>0.26ms</td>
-      <td>1.65ms</td>
-      <td>86.3%</td>
-    </tr>
-    <tr>
-      <td>same/1 (identical)</td>
       <td>1.89ms</td>
       <td>0.21ms</td>
       <td>1.68ms</td>
+      <td>88.6%</td>
+    </tr>
+    <tr>
+      <td>same/1 (identical)</td>
+      <td>1.86ms</td>
+      <td>0.21ms</td>
+      <td>1.65ms</td>
       <td>88.8%</td>
     </tr>
   </tbody>

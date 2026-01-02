@@ -1,45 +1,43 @@
 {
-	"name": "@blazediff/root",
-	"version": "0.0.1",
-	"description": "",
-	"main": "index.js",
-	"scripts": {
-		"postinstall": "node ./scripts/link-local-platform-bin.js && node ./scripts/link-local-bin.js",
-		"build": "pnpm -r --filter=!@blazediff/website build",
-		"build:rust": "cd rust && ./scripts/build-all.sh --all",
-		"test": "pnpm -r test",
-		"changeset": "changeset",
-		"release": "changeset publish",
-		"benchmark:core": "pnpm --filter @blazediff/benchmark core",
-		"benchmark:pixelmatch": "pnpm --filter @blazediff/benchmark pixelmatch",
-		"benchmark:gmsd": "pnpm --filter @blazediff/benchmark gmsd",
-		"benchmark:ssim": "pnpm --filter @blazediff/benchmark ssim",
-		"benchmark:hitchhikers-ssim": "pnpm --filter @blazediff/benchmark hitchhikers-ssim",
-		"benchmark:ssim.js": "pnpm --filter @blazediff/benchmark ssim.js",
-		"benchmark:weber-ssim.js": "pnpm --filter @blazediff/benchmark weber-ssim.js",
-		"benchmark:object": "pnpm --filter @blazediff/benchmark object",
-		"benchmark:microdiff": "pnpm --filter @blazediff/benchmark microdiff",
-		"format": "pnpm exec biome format",
-		"format:write": "pnpm exec biome format --write",
-		"check": "pnpm exec biome check",
-		"lint": "pnpm exec biome lint",
-		"lint:write": "pnpm exec biome lint --write",
-		"lint:unsafewrite": "pnpm exec biome lint --unsafe  --write"
+  "name": "@blazediff/root",
+  "version": "0.0.1",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "postinstall": "node ./scripts/link-local-platform-bin.js && node ./scripts/link-local-bin.js",
+    "build": "pnpm -r --filter=!@blazediff/website build",
+    "build:rust": "cd rust && ./scripts/build-all.sh --all",
+    "test": "pnpm -r test",
+    "changeset": "changeset",
+    "release": "changeset publish",
+    "benchmark:core": "pnpm --filter @blazediff/benchmark core",
+    "benchmark:pixelmatch": "pnpm --filter @blazediff/benchmark pixelmatch",
+    "benchmark:gmsd": "pnpm --filter @blazediff/benchmark gmsd",
+    "benchmark:ssim": "pnpm --filter @blazediff/benchmark ssim",
+    "benchmark:hitchhikers-ssim": "pnpm --filter @blazediff/benchmark hitchhikers-ssim",
+    "benchmark:ssim.js": "pnpm --filter @blazediff/benchmark ssim.js",
+    "benchmark:weber-ssim.js": "pnpm --filter @blazediff/benchmark weber-ssim.js",
+    "benchmark:object": "pnpm --filter @blazediff/benchmark object",
+    "benchmark:microdiff": "pnpm --filter @blazediff/benchmark microdiff",
+    "format": "pnpm exec biome format",
+    "format:write": "pnpm exec biome format --write",
+    "check": "pnpm exec biome check",
+    "lint": "pnpm exec biome lint",
+    "lint:write": "pnpm exec biome lint --write",
+    "lint:unsafewrite": "pnpm exec biome lint --unsafe  --write"
+  },
+  "keywords": [],
+  "author": "Teimur Gasanov <me@teimurjan.dev> (https://github.com/teimurjan)",
+  "repository": "https://github.com/teimurjan/blazediff",
+  "homepage": "https://blazediff.dev",
+  "license": "MIT",
+  "packageManager": "pnpm@10.8.1",
+  "devDependencies": {
+    "@biomejs/biome": "2.2.4",
+    "@changesets/changelog-git": "^0.2.1",
+    "@changesets/cli": "^2.29.6"
 	},
-	"keywords": [],
-	"author": "Teimur Gasanov <me@teimurjan.dev> (https://github.com/teimurjan)",
-	"repository": "https://github.com/teimurjan/blazediff",
-	"homepage": "https://blazediff.dev",
-	"license": "MIT",
-	"packageManager": "pnpm@10.8.1",
-	"devDependencies": {
-		"@biomejs/biome": "2.2.4",
-		"@changesets/changelog-git": "^0.2.1",
-		"@changesets/cli": "^2.29.6"
-	},
-	"pnpm": {
-		"overrides": {
-			"@typescript/vfs": "1.6.2"
-		}
-	}
+  "workspaces": [
+    "packages/*"
+  ]
 }
