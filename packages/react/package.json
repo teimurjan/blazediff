@@ -9,6 +9,7 @@
 		"dist"
 	],
 	"scripts": {
+		"typecheck": "tsc --noEmit",
 		"build": "tsup",
 		"dev": "tsup --watch",
 		"storybook": "storybook dev -p 6007",

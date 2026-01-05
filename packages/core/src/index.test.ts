@@ -13,7 +13,7 @@ import {
 	isValidImage,
 } from "./index";
 
-const FIXTURES_PATH = join(__dirname, "../../benchmark/fixtures");
+const FIXTURES_PATH = join(__dirname, "../../../fixtures");
 
 function loadPNG(relativePath: string): {
 	data: Uint8Array;
@@ -475,7 +475,13 @@ describe("integration tests with PNG fixtures", () => {
 		it("same/1a.png vs same/1b.png should return 0 (identical)", () => {
 			const img1 = loadPNG("same/1a.png");
 			const img2 = loadPNG("same/1b.png");
-			const result = diff(img1.data, img2.data, undefined, img1.width, img1.height);
+			const result = diff(
+				img1.data,
+				img2.data,
+				undefined,
+				img1.width,
+				img1.height,
+			);
 			expect(result).toBe(0);
 		});
 	});
@@ -484,7 +490,13 @@ describe("integration tests with PNG fixtures", () => {
 		it("pixelmatch/1a.png vs 1b.png should detect differences", () => {
 			const img1 = loadPNG("pixelmatch/1a.png");
 			const img2 = loadPNG("pixelmatch/1b.png");
-			const result = diff(img1.data, img2.data, undefined, img1.width, img1.height);
+			const result = diff(
+				img1.data,
+				img2.data,
+				undefined,
+				img1.width,
+				img1.height,
+			);
 			expect(result).toBeGreaterThan(0);
 			expect(result).toMatchInlineSnapshot(`106`);
 		});
@@ -492,7 +504,13 @@ describe("integration tests with PNG fixtures", () => {
 		it("pixelmatch/2a.png vs 2b.png should detect differences", () => {
 			const img1 = loadPNG("pixelmatch/2a.png");
 			const img2 = loadPNG("pixelmatch/2b.png");
-			const result = diff(img1.data, img2.data, undefined, img1.width, img1.height);
+			const result = diff(
+				img1.data,
+				img2.data,
+				undefined,
+				img1.width,
+				img1.height,
+			);
 			expect(result).toBeGreaterThan(0);
 			expect(result).toMatchInlineSnapshot(`9730`);
 		});
@@ -500,7 +518,13 @@ describe("integration tests with PNG fixtures", () => {
 		it("pixelmatch/3a.png vs 3b.png should detect differences", () => {
 			const img1 = loadPNG("pixelmatch/3a.png");
 			const img2 = loadPNG("pixelmatch/3b.png");
-			const result = diff(img1.data, img2.data, undefined, img1.width, img1.height);
+			const result = diff(
+				img1.data,
+				img2.data,
+				undefined,
+				img1.width,
+				img1.height,
+			);
 			expect(result).toBeGreaterThan(0);
 			expect(result).toMatchInlineSnapshot(`178`);
 		});
@@ -508,7 +532,13 @@ describe("integration tests with PNG fixtures", () => {
 		it("pixelmatch/4a.png vs 4b.png should detect differences", () => {
 			const img1 = loadPNG("pixelmatch/4a.png");
 			const img2 = loadPNG("pixelmatch/4b.png");
-			const result = diff(img1.data, img2.data, undefined, img1.width, img1.height);
+			const result = diff(
+				img1.data,
+				img2.data,
+				undefined,
+				img1.width,
+				img1.height,
+			);
 			expect(result).toBeGreaterThan(0);
 			expect(result).toMatchInlineSnapshot(`6889`);
 		});
@@ -516,7 +546,13 @@ describe("integration tests with PNG fixtures", () => {
 		it("pixelmatch/5a.png vs 5b.png should detect differences", () => {
 			const img1 = loadPNG("pixelmatch/5a.png");
 			const img2 = loadPNG("pixelmatch/5b.png");
-			const result = diff(img1.data, img2.data, undefined, img1.width, img1.height);
+			const result = diff(
+				img1.data,
+				img2.data,
+				undefined,
+				img1.width,
+				img1.height,
+			);
 			expect(result).toBeGreaterThan(0);
 			expect(result).toMatchInlineSnapshot(`6`);
 		});
@@ -524,7 +560,13 @@ describe("integration tests with PNG fixtures", () => {
 		it("pixelmatch/6a.png vs 6b.png should detect differences", () => {
 			const img1 = loadPNG("pixelmatch/6a.png");
 			const img2 = loadPNG("pixelmatch/6b.png");
-			const result = diff(img1.data, img2.data, undefined, img1.width, img1.height);
+			const result = diff(
+				img1.data,
+				img2.data,
+				undefined,
+				img1.width,
+				img1.height,
+			);
 			expect(result).toBeGreaterThan(0);
 			expect(result).toMatchInlineSnapshot(`51`);
 		});
@@ -532,7 +574,13 @@ describe("integration tests with PNG fixtures", () => {
 		it("pixelmatch/7a.png vs 7b.png should detect differences", () => {
 			const img1 = loadPNG("pixelmatch/7a.png");
 			const img2 = loadPNG("pixelmatch/7b.png");
-			const result = diff(img1.data, img2.data, undefined, img1.width, img1.height);
+			const result = diff(
+				img1.data,
+				img2.data,
+				undefined,
+				img1.width,
+				img1.height,
+			);
 			expect(result).toBeGreaterThan(0);
 			expect(result).toMatchInlineSnapshot(`2448`);
 		});
@@ -597,12 +645,26 @@ describe("integration tests with PNG fixtures", () => {
 			const img1 = loadPNG("pixelmatch/1a.png");
 			const img2 = loadPNG("pixelmatch/1b.png");
 
-			const strict = diff(img1.data, img2.data, undefined, img1.width, img1.height, {
-				threshold: 0.05,
-			});
-			const loose = diff(img1.data, img2.data, undefined, img1.width, img1.height, {
-				threshold: 0.3,
-			});
+			const strict = diff(
+				img1.data,
+				img2.data,
+				undefined,
+				img1.width,
+				img1.height,
+				{
+					threshold: 0.05,
+				},
+			);
+			const loose = diff(
+				img1.data,
+				img2.data,
+				undefined,
+				img1.width,
+				img1.height,
+				{
+					threshold: 0.3,
+				},
+			);
 
 			expect(strict).toBeGreaterThanOrEqual(loose);
 		});

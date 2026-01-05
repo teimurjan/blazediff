@@ -138,7 +138,7 @@ packages/gmsd/matlab/
 
 Test fixtures are located in:
 ```
-packages/benchmark/fixtures/blazediff/
+fixtures/blazediff/
   ├── 1a.png  1b.png      # Small differences
   ├── 2a.png  2b.png      # Medium differences
   └── 3a.png  3b.png      # Large differences
@@ -195,8 +195,8 @@ chmod +r packages/gmsd/matlab/*.m
 octave --eval "
   pkg load image;
   addpath('packages/ssim/matlab');
-  img1 = imread('packages/benchmark/fixtures/blazediff/1a.png');
-  img2 = imread('packages/benchmark/fixtures/blazediff/1b.png');
+  img1 = imread('fixtures/blazediff/1a.png');
+  img2 = imread('fixtures/blazediff/1b.png');
   if size(img1, 3) == 3, img1 = rgb2gray(img1); end;
   if size(img2, 3) == 3, img2 = rgb2gray(img2); end;
   result = ssim(double(img1), double(img2));

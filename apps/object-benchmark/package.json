@@ -1,0 +1,27 @@
+{
+	"name": "@blazediff/object-benchmark",
+	"version": "0.0.1",
+	"description": "Object diffing benchmarks for BlazeDiff",
+	"private": true,
+	"files": [
+		"dist"
+	],
+	"scripts": {
+		"typecheck": "tsc --noEmit",
+		"build": "tsup",
+		"dev": "tsup --watch",
+		"clean": "rm -rf dist",
+		"object": "node dist/blazediff-object-benchmark.js",
+		"microdiff": "node dist/external-microdiff-benchmark.js",
+		"opentf-obj-diff": "node dist/external-opentf-obj-diff-benchmark.js"
+	},
+	"devDependencies": {
+		"@blazediff/object": "workspace:*",
+		"@opentf/obj-diff": "^0.12.0",
+		"@types/node": "^24.3.0",
+		"microdiff": "^1.5.0",
+		"tinybench": "^5.0.1",
+		"tsup": "8.5.0",
+		"typescript": "^5.9.2"
+	}
+}

@@ -1,8 +1,8 @@
 const { compareAndPrint } = require("./compare-and-print.js");
 
 compareAndPrint({
-	fileA: "packages/benchmark/microdiff.json",
-	fileB: "packages/benchmark/blazediff.json",
+	fileA: "apps/object-benchmark/microdiff.json",
+	fileB: "apps/object-benchmark/blazediff.json",
 	nameA: "Microdiff",
 	nameB: "BlazeDiff",
 	precision: 4,

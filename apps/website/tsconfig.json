@@ -1,0 +1,23 @@
+{
+	"extends": "../../tsconfig.bundler.json",
+	"compilerOptions": {
+		"lib": ["dom", "dom.iterable", "esnext"],
+		"allowJs": true,
+		"strict": false,
+		"noEmit": true,
+		"incremental": true,
+		"module": "esnext",
+		"jsx": "react-jsx",
+		"strictNullChecks": true,
+		"rootDir": ".",
+		"plugins": [{ "name": "next" }]
+	},
+	"include": [
+		"**/*.ts",
+		"**/*.tsx",
+		"next-env.d.ts",
+		".next/types/**/*.ts",
+		".next/dev/types/**/*.ts"
+	],
+	"exclude": ["node_modules"]
+}

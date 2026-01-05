@@ -28,7 +28,9 @@ async function write(image: Image, output: string | Buffer): Promise<void> {
 	return new Promise((resolve, reject) => {
 		try {
 			const png = new PNG({ width: image.width, height: image.height });
-			png.data = Buffer.from(image.data.buffer);
+			png.data = Buffer.isBuffer(image.data)
+				? image.data
+				: Buffer.from(image.data.buffer);
 			writeFileSync(output, PNG.sync.write(png));
 			resolve();
 		} catch (error) {
