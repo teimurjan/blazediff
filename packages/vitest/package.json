@@ -1,6 +1,6 @@
 {
 	"name": "@blazediff/vitest",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"description": "Vitest matcher for visual regression testing with blazediff",
 	"private": false,
 	"publishConfig": {
