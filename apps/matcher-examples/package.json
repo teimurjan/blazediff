@@ -7,6 +7,7 @@
 		"vitest": "vitest run vitest/examples",
 		"jest": "jest jest/examples",
 		"bun": "bun test bun/examples",
+		"test": "bun test bun/examples -u && jest jest/examples -u && vitest vitest/examples -u",
 		"typecheck": "tsc --noEmit"
 	},
 	"devDependencies": {
