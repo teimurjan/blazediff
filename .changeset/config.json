@@ -17,5 +17,10 @@
 	"access": "restricted",
 	"baseBranch": "main",
 	"updateInternalDependencies": "patch",
-	"ignore": ["@blazediff/benchmark", "@blazediff/website"]
+	"ignore": [
+		"@blazediff/image-benchmark",
+		"@blazediff/object-benchmark",
+		"@blazediff/matcher-examples",
+		"@blazediff/website"
+	]
 }

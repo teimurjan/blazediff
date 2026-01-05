@@ -1,0 +1,26 @@
+{
+	"name": "@blazediff/matcher-examples",
+	"version": "0.0.1",
+	"description": "Examples demonstrating BlazeDiff test matchers",
+	"private": true,
+	"scripts": {
+		"vitest": "vitest run vitest/examples",
+		"jest": "jest jest/examples",
+		"bun": "bun test bun/examples",
+		"typecheck": "tsc --noEmit"
+	},
+	"devDependencies": {
+		"@blazediff/bun": "workspace:*",
+		"@blazediff/jest": "workspace:*",
+		"@blazediff/matcher": "workspace:*",
+		"@blazediff/vitest": "workspace:*",
+		"@types/bun": "^1.2.10",
+		"@types/jest": "^29.5.14",
+		"@types/node": "^24.3.0",
+		"jest": "^29.7.0",
+		"ts-jest": "^29.2.6",
+		"tsx": "^4.19.2",
+		"typescript": "5.9.2",
+		"vitest": "^3.2.4"
+	}
+}

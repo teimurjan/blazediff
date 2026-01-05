@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { diff, DifferenceType } from "./index";
+import { DifferenceType, diff } from "./index";
 
 describe("diff", () => {
 	describe("primitives", () => {

@@ -10,7 +10,7 @@
 
 </div>
 
-<div align="center"><img src="./packages/website/public/android-chrome-512x512.png" /></div>
+<div align="center"><img src="./apps/website/public/android-chrome-512x512.png" /></div>
 
 **BlazeDiff** — a high-performance diff ecosystem for JavaScript applications. Originally built as a pixel-perfect image comparison library that's 1.5x faster than [pixelmatch](https://github.com/mapbox/pixelmatch), BlazeDiff has evolved into a comprehensive suite of blazing-fast diff tools including image comparison, object diffing, perceptual quality metrics, web components, and React components for visualizing differences.
 

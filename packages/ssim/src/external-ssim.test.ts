@@ -9,7 +9,7 @@ import transformer from "@blazediff/pngjs-transformer";
 import ssimjs from "ssim.js";
 import { describe, expect, it } from "vitest";
 
-const fixturesDir = join(__dirname, "../../benchmark/fixtures/blazediff");
+const fixturesDir = join(__dirname, "../../../fixtures/blazediff");
 const matlabPath = join(__dirname, "../matlab");
 
 function runMatlabSsim(img1Path: string, img2Path: string): number {

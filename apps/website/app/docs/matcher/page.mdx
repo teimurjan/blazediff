@@ -1,0 +1,297 @@
+# @blazediff/matcher
+
+import { Callout } from 'nextra/components'
+
+Core matcher logic for visual regression testing. Provides snapshot comparison with multiple algorithms, framework-agnostic APIs, and snapshot state tracking for Jest, Vitest, and Bun integrations.
+
+## Installation
+
+```sh npm2yarn
+npm install @blazediff/matcher
+```
+
+## Features
+
+- **Multiple comparison methods**: Choose from `core`, `bin`, `ssim`, `msssim`, `hitchhikers-ssim`, `gmsd`
+- **Flexible input types**: Accepts file paths or image buffers with dimensions
+- **Snapshot state tracking**: Reports `added`, `matched`, `updated`, `failed` status
+- **Configurable thresholds**: Set tolerance by pixel count or percentage
+- **Framework-agnostic**: Core logic powers Jest, Vitest, and Bun integrations
+- **Rich comparison results**: Get diff counts, percentages, and similarity scores
+
+## Quick Start
+
+```typescript
+import { getOrCreateSnapshot } from '@blazediff/matcher';
+
+const result = await getOrCreateSnapshot(
+  imageBuffer, // or file path
+  {
+    method: 'core',
+    failureThreshold: 0.01,
+    failureThresholdType: 'percent',
+  },
+  {
+    testPath: '/path/to/test.spec.ts',
+    testName: 'should render correctly',
+  }
+);
+
+if (result.pass) {
+  console.log(`✓ Snapshot ${result.snapshotStatus}`);
+} else {
+  console.log(`✗ ${result.diffPercentage}% different`);
+}
+```
+
+<Callout type="info">
+  Most users should use framework-specific packages ([@blazediff/jest](/docs/jest), [@blazediff/vitest](/docs/vitest), [@blazediff/bun](/docs/bun)) instead of using this core package directly.
+</Callout>
+
+## API Reference
+
+### getOrCreateSnapshot(received, options, testContext)
+
+Main function for snapshot comparison and management.
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `received` | `ImageInput` | Image to compare (file path or buffer with dimensions) |
+| `options` | `MatcherOptions` | Comparison options |
+| `testContext` | `TestContext` | Test information (testPath, testName) |
+
+**Returns**: `Promise<ComparisonResult>`
+
+### MatcherOptions
+
+Core comparison options:
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `method` | `ComparisonMethod` | - | Comparison algorithm: `'core'`, `'bin'`, `'ssim'`, `'msssim'`, `'hitchhikers-ssim'`, `'gmsd'` |
+| `failureThreshold` | `number` | `0` | Number of pixels or percentage difference allowed |
+| `failureThresholdType` | `'pixel' \| 'percent'` | `'pixel'` | How to interpret failureThreshold |
+| `snapshotsDir` | `string` | `'__snapshots__'` | Directory to store snapshots (relative to test file) |
+| `snapshotIdentifier` | `string` | auto-generated | Custom identifier for the snapshot file |
+| `updateSnapshots` | `boolean` | `false` | Force update snapshots |
+
+Method-specific options:
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `threshold` | `number` | `0.1` | Color difference threshold (0-1) for `core`/`bin` methods |
+| `antialiasing` | `boolean` | `false` | Enable anti-aliasing detection (`bin` method) |
+| `includeAA` | `boolean` | `false` | Include anti-aliased pixels in diff count (`core` method) |
+| `windowSize` | `number` | `11` | Window size for SSIM variants |
+| `k1` | `number` | `0.01` | k1 constant for SSIM |
+| `k2` | `number` | `0.03` | k2 constant for SSIM |
+| `downsample` | `0 \| 1` | `0` | Downsample factor for GMSD |
+
+### ComparisonResult
+
+Result object returned by `getOrCreateSnapshot`:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `pass` | `boolean` | Whether the comparison passed |
+| `message` | `string` | Human-readable message describing the result |
+| `snapshotStatus` | `SnapshotStatus` | Status: `'added'`, `'matched'`, `'updated'`, `'failed'` |
+| `diffCount` | `number?` | Number of different pixels (pixel-based methods) |
+| `diffPercentage` | `number?` | Percentage of different pixels |
+| `score` | `number?` | Similarity score (SSIM: 1 = identical, GMSD: 0 = identical) |
+| `baselinePath` | `string?` | Path to baseline snapshot |
+| `receivedPath` | `string?` | Path to received image (saved on failure) |
+| `diffPath` | `string?` | Path to diff visualization |
+
+### ImageInput
+
+```typescript
+type ImageInput =
+  | string // File path
+  | {
+      data: Uint8Array | Uint8ClampedArray | Buffer;
+      width: number;
+      height: number;
+    };
+```
+
+## Comparison Methods
+
+### `bin` - Rust Native (Fastest)
+
+Rust-native comparison via N-API bindings with native performance.
+
+- **Speed**: Fastest method, especially for large images
+- **Input**: File paths only
+- **Algorithm**: YIQ color space with block-based optimization
+- **Use case**: Production testing, CI/CD pipelines
+
+```typescript
+const result = await getOrCreateSnapshot(
+  '/path/to/image.png',
+  { method: 'bin' },
+  testContext
+);
+```
+
+### `core` - Pure JavaScript
+
+Pixel-by-pixel comparison in pure JavaScript with zero native dependencies.
+
+- **Speed**: Fast, with block-based optimization
+- **Input**: File paths or buffers
+- **Algorithm**: YIQ color space with anti-aliasing detection
+- **Use case**: Cross-platform compatibility, when native binaries are unavailable
+
+```typescript
+const result = await getOrCreateSnapshot(
+  imageBuffer,
+  { method: 'core' },
+  testContext
+);
+```
+
+### `ssim` - Structural Similarity
+
+Standard SSIM algorithm for perceptual similarity measurement.
+
+- **Speed**: Moderate
+- **Input**: File paths or buffers
+- **Algorithm**: Structural Similarity Index
+- **Score**: 1 = identical, lower = more different
+- **Use case**: Perceptual quality assessment
+
+```typescript
+const result = await getOrCreateSnapshot(
+  imageBuffer,
+  { method: 'ssim', windowSize: 11 },
+  testContext
+);
+```
+
+### `msssim` - Multi-Scale SSIM
+
+Multi-scale SSIM for better handling of varying resolutions.
+
+- **Speed**: Slower than standard SSIM
+- **Input**: File paths or buffers
+- **Algorithm**: SSIM computed across multiple scales
+- **Use case**: Images with varying resolutions or scales
+
+### `hitchhikers-ssim` - Fast SSIM
+
+Optimized SSIM approximation from Hitchhiker's Guide.
+
+- **Speed**: Faster than standard SSIM
+- **Input**: File paths or buffers
+- **Algorithm**: Optimized SSIM calculation
+- **Use case**: Faster perceptual comparison with acceptable accuracy trade-off
+
+### `gmsd` - Gradient Magnitude
+
+Gradient Magnitude Similarity Deviation for structural change detection.
+
+- **Speed**: Moderate
+- **Input**: File paths or buffers
+- **Algorithm**: Gradient-based perceptual similarity
+- **Score**: 0 = identical, higher = more different
+- **Use case**: Detecting structural and edge changes
+
+```typescript
+const result = await getOrCreateSnapshot(
+  imageBuffer,
+  { method: 'gmsd', downsample: 0 },
+  testContext
+);
+```
+
+## Usage Examples
+
+### File Paths
+
+```typescript
+const result = await getOrCreateSnapshot(
+  '/path/to/screenshot.png',
+  { method: 'bin' },
+  {
+    testPath: '/path/to/test.spec.ts',
+    testName: 'homepage renders',
+  }
+);
+```
+
+### Image Buffers
+
+```typescript
+const imageData = {
+  data: new Uint8Array([/* pixel data */]),
+  width: 800,
+  height: 600,
+};
+
+const result = await getOrCreateSnapshot(
+  imageData,
+  { method: 'core' },
+  {
+    testPath: '/path/to/test.spec.ts',
+    testName: 'renders correctly',
+  }
+);
+```
+
+### Custom Thresholds
+
+```typescript
+// Allow up to 0.1% difference
+const result = await getOrCreateSnapshot(
+  imagePath,
+  {
+    method: 'core',
+    failureThreshold: 0.1,
+    failureThresholdType: 'percent',
+  },
+  testContext
+);
+```
+
+### Snapshot State Tracking
+
+The `snapshotStatus` field indicates what happened to the snapshot:
+
+```typescript
+const result = await getOrCreateSnapshot(imagePath, options, testContext);
+
+switch (result.snapshotStatus) {
+  case 'added':
+    console.log('New snapshot created');
+    break;
+  case 'matched':
+    console.log('Snapshot matched existing baseline');
+    break;
+  case 'updated':
+    console.log('Snapshot updated (update mode)');
+    break;
+  case 'failed':
+    console.log(`Snapshot failed: ${result.diffPercentage}% different`);
+    break;
+}
+```
+
+## Framework Integrations
+
+For most users, framework-specific packages provide a better developer experience:
+
+- **[@blazediff/jest](/docs/jest)** - Jest matcher with `toMatchImageSnapshot()`
+- **[@blazediff/vitest](/docs/vitest)** - Vitest matcher with `toMatchImageSnapshot()`
+- **[@blazediff/bun](/docs/bun)** - Bun test matcher with `toMatchImageSnapshot()`
+
+These packages wrap `@blazediff/matcher` and integrate with framework snapshot state tracking.
+
+## Links
+
+- [GitHub Repository](https://github.com/teimurjan/blazediff)
+- [NPM Package](https://www.npmjs.com/package/@blazediff/matcher)
+- [@blazediff/core](/docs/core) - Core comparison algorithm
+- [@blazediff/ssim](/docs/ssim) - SSIM algorithms
+- [@blazediff/gmsd](/docs/gmsd) - GMSD algorithm
+- [@blazediff/bin](/docs/bin) - Rust-native bindings

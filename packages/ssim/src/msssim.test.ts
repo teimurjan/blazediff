@@ -39,7 +39,7 @@ function runMatlabMsssim(img1Path: string, img2Path: string): number {
 }
 
 describe("MS-SSIM - MATLAB Comparison", () => {
-	const fixturesPath = join(__dirname, "../../benchmark/fixtures/blazediff");
+	const fixturesPath = join(__dirname, "../../../fixtures/blazediff");
 
 	it("should match MATLAB for images 1a vs 1b", async () => {
 		const img1Path = join(fixturesPath, "1a.png");

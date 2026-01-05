@@ -1,0 +1,40 @@
+{
+	"name": "@blazediff/image-benchmark",
+	"version": "0.0.1",
+	"description": "Image comparison benchmarks for BlazeDiff",
+	"private": true,
+	"files": [
+		"dist"
+	],
+	"scripts": {
+		"typecheck": "tsc --noEmit",
+		"build": "tsup",
+		"dev": "tsup --watch",
+		"clean": "rm -rf dist",
+		"core": "node dist/pixel-by-pixel/blazediff-core-benchmark.js",
+		"binary": "node dist/pixel-by-pixel/blazediff-bin-benchmark.js",
+		"odiff": "node dist/pixel-by-pixel/blazediff-odiff-benchmark.js",
+		"pixelmatch": "node dist/pixel-by-pixel/external-pixelmatch-benchmark.js",
+		"gmsd": "node dist/structure/gmsd-benchmark.js",
+		"ssim": "node dist/structure/ssim-benchmark.js",
+		"hitchhikers-ssim": "node dist/structure/hitchhikers-ssim-benchmark.js",
+		"ssim.js": "node dist/structure/external-ssim-benchmark.js",
+		"weber-ssim.js": "node dist/structure/external-ssim-weber-benchmark.js"
+	},
+	"devDependencies": {
+		"@blazediff/bin": "workspace:*",
+		"@blazediff/cli": "workspace:*",
+		"@blazediff/core": "workspace:*",
+		"@blazediff/gmsd": "workspace:*",
+		"@blazediff/pngjs-transformer": "workspace:*",
+		"@blazediff/ssim": "workspace:*",
+		"@types/node": "^24.3.0",
+		"odiff-bin": "^4.3.2",
+		"pixelmatch": "^7.1.0",
+		"pngjs": "^7.0.0",
+		"ssim.js": "^3.5.0",
+		"tinybench": "^5.0.1",
+		"tsup": "8.5.0",
+		"typescript": "^5.9.2"
+	}
+}

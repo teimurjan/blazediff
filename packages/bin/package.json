@@ -20,6 +20,7 @@
 		"dist"
 	],
 	"scripts": {
+		"typecheck": "tsc --noEmit",
 		"build": "tsup",
 		"clean": "rm -rf dist"
 	},

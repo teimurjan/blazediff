@@ -1,0 +1,447 @@
+# @blazediff/bun
+
+import { Callout } from 'nextra/components'
+
+Bun test matcher for visual regression testing with blazediff. Provides native `toMatchImageSnapshot()` matcher with automatic snapshot state tracking and support for multiple comparison algorithms.
+
+## Installation
+
+```sh npm2yarn
+npm install --save-dev @blazediff/bun
+```
+
+**Peer dependencies**: Bun >= 1.0.0
+
+## Features
+
+- **Native Bun matcher**: `toMatchImageSnapshot()` extends Bun's `expect` API
+- **Snapshot state tracking**: Integrates with Bun's snapshot system (when API available)
+- **Multiple algorithms**: Choose from 6 comparison methods
+- **Auto-setup**: Imports and registers automatically
+- **Update mode**: Works with Bun's `-u`/`--update` flag
+- **Full TypeScript support**: Complete type definitions included
+
+## Quick Start
+
+```typescript
+import { expect, it } from 'bun:test';
+import '@blazediff/bun';
+
+it('should match screenshot', async () => {
+  const screenshot = await page.screenshot();
+
+  await expect(screenshot).toMatchImageSnapshot({
+    method: 'core',
+    snapshotIdentifier: 'homepage',
+  });
+});
+```
+
+<Callout type="info">
+  The matcher auto-registers when you import `@blazediff/bun`. No additional setup required!
+</Callout>
+
+<Callout type="warning">
+  Unlike Jest/Vitest, Bun has limited context exposure. Always provide a `snapshotIdentifier` for reliable snapshot management.
+</Callout>
+
+## API Reference
+
+### toMatchImageSnapshot(options?)
+
+Bun test matcher for image snapshot comparison.
+
+```typescript
+await expect(imageInput).toMatchImageSnapshot(options?);
+```
+
+#### Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `imageInput` | `ImageInput` | Image to compare (file path or buffer with dimensions) |
+| `options` | `Partial<MatcherOptions>` | Optional comparison options |
+
+#### Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `method` | `ComparisonMethod` | `'core'` | Comparison algorithm |
+| `snapshotIdentifier` | `string` | `'snapshot'` | **Required**: Snapshot filename identifier |
+| `failureThreshold` | `number` | `0` | Allowed difference (pixels or percentage) |
+| `failureThresholdType` | `'pixel' \| 'percent'` | `'pixel'` | Threshold interpretation |
+| `snapshotsDir` | `string` | `'__snapshots__'` | Snapshot directory (relative to test) |
+| `updateSnapshots` | `boolean` | `false` | Force snapshot update |
+| `threshold` | `number` | `0.1` | Color threshold for `core`/`bin` (0-1) |
+
+See [@blazediff/matcher](/docs/matcher) for all available options.
+
+## Comparison Methods
+
+### `core` - Pure JavaScript (Default)
+```typescript
+await expect(screenshot).toMatchImageSnapshot({
+  method: 'core',
+  snapshotIdentifier: 'my-test',
+});
+```
+
+### `bin` - Rust Native (Fastest)
+```typescript
+await expect('/path/to/image.png').toMatchImageSnapshot({
+  method: 'bin',
+  snapshotIdentifier: 'my-test',
+});
+```
+
+### `ssim` - Perceptual Similarity
+```typescript
+await expect(screenshot).toMatchImageSnapshot({
+  method: 'ssim',
+  snapshotIdentifier: 'my-test',
+});
+```
+
+### `gmsd` - Gradient-based
+```typescript
+await expect(screenshot).toMatchImageSnapshot({
+  method: 'gmsd',
+  snapshotIdentifier: 'my-test',
+});
+```
+
+## Usage Patterns
+
+### Basic Snapshot Test
+
+```typescript
+import { expect, it } from 'bun:test';
+import '@blazediff/bun';
+
+it('renders homepage correctly', async () => {
+  const screenshot = await browser.screenshot();
+
+  await expect(screenshot).toMatchImageSnapshot({
+    method: 'core',
+    snapshotIdentifier: 'homepage',
+  });
+});
+```
+
+### Custom Thresholds
+
+Allow small differences while catching regressions:
+
+```typescript
+// Allow up to 100 pixels difference
+await expect(screenshot).toMatchImageSnapshot({
+  method: 'core',
+  snapshotIdentifier: 'homepage',
+  failureThreshold: 100,
+  failureThresholdType: 'pixel',
+});
+
+// Allow up to 0.5% difference
+await expect(screenshot).toMatchImageSnapshot({
+  method: 'core',
+  snapshotIdentifier: 'homepage',
+  failureThreshold: 0.5,
+  failureThresholdType: 'percent',
+});
+```
+
+<Callout>
+  Use percentage-based thresholds for responsive images that may change size across different viewports.
+</Callout>
+
+### Update Snapshots
+
+```bash
+# Update all failing snapshots
+bun test -u
+
+# Or
+bun test --update
+```
+
+Programmatically:
+
+```typescript
+await expect(screenshot).toMatchImageSnapshot({
+  method: 'core',
+  snapshotIdentifier: 'homepage',
+  updateSnapshots: true,
+});
+```
+
+### Custom Snapshot Directory
+
+```typescript
+await expect(screenshot).toMatchImageSnapshot({
+  method: 'core',
+  snapshotIdentifier: 'homepage',
+  snapshotsDir: '__image_snapshots__',
+});
+```
+
+### Descriptive Identifiers
+
+Use descriptive identifiers to organize snapshots:
+
+```typescript
+// By viewport
+await expect(screenshot).toMatchImageSnapshot({
+  method: 'core',
+  snapshotIdentifier: 'homepage-mobile-375',
+});
+
+await expect(screenshot).toMatchImageSnapshot({
+  method: 'core',
+  snapshotIdentifier: 'homepage-desktop-1920',
+});
+
+// By state
+await expect(screenshot).toMatchImageSnapshot({
+  method: 'core',
+  snapshotIdentifier: 'button-hover-state',
+});
+
+// By theme
+await expect(screenshot).toMatchImageSnapshot({
+  method: 'core',
+  snapshotIdentifier: 'dashboard-dark-theme',
+});
+```
+
+### Negation
+
+Test that images are intentionally different:
+
+```typescript
+const before = await page.screenshot();
+await page.click('.toggle-theme');
+const after = await page.screenshot();
+
+// Assert that theme toggle changed the UI
+await expect(after).not.toMatchImageSnapshot({
+  method: 'core',
+  snapshotIdentifier: 'before-theme-toggle',
+});
+```
+
+### Serial Tests
+
+For tests that share state, use serial execution:
+
+```typescript
+import { describe, it } from 'bun:test';
+
+describe.serial('Visual regression tests', () => {
+  it('test 1', async () => {
+    await expect(image1).toMatchImageSnapshot({
+      method: 'core',
+      snapshotIdentifier: 'test-1',
+    });
+  });
+
+  it('test 2', async () => {
+    await expect(image2).toMatchImageSnapshot({
+      method: 'core',
+      snapshotIdentifier: 'test-2',
+    });
+  });
+});
+```
+
+## Integrations
+
+### Playwright
+
+```typescript
+import { test, expect } from 'bun:test';
+import '@blazediff/bun';
+import { chromium } from 'playwright';
+
+test('visual regression with Playwright', async () => {
+  const browser = await chromium.launch();
+  const page = await browser.newPage();
+  await page.goto('https://example.com');
+
+  const screenshot = await page.screenshot();
+  await expect(screenshot).toMatchImageSnapshot({
+    method: 'core',
+    snapshotIdentifier: 'homepage',
+  });
+
+  await browser.close();
+});
+```
+
+### Puppeteer
+
+```typescript
+import { test, expect } from 'bun:test';
+import '@blazediff/bun';
+import puppeteer from 'puppeteer';
+
+test('captures homepage', async () => {
+  const browser = await puppeteer.launch();
+  const page = await browser.newPage();
+  await page.goto('https://example.com');
+
+  const screenshot = await page.screenshot({ fullPage: true });
+
+  await expect(screenshot).toMatchImageSnapshot({
+    method: 'core',
+    snapshotIdentifier: 'homepage-full',
+  });
+
+  await browser.close();
+});
+```
+
+## Snapshot State Tracking
+
+The matcher attempts to integrate with Bun's snapshot state system. If Bun exposes the snapshot state API, test summaries will show accurate counts.
+
+**Note**: Bun's snapshot state API for custom matchers is currently limited. Image snapshots will work correctly but may not appear in Bun's test summary counts.
+
+## TypeScript
+
+Full TypeScript support is included:
+
+```typescript
+import { expect, it } from 'bun:test';
+import '@blazediff/bun';
+
+// Types are automatically augmented
+it('typed test', async () => {
+  const screenshot: Buffer = await takeScreenshot();
+
+  await expect(screenshot).toMatchImageSnapshot({
+    method: 'core',
+    snapshotIdentifier: 'my-test',
+    failureThreshold: 0.1,
+    failureThresholdType: 'percent',
+  });
+});
+```
+
+The type augmentation is automatic when you import the package.
+
+## Configuration
+
+### Default Options
+
+Create a wrapper to set default options:
+
+```typescript
+// test-utils.ts
+import { expect } from 'bun:test';
+import type { MatcherOptions } from '@blazediff/matcher';
+
+export async function expectImageSnapshot(
+  image: any,
+  identifier: string,
+  options?: Partial<MatcherOptions>
+) {
+  return expect(image).toMatchImageSnapshot({
+    method: 'core',
+    failureThreshold: 0.1,
+    failureThresholdType: 'percent',
+    snapshotIdentifier: identifier,
+    ...options,
+  });
+}
+```
+
+```typescript
+// test.spec.ts
+import { expectImageSnapshot } from './test-utils';
+
+it('uses default options', async () => {
+  await expectImageSnapshot(screenshot, 'homepage');
+});
+```
+
+## Bun-Specific Notes
+
+### Always Use Snapshot Identifiers
+
+Unlike Jest and Vitest, Bun has limited test context exposure. Always provide a `snapshotIdentifier`:
+
+```typescript
+// ✓ Good
+await expect(screenshot).toMatchImageSnapshot({
+  method: 'core',
+  snapshotIdentifier: 'my-component',
+});
+
+// ✗ Avoid - falls back to generic "snapshot"
+await expect(screenshot).toMatchImageSnapshot({
+  method: 'core',
+});
+```
+
+### Test Path Detection
+
+The matcher uses `Bun.main` to determine the test file path. In edge cases, specify an absolute `snapshotsDir`:
+
+```typescript
+await expect(screenshot).toMatchImageSnapshot({
+  method: 'core',
+  snapshotIdentifier: 'homepage',
+  snapshotsDir: '/absolute/path/to/snapshots',
+});
+```
+
+### Performance
+
+Bun's native speed complements blazediff's performance. For maximum speed, use the `bin` method with file paths:
+
+```typescript
+// Fastest combination: Bun + Rust native
+await expect('/path/to/image.png').toMatchImageSnapshot({
+  method: 'bin',
+  snapshotIdentifier: 'fast-test',
+});
+```
+
+## Troubleshooting
+
+### Snapshots Not Updating
+
+Ensure you're using the `-u` or `--update` flag:
+
+```bash
+bun test -u
+```
+
+Or set `updateSnapshots: true` in options.
+
+### Type Errors
+
+Make sure `@blazediff/bun` is imported:
+
+```typescript
+import '@blazediff/bun';
+```
+
+### Snapshot Directory Not Found
+
+The matcher creates directories automatically. If you see errors, check file permissions or specify an absolute path:
+
+```typescript
+await expect(screenshot).toMatchImageSnapshot({
+  method: 'core',
+  snapshotIdentifier: 'test',
+  snapshotsDir: '/absolute/path/to/snapshots',
+});
+```
+
+## Links
+
+- [GitHub Repository](https://github.com/teimurjan/blazediff)
+- [NPM Package](https://www.npmjs.com/package/@blazediff/bun)
+- [@blazediff/matcher](/docs/matcher) - Core matcher logic
+- [Bun Documentation](https://bun.sh/)

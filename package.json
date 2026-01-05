@@ -8,20 +8,29 @@
     "build": "pnpm -r --filter=!@blazediff/website build",
     "build:rust": "cd rust && ./scripts/build-all.sh --all",
     "test": "pnpm -r test",
+    "typecheck": "pnpm -r typecheck",
     "changeset": "changeset",
     "release": "changeset publish",
-    "benchmark:core": "pnpm --filter @blazediff/benchmark core",
-    "benchmark:pixelmatch": "pnpm --filter @blazediff/benchmark pixelmatch",
-    "benchmark:gmsd": "pnpm --filter @blazediff/benchmark gmsd",
-    "benchmark:ssim": "pnpm --filter @blazediff/benchmark ssim",
-    "benchmark:hitchhikers-ssim": "pnpm --filter @blazediff/benchmark hitchhikers-ssim",
-    "benchmark:ssim.js": "pnpm --filter @blazediff/benchmark ssim.js",
-    "benchmark:weber-ssim.js": "pnpm --filter @blazediff/benchmark weber-ssim.js",
-    "benchmark:object": "pnpm --filter @blazediff/benchmark object",
-    "benchmark:microdiff": "pnpm --filter @blazediff/benchmark microdiff",
+    "benchmark:core": "pnpm --filter @blazediff/image-benchmark core",
+    "benchmark:binary": "pnpm --filter @blazediff/image-benchmark binary",
+    "benchmark:odiff": "pnpm --filter @blazediff/image-benchmark odiff",
+    "benchmark:pixelmatch": "pnpm --filter @blazediff/image-benchmark pixelmatch",
+    "benchmark:gmsd": "pnpm --filter @blazediff/image-benchmark gmsd",
+    "benchmark:ssim": "pnpm --filter @blazediff/image-benchmark ssim",
+    "benchmark:hitchhikers-ssim": "pnpm --filter @blazediff/image-benchmark hitchhikers-ssim",
+    "benchmark:ssim.js": "pnpm --filter @blazediff/image-benchmark ssim.js",
+    "benchmark:weber-ssim.js": "pnpm --filter @blazediff/image-benchmark weber-ssim.js",
+    "benchmark:object": "pnpm --filter @blazediff/object-benchmark object",
+    "benchmark:microdiff": "pnpm --filter @blazediff/object-benchmark microdiff",
+    "benchmark:opentf-obj-diff": "pnpm --filter @blazediff/object-benchmark opentf-obj-diff",
+    "examples:vitest": "pnpm --filter @blazediff/matcher-examples vitest",
+    "examples:jest": "pnpm --filter @blazediff/matcher-examples jest",
+    "examples:bun": "pnpm --filter @blazediff/matcher-examples bun",
+    "examples:all": "pnpm --filter @blazediff/matcher-examples all",
     "format": "pnpm exec biome format",
     "format:write": "pnpm exec biome format --write",
     "check": "pnpm exec biome check",
+    "check:write": "pnpm exec biome check --write",
     "lint": "pnpm exec biome lint",
     "lint:write": "pnpm exec biome lint --write",
     "lint:unsafewrite": "pnpm exec biome lint --unsafe  --write"
@@ -38,6 +47,7 @@
     "@changesets/cli": "^2.29.6"
 	},
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "apps/*"
   ]
 }

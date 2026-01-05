@@ -780,10 +780,10 @@ Automated benchmarks run on every commit:
 ## Test Fixtures
 
 ### Image Fixtures
-The image benchmark fixtures used for testing are documented in the [fixtures README](./packages/benchmark/fixtures/README.md).
+The image benchmark fixtures used for testing are documented in the [fixtures README](./fixtures/README.md).
 
 ### Object Fixtures
-The object benchmark fixtures are documented in the [object fixtures README](./packages/benchmark/src/object/fixtures/README.md).
+The object benchmark fixtures can be viewed [here](./apps/object-benchmark/src/fixtures.ts).
 
 ## Hardware Specifications
 

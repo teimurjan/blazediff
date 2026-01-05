@@ -1,0 +1,9 @@
+{
+	"extends": "../../tsconfig.bundler.json",
+	"compilerOptions": {
+		"outDir": "./dist",
+		"rootDir": "./src",
+		"types": ["bun"]
+	},
+	"include": ["src/**/*"]
+}

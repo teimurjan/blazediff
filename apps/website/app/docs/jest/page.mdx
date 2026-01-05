@@ -1,0 +1,380 @@
+# @blazediff/jest
+
+import { Callout } from 'nextra/components'
+
+Jest matcher for visual regression testing with blazediff. Provides native `toMatchImageSnapshot()` matcher with automatic snapshot state tracking and support for multiple comparison algorithms.
+
+## Installation
+
+```sh npm2yarn
+npm install --save-dev @blazediff/jest
+```
+
+**Peer dependencies**: Jest >= 27.0.0
+
+## Features
+
+- **Native Jest matcher**: `toMatchImageSnapshot()` extends Jest's `expect` API
+- **Snapshot state tracking**: Accurate snapshot counts in Jest's test summary
+- **Multiple algorithms**: Choose from 6 comparison methods
+- **Auto-setup**: Imports and registers automatically
+- **Update mode**: Works seamlessly with Jest's `-u` flag
+- **Full TypeScript support**: Complete type definitions included
+
+## Quick Start
+
+```typescript
+import '@blazediff/jest';
+
+describe('Visual Regression Tests', () => {
+  it('should match screenshot', async () => {
+    const screenshot = await page.screenshot();
+
+    await expect(screenshot).toMatchImageSnapshot({
+      method: 'core',
+    });
+  });
+});
+```
+
+<Callout type="info">
+  The matcher auto-registers when you import `@blazediff/jest`. No additional setup required!
+</Callout>
+
+## API Reference
+
+### toMatchImageSnapshot(options?)
+
+Jest matcher for image snapshot comparison.
+
+```typescript
+await expect(imageInput).toMatchImageSnapshot(options?);
+```
+
+#### Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `imageInput` | `ImageInput` | Image to compare (file path or buffer with dimensions) |
+| `options` | `Partial<MatcherOptions>` | Optional comparison options |
+
+#### Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `method` | `ComparisonMethod` | `'core'` | Comparison algorithm |
+| `failureThreshold` | `number` | `0` | Allowed difference (pixels or percentage) |
+| `failureThresholdType` | `'pixel' \| 'percent'` | `'pixel'` | Threshold interpretation |
+| `snapshotsDir` | `string` | `'__snapshots__'` | Snapshot directory (relative to test) |
+| `snapshotIdentifier` | `string` | auto-generated | Custom snapshot filename |
+| `updateSnapshots` | `boolean` | `false` | Force snapshot update |
+| `threshold` | `number` | `0.1` | Color threshold for `core`/`bin` (0-1) |
+
+See [@blazediff/matcher](/docs/matcher) for all available options.
+
+## Comparison Methods
+
+### `core` - Pure JavaScript (Default)
+```typescript
+await expect(screenshot).toMatchImageSnapshot({
+  method: 'core', // Fast, works with buffers and file paths
+});
+```
+
+### `bin` - Rust Native (Fastest)
+```typescript
+await expect('/path/to/image.png').toMatchImageSnapshot({
+  method: 'bin', // Requires file paths
+});
+```
+
+### `ssim` - Perceptual Similarity
+```typescript
+await expect(screenshot).toMatchImageSnapshot({
+  method: 'ssim', // Structural similarity
+});
+```
+
+### `gmsd` - Gradient-based
+```typescript
+await expect(screenshot).toMatchImageSnapshot({
+  method: 'gmsd', // Detects structural changes
+});
+```
+
+## Usage Patterns
+
+### Basic Snapshot Test
+
+```typescript
+import '@blazediff/jest';
+
+it('renders homepage correctly', async () => {
+  const screenshot = await browser.screenshot();
+
+  await expect(screenshot).toMatchImageSnapshot({
+    method: 'core',
+  });
+});
+```
+
+### Custom Thresholds
+
+Allow small differences while catching regressions:
+
+```typescript
+// Allow up to 100 pixels difference
+await expect(screenshot).toMatchImageSnapshot({
+  method: 'core',
+  failureThreshold: 100,
+  failureThresholdType: 'pixel',
+});
+
+// Allow up to 0.5% difference
+await expect(screenshot).toMatchImageSnapshot({
+  method: 'core',
+  failureThreshold: 0.5,
+  failureThresholdType: 'percent',
+});
+```
+
+<Callout>
+  Use percentage-based thresholds for responsive images that may change size across different viewports.
+</Callout>
+
+### Update Snapshots
+
+```bash
+# Update all failing snapshots
+jest -u
+
+# Update snapshots for specific test file
+jest -u src/components/Button.test.tsx
+
+# Update snapshots matching pattern
+jest -u --testNamePattern="renders correctly"
+```
+
+Programmatically:
+
+```typescript
+await expect(screenshot).toMatchImageSnapshot({
+  method: 'core',
+  updateSnapshots: true,
+});
+```
+
+### Custom Snapshot Directory
+
+```typescript
+await expect(screenshot).toMatchImageSnapshot({
+  method: 'core',
+  snapshotsDir: '__image_snapshots__', // Custom directory
+});
+```
+
+### Custom Snapshot Identifier
+
+```typescript
+await expect(screenshot).toMatchImageSnapshot({
+  method: 'core',
+  snapshotIdentifier: 'homepage-desktop-1920x1080',
+});
+```
+
+### Negation
+
+Test that images are intentionally different:
+
+```typescript
+const before = await page.screenshot();
+await page.click('.toggle-theme');
+const after = await page.screenshot();
+
+// Assert that theme toggle changed the UI
+await expect(after).not.toMatchImageSnapshot({
+  method: 'core',
+  snapshotIdentifier: 'before-theme-toggle',
+});
+```
+
+## Integrations
+
+### Playwright
+
+```typescript
+import { test, expect as playwrightExpect } from '@playwright/test';
+import { expect as jestExpect } from '@jest/globals';
+import '@blazediff/jest';
+
+test('visual regression', async ({ page }) => {
+  await page.goto('https://example.com');
+  const screenshot = await page.screenshot();
+
+  await jestExpect(screenshot).toMatchImageSnapshot({
+    method: 'core',
+  });
+});
+```
+
+### Puppeteer
+
+```typescript
+import puppeteer from 'puppeteer';
+import '@blazediff/jest';
+
+it('captures homepage', async () => {
+  const browser = await puppeteer.launch();
+  const page = await browser.newPage();
+  await page.goto('https://example.com');
+
+  const screenshot = await page.screenshot({ fullPage: true });
+
+  await expect(screenshot).toMatchImageSnapshot({
+    method: 'core',
+  });
+
+  await browser.close();
+});
+```
+
+### React Testing Library
+
+```typescript
+import { render } from '@testing-library/react';
+import '@blazediff/jest';
+import html2canvas from 'html2canvas';
+
+it('renders button correctly', async () => {
+  const { container } = render(<Button>Click me</Button>);
+
+  const canvas = await html2canvas(container);
+  const imageData = canvas.toDataURL();
+
+  await expect(imageData).toMatchImageSnapshot({
+    method: 'core',
+  });
+});
+```
+
+## Snapshot State Tracking
+
+The matcher integrates with Jest's snapshot state system. Test summaries show accurate counts:
+
+```
+Snapshots:   2 added, 1 updated, 5 passed, 8 total
+```
+
+Tracked states:
+- **Added**: New snapshots created
+- **Updated**: Snapshots updated with `-u` flag
+- **Passed**: Existing snapshots matched
+- **Failed**: Comparisons failed (not shown in summary)
+
+## TypeScript
+
+Full TypeScript support is included:
+
+```typescript
+import '@blazediff/jest';
+
+// Types are automatically augmented
+it('typed test', async () => {
+  const screenshot: Buffer = await takeScreenshot();
+
+  await expect(screenshot).toMatchImageSnapshot({
+    method: 'core',
+    failureThreshold: 0.1,
+    failureThresholdType: 'percent',
+  });
+});
+```
+
+The type augmentation is automatic when you import the package.
+
+## Configuration
+
+### Global Setup
+
+To avoid importing in every test file, configure Jest:
+
+```javascript
+// jest.config.js
+module.exports = {
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
+};
+```
+
+```javascript
+// jest.setup.js
+import '@blazediff/jest';
+```
+
+### Default Options
+
+Create a wrapper to set default options:
+
+```typescript
+// test-utils.ts
+import { expect } from '@jest/globals';
+import type { MatcherOptions } from '@blazediff/matcher';
+
+export async function expectImageSnapshot(
+  image: any,
+  options?: Partial<MatcherOptions>
+) {
+  return expect(image).toMatchImageSnapshot({
+    method: 'core',
+    failureThreshold: 0.1,
+    failureThresholdType: 'percent',
+    ...options,
+  });
+}
+```
+
+```typescript
+// test.spec.ts
+import { expectImageSnapshot } from './test-utils';
+
+it('uses default options', async () => {
+  await expectImageSnapshot(screenshot);
+});
+```
+
+## Troubleshooting
+
+### Snapshots Not Updating
+
+Ensure you're using the `-u` flag:
+
+```bash
+jest -u
+```
+
+Or set `updateSnapshots: true` in options.
+
+### Type Errors
+
+Make sure `@blazediff/jest` is imported:
+
+```typescript
+import '@blazediff/jest';
+```
+
+### Snapshot Directory Not Found
+
+The matcher creates directories automatically. If you see errors, check file permissions or specify an absolute path:
+
+```typescript
+await expect(screenshot).toMatchImageSnapshot({
+  method: 'core',
+  snapshotsDir: '/absolute/path/to/snapshots',
+});
+```
+
+## Links
+
+- [GitHub Repository](https://github.com/teimurjan/blazediff)
+- [NPM Package](https://www.npmjs.com/package/@blazediff/jest)
+- [@blazediff/matcher](/docs/matcher) - Core matcher logic
+- [Jest Documentation](https://jestjs.io/)
