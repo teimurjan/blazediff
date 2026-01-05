@@ -1,5 +1,11 @@
 # @blazediff/pngjs-transformer
 
+## 2.1.0
+
+### Minor Changes
+
+- 9d6d1c5: Fix issue when trying to write buffer
+
 ## 2.0.0
 
 ### Major Changes
