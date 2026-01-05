@@ -1,5 +1,14 @@
 # @blazediff/cli
 
+## 2.0.4
+
+### Patch Changes
+
+- Updated dependencies [9d6d1c5]
+  - @blazediff/pngjs-transformer@2.1.0
+  - @blazediff/gmsd@1.7.0
+  - @blazediff/ssim@1.7.0
+
 ## 2.0.3
 
 ### Patch Changes
