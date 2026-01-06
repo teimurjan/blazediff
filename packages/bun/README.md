@@ -164,11 +164,11 @@ await expect(imageBuffer).toMatchImageSnapshot({
 ### Update Snapshots
 
 ```bash
-# Update all snapshots
-bun test -u
+# Update all snapshots (recommended)
+bun test --update-snapshots
 
-# Or
-bun test --update
+# Or using environment variable
+BUN_UPDATE_SNAPSHOTS=true bun test
 ```
 
 Or programmatically:

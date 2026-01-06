@@ -10,10 +10,9 @@ import {
 	normalizeImageInput,
 	savePNG,
 } from "./image-io";
-import { formatMessage as formatReport } from "./reporter";
+import { formatMessage } from "./reporter";
 import type {
 	ComparisonResult,
-	ImageData,
 	ImageInput,
 	MatcherOptions,
 	TestContext,
@@ -111,38 +110,6 @@ function checkThreshold(
 }
 
 /**
- * Format result message
- */
-function formatMessage(
-	pass: boolean,
-	method: MatcherOptions["method"],
-	result: {
-		diffCount?: number;
-		diffPercentage?: number;
-		score?: number;
-	},
-	options: MatcherOptions,
-	paths: {
-		baselinePath: string;
-		receivedPath: string;
-		diffPath: string;
-	},
-	isNewSnapshot: boolean,
-): string {
-	return formatReport({
-		pass,
-		method,
-		isNewSnapshot,
-		paths,
-		result,
-		threshold: options.failureThreshold ?? 0,
-		thresholdType: options.failureThresholdType ?? "pixel",
-		isSsim: isSsimMethod(method),
-		isGmsd: method === "gmsd",
-	});
-}
-
-/**
  * Main snapshot comparison function
  */
 export async function getOrCreateSnapshot(
@@ -167,16 +134,36 @@ export async function getOrCreateSnapshot(
 			const img = await loadPNG(received);
 			await savePNG(baselinePath, img.data, img.width, img.height);
 		} else {
-			await savePNG(baselinePath, received.data, received.width, received.height);
+			await savePNG(
+				baselinePath,
+				received.data,
+				received.width,
+				received.height,
+			);
 		}
 
 		// Clean up any old received/diff files
 		if (existsSync(receivedPath)) unlinkSync(receivedPath);
 		if (existsSync(diffPath)) unlinkSync(diffPath);
 
+		const message = formatMessage({
+			pass: true,
+			method: options.method,
+			snapshotCreated: true,
+			baselinePath,
+			receivedPath,
+			diffPath,
+			diffCount: 0,
+			diffPercentage: 0,
+			score: 0,
+			threshold: options.failureThreshold ?? 0,
+			thresholdType: options.failureThresholdType ?? "pixel",
+			updateCommand: options.updateCommand,
+		});
+
 		return {
 			pass: true,
-			message: formatMessage(true, options.method, {}, options, paths, true),
+			message,
 			baselinePath,
 			snapshotStatus: !baselineExists ? "added" : "updated",
 		};
@@ -199,16 +186,24 @@ export async function getOrCreateSnapshot(
 		if (existsSync(receivedPath)) unlinkSync(receivedPath);
 		if (existsSync(diffPath)) unlinkSync(diffPath);
 
+		const message = formatMessage({
+			pass,
+			method: options.method,
+			snapshotCreated: false,
+			baselinePath,
+			receivedPath,
+			diffPath,
+			diffCount: result.diffCount,
+			diffPercentage: result.diffPercentage,
+			score: result.score,
+			threshold: options.failureThreshold ?? 0,
+			thresholdType: options.failureThresholdType ?? "pixel",
+			updateCommand: options.updateCommand,
+		});
+
 		return {
 			pass: true,
-			message: formatMessage(
-				pass,
-				options.method,
-				result,
-				options,
-				paths,
-				false,
-			),
+			message,
 			diffCount: result.diffCount,
 			diffPercentage: result.diffPercentage,
 			score: result.score,
@@ -236,9 +231,24 @@ export async function getOrCreateSnapshot(
 		);
 	}
 
+	const message = formatMessage({
+		pass,
+		method: options.method,
+		snapshotCreated: false,
+		baselinePath,
+		receivedPath,
+		diffPath,
+		diffCount: result.diffCount,
+		diffPercentage: result.diffPercentage,
+		score: result.score,
+		threshold: options.failureThreshold ?? 0,
+		thresholdType: options.failureThresholdType ?? "pixel",
+		updateCommand: options.updateCommand,
+	});
+
 	return {
 		pass: false,
-		message: formatMessage(pass, options.method, result, options, paths, false),
+		message,
 		diffCount: result.diffCount,
 		diffPercentage: result.diffPercentage,
 		score: result.score,

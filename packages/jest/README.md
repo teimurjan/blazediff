@@ -164,6 +164,9 @@ jest -u
 
 # Update snapshots for specific test
 jest -u path/to/test.spec.ts
+
+# Or using environment variable
+JEST_UPDATE_SNAPSHOTS=true jest
 ```
 
 Or programmatically:

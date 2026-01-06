@@ -57,10 +57,21 @@ export interface MatcherOptions {
 	snapshotIdentifier?: string;
 
 	/**
-	 * Force update snapshots (like running with -u flag)
-	 * @default false
+	 * Snapshot update mode (following Vitest's logic)
+	 * - 'all': update all snapshots (vitest -u)
+	 * - 'new': create new snapshots only, don't update existing (default)
+	 * - 'none': don't create or update any snapshots
+	 * - true: same as 'all' (backwards compatibility)
+	 * - false: same as 'new' (backwards compatibility)
+	 * @default 'new'
 	 */
-	updateSnapshots?: boolean;
+	updateSnapshots?: boolean | "all" | "new" | "none";
+
+	/**
+	 * Custom update command to display in error messages
+	 * @default '--update'
+	 */
+	updateCommand?: string;
 
 	// Method-specific options passed through to comparators
 

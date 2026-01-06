@@ -24,19 +24,19 @@ async function toMatchImageSnapshot(
 ): Promise<jest.CustomMatcherResult> {
 	const { testPath, currentTestName, snapshotState } = this;
 
-	// Check for update flag from environment or CLI
 	const updateSnapshots =
 		options?.updateSnapshots ||
-		process.env.UPDATE_SNAPSHOTS === "true" ||
+		process.env.JEST_UPDATE_SNAPSHOTS === "true" ||
 		process.argv.includes("-u") ||
 		process.argv.includes("--updateSnapshot");
 
 	const result = await getOrCreateSnapshot(
 		received,
 		{
-			method: "core", // Default to core method
+			method: "core",
 			...options,
 			updateSnapshots,
+			updateCommand: "-u or JEST_UPDATE_SNAPSHOTS=true",
 		} as MatcherOptions,
 		{
 			testPath: testPath || "",

@@ -164,6 +164,9 @@ vitest -u
 
 # Update snapshots for specific test
 vitest -u path/to/test.spec.ts
+
+# Or using environment variable
+VITEST_UPDATE_SNAPSHOTS=true vitest
 ```
 
 Or programmatically:

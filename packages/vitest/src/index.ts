@@ -38,23 +38,24 @@ export function setupBlazediffMatchers(): void {
 			const testPath = (this as any).testPath || "";
 			const currentTestName = (this as any).currentTestName || "unknown";
 
-			// Check for update flag from Vitest's snapshot state or environment
-			// Vitest sets snapshotState._updateSnapshot to:
-			// - 'new': default mode, create new snapshots (don't update existing)
-			// - 'all': update mode (vitest -u), update all snapshots
+			// Get Vitest's snapshot state to determine update mode
+			// snapshotState._updateSnapshot can be:
+			// - 'new': default mode (create new snapshots only)
+			// - 'all': update mode (vitest -u)
 			// - 'none': no updates
 			const snapshotState = (this as any).snapshotState;
 			const updateSnapshots =
-				options?.updateSnapshots ||
-				snapshotState?._updateSnapshot === "all" ||
-				process.env.UPDATE_SNAPSHOTS === "true";
+				options?.updateSnapshots ??
+				snapshotState?._updateSnapshot ??
+				(process.env.VITEST_UPDATE_SNAPSHOTS === "true" || "new");
 
 			const result = await getOrCreateSnapshot(
 				received,
 				{
-					method: "core", // Default to core method
+					method: "core",
 					...options,
 					updateSnapshots,
+					updateCommand: "-u or VITEST_UPDATE_SNAPSHOTS=true",
 				} as MatcherOptions,
 				{
 					testPath,

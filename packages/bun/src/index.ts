@@ -42,16 +42,17 @@ export function setupBlazediffMatchers(): void {
 			// Check for update flag from environment
 			const updateSnapshots =
 				options?.updateSnapshots ||
-				process.env.UPDATE_SNAPSHOTS === "true" ||
+				process.env.BUN_UPDATE_SNAPSHOTS === "true" ||
 				Bun.argv.includes("-u") ||
-				Bun.argv.includes("--update");
+				Bun.argv.includes("--update-snapshots");
 
 			const result = await getOrCreateSnapshot(
 				received as ImageInput,
 				{
-					method: "core", // Default to core method
+					method: "core",
 					...options,
 					updateSnapshots,
+					updateCommand: "--update-snapshots or BUN_UPDATE_SNAPSHOTS=true",
 				} as MatcherOptions,
 				{
 					testPath,
