@@ -1,5 +1,11 @@
 # @blazediff/matcher
 
+## 1.1.0
+
+### Minor Changes
+
+- fdb2fb3: Fix matchers to detect update request correctly
+
 ## 1.0.1
 
 ### Patch Changes
