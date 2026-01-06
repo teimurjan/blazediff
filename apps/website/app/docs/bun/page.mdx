@@ -157,12 +157,16 @@ await expect(screenshot).toMatchImageSnapshot({
 ### Update Snapshots
 
 ```bash
-# Update all failing snapshots
-bun test -u
+# Update all failing snapshots (recommended)
+bun test --update-snapshots
 
-# Or
-bun test --update
+# Using environment variable
+BUN_UPDATE_SNAPSHOTS=true bun test
 ```
+
+<Callout type="info">
+  The Bun's `--update-snapshots` flag is consumed by Bun internally and won't update image snapshots.
+</Callout>
 
 Programmatically:
 

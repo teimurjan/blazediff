@@ -1,4 +1,5 @@
 import pc from "picocolors";
+import type { ComparisonMethod } from "./types";
 
 const symbols = {
 	success: pc.isColorSupported ? "✔" : "√",
@@ -7,29 +8,26 @@ const symbols = {
 	arrow: pc.isColorSupported ? "└─" : "'-",
 };
 
+const SSIM_METHODS = new Set(["ssim", "msssim", "hitchhikers-ssim"]);
+
 export interface FormatOptions {
 	pass: boolean;
-	method: string;
-	isNewSnapshot: boolean;
-	paths: {
-		baselinePath: string;
-		receivedPath: string;
-		diffPath: string;
-	};
-	result: {
-		diffCount?: number;
-		diffPercentage?: number;
-		score?: number;
-	};
+	method: ComparisonMethod;
+	snapshotCreated: boolean;
+	baselinePath: string;
+	receivedPath: string;
+	diffPath: string;
+	diffCount?: number;
+	diffPercentage?: number;
+	score?: number;
 	threshold: number;
 	thresholdType: "pixel" | "percent";
-	isSsim: boolean;
-	isGmsd: boolean;
+	updateCommand?: string;
 }
 
 export function formatMessage(opts: FormatOptions): string {
-	if (opts.isNewSnapshot) {
-		return formatNewSnapshot(opts.paths.baselinePath);
+	if (opts.snapshotCreated) {
+		return formatNewSnapshot(opts.baselinePath);
 	}
 	if (opts.pass) {
 		return formatSuccess();
@@ -50,8 +48,18 @@ function formatSuccess(): string {
 }
 
 function formatMismatch(opts: FormatOptions): string {
-	const { method, paths, result, threshold, thresholdType, isSsim, isGmsd } =
-		opts;
+	const {
+		method,
+		baselinePath,
+		receivedPath,
+		diffPath,
+		diffCount = 0,
+		diffPercentage,
+		score = 0,
+		threshold,
+		thresholdType,
+		updateCommand,
+	} = opts;
 
 	const lines: string[] = [
 		`${pc.red(symbols.error)} ${pc.red(pc.bold("Image snapshot mismatch"))}`,
@@ -61,33 +69,30 @@ function formatMismatch(opts: FormatOptions): string {
 	const labelWidth = 12;
 	lines.push(`  ${pc.dim("Method".padEnd(labelWidth))}${method}`);
 	lines.push(
-		`  ${pc.dim("Baseline".padEnd(labelWidth))}${pc.dim(paths.baselinePath)}`,
+		`  ${pc.dim("Baseline".padEnd(labelWidth))}${pc.dim(baselinePath)}`,
 	);
 	lines.push(
-		`  ${pc.dim("Received".padEnd(labelWidth))}${pc.dim(paths.receivedPath)}`,
+		`  ${pc.dim("Received".padEnd(labelWidth))}${pc.dim(receivedPath)}`,
 	);
-	lines.push(`  ${pc.dim("Diff".padEnd(labelWidth))}${pc.dim(paths.diffPath)}`);
+	lines.push(`  ${pc.dim("Diff".padEnd(labelWidth))}${pc.dim(diffPath)}`);
 	lines.push("");
 
-	if (isSsim) {
-		const score = result.score ?? 0;
+	if (SSIM_METHODS.has(method)) {
 		const diff = ((1 - score) * 100).toFixed(2);
 		lines.push(
 			`  ${pc.dim("SSIM Score".padEnd(labelWidth))}${pc.yellow(score.toFixed(4))} ${pc.dim("(1.0 = identical)")}`,
 		);
 		lines.push(
-			`  ${pc.dim("Difference".padEnd(labelWidth))}${pc.yellow(diff + "%")}`,
+			`  ${pc.dim("Difference".padEnd(labelWidth))}${pc.yellow(`${diff}%`)}`,
 		);
-	} else if (isGmsd) {
-		const score = result.score ?? 0;
+	} else if (method === "gmsd") {
 		lines.push(
 			`  ${pc.dim("GMSD Score".padEnd(labelWidth))}${pc.yellow(score.toFixed(4))} ${pc.dim("(0.0 = identical)")}`,
 		);
 	} else {
-		const count = result.diffCount ?? 0;
-		const pct = result.diffPercentage?.toFixed(2) ?? "0.00";
+		const pct = diffPercentage?.toFixed(2) ?? "0.00";
 		lines.push(
-			`  ${pc.dim("Difference".padEnd(labelWidth))}${pc.yellow(count.toLocaleString())} pixels ${pc.dim(`(${pct}%)`)}`,
+			`  ${pc.dim("Difference".padEnd(labelWidth))}${pc.yellow(diffCount.toLocaleString())} pixels ${pc.dim(`(${pct}%)`)}`,
 		);
 	}
 
@@ -98,7 +103,7 @@ function formatMismatch(opts: FormatOptions): string {
 	lines.push("");
 
 	lines.push(
-		`  ${pc.cyan(symbols.info)} ${pc.cyan("Run with --update to update the snapshot")}`,
+		`  ${pc.cyan(symbols.info)} ${pc.cyan(`Run with ${updateCommand ?? "--update"} to update the snapshot`)}`,
 	);
 
 	return lines.join("\n");
