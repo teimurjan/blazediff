@@ -126,8 +126,24 @@ export async function getOrCreateSnapshot(
 	// Check if baseline exists
 	const baselineExists = fileExists(baselinePath);
 
-	// If update mode or no baseline, create/update the snapshot
-	if (options.updateSnapshots || !baselineExists) {
+	// Determine update mode
+	const updateMode =
+		options.updateSnapshots === true
+			? "all"
+			: options.updateSnapshots === false ||
+				  options.updateSnapshots === undefined
+				? "new"
+				: options.updateSnapshots;
+
+	// These are the conditions on when to write snapshots (following Vitest's logic):
+	// * There's no snapshot file and updateMode is 'new' or 'all'
+	// * There is a snapshot file and updateMode is 'all'
+	const shouldWrite =
+		updateMode !== "none" &&
+		((baselineExists && updateMode === "all") ||
+			(!baselineExists && (updateMode === "new" || updateMode === "all")));
+
+	if (shouldWrite) {
 		// Save received as new baseline
 		if (isFilePath(received)) {
 			// Copy file to snapshot location
