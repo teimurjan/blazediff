@@ -1,5 +1,11 @@
 # @blazediff/matcher
 
+## 1.1.1
+
+### Patch Changes
+
+- bef3829: Fix snapshot update mode logic to prevent automatic updates without -u flag
+
 ## 1.1.0
 
 ### Minor Changes
