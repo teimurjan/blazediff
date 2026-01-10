@@ -1,5 +1,12 @@
 # @blazediff/jest
 
+## 1.1.2
+
+### Patch Changes
+
+- Updated dependencies [386ba51]
+  - @blazediff/matcher@1.2.0
+
 ## 1.1.1
 
 ### Patch Changes
