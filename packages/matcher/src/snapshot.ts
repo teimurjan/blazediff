@@ -6,6 +6,7 @@ import {
 	ensureDir,
 	fileExists,
 	isFilePath,
+	isRawPngBuffer,
 	loadPNG,
 	normalizeImageInput,
 	savePNG,
@@ -120,6 +121,11 @@ export async function getOrCreateSnapshot(
 	const paths = getSnapshotPaths(testContext, options);
 	const { snapshotDir, baselinePath, receivedPath, diffPath } = paths;
 
+	// Normalize raw PNG buffers to ImageData with dimensions
+	const normalizedReceived = isRawPngBuffer(received)
+		? await normalizeImageInput(received)
+		: received;
+
 	// Ensure snapshot directory exists
 	ensureDir(snapshotDir);
 
@@ -135,32 +141,25 @@ export async function getOrCreateSnapshot(
 				? "new"
 				: options.updateSnapshots;
 
-	// These are the conditions on when to write snapshots (following Vitest's logic):
-	// * There's no snapshot file and updateMode is 'new' or 'all'
-	// * There is a snapshot file and updateMode is 'all'
-	const shouldWrite =
+	// Create new snapshot if baseline doesn't exist and mode allows
+	const shouldCreateNew =
+		!baselineExists &&
 		updateMode !== "none" &&
-		((baselineExists && updateMode === "all") ||
-			(!baselineExists && (updateMode === "new" || updateMode === "all")));
+		(updateMode === "new" || updateMode === "all");
 
-	if (shouldWrite) {
+	if (shouldCreateNew) {
 		// Save received as new baseline
-		if (isFilePath(received)) {
-			// Copy file to snapshot location
-			const img = await loadPNG(received);
+		if (isFilePath(normalizedReceived)) {
+			const img = await loadPNG(normalizedReceived);
 			await savePNG(baselinePath, img.data, img.width, img.height);
 		} else {
 			await savePNG(
 				baselinePath,
-				received.data,
-				received.width,
-				received.height,
+				normalizedReceived.data,
+				normalizedReceived.width,
+				normalizedReceived.height,
 			);
 		}
-
-		// Clean up any old received/diff files
-		if (existsSync(receivedPath)) unlinkSync(receivedPath);
-		if (existsSync(diffPath)) unlinkSync(diffPath);
 
 		const message = formatMessage({
 			pass: true,
@@ -181,13 +180,13 @@ export async function getOrCreateSnapshot(
 			pass: true,
 			message,
 			baselinePath,
-			snapshotStatus: !baselineExists ? "added" : "updated",
+			snapshotStatus: "added",
 		};
 	}
 
 	// Run comparison
 	const result = await runComparison(
-		received,
+		normalizedReceived,
 		baselinePath,
 		options.method,
 		options,
@@ -228,17 +227,63 @@ export async function getOrCreateSnapshot(
 		};
 	}
 
+	// If update mode is 'all' and images differ, update the baseline
+	if (updateMode === "all") {
+		if (isFilePath(normalizedReceived)) {
+			const img = await loadPNG(normalizedReceived);
+			await savePNG(baselinePath, img.data, img.width, img.height);
+		} else {
+			await savePNG(
+				baselinePath,
+				normalizedReceived.data,
+				normalizedReceived.width,
+				normalizedReceived.height,
+			);
+		}
+
+		// Clean up any old received/diff files
+		if (existsSync(receivedPath)) unlinkSync(receivedPath);
+		if (existsSync(diffPath)) unlinkSync(diffPath);
+
+		const message = formatMessage({
+			pass: true,
+			method: options.method,
+			snapshotCreated: true,
+			baselinePath,
+			receivedPath,
+			diffPath,
+			diffCount: 0,
+			diffPercentage: 0,
+			score: 0,
+			threshold: options.failureThreshold ?? 0,
+			thresholdType: options.failureThresholdType ?? "pixel",
+			updateCommand: options.updateCommand,
+		});
+
+		return {
+			pass: true,
+			message,
+			baselinePath,
+			snapshotStatus: "updated",
+		};
+	}
+
 	// Save received image for debugging
-	if (isFilePath(received)) {
-		const img = await loadPNG(received);
+	if (isFilePath(normalizedReceived)) {
+		const img = await loadPNG(normalizedReceived);
 		await savePNG(receivedPath, img.data, img.width, img.height);
 	} else {
-		await savePNG(receivedPath, received.data, received.width, received.height);
+		await savePNG(
+			receivedPath,
+			normalizedReceived.data,
+			normalizedReceived.width,
+			normalizedReceived.height,
+		);
 	}
 
 	// Save diff output if available
 	if (result.diffOutput) {
-		const receivedData = await normalizeImageInput(received);
+		const receivedData = await normalizeImageInput(normalizedReceived);
 		await savePNG(
 			diffPath,
 			result.diffOutput,
