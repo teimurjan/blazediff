@@ -15,10 +15,12 @@ export type ComparisonMethod =
 export type SnapshotStatus = "added" | "matched" | "updated" | "failed";
 
 /**
- * Image input - either a file path or a buffer with dimensions
+ * Image input - file path, raw PNG buffer, or buffer with dimensions
  */
 export type ImageInput =
 	| string
+	| Buffer
+	| Uint8Array
 	| {
 			data: Uint8Array | Uint8ClampedArray | Buffer;
 			width: number;

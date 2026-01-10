@@ -11,6 +11,18 @@ export function isFilePath(input: ImageInput): input is string {
 }
 
 /**
+ * Check if input is a raw PNG buffer (Buffer or Uint8Array without dimensions)
+ */
+export function isRawPngBuffer(
+	input: ImageInput,
+): input is Buffer | Uint8Array {
+	return (
+		(Buffer.isBuffer(input) || input instanceof Uint8Array) &&
+		!("width" in input)
+	);
+}
+
+/**
  * Check if input is an image buffer with dimensions
  */
 export function isImageBuffer(input: ImageInput): input is {
@@ -63,14 +75,25 @@ export async function savePNG(
 
 /**
  * Normalize image input to ImageData
- * If input is a file path, loads the image
- * If input is already a buffer, returns it with normalized Uint8Array
+ * - File path: loads the PNG
+ * - Raw PNG buffer: decodes to get dimensions
+ * - Buffer with dimensions: returns as-is with normalized Uint8Array
  */
 export async function normalizeImageInput(
 	input: ImageInput,
 ): Promise<ImageData> {
 	if (isFilePath(input)) {
 		return loadPNG(input);
+	}
+
+	if (isRawPngBuffer(input)) {
+		const buffer = Buffer.isBuffer(input) ? input : Buffer.from(input);
+		const image = await pngjsTransformer.read(buffer);
+		return {
+			data: new Uint8Array(image.data),
+			width: image.width,
+			height: image.height,
+		};
 	}
 
 	return {
