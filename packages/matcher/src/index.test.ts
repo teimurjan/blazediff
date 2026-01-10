@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
@@ -6,6 +6,7 @@ import {
 	getOrCreateSnapshot,
 	isFilePath,
 	isImageBuffer,
+	isRawPngBuffer,
 	loadPNG,
 	normalizeImageInput,
 	runComparison,
@@ -79,6 +80,27 @@ describe("image-io", () => {
 		});
 	});
 
+	describe("isRawPngBuffer", () => {
+		it("should return true for Buffer", () => {
+			const buffer = Buffer.from([0x89, 0x50, 0x4e, 0x47]);
+			expect(isRawPngBuffer(buffer)).toBe(true);
+		});
+
+		it("should return true for Uint8Array without width", () => {
+			const arr = new Uint8Array([0x89, 0x50, 0x4e, 0x47]);
+			expect(isRawPngBuffer(arr)).toBe(true);
+		});
+
+		it("should return false for ImageData with dimensions", () => {
+			const img = createTestImage(10, 10);
+			expect(isRawPngBuffer(img)).toBe(false);
+		});
+
+		it("should return false for file path", () => {
+			expect(isRawPngBuffer("/path/to/image.png")).toBe(false);
+		});
+	});
+
 	describe("loadPNG", () => {
 		it("should load PNG from fixtures", async () => {
 			const img = await loadPNG(join(FIXTURES_PATH, "same/1a.png"));
@@ -127,6 +149,22 @@ describe("image-io", () => {
 			const result = await normalizeImageInput(img);
 			expect(result.width).toBe(10);
 			expect(result.height).toBe(10);
+			expect(result.data).toBeInstanceOf(Uint8Array);
+		});
+
+		it("should decode raw PNG Buffer to get dimensions", async () => {
+			const pngBuffer = readFileSync(join(FIXTURES_PATH, "same/1a.png"));
+			const result = await normalizeImageInput(pngBuffer);
+			expect(result.width).toBeGreaterThan(0);
+			expect(result.height).toBeGreaterThan(0);
+			expect(result.data).toBeInstanceOf(Uint8Array);
+		});
+
+		it("should decode raw Uint8Array PNG", async () => {
+			const pngBuffer = readFileSync(join(FIXTURES_PATH, "same/1a.png"));
+			const uint8Array = new Uint8Array(pngBuffer);
+			const result = await normalizeImageInput(uint8Array);
+			expect(result.width).toBeGreaterThan(0);
 			expect(result.data).toBeInstanceOf(Uint8Array);
 		});
 	});
@@ -257,6 +295,98 @@ describe("runComparison", () => {
 				runComparison(img, img, "bin", { method: "bin" }),
 			).rejects.toThrow("Method 'bin' only supports file paths");
 		});
+
+		it("should throw for raw PNG buffer input", async () => {
+			const pngBuffer = readFileSync(join(FIXTURES_PATH, "same/1a.png"));
+			await expect(
+				runComparison(pngBuffer, pngBuffer, "bin", { method: "bin" }),
+			).rejects.toThrow("Method 'bin' only supports file paths");
+		});
+
+		it("should throw when mixing buffer and file path", async () => {
+			const img = createTestImage(10, 10);
+			const filePath = join(FIXTURES_PATH, "same/1a.png");
+			await expect(
+				runComparison(img, filePath, "bin", { method: "bin" }),
+			).rejects.toThrow("Method 'bin' only supports file paths");
+		});
+	});
+
+	describe("dimension mismatch", () => {
+		it("should handle dimension mismatch in core method", async () => {
+			const img1 = createTestImage(100, 100);
+			const img2 = createTestImage(50, 50);
+			const result = await runComparison(img1, img2, "core", { method: "core" });
+			expect(result.diffPercentage).toBe(100);
+		});
+
+		it("should handle dimension mismatch in ssim method", async () => {
+			const img1 = createTestImage(100, 100);
+			const img2 = createTestImage(50, 50);
+			const result = await runComparison(img1, img2, "ssim", { method: "ssim" });
+			expect(result.score).toBe(0);
+		});
+
+		it("should handle dimension mismatch in gmsd method", async () => {
+			const img1 = createTestImage(100, 100);
+			const img2 = createTestImage(50, 50);
+			const result = await runComparison(img1, img2, "gmsd", { method: "gmsd" });
+			expect(result.score).toBe(1);
+		});
+	});
+
+	describe("ssim variants", () => {
+		it("should work with msssim method", async () => {
+			const img = createTestImage(100, 100);
+			const result = await runComparison(img, img, "msssim", { method: "msssim" });
+			expect(result.score).toBeCloseTo(1, 2);
+		});
+
+		it("should work with hitchhikers-ssim method", async () => {
+			const img = createTestImage(100, 100);
+			const result = await runComparison(img, img, "hitchhikers-ssim", {
+				method: "hitchhikers-ssim",
+			});
+			expect(result.score).toBeCloseTo(1, 2);
+		});
+
+		it("should detect differences with msssim", async () => {
+			const img1 = createTestImage(100, 100, [0, 0, 0, 255]);
+			const img2 = createTestImage(100, 100, [255, 255, 255, 255]);
+			const result = await runComparison(img1, img2, "msssim", { method: "msssim" });
+			expect(result.score).toBeLessThan(0.5);
+		});
+
+		it("should detect differences with hitchhikers-ssim", async () => {
+			const path1 = join(FIXTURES_PATH, "pixelmatch/1a.png");
+			const path2 = join(FIXTURES_PATH, "pixelmatch/1b.png");
+			const result = await runComparison(path1, path2, "hitchhikers-ssim", {
+				method: "hitchhikers-ssim",
+			});
+			expect(result.score).toBeLessThan(1);
+		});
+	});
+
+	describe("method options", () => {
+		it("should pass threshold option to core method", async () => {
+			const img1 = createTestImage(100, 100, [100, 100, 100, 255]);
+			const img2 = createTestImage(100, 100, [110, 100, 100, 255]);
+
+			const result = await runComparison(img1, img2, "core", {
+				method: "core",
+				threshold: 0.5,
+			});
+			expect(result.diffCount).toBe(0);
+		});
+
+		it("should pass windowSize option to ssim method", async () => {
+			const img = createTestImage(100, 100);
+			const result = await runComparison(img, img, "ssim", {
+				method: "ssim",
+				windowSize: 7,
+			});
+			expect(result.score).toBeCloseTo(1, 2);
+		});
 	});
 });
 
@@ -313,6 +443,73 @@ describe("compareImages", () => {
 			failureThresholdType: "percent",
 		});
 		expect(result.pass).toBe(true);
+	});
+
+	it("should compare raw PNG buffer with file path", async () => {
+		const filePath = join(FIXTURES_PATH, "same/1a.png");
+		const pngBuffer = readFileSync(filePath);
+
+		const result = await compareImages(pngBuffer, filePath, { method: "core" });
+		expect(result.pass).toBe(true);
+		expect(result.diffCount).toBe(0);
+	});
+
+	it("should compare two raw PNG buffers", async () => {
+		const filePath = join(FIXTURES_PATH, "same/1a.png");
+		const pngBuffer = readFileSync(filePath);
+
+		const result = await compareImages(pngBuffer, pngBuffer, { method: "core" });
+		expect(result.pass).toBe(true);
+	});
+
+	describe("ssim threshold handling", () => {
+		it("should pass ssim with percent threshold when diff below threshold", async () => {
+			const path1 = join(FIXTURES_PATH, "pixelmatch/1a.png");
+			const path2 = join(FIXTURES_PATH, "pixelmatch/1b.png");
+			const result = await compareImages(path1, path2, {
+				method: "ssim",
+				failureThreshold: 50,
+				failureThresholdType: "percent",
+			});
+			expect(result.score).toBeDefined();
+			expect(result.pass).toBe(true);
+		});
+
+		it("should fail ssim when diff above threshold", async () => {
+			const path1 = join(FIXTURES_PATH, "pixelmatch/1a.png");
+			const path2 = join(FIXTURES_PATH, "pixelmatch/1b.png");
+			const result = await compareImages(path1, path2, {
+				method: "ssim",
+				failureThreshold: 0,
+				failureThresholdType: "percent",
+			});
+			expect(result.pass).toBe(false);
+		});
+	});
+
+	describe("gmsd threshold handling", () => {
+		it("should pass gmsd when score below threshold", async () => {
+			const path1 = join(FIXTURES_PATH, "pixelmatch/1a.png");
+			const path2 = join(FIXTURES_PATH, "pixelmatch/1b.png");
+			const result = await compareImages(path1, path2, {
+				method: "gmsd",
+				failureThreshold: 50,
+				failureThresholdType: "percent",
+			});
+			expect(result.score).toBeDefined();
+			expect(result.pass).toBe(true);
+		});
+
+		it("should fail gmsd when score above threshold", async () => {
+			const path1 = join(FIXTURES_PATH, "pixelmatch/1a.png");
+			const path2 = join(FIXTURES_PATH, "pixelmatch/1b.png");
+			const result = await compareImages(path1, path2, {
+				method: "gmsd",
+				failureThreshold: 0,
+				failureThresholdType: "percent",
+			});
+			expect(result.pass).toBe(false);
+		});
 	});
 });
 
@@ -470,6 +667,111 @@ describe("getOrCreateSnapshot", () => {
 			testContext,
 		);
 		expect(result2.pass).toBe(true);
+	});
+
+	it("should work with raw PNG Buffer input", async () => {
+		const img = createTestImage(50, 50, [255, 0, 0, 255]);
+		const tempPath = await saveTempPNG("raw-buffer-test.png", img);
+		const pngBuffer = readFileSync(tempPath);
+
+		const result = await getOrCreateSnapshot(
+			pngBuffer,
+			{ method: "core" },
+			testContext,
+		);
+
+		expect(result.pass).toBe(true);
+		expect(result.baselinePath).toBeDefined();
+	});
+
+	describe("updateSnapshots modes", () => {
+		it("should throw when updateSnapshots is none and no baseline exists", async () => {
+			const img = createTestImage(50, 50);
+			const customContext = {
+				testPath: join(TEMP_DIR, "none-mode-test.test.ts"),
+				testName: "none mode test",
+			};
+
+			await expect(
+				getOrCreateSnapshot(
+					img,
+					{ method: "core", updateSnapshots: "none" },
+					customContext,
+				),
+			).rejects.toThrow("not found");
+		});
+
+		it("should treat updateSnapshots false same as new", async () => {
+			const img = createTestImage(50, 50);
+			const customContext = {
+				testPath: join(TEMP_DIR, "false-mode-test.test.ts"),
+				testName: "false mode test",
+			};
+
+			const result = await getOrCreateSnapshot(
+				img,
+				{ method: "core", updateSnapshots: false },
+				customContext,
+			);
+
+			expect(result.pass).toBe(true);
+			expect(result.message).toContain("New snapshot created");
+		});
+
+		it("should update snapshot when updateSnapshots is all and images differ", async () => {
+			const img1 = createTestImage(50, 50, [255, 0, 0, 255]);
+			const img2 = createTestImage(50, 50, [0, 255, 0, 255]);
+			const customContext = {
+				testPath: join(TEMP_DIR, "all-mode-test.test.ts"),
+				testName: "all mode test",
+			};
+
+			await getOrCreateSnapshot(img1, { method: "core" }, customContext);
+
+			const result = await getOrCreateSnapshot(
+				img2,
+				{ method: "core", updateSnapshots: "all" },
+				customContext,
+			);
+			expect(result.pass).toBe(true);
+			expect(result.snapshotStatus).toBe("updated");
+		});
+
+		it("should not update snapshot when updateSnapshots is all but images match", async () => {
+			const img = createTestImage(50, 50, [255, 0, 0, 255]);
+			const customContext = {
+				testPath: join(TEMP_DIR, "all-mode-match-test.test.ts"),
+				testName: "all mode match test",
+			};
+
+			await getOrCreateSnapshot(img, { method: "core" }, customContext);
+
+			const result = await getOrCreateSnapshot(
+				img,
+				{ method: "core", updateSnapshots: "all" },
+				customContext,
+			);
+			expect(result.pass).toBe(true);
+			expect(result.snapshotStatus).toBe("matched");
+		});
+
+		it("should not update existing snapshot without update flag", async () => {
+			const img1 = createTestImage(50, 50, [255, 0, 0, 255]);
+			const img2 = createTestImage(50, 50, [0, 255, 0, 255]);
+			const customContext = {
+				testPath: join(TEMP_DIR, "no-update-test.test.ts"),
+				testName: "no update test",
+			};
+
+			await getOrCreateSnapshot(img1, { method: "core" }, customContext);
+
+			const result = await getOrCreateSnapshot(
+				img2,
+				{ method: "core", updateSnapshots: "new" },
+				customContext,
+			);
+			expect(result.pass).toBe(false);
+		});
 	});
 });
 
