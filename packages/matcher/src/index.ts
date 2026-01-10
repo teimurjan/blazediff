@@ -11,6 +11,7 @@ export {
 	fileExists,
 	isFilePath,
 	isImageBuffer,
+	isRawPngBuffer,
 	loadPNG,
 	normalizeImageInput,
 	savePNG,
