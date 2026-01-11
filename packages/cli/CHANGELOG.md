@@ -1,5 +1,19 @@
 # @blazediff/cli
 
+## 2.0.5
+
+### Patch Changes
+
+- 116df46: Remove unused colorSpace option
+- 7166ff6: Remove duplicated .d.mts type declaration files
+- Updated dependencies [7166ff6]
+  - @blazediff/core@1.9.1
+  - @blazediff/bin@3.1.1
+  - @blazediff/gmsd@1.7.1
+  - @blazediff/pngjs-transformer@2.1.1
+  - @blazediff/sharp-transformer@2.0.1
+  - @blazediff/ssim@1.7.1
+
 ## 2.0.4
 
 ### Patch Changes

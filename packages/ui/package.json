@@ -1,6 +1,6 @@
 {
 	"name": "@blazediff/ui",
-	"version": "1.6.3",
+	"version": "1.6.4",
 	"description": "Unstyled web components for displaying image differences",
 	"private": false,
 	"publishConfig": {

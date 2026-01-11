@@ -1,5 +1,11 @@
 # @blazediff/pngjs-transformer
 
+## 2.1.1
+
+### Patch Changes
+
+- 7166ff6: Remove duplicated .d.mts type declaration files
+
 ## 2.1.0
 
 ### Minor Changes

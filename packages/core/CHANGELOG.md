@@ -1,5 +1,11 @@
 # @blazediff/core
 
+## 1.9.1
+
+### Patch Changes
+
+- 7166ff6: Remove duplicated .d.mts type declaration files
+
 ## 1.9.0
 
 ### Minor Changes

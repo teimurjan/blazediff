@@ -1,5 +1,13 @@
 # @blazediff/react
 
+## 1.6.4
+
+### Patch Changes
+
+- 7166ff6: Remove duplicated .d.mts type declaration files
+- Updated dependencies [7166ff6]
+  - @blazediff/ui@1.6.4
+
 ## 1.6.3
 
 ### Patch Changes

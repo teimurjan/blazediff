@@ -1,5 +1,11 @@
 # @blazediff/sharp-transformer
 
+## 2.0.1
+
+### Patch Changes
+
+- 7166ff6: Remove duplicated .d.mts type declaration files
+
 ## 2.0.0
 
 ### Major Changes
