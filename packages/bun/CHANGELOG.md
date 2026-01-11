@@ -1,5 +1,13 @@
 # @blazediff/bun
 
+## 1.1.3
+
+### Patch Changes
+
+- 7166ff6: Remove duplicated .d.mts type declaration files
+- Updated dependencies [7166ff6]
+  - @blazediff/matcher@1.2.1
+
 ## 1.1.2
 
 ### Patch Changes
