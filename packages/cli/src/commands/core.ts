@@ -32,7 +32,6 @@ Options:
   --diff-color-alt <r,g,b>  Alternative color for dark differences (default: same as diff-color)
   --include-aa              Include anti-aliasing detection
   --diff-mask               Draw diff over transparent background
-  --color-space <name>      Specify color space to use (e.g. yiq, ycbcr)
   --transformer <name>      Specify transformer to use (e.g. pngjs, sharp)
   -h, --help                Show this help message
 
@@ -146,12 +145,6 @@ export default async function main(): Promise<void> {
 				case "--transformer":
 					if (nextArg) {
 						options.transformer = nextArg;
-						i++;
-					}
-					break;
-				case "--color-space":
-					if (nextArg) {
-						options.colorSpace = nextArg;
 						i++;
 					}
 					break;

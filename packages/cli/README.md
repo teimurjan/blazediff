@@ -58,7 +58,6 @@ blazediff-cli core image1.png image2.png [options]
 - `--diff-color-alt <r,g,b>` - Alternative color for dark differences
 - `--include-aa` - Include anti-aliasing detection
 - `--diff-mask` - Draw diff over transparent background
-- `--color-space <name>` - Specify color space to use (yiq, ycbcr)
 - `--transformer <name>` - Specify transformer to use (pngjs, sharp)
 - `-h, --help` - Show help message
 
