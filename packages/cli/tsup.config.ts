@@ -6,12 +6,19 @@ export default defineConfig([
 			index: "src/index.ts",
 		},
 		format: ["cjs", "esm"],
-		dts: true,
+		dts: false,
 		splitting: false,
 		sourcemap: false,
 		clean: true,
 		treeshake: true,
 		minify: true,
+	},
+	{
+		entry: {
+			index: "src/index.ts",
+		},
+		format: ["cjs"],
+		dts: { only: true },
 	},
 	{
 		entry: {
