@@ -10,7 +10,7 @@
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck",
     "changeset": "changeset",
-    "release": "changeset publish",
+    "release": "changeset publish && node scripts/publish-rust.js",
     "benchmark:core": "pnpm --filter @blazediff/image-benchmark core",
     "benchmark:binary": "pnpm --filter @blazediff/image-benchmark binary",
     "benchmark:odiff": "pnpm --filter @blazediff/image-benchmark odiff",
