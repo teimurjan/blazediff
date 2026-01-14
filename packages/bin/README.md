@@ -4,6 +4,7 @@
 
 [![npm bundle size](https://img.shields.io/bundlephobia/min/%40blazediff%2Fbin)](https://www.npmjs.com/package/@blazediff/bin)
 [![NPM Downloads](https://img.shields.io/npm/dy/%40blazediff%2Fbin)](https://www.npmjs.com/package/@blazediff/bin)
+[![Crates.io](https://img.shields.io/crates/v/blazediff.svg)](https://crates.io/crates/blazediff)
 
 </div>
 
@@ -26,6 +27,8 @@ The fastest single-threaded image diff in the world. Native Rust implementation 
 ```bash
 npm install @blazediff/bin
 ```
+
+Also available as a Rust crate: [`cargo install blazediff`](https://crates.io/crates/blazediff)
 
 Pre-built [binaries](https://github.com/teimurjan/blazediff/tree/main/packages/bin/binaries) are included for:
 - macOS ARM64 (Apple Silicon)
