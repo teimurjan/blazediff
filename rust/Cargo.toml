@@ -1,6 +1,6 @@
 [package]
-name = "blazediff-rs"
-version = "0.1.0"
+name = "blazediff"
+version = "3.1.1"
 edition = "2021"
 authors = ["Teimur Gasanov"]
 description = "High-performance image diffing with block-based optimization and SIMD"
@@ -9,6 +9,15 @@ repository = "https://github.com/teimurjan/blazediff"
 keywords = ["image", "diff", "simd", "visual-regression", "screenshot"]
 categories = ["multimedia::images", "command-line-utilities"]
 build = "build.rs"
+readme = "README.md"
+include = [
+    "src/**/*",
+    "build.rs",
+    "vendor/**/*",
+    "!vendor/**/bin/**",
+    "Cargo.toml",
+    "README.md",
+]
 
 [[bin]]
 name = "blazediff"
