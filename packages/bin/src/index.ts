@@ -15,8 +15,6 @@ export interface BlazeDiffOptions {
 	antialiasing?: boolean;
 	/** Output only differences with transparent background */
 	diffMask?: boolean;
-	/** Fail immediately if images have different dimensions */
-	failOnLayoutDiff?: boolean;
 	/** PNG compression level (0-9, 0=fastest/largest, 9=slowest/smallest) */
 	compression?: number;
 	/** JPEG quality (1-100). Default: 90 */
@@ -54,7 +52,6 @@ interface NapiDiffOptions {
 	threshold?: number;
 	antialiasing?: boolean;
 	diffMask?: boolean;
-	failOnLayout?: boolean;
 	compression?: number;
 	quality?: number;
 }
@@ -196,7 +193,6 @@ function convertToNapiOptions(options?: BlazeDiffOptions): NapiDiffOptions {
 		threshold: options?.threshold,
 		antialiasing: options?.antialiasing,
 		diffMask: options?.diffMask,
-		failOnLayout: options?.failOnLayoutDiff,
 		compression: options?.compression,
 		quality: options?.quality,
 	};
@@ -271,7 +267,6 @@ function buildArgs(diffOutput?: string, options?: BlazeDiffOptions): string[] {
 		args.push(`--threshold=${options.threshold}`);
 	if (options.antialiasing) args.push("--antialiasing");
 	if (options.diffMask) args.push("--diff-mask");
-	if (options.failOnLayoutDiff) args.push("--fail-on-layout");
 	if (options.compression !== undefined)
 		args.push(`--compression=${options.compression}`);
 	if (options.quality !== undefined) args.push(`--quality=${options.quality}`);

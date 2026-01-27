@@ -89,8 +89,6 @@ pub struct NapiDiffOptions {
     pub antialiasing: Option<bool>,
     /// Output only differences with transparent background
     pub diff_mask: Option<bool>,
-    /// Fail immediately if images have different dimensions
-    pub fail_on_layout: Option<bool>,
     /// PNG compression level (0-9, 0=fastest, 9=smallest). Default: 0
     pub compression: Option<u8>,
     /// JPEG quality (1-100). Default: 90
@@ -124,7 +122,6 @@ pub fn compare(
         threshold: None,
         antialiasing: None,
         diff_mask: None,
-        fail_on_layout: None,
         compression: None,
         quality: None,
     });
@@ -132,7 +129,6 @@ pub fn compare(
     let threshold = opts.threshold.unwrap_or(0.1);
     let antialiasing = opts.antialiasing.unwrap_or(false);
     let diff_mask = opts.diff_mask.unwrap_or(false);
-    let fail_on_layout = opts.fail_on_layout.unwrap_or(false);
     let compression = opts.compression.unwrap_or(0);
     let quality = opts.quality.unwrap_or(90);
 
@@ -144,8 +140,8 @@ pub fn compare(
         )
     })?;
 
-    // Check layout if requested
-    if fail_on_layout && (img1.width != img2.width || img1.height != img2.height) {
+    // Check for size mismatch - can't diff images of different sizes
+    if img1.width != img2.width || img1.height != img2.height {
         return Ok(NapiDiffResult {
             match_result: false,
             reason: Some("layout-diff".to_string()),

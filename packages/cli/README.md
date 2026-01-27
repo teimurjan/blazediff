@@ -38,7 +38,6 @@ blazediff-cli bin image1.png image2.png diff.png [options]
 - `-t, --threshold <num>` - Color difference threshold (0 to 1, default: 0.1)
 - `-a, --antialiasing` - Enable anti-aliasing detection
 - `--diff-mask` - Output only differences (transparent background)
-- `--fail-on-layout` - Fail immediately if images have different dimensions
 - `-c, --compression <num>` - PNG compression level (0-9, default: 0)
 - `-h, --help` - Show help message
 
