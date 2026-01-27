@@ -50,10 +50,6 @@ struct Args {
     #[arg(long)]
     diff_mask: bool,
 
-    /// Fail on layout (size) difference
-    #[arg(long)]
-    fail_on_layout: bool,
-
     /// Output format (json or text)
     #[arg(long, default_value = "json")]
     output_format: String,
@@ -169,7 +165,8 @@ fn main() -> ExitCode {
         }
     };
 
-    if args.fail_on_layout && (img1.width != img2.width || img1.height != img2.height) {
+    // Check for size mismatch - can't diff images of different sizes
+    if img1.width != img2.width || img1.height != img2.height {
         output_error(
             &args,
             &format!(

@@ -15,7 +15,6 @@ Options:
   -t, --threshold <num>     Color difference threshold (0 to 1, default: 0.1)
   -a, --antialiasing        Enable anti-aliasing detection
   --diff-mask               Output only differences (transparent background)
-  --fail-on-layout          Fail immediately if images have different dimensions
   -c, --compression <num>   PNG compression level (0-9, default: 0)
   -h, --help                Show this help message
 
@@ -70,9 +69,6 @@ export default async function main(): Promise<void> {
 					break;
 				case "--diff-mask":
 					options.diffMask = true;
-					break;
-				case "--fail-on-layout":
-					options.failOnLayoutDiff = true;
 					break;
 				case "-c":
 				case "--compression":

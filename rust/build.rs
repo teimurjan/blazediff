@@ -38,16 +38,8 @@ fn build_miniz() -> PathBuf {
         .build();
 
     println!("cargo:rustc-link-search=native={}/lib", dst.display());
-
-    // Library naming differs by platform
-    let lib_dir = dst.join("lib");
-    if lib_dir.join("libminiz.a").exists() {
-        println!("cargo:rustc-link-lib=static=miniz");
-    } else if lib_dir.join("miniz.lib").exists() {
-        println!("cargo:rustc-link-lib=static=miniz");
-    } else {
-        println!("cargo:rustc-link-lib=static=miniz");
-    }
+    // NOTE: Don't link miniz here - it must be linked AFTER spng (which depends on it)
+    // The link directive is in build_libspng() for correct ordering
 
     println!("cargo:rerun-if-changed=vendor/miniz/CMakeLists.txt");
 
@@ -80,6 +72,11 @@ fn build_libspng(libspng_dir: &str, target_os: &str, miniz_include: Option<&Path
 
     // libspng auto-detects SIMD (ARM NEON, x86 SSE) based on target architecture
     build.compile("spng");
+
+    // Link miniz AFTER spng on Windows (spng depends on miniz, linker needs correct order)
+    if target_os == "windows" {
+        println!("cargo:rustc-link-lib=static=miniz");
+    }
 
     println!("cargo:rerun-if-changed=vendor/libspng/spng/spng.c");
     println!("cargo:rerun-if-changed=vendor/libspng/spng/spng.h");

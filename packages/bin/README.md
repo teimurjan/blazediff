@@ -99,12 +99,6 @@ Compare two images (PNG or JPEG) and generate a diff image. Format is auto-detec
     <td>false</td>
     <td>Output only differences with transparent background</td>
   </tr>
-  <tr>
-    <td><code>failOnLayoutDiff</code></td>
-    <td>boolean</td>
-    <td>false</td>
-    <td>Fail immediately if images have different dimensions</td>
-  </tr>
 </table>
 
 ### Result Types
@@ -177,7 +171,6 @@ Options:
   -t, --threshold <THRESHOLD>  Color difference threshold (0.0-1.0) [default: 0.1]
   -a, --antialiasing           Enable anti-aliasing detection
       --diff-mask              Output only differences (transparent background)
-      --fail-on-layout         Fail on layout (size) difference
   -c, --compression <LEVEL>    PNG compression level (0-9, 0=fastest, 9=smallest) [default: 0]
   -q, --quality <QUALITY>      JPEG quality (1-100) [default: 90]
       --output-format <FORMAT> Output format (json or text) [default: json]
@@ -197,7 +190,7 @@ Input images can be mixed formats (e.g., compare PNG to JPEG). Output format is 
 ### Exit Codes
 
 - `0` - Images are identical
-- `1` - Images differ (or layout mismatch with `--fail-on-layout`)
+- `1` - Images differ (includes layout/size mismatch)
 - `2` - Error (file not found, invalid format, etc.)
 
 ## Performance
