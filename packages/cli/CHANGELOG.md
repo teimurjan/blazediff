@@ -1,5 +1,16 @@
 # @blazediff/cli
 
+## 2.1.0
+
+### Minor Changes
+
+- db69eff: Remove fail on layout option from bin because we have layout check in the diff function anyway
+
+### Patch Changes
+
+- Updated dependencies [db69eff]
+  - @blazediff/bin@3.2.0
+
 ## 2.0.5
 
 ### Patch Changes
