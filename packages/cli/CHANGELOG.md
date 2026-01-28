@@ -1,5 +1,12 @@
 # @blazediff/cli
 
+## 2.1.1
+
+### Patch Changes
+
+- Updated dependencies [771607c]
+  - @blazediff/bin@3.3.0
+
 ## 2.1.0
 
 ### Minor Changes
