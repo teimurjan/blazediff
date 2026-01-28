@@ -41,7 +41,6 @@ export async function compareBin(
 	}
 
 	if (result.reason === "layout-diff") {
-		// Layout differs - treat as 100% different
 		return { diffCount: Number.MAX_SAFE_INTEGER, diffPercentage: 100 };
 	}
 
