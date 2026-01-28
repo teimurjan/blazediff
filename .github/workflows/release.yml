@@ -51,6 +51,7 @@ jobs:
         with:
           publish: pnpm run release
         env:
+          NPM_TOKEN: ''
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_CONFIG_PROVENANCE: true
           CRATES_IO_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
