@@ -19,10 +19,6 @@ jobs:
   release:
     name: Release
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pull-requests: write
-      id-token: write
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v5
@@ -51,7 +47,6 @@ jobs:
         with:
           publish: pnpm run release
         env:
-          NPM_TOKEN: ''
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_CONFIG_PROVENANCE: true
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           CRATES_IO_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
