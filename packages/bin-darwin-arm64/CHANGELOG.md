@@ -1,5 +1,11 @@
 # @blazediff/bin-darwin-arm64
 
+## 3.3.0
+
+### Minor Changes
+
+- 771607c: Fix outdated napi binaries
+
 ## 3.2.0
 
 ### Minor Changes

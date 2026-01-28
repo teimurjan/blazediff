@@ -1,5 +1,12 @@
 # @blazediff/matcher
 
+## 1.2.3
+
+### Patch Changes
+
+- Updated dependencies [771607c]
+  - @blazediff/bin@3.3.0
+
 ## 1.2.2
 
 ### Patch Changes
