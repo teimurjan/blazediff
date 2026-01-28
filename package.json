@@ -45,7 +45,7 @@
     "@biomejs/biome": "2.2.4",
     "@changesets/changelog-git": "^0.2.1",
     "@changesets/cli": "^2.29.6"
-	},
+  },
   "workspaces": [
     "packages/*",
     "apps/*"
