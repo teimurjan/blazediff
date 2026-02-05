@@ -29,6 +29,7 @@ jobs:
         run: |
           cd rust
           git submodule deinit -f vendor/libspng vendor/libjpeg-turbo vendor/miniz
+          git rm --cached vendor/libspng vendor/libjpeg-turbo vendor/miniz
           rm -rf vendor/libspng/.git vendor/libjpeg-turbo/.git vendor/miniz/.git
           git add vendor/
 
