@@ -44,7 +44,7 @@ function main() {
 
 	console.log("Publishing to crates.io...");
 	try {
-		execSync(`cargo publish --token ${token}`, {
+		execSync(`cargo publish --allow-dirty --token ${token}`, {
 			cwd: path.join(ROOT, "rust"),
 			stdio: "inherit",
 		});

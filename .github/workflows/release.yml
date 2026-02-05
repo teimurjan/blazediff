@@ -22,6 +22,15 @@ jobs:
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v5
+        with:
+          submodules: recursive
+
+      - name: Prepare Rust vendor directories for crates.io
+        run: |
+          cd rust
+          git submodule deinit -f vendor/libspng vendor/libjpeg-turbo vendor/miniz
+          rm -rf vendor/libspng/.git vendor/libjpeg-turbo/.git vendor/miniz/.git
+          git add vendor/
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
