@@ -25,14 +25,6 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Prepare Rust vendor directories for crates.io
-        run: |
-          git submodule deinit -f rust/vendor/libspng rust/vendor/libjpeg-turbo rust/vendor/miniz
-          git rm --cached rust/vendor/libspng rust/vendor/libjpeg-turbo rust/vendor/miniz
-          rm -rf rust/vendor/libspng/.git rust/vendor/libjpeg-turbo/.git rust/vendor/miniz/.git
-          git add rust/vendor/
-          git -c user.email="ci@github.com" -c user.name="CI" commit -m "temp: vendor files for cargo publish"
-
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
 
@@ -47,9 +39,6 @@ jobs:
 
       - name: Build Packages
         run: pnpm build
-
-      - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
 
       - name: Create Release Pull Request or Publish to npm
         id: changesets

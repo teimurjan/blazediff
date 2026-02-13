@@ -6,6 +6,7 @@ const path = require("node:path");
 const ROOT = path.resolve(__dirname, "..");
 const BIN_PKG_PATH = path.join(ROOT, "packages", "bin", "package.json");
 const CARGO_TOML_PATH = path.join(ROOT, "rust", "Cargo.toml");
+const RUST_DIR = path.join(ROOT, "rust");
 
 function getVersions() {
 	const binPkg = JSON.parse(fs.readFileSync(BIN_PKG_PATH, "utf8"));
@@ -42,16 +43,19 @@ function main() {
 		syncVersion(versions.bin);
 	}
 
-	console.log("Publishing to crates.io...");
+	console.log("Publishing to crates.io via Docker...");
 	try {
-		execSync(`cargo publish --allow-dirty --token ${token}`, {
-			cwd: path.join(ROOT, "rust"),
-			stdio: "inherit",
-		});
+		execSync(
+			`docker build --build-arg CRATES_IO_TOKEN=${token} -f Dockerfile.publish -t blazediff-publish .`,
+			{ cwd: RUST_DIR, stdio: "inherit" },
+		);
 		console.log("Published to crates.io");
 	} catch (err) {
 		const stderr = err.stderr?.toString() || err.message || "";
-		if (stderr.includes("already uploaded") || stderr.includes("already exists")) {
+		if (
+			stderr.includes("already uploaded") ||
+			stderr.includes("already exists")
+		) {
 			console.log(`Version ${versions.bin} already published, skipping`);
 			return;
 		}
