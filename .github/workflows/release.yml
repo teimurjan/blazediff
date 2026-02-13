@@ -31,6 +31,7 @@ jobs:
           git rm --cached rust/vendor/libspng rust/vendor/libjpeg-turbo rust/vendor/miniz
           rm -rf rust/vendor/libspng/.git rust/vendor/libjpeg-turbo/.git rust/vendor/miniz/.git
           git add rust/vendor/
+          git -c user.email="ci@github.com" -c user.name="CI" commit -m "temp: vendor files for cargo publish"
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
