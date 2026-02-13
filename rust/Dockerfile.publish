@@ -1,4 +1,4 @@
-FROM rust:1.83-bookworm
+FROM rust:latest
 
 WORKDIR /app
 
@@ -10,11 +10,5 @@ RUN apt-get update && apt-get install -y \
 
 COPY . .
 
-ARG CRATES_IO_TOKEN
-ARG DRY_RUN=false
-
-RUN if [ "$DRY_RUN" = "true" ]; then \
-        cargo publish --dry-run; \
-    else \
-        cargo publish --token "$CRATES_IO_TOKEN"; \
-    fi
+# Token passed via file mount at runtime, not build arg
+CMD ["sh", "-c", "cargo publish --token \"$(cat /run/secrets/crates_token)\""]
