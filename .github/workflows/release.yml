@@ -27,11 +27,10 @@ jobs:
 
       - name: Prepare Rust vendor directories for crates.io
         run: |
-          cd rust
-          git submodule deinit -f vendor/libspng vendor/libjpeg-turbo vendor/miniz
-          git rm --cached vendor/libspng vendor/libjpeg-turbo vendor/miniz
-          rm -rf vendor/libspng/.git vendor/libjpeg-turbo/.git vendor/miniz/.git
-          git add vendor/
+          git submodule deinit -f rust/vendor/libspng rust/vendor/libjpeg-turbo rust/vendor/miniz
+          git rm --cached rust/vendor/libspng rust/vendor/libjpeg-turbo rust/vendor/miniz
+          rm -rf rust/vendor/libspng/.git rust/vendor/libjpeg-turbo/.git rust/vendor/miniz/.git
+          git add rust/vendor/
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
