@@ -2,6 +2,7 @@
 const { execSync } = require("node:child_process");
 const fs = require("node:fs");
 const path = require("node:path");
+const os = require("node:os");
 
 const ROOT = path.resolve(__dirname, "..");
 const BIN_PKG_PATH = path.join(ROOT, "packages", "bin", "package.json");
@@ -44,11 +45,21 @@ function main() {
 	}
 
 	console.log("Publishing to crates.io via Docker...");
+
+	const tokenFile = path.join(os.tmpdir(), "crates_token");
+	fs.writeFileSync(tokenFile, token, { mode: 0o600 });
+
 	try {
+		execSync(`docker build -f Dockerfile.publish -t blazediff-publish .`, {
+			cwd: RUST_DIR,
+			stdio: "inherit",
+		});
+
 		execSync(
-			`docker build --build-arg CRATES_IO_TOKEN=${token} -f Dockerfile.publish -t blazediff-publish .`,
+			`docker run --rm -v ${tokenFile}:/run/secrets/crates_token:ro blazediff-publish`,
 			{ cwd: RUST_DIR, stdio: "inherit" },
 		);
+
 		console.log("Published to crates.io");
 	} catch (err) {
 		const stderr = err.stderr?.toString() || err.message || "";
@@ -60,6 +71,8 @@ function main() {
 			return;
 		}
 		throw err;
+	} finally {
+		fs.unlinkSync(tokenFile);
 	}
 }
 
