@@ -25,9 +25,19 @@ pub mod jpeg_io;
 mod napi;
 pub mod output;
 pub mod simd;
-#[allow(non_upper_case_globals, non_camel_case_types, non_snake_case, dead_code)]
+#[allow(
+    non_upper_case_globals,
+    non_camel_case_types,
+    non_snake_case,
+    dead_code
+)]
 mod spng_ffi;
-#[allow(non_upper_case_globals, non_camel_case_types, non_snake_case, dead_code)]
+#[allow(
+    non_upper_case_globals,
+    non_camel_case_types,
+    non_snake_case,
+    dead_code
+)]
 mod turbojpeg_ffi;
 pub mod types;
 pub mod yiq;

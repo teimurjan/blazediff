@@ -84,6 +84,121 @@ pub fn fill_block_gray(
     }
 }
 
+pub fn fill_block_gray_optimized(
+    source: &Image,
+    output: &mut Image,
+    alpha: f64,
+    start_x: u32,
+    start_y: u32,
+    end_x: u32,
+    end_y: u32,
+) {
+    let width = source.width;
+    let source_pixels = source.as_u32();
+    let output_pixels = output.as_u32_mut();
+
+    let alpha_f32 = alpha as f32;
+    let inv_255 = 1.0f32 / 255.0f32;
+
+    let yiq_y_0 = YIQ_Y[0] as f32;
+    let yiq_y_1 = YIQ_Y[1] as f32;
+    let yiq_y_2 = YIQ_Y[2] as f32;
+
+    let mut y = start_y;
+
+    while y + 4 <= end_y {
+        let base_idx = (y * width + start_x) as usize;
+
+        let mut x = start_x;
+        while x + 4 <= end_x {
+            let idx = base_idx + (x - start_x) as usize;
+
+            let p0 = source_pixels[idx];
+            let p1 = source_pixels[idx + 1];
+            let p2 = source_pixels[idx + 2];
+            let p3 = source_pixels[idx + 3];
+
+            let gray0 = compute_gray_f32(p0, alpha_f32, inv_255, yiq_y_0, yiq_y_1, yiq_y_2);
+            let gray1 = compute_gray_f32(p1, alpha_f32, inv_255, yiq_y_0, yiq_y_1, yiq_y_2);
+            let gray2 = compute_gray_f32(p2, alpha_f32, inv_255, yiq_y_0, yiq_y_1, yiq_y_2);
+            let gray3 = compute_gray_f32(p3, alpha_f32, inv_255, yiq_y_0, yiq_y_1, yiq_y_2);
+
+            output_pixels[idx] = pack_pixel(gray0, gray0, gray0, 255);
+            output_pixels[idx + 1] = pack_pixel(gray1, gray1, gray1, 255);
+            output_pixels[idx + 2] = pack_pixel(gray2, gray2, gray2, 255);
+            output_pixels[idx + 3] = pack_pixel(gray3, gray3, gray3, 255);
+
+            x += 4;
+        }
+
+        while x < end_x {
+            let idx = (y * width + x) as usize;
+            let pixel = source_pixels[idx];
+            let gray = compute_gray_f32(pixel, alpha_f32, inv_255, yiq_y_0, yiq_y_1, yiq_y_2);
+            output_pixels[idx] = pack_pixel(gray, gray, gray, 255);
+            x += 1;
+        }
+
+        y += 4;
+    }
+
+    while y < end_y {
+        let mut x = start_x;
+        let base_idx = (y * width + start_x) as usize;
+
+        while x + 4 <= end_x {
+            let idx = base_idx + (x - start_x) as usize;
+
+            let p0 = source_pixels[idx];
+            let p1 = source_pixels[idx + 1];
+            let p2 = source_pixels[idx + 2];
+            let p3 = source_pixels[idx + 3];
+
+            let gray0 = compute_gray_f32(p0, alpha_f32, inv_255, yiq_y_0, yiq_y_1, yiq_y_2);
+            let gray1 = compute_gray_f32(p1, alpha_f32, inv_255, yiq_y_0, yiq_y_1, yiq_y_2);
+            let gray2 = compute_gray_f32(p2, alpha_f32, inv_255, yiq_y_0, yiq_y_1, yiq_y_2);
+            let gray3 = compute_gray_f32(p3, alpha_f32, inv_255, yiq_y_0, yiq_y_1, yiq_y_2);
+
+            output_pixels[idx] = pack_pixel(gray0, gray0, gray0, 255);
+            output_pixels[idx + 1] = pack_pixel(gray1, gray1, gray1, 255);
+            output_pixels[idx + 2] = pack_pixel(gray2, gray2, gray2, 255);
+            output_pixels[idx + 3] = pack_pixel(gray3, gray3, gray3, 255);
+
+            x += 4;
+        }
+
+        while x < end_x {
+            let idx = (y * width + x) as usize;
+            let pixel = source_pixels[idx];
+            let gray = compute_gray_f32(pixel, alpha_f32, inv_255, yiq_y_0, yiq_y_1, yiq_y_2);
+            output_pixels[idx] = pack_pixel(gray, gray, gray, 255);
+            x += 1;
+        }
+
+        y += 1;
+    }
+}
+
+#[inline(always)]
+fn compute_gray_f32(
+    pixel: u32,
+    alpha: f32,
+    inv_255: f32,
+    yiq_y_0: f32,
+    yiq_y_1: f32,
+    yiq_y_2: f32,
+) -> u8 {
+    let r = (pixel & 0xFF) as f32;
+    let g = ((pixel >> 8) & 0xFF) as f32;
+    let b = ((pixel >> 16) & 0xFF) as f32;
+    let a = ((pixel >> 24) & 0xFF) as f32;
+
+    let luminance = r * yiq_y_0 + g * yiq_y_1 + b * yiq_y_2;
+    let value = 255.0f32 + (luminance - 255.0f32) * alpha * a * inv_255;
+
+    value.clamp(0.0f32, 255.0f32) as u8
+}
+
 pub fn clear_transparent(output: &mut Image) {
     output.data.fill(0);
 }

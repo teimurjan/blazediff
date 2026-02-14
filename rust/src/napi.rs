@@ -164,9 +164,8 @@ pub fn compare(
         None
     };
 
-    let result = diff(&img1, &img2, output_image.as_mut(), &diff_options).map_err(|e| {
-        Error::new(Status::GenericFailure, format!("Diff failed: {}", e))
-    })?;
+    let result = diff(&img1, &img2, output_image.as_mut(), &diff_options)
+        .map_err(|e| Error::new(Status::GenericFailure, format!("Diff failed: {}", e)))?;
 
     // Save diff image if requested and images differ
     if !result.identical {

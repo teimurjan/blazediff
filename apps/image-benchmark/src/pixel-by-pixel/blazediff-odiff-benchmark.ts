@@ -18,7 +18,7 @@ async function main() {
 	});
 
 	const odiffServer = new ODiffServer(
-		join(__dirname, "../../../node_modules/.bin/odiff"),
+		join(__dirname, "../../node_modules/.bin/odiff"),
 	);
 
 	for (let i = 0; i < pairs.length; i++) {

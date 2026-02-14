@@ -51,7 +51,9 @@ pub fn load_png<P: AsRef<Path>>(path: P) -> Result<Image, DiffError> {
 
         let mut out_size: usize = 0;
         if spng_decoded_image_size(ctx, spng_format_SPNG_FMT_RGBA8 as c_int, &mut out_size) != 0 {
-            return Err(DiffError::PngError("Failed to get decoded image size".into()));
+            return Err(DiffError::PngError(
+                "Failed to get decoded image size".into(),
+            ));
         }
 
         // Allocate without zero-initialization (spng will overwrite)
@@ -105,7 +107,9 @@ pub fn save_png_with_compression<P: AsRef<Path>>(
     unsafe {
         let ctx = spng_ctx_new(spng_ctx_flags_SPNG_CTX_ENCODER as c_int);
         if ctx.is_null() {
-            return Err(DiffError::PngError("Failed to create encoder context".into()));
+            return Err(DiffError::PngError(
+                "Failed to create encoder context".into(),
+            ));
         }
         let _guard = CtxGuard(ctx);
 
@@ -141,7 +145,9 @@ pub fn save_png_with_compression<P: AsRef<Path>>(
         // Compression level 0-9 (0=store/fastest, 9=best compression)
         let level = compression.min(9) as c_int;
         if spng_set_option(ctx, spng_option_SPNG_IMG_COMPRESSION_LEVEL, level) != 0 {
-            return Err(DiffError::PngError("Failed to set compression level".into()));
+            return Err(DiffError::PngError(
+                "Failed to set compression level".into(),
+            ));
         }
 
         let res = spng_encode_image(

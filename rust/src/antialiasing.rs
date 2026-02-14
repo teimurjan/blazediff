@@ -74,9 +74,8 @@ fn has_many_siblings_neon(image_u32: &[u32], x: u32, y: u32, width: u32) -> bool
             vgetq_lane_u32(cmp_above, 1),
             vgetq_lane_u32(cmp_above, 2),
         ];
-        let mut count = (above_bits[0] != 0) as u32
-            + (above_bits[1] != 0) as u32
-            + (above_bits[2] != 0) as u32;
+        let mut count =
+            (above_bits[0] != 0) as u32 + (above_bits[1] != 0) as u32 + (above_bits[2] != 0) as u32;
 
         // Check left and right
         if left == val {
@@ -93,9 +92,8 @@ fn has_many_siblings_neon(image_u32: &[u32], x: u32, y: u32, width: u32) -> bool
             vgetq_lane_u32(cmp_below, 1),
             vgetq_lane_u32(cmp_below, 2),
         ];
-        count += (below_bits[0] != 0) as u32
-            + (below_bits[1] != 0) as u32
-            + (below_bits[2] != 0) as u32;
+        count +=
+            (below_bits[0] != 0) as u32 + (below_bits[1] != 0) as u32 + (below_bits[2] != 0) as u32;
 
         count > 2
     }
