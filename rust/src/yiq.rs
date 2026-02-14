@@ -47,7 +47,11 @@ pub fn color_delta_opaque(pixel_a: u32, pixel_b: u32) -> f64 {
 
     let delta = YIQ_WEIGHTS[0] * y * y + YIQ_WEIGHTS[1] * i * i + YIQ_WEIGHTS[2] * q * q;
 
-    if y > 0.0 { -delta } else { delta }
+    if y > 0.0 {
+        -delta
+    } else {
+        delta
+    }
 }
 
 /// Check if pixel is fully opaque
@@ -218,10 +222,15 @@ pub fn color_delta_f32(pixel_a: u32, pixel_b: u32) -> f32 {
     let i = dr * YIQ_I_F32[0] + dg * YIQ_I_F32[1] + db * YIQ_I_F32[2];
     let q = dr * YIQ_Q_F32[0] + dg * YIQ_Q_F32[1] + db * YIQ_Q_F32[2];
 
-    let delta = YIQ_WEIGHTS_F32[0] * y * y + YIQ_WEIGHTS_F32[1] * i * i + YIQ_WEIGHTS_F32[2] * q * q;
+    let delta =
+        YIQ_WEIGHTS_F32[0] * y * y + YIQ_WEIGHTS_F32[1] * i * i + YIQ_WEIGHTS_F32[2] * q * q;
 
     // Encode lightening/darkening in sign
-    if y > 0.0 { -delta } else { delta }
+    if y > 0.0 {
+        -delta
+    } else {
+        delta
+    }
 }
 
 #[cfg(test)]

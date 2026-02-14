@@ -20,21 +20,13 @@ impl Image {
     #[inline]
     pub fn as_u32(&self) -> &[u32] {
         // SAFETY: Vec<u8> with length divisible by 4 can be viewed as &[u32]
-        unsafe {
-            std::slice::from_raw_parts(
-                self.data.as_ptr() as *const u32,
-                self.data.len() / 4,
-            )
-        }
+        unsafe { std::slice::from_raw_parts(self.data.as_ptr() as *const u32, self.data.len() / 4) }
     }
 
     #[inline]
     pub fn as_u32_mut(&mut self) -> &mut [u32] {
         unsafe {
-            std::slice::from_raw_parts_mut(
-                self.data.as_mut_ptr() as *mut u32,
-                self.data.len() / 4,
-            )
+            std::slice::from_raw_parts_mut(self.data.as_mut_ptr() as *mut u32, self.data.len() / 4)
         }
     }
 
@@ -53,14 +45,14 @@ impl Image {
 
 #[derive(Clone, Debug)]
 pub struct DiffOptions {
-    pub threshold: f64,           // 0.0-1.0, default 0.1
-    pub include_aa: bool,         // count AA pixels as diffs
-    pub alpha: f64,               // background opacity
-    pub aa_color: [u8; 3],        // yellow
-    pub diff_color: [u8; 3],      // red
+    pub threshold: f64,      // 0.0-1.0, default 0.1
+    pub include_aa: bool,    // count AA pixels as diffs
+    pub alpha: f64,          // background opacity
+    pub aa_color: [u8; 3],   // yellow
+    pub diff_color: [u8; 3], // red
     pub diff_color_alt: Option<[u8; 3]>,
-    pub diff_mask: bool,          // transparent background mode
-    pub compression: u8,          // PNG compression level 0-9 (0=fastest, 9=smallest)
+    pub diff_mask: bool, // transparent background mode
+    pub compression: u8, // PNG compression level 0-9 (0=fastest, 9=smallest)
 }
 
 impl Default for DiffOptions {
@@ -121,7 +113,12 @@ pub enum DiffError {
 impl std::fmt::Display for DiffError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            DiffError::SizeMismatch { img1_width, img1_height, img2_width, img2_height } => {
+            DiffError::SizeMismatch {
+                img1_width,
+                img1_height,
+                img2_width,
+                img2_height,
+            } => {
                 write!(
                     f,
                     "Image sizes do not match: {}x{} vs {}x{}",
@@ -129,7 +126,11 @@ impl std::fmt::Display for DiffError {
                 )
             }
             DiffError::InvalidDataSize { expected, actual } => {
-                write!(f, "Invalid data size: expected {}, got {}", expected, actual)
+                write!(
+                    f,
+                    "Invalid data size: expected {}, got {}",
+                    expected, actual
+                )
             }
             DiffError::IoError(e) => write!(f, "IO error: {}", e),
             DiffError::PngError(e) => write!(f, "PNG error: {}", e),

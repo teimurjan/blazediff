@@ -40,7 +40,9 @@ pub fn load_jpeg<P: AsRef<Path>>(path: P) -> Result<Image, DiffError> {
         // Initialize decompressor
         let handle = tj3Init(TJINIT_TJINIT_DECOMPRESS as i32);
         if handle.is_null() {
-            return Err(DiffError::JpegError("Failed to create TurboJPEG decompressor".into()));
+            return Err(DiffError::JpegError(
+                "Failed to create TurboJPEG decompressor".into(),
+            ));
         }
         let _guard = TjHandle(handle);
 
@@ -107,7 +109,9 @@ pub fn save_jpeg<P: AsRef<Path>>(image: &Image, path: P, quality: u8) -> Result<
         // Initialize compressor
         let handle = tj3Init(TJINIT_TJINIT_COMPRESS as i32);
         if handle.is_null() {
-            return Err(DiffError::JpegError("Failed to create TurboJPEG compressor".into()));
+            return Err(DiffError::JpegError(
+                "Failed to create TurboJPEG compressor".into(),
+            ));
         }
         let _guard = TjHandle(handle);
 
@@ -165,10 +169,10 @@ mod tests {
         for y in 0..100 {
             for x in 0..100 {
                 let idx = (y * 100 + x) * 4;
-                img.data[idx] = (x * 255 / 100) as u8;     // R
+                img.data[idx] = (x * 255 / 100) as u8; // R
                 img.data[idx + 1] = (y * 255 / 100) as u8; // G
-                img.data[idx + 2] = 128;                    // B
-                img.data[idx + 3] = 255;                    // A
+                img.data[idx + 2] = 128; // B
+                img.data[idx + 3] = 255; // A
             }
         }
 
