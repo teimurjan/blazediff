@@ -7,3 +7,9 @@
 [submodule "rust/vendor/miniz"]
 	path = rust/vendor/miniz
 	url = https://github.com/richgel999/miniz.git
+[submodule "rust/vendor/wuffs"]
+	path = rust/vendor/wuffs
+	url = https://github.com/google/wuffs-mirror-release-c.git
+[submodule "rust/vendor/zlib-ng"]
+	path = rust/vendor/zlib-ng
+	url = https://github.com/zlib-ng/zlib-ng.git

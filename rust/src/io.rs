@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 //! PNG I/O via libspng with skip-CRC optimizations.
+=======
+//! PNG I/O - libspng for both decoding and encoding.
+>>>>>>> 60e556d (feat: speed up io)
 
 use crate::spng_ffi::*;
 use crate::types::{DiffError, Image};
@@ -9,26 +13,17 @@ use std::io::Write;
 use std::os::raw::c_int;
 use std::path::Path;
 
-/// RAII guard for spng context cleanup
-struct CtxGuard(*mut spng_ctx);
-impl Drop for CtxGuard {
-    fn drop(&mut self) {
-        unsafe { spng_ctx_free(self.0) }
-    }
-}
-
 pub fn load_png<P: AsRef<Path>>(path: P) -> Result<Image, DiffError> {
     let file = File::open(path.as_ref())?;
     let file_data = unsafe { Mmap::map(&file)? };
 
     unsafe {
-        let ctx = spng_ctx_new(0);
+        let ctx = spng_ctx_new(spng_ctx_flags_SPNG_CTX_IGNORE_ADLER32 as c_int);
         if ctx.is_null() {
-            return Err(DiffError::PngError("Failed to create spng context".into()));
+            return Err(DiffError::PngError("Failed to create decoder context".into()));
         }
-        let _guard = CtxGuard(ctx);
+        let _guard = SpngCtxGuard(ctx);
 
-        // Skip CRC validation for speed
         spng_set_crc_action(
             ctx,
             spng_crc_action_SPNG_CRC_USE as c_int,
@@ -51,12 +46,9 @@ pub fn load_png<P: AsRef<Path>>(path: P) -> Result<Image, DiffError> {
 
         let mut out_size: usize = 0;
         if spng_decoded_image_size(ctx, spng_format_SPNG_FMT_RGBA8 as c_int, &mut out_size) != 0 {
-            return Err(DiffError::PngError(
-                "Failed to get decoded image size".into(),
-            ));
+            return Err(DiffError::PngError("Failed to get decoded image size".into()));
         }
 
-        // Allocate without zero-initialization (spng will overwrite)
         let mut data: Vec<u8> = Vec::with_capacity(out_size);
         data.set_len(out_size);
 
@@ -71,11 +63,7 @@ pub fn load_png<P: AsRef<Path>>(path: P) -> Result<Image, DiffError> {
             return Err(DiffError::PngError("Failed to decode image".into()));
         }
 
-        Ok(Image {
-            data,
-            width,
-            height,
-        })
+        Ok(Image { data, width, height })
     }
 }
 
@@ -95,6 +83,13 @@ pub fn load_pngs<P1: AsRef<Path> + Sync, P2: AsRef<Path> + Sync>(
     Ok((img1, img2))
 }
 
+struct SpngCtxGuard(*mut spng_ctx);
+impl Drop for SpngCtxGuard {
+    fn drop(&mut self) {
+        unsafe { spng_ctx_free(self.0) }
+    }
+}
+
 pub fn save_png<P: AsRef<Path>>(image: &Image, path: P) -> Result<(), DiffError> {
     save_png_with_compression(image, path, 0)
 }
@@ -107,11 +102,9 @@ pub fn save_png_with_compression<P: AsRef<Path>>(
     unsafe {
         let ctx = spng_ctx_new(spng_ctx_flags_SPNG_CTX_ENCODER as c_int);
         if ctx.is_null() {
-            return Err(DiffError::PngError(
-                "Failed to create encoder context".into(),
-            ));
+            return Err(DiffError::PngError("Failed to create encoder context".into()));
         }
-        let _guard = CtxGuard(ctx);
+        let _guard = SpngCtxGuard(ctx);
 
         let mut ihdr = spng_ihdr {
             width: image.width,
@@ -127,27 +120,17 @@ pub fn save_png_with_compression<P: AsRef<Path>>(
             return Err(DiffError::PngError("Failed to set IHDR".into()));
         }
 
-        // Use internal buffer mode (faster than callback)
         if spng_set_option(ctx, spng_option_SPNG_ENCODE_TO_BUFFER, 1) != 0 {
             return Err(DiffError::PngError("Failed to set encode to buffer".into()));
         }
 
-        // No filtering + no compression = fastest encode
-        if spng_set_option(
-            ctx,
-            spng_option_SPNG_FILTER_CHOICE,
-            spng_filter_choice_SPNG_DISABLE_FILTERING as c_int,
-        ) != 0
-        {
+        if spng_set_option(ctx, spng_option_SPNG_FILTER_CHOICE, spng_filter_choice_SPNG_DISABLE_FILTERING as c_int) != 0 {
             return Err(DiffError::PngError("Failed to disable filtering".into()));
         }
 
-        // Compression level 0-9 (0=store/fastest, 9=best compression)
         let level = compression.min(9) as c_int;
         if spng_set_option(ctx, spng_option_SPNG_IMG_COMPRESSION_LEVEL, level) != 0 {
-            return Err(DiffError::PngError(
-                "Failed to set compression level".into(),
-            ));
+            return Err(DiffError::PngError("Failed to set compression level".into()));
         }
 
         let res = spng_encode_image(
@@ -161,9 +144,7 @@ pub fn save_png_with_compression<P: AsRef<Path>>(
         if res != 0 {
             let err_str = spng_strerror(res);
             let msg = if !err_str.is_null() {
-                std::ffi::CStr::from_ptr(err_str)
-                    .to_string_lossy()
-                    .into_owned()
+                std::ffi::CStr::from_ptr(err_str).to_string_lossy().into_owned()
             } else {
                 format!("Encode error: {}", res)
             };

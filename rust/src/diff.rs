@@ -12,6 +12,35 @@ use crate::output::{
 use crate::types::{DiffError, DiffOptions, DiffResult, Image};
 use crate::yiq::{color_delta_f32, threshold_to_max_delta_f32};
 
+#[cfg(target_arch = "x86_64")]
+use std::sync::OnceLock;
+
+#[cfg(target_arch = "x86_64")]
+static CPU_FEATURES: OnceLock<CpuFeatures> = OnceLock::new();
+
+#[cfg(target_arch = "x86_64")]
+#[derive(Clone, Copy)]
+struct CpuFeatures {
+    has_avx2_fma: bool,
+    has_sse41: bool,
+}
+
+#[cfg(target_arch = "x86_64")]
+impl CpuFeatures {
+    fn detect() -> Self {
+        Self {
+            has_avx2_fma: is_x86_feature_detected!("avx2") && is_x86_feature_detected!("fma"),
+            has_sse41: is_x86_feature_detected!("sse4.1"),
+        }
+    }
+}
+
+#[cfg(target_arch = "x86_64")]
+#[inline]
+fn get_cpu_features() -> CpuFeatures {
+    *CPU_FEATURES.get_or_init(CpuFeatures::detect)
+}
+
 const YIQ_Y_F32: [f32; 3] = [0.29889531, 0.58662247, 0.11448223];
 const YIQ_I_F32: [f32; 3] = [0.59597799, -0.2741761, -0.32180189];
 const YIQ_Q_F32: [f32; 3] = [0.21147017, -0.52261711, 0.31114694];
@@ -211,14 +240,14 @@ fn block_has_perceptual_diff_x86(
     end_y: u32,
     max_delta: f32,
 ) -> bool {
-    // Check AVX2 once at function entry, not per iteration
-    if is_x86_feature_detected!("avx2") && is_x86_feature_detected!("fma") {
+    let features = get_cpu_features();
+    if features.has_avx2_fma {
         unsafe {
             block_has_perceptual_diff_avx2(
                 a32, b32, width, start_x, start_y, end_x, end_y, max_delta,
             )
         }
-    } else if is_x86_feature_detected!("sse4.1") {
+    } else if features.has_sse41 {
         unsafe {
             block_has_perceptual_diff_sse(
                 a32, b32, width, start_x, start_y, end_x, end_y, max_delta,
@@ -806,8 +835,8 @@ fn process_hot_row_x86(
     output: &mut Option<&mut Image>,
     draw_background: bool,
 ) -> u32 {
-    // Check once at function entry
-    if is_x86_feature_detected!("avx2") && is_x86_feature_detected!("fma") {
+    let features = get_cpu_features();
+    if features.has_avx2_fma {
         unsafe {
             process_hot_row_avx2(
                 image1,
@@ -823,7 +852,7 @@ fn process_hot_row_x86(
                 draw_background,
             )
         }
-    } else if is_x86_feature_detected!("sse4.1") {
+    } else if features.has_sse41 {
         unsafe {
             process_hot_row_sse(
                 image1,
@@ -1271,22 +1300,9 @@ pub fn diff(
     let b32 = image2.as_u32();
     let max_delta = threshold_to_max_delta_f32(options.threshold);
     let draw_background = output.is_some() && !options.diff_mask;
-    let include_aa = options.include_aa;
 
-    let alpha_f32 = options.alpha as f32;
-    let inv_255 = 1.0f32 / 255.0f32;
-    let yiq_y_0 = YIQ_Y_F32[0];
-    let yiq_y_1 = YIQ_Y_F32[1];
-    let yiq_y_2 = YIQ_Y_F32[2];
-
-    let diff_color = options.diff_color;
-    let diff_color_alt = options
-        .diff_color_alt
-        .as_ref()
-        .unwrap_or(&options.diff_color);
-    let aa_color = options.aa_color;
-
-    let mut changed_blocks: Vec<(u32, u32, u32, u32)> = Vec::new();
+    let estimated_changed = (blocks_x * blocks_y / 4) as usize;
+    let mut changed_blocks: Vec<(u32, u32, u32, u32)> = Vec::with_capacity(estimated_changed.max(16));
 
     for by in 0..blocks_y {
         for bx in 0..blocks_x {
@@ -1322,212 +1338,23 @@ pub fn diff(
 
     for &(start_x, start_y, end_x, end_y) in &changed_blocks {
         for y in start_y..end_y {
-            let row_offset = (y * width) as usize;
-            let base_offset = row_offset + start_x as usize;
-            let row_width = (end_x - start_x) as usize;
-
-            let mut offset = 0usize;
-
-            while offset + 4 <= row_width {
-                let idx = base_offset + offset;
-                let p0a = a32[idx];
-                let p0b = b32[idx];
-                let p1a = a32[idx + 1];
-                let p1b = b32[idx + 1];
-                let p2a = a32[idx + 2];
-                let p2b = b32[idx + 2];
-                let p3a = a32[idx + 3];
-                let p3b = b32[idx + 3];
-
-                let all_same = (p0a == p0b) && (p1a == p1b) && (p2a == p2b) && (p3a == p3b);
-
-                if all_same {
-                    if draw_background {
-                        if let Some(ref mut out) = output {
-                            let g0 = compute_gray_pixel(
-                                p0a, alpha_f32, inv_255, yiq_y_0, yiq_y_1, yiq_y_2,
-                            );
-                            let g1 = compute_gray_pixel(
-                                p1a, alpha_f32, inv_255, yiq_y_0, yiq_y_1, yiq_y_2,
-                            );
-                            let g2 = compute_gray_pixel(
-                                p2a, alpha_f32, inv_255, yiq_y_0, yiq_y_1, yiq_y_2,
-                            );
-                            let g3 = compute_gray_pixel(
-                                p3a, alpha_f32, inv_255, yiq_y_0, yiq_y_1, yiq_y_2,
-                            );
-
-                            let out_pixels = out.as_u32_mut();
-                            out_pixels[idx] = pack_gray_pixel(g0);
-                            out_pixels[idx + 1] = pack_gray_pixel(g1);
-                            out_pixels[idx + 2] = pack_gray_pixel(g2);
-                            out_pixels[idx + 3] = pack_gray_pixel(g3);
-                        }
-                    }
-                } else {
-                    for i in 0..4 {
-                        let pixel_index = idx + i;
-                        let pa = a32[pixel_index];
-                        let pb = b32[pixel_index];
-
-                        if pa == pb {
-                            if draw_background {
-                                if let Some(ref mut out) = output {
-                                    let g = compute_gray_pixel(
-                                        pa, alpha_f32, inv_255, yiq_y_0, yiq_y_1, yiq_y_2,
-                                    );
-                                    out.as_u32_mut()[pixel_index] = pack_gray_pixel(g);
-                                }
-                            }
-                            continue;
-                        }
-
-                        let delta = color_delta_f32(pa, pb);
-
-                        if delta.abs() > max_delta {
-                            if include_aa {
-                                if let Some(ref mut out) = output {
-                                    let color = if delta < 0.0 {
-                                        diff_color_alt
-                                    } else {
-                                        &diff_color
-                                    };
-                                    out.as_u32_mut()[pixel_index] = pack_color_pixel(color);
-                                }
-                                diff_count += 1;
-                            } else {
-                                let is_aa = is_antialiased(
-                                    image1,
-                                    image2,
-                                    start_x + offset as u32 + i as u32,
-                                    y,
-                                ) || is_antialiased(
-                                    image2,
-                                    image1,
-                                    start_x + offset as u32 + i as u32,
-                                    y,
-                                );
-                                if is_aa {
-                                    if let Some(ref mut out) = output {
-                                        out.as_u32_mut()[pixel_index] = pack_color_pixel(&aa_color);
-                                    }
-                                } else {
-                                    if let Some(ref mut out) = output {
-                                        let color = if delta < 0.0 {
-                                            diff_color_alt
-                                        } else {
-                                            &diff_color
-                                        };
-                                        out.as_u32_mut()[pixel_index] = pack_color_pixel(color);
-                                    }
-                                    diff_count += 1;
-                                }
-                            }
-                        } else if draw_background {
-                            if let Some(ref mut out) = output {
-                                let g = compute_gray_pixel(
-                                    pa, alpha_f32, inv_255, yiq_y_0, yiq_y_1, yiq_y_2,
-                                );
-                                out.as_u32_mut()[pixel_index] = pack_gray_pixel(g);
-                            }
-                        }
-                    }
-                }
-                offset += 4;
-            }
-
-            while offset < row_width {
-                let pixel_index = base_offset + offset;
-                let pa = a32[pixel_index];
-                let pb = b32[pixel_index];
-
-                if pa == pb {
-                    if draw_background {
-                        if let Some(ref mut out) = output {
-                            let g = compute_gray_pixel(
-                                pa, alpha_f32, inv_255, yiq_y_0, yiq_y_1, yiq_y_2,
-                            );
-                            out.as_u32_mut()[pixel_index] = pack_gray_pixel(g);
-                        }
-                    }
-                } else {
-                    let delta = color_delta_f32(pa, pb);
-
-                    if delta.abs() > max_delta {
-                        if include_aa {
-                            if let Some(ref mut out) = output {
-                                let color = if delta < 0.0 {
-                                    diff_color_alt
-                                } else {
-                                    &diff_color
-                                };
-                                out.as_u32_mut()[pixel_index] = pack_color_pixel(color);
-                            }
-                            diff_count += 1;
-                        } else {
-                            let is_aa = is_antialiased(image1, image2, start_x + offset as u32, y)
-                                || is_antialiased(image2, image1, start_x + offset as u32, y);
-                            if is_aa {
-                                if let Some(ref mut out) = output {
-                                    out.as_u32_mut()[pixel_index] = pack_color_pixel(&aa_color);
-                                }
-                            } else {
-                                if let Some(ref mut out) = output {
-                                    let color = if delta < 0.0 {
-                                        diff_color_alt
-                                    } else {
-                                        &diff_color
-                                    };
-                                    out.as_u32_mut()[pixel_index] = pack_color_pixel(color);
-                                }
-                                diff_count += 1;
-                            }
-                        }
-                    } else if draw_background {
-                        if let Some(ref mut out) = output {
-                            let g = compute_gray_pixel(
-                                pa, alpha_f32, inv_255, yiq_y_0, yiq_y_1, yiq_y_2,
-                            );
-                            out.as_u32_mut()[pixel_index] = pack_gray_pixel(g);
-                        }
-                    }
-                }
-                offset += 1;
-            }
+            diff_count += process_hot_row(
+                image1,
+                image2,
+                a32,
+                b32,
+                y,
+                start_x,
+                end_x,
+                max_delta,
+                options,
+                &mut output,
+                draw_background,
+            );
         }
     }
 
     Ok(DiffResult::new(diff_count, total_pixels))
-}
-
-#[inline(always)]
-fn compute_gray_pixel(
-    pixel: u32,
-    alpha: f32,
-    inv_255: f32,
-    yiq_y_0: f32,
-    yiq_y_1: f32,
-    yiq_y_2: f32,
-) -> u8 {
-    let r = (pixel & 0xFF) as f32;
-    let g = ((pixel >> 8) & 0xFF) as f32;
-    let b = ((pixel >> 16) & 0xFF) as f32;
-    let a = ((pixel >> 24) & 0xFF) as f32;
-
-    let luminance = r * yiq_y_0 + g * yiq_y_1 + b * yiq_y_2;
-    let value = 255.0f32 + (luminance - 255.0f32) * alpha * a * inv_255;
-
-    value.clamp(0.0f32, 255.0f32) as u8
-}
-
-#[inline(always)]
-fn pack_gray_pixel(gray: u8) -> u32 {
-    (gray as u32) | ((gray as u32) << 8) | ((gray as u32) << 16) | (0xFFu32 << 24)
-}
-
-#[inline(always)]
-fn pack_color_pixel(color: &[u8; 3]) -> u32 {
-    (color[0] as u32) | ((color[1] as u32) << 8) | ((color[2] as u32) << 16) | (0xFFu32 << 24)
 }
 
 #[cfg(test)]
@@ -1575,7 +1402,7 @@ mod tests {
 
     #[test]
     fn test_aa_excluded_from_count() {
-        let mut img1 = create_solid_image(10, 10, pack_pixel(100, 100, 100, 255));
+        let img1 = create_solid_image(10, 10, pack_pixel(100, 100, 100, 255));
         let mut img2 = create_solid_image(10, 10, pack_pixel(100, 100, 100, 255));
 
         img2.as_u32_mut()[0] = pack_pixel(100, 100, 104, 255);
@@ -1597,8 +1424,8 @@ mod tests {
 
     #[test]
     fn test_no_aa_vs_aa_difference() {
-        let mut img1 = create_solid_image(10, 10, pack_pixel(0, 0, 0, 255));
-        let mut img2 = create_solid_image(10, 10, pack_pixel(255, 255, 255, 255));
+        let img1 = create_solid_image(10, 10, pack_pixel(0, 0, 0, 255));
+        let img2 = create_solid_image(10, 10, pack_pixel(255, 255, 255, 255));
 
         let options_with_aa = DiffOptions {
             include_aa: true,

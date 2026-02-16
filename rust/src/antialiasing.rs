@@ -4,6 +4,18 @@
 use crate::types::Image;
 use crate::yiq::color_delta;
 
+#[cfg(target_arch = "x86_64")]
+use std::sync::OnceLock;
+
+#[cfg(target_arch = "x86_64")]
+static HAS_SSE41: OnceLock<bool> = OnceLock::new();
+
+#[cfg(target_arch = "x86_64")]
+#[inline]
+fn has_sse41() -> bool {
+    *HAS_SSE41.get_or_init(|| is_x86_feature_detected!("sse4.1"))
+}
+
 /// Check if pixel has more than 2 identical neighbors (not anti-aliased edge)
 #[inline]
 fn has_many_siblings(image_u32: &[u32], x: u32, y: u32, width: u32, height: u32) -> bool {
@@ -29,7 +41,7 @@ fn has_many_siblings_simd(image_u32: &[u32], x: u32, y: u32, width: u32) -> bool
 
     #[cfg(target_arch = "x86_64")]
     {
-        if is_x86_feature_detected!("sse4.1") {
+        if has_sse41() {
             unsafe { has_many_siblings_sse(image_u32, x, y, width) }
         } else {
             has_many_siblings_scalar(image_u32, x, y, width, u32::MAX, 0)
@@ -200,8 +212,8 @@ pub fn is_antialiased(image1: &Image, image2: &Image, x: u32, y: u32) -> bool {
         0
     };
 
-    let mut min_delta = 0.0f64;
-    let mut max_delta = 0.0f64;
+    let mut min_delta = 0.0f32;
+    let mut max_delta = 0.0f32;
     let mut min_x = 0u32;
     let mut min_y = 0u32;
     let mut max_x = 0u32;
@@ -224,8 +236,8 @@ pub fn is_antialiased(image1: &Image, image2: &Image, x: u32, y: u32) -> bool {
                     return false;
                 }
             } else {
-                // Calculate brightness delta (Y only)
-                let delta = color_delta(center_pixel, adj_pixel, pos, true);
+                // Calculate brightness delta (Y only) - cast to f32 for efficiency
+                let delta = color_delta(center_pixel, adj_pixel, pos, true) as f32;
 
                 if delta < min_delta {
                     min_delta = delta;

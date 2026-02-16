@@ -1,82 +1,58 @@
 //! Build script for blazediff-rs
-//! Compiles libspng with SIMD optimizations and libjpeg-turbo via cmake
+//! Compiles wuffs (PNG decode), libspng (PNG encode), libjpeg-turbo (JPEG), and zlib-ng
 
 use std::env;
 use std::path::PathBuf;
 
 fn main() {
-    // Setup napi-build for N-API bindings (when napi feature is enabled)
     #[cfg(feature = "napi")]
     napi_build::setup();
 
-    let libspng_dir = "vendor/libspng/spng";
-    let target_os = env::var("CARGO_CFG_TARGET_OS").unwrap();
+    // Build zlib-ng (optimized zlib replacement)
+    let zlib_ng_include = build_zlib_ng();
 
-    // Build miniz on Windows (no system zlib)
-    let miniz_include = if target_os == "windows" {
-        Some(build_miniz())
-    } else {
-        println!("cargo:rustc-link-lib=z");
-        None
-    };
+    // Build libspng for PNG decode/encode (using zlib-ng)
+    build_libspng(&zlib_ng_include);
 
-    // Build libspng
-    build_libspng(libspng_dir, &target_os, miniz_include.as_ref());
-
-    // Build libjpeg-turbo from vendored source
+    // Build libjpeg-turbo
     build_libjpeg_turbo();
 }
 
-fn build_miniz() -> PathBuf {
+fn build_zlib_ng() -> PathBuf {
     let src_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap())
         .join("vendor")
-        .join("miniz");
+        .join("zlib-ng");
 
     let dst = cmake::Config::new(&src_dir)
+        .define("ZLIB_COMPAT", "ON")
+        .define("ZLIB_ENABLE_TESTS", "OFF")
+        .define("ZLIBNG_ENABLE_TESTS", "OFF")
+        .define("WITH_GTEST", "OFF")
         .define("BUILD_SHARED_LIBS", "OFF")
         .define("CMAKE_POSITION_INDEPENDENT_CODE", "ON")
+        .define("WITH_NATIVE_INSTRUCTIONS", "ON")
+        .define("WITH_NEW_STRATEGIES", "ON")
+        .define("WITH_OPTIM", "ON")
         .build();
 
     println!("cargo:rustc-link-search=native={}/lib", dst.display());
-    // NOTE: Don't link miniz here - it must be linked AFTER spng (which depends on it)
-    // The link directive is in build_libspng() for correct ordering
+    println!("cargo:rustc-link-lib=static=z");
+    println!("cargo:rerun-if-changed=vendor/zlib-ng/CMakeLists.txt");
 
-    println!("cargo:rerun-if-changed=vendor/miniz/CMakeLists.txt");
-
-    // Return include directory for spng (miniz installs to include/miniz/)
-    dst.join("include").join("miniz")
+    dst.join("include")
 }
 
-fn build_libspng(libspng_dir: &str, target_os: &str, miniz_include: Option<&PathBuf>) {
-    let mut build = cc::Build::new();
-    build
+fn build_libspng(zlib_include: &PathBuf) {
+    let libspng_dir = "vendor/libspng/spng";
+
+    cc::Build::new()
         .file(format!("{}/spng.c", libspng_dir))
         .include(libspng_dir)
+        .include(zlib_include)
         .define("SPNG_STATIC", None)
-        .opt_level(3);
-
-    // Use miniz on Windows
-    if target_os == "windows" {
-        if let Some(include_dir) = miniz_include {
-            build.include(include_dir);
-        }
-        build.define("SPNG_USE_MINIZ", None);
-    }
-
-    // MSVC vs GCC/Clang flags
-    if env::var("CARGO_CFG_TARGET_ENV").unwrap_or_default() == "msvc" {
-        // MSVC doesn't support -std=c99
-    } else {
-        build.flag("-std=c99");
-    }
-
-    // libspng auto-detects SIMD (ARM NEON, x86 SSE) based on target architecture
-    build.compile("spng");
-
-    // Link miniz AFTER spng on Windows (spng depends on miniz, linker needs correct order)
-    if target_os == "windows" {
-        println!("cargo:rustc-link-lib=static=miniz");
-    }
+        .opt_level(3)
+        .flag_if_supported("-std=c99")
+        .compile("spng");
 
     println!("cargo:rerun-if-changed=vendor/libspng/spng/spng.c");
     println!("cargo:rerun-if-changed=vendor/libspng/spng/spng.h");
@@ -87,7 +63,6 @@ fn build_libjpeg_turbo() {
         .join("vendor")
         .join("libjpeg-turbo");
 
-    // Use cmake crate to build libjpeg-turbo
     let dst = cmake::Config::new(&src_dir)
         .define("ENABLE_SHARED", "OFF")
         .define("ENABLE_STATIC", "ON")
@@ -98,31 +73,23 @@ fn build_libjpeg_turbo() {
         .define("CMAKE_POSITION_INDEPENDENT_CODE", "ON")
         .build();
 
-    // Link the static library
     println!("cargo:rustc-link-search=native={}/lib", dst.display());
 
-    // Library naming differs by platform:
-    // - Unix: libturbojpeg.a, libjpeg.a
-    // - Windows: turbojpeg-static.lib, jpeg-static.lib
     let lib_dir = dst.join("lib");
 
-    // TurboJPEG library
     if lib_dir.join("libturbojpeg.a").exists() {
         println!("cargo:rustc-link-lib=static=turbojpeg");
     } else if lib_dir.join("turbojpeg-static.lib").exists() {
         println!("cargo:rustc-link-lib=static=turbojpeg-static");
     } else {
-        // Fallback
         println!("cargo:rustc-link-lib=static=turbojpeg");
     }
 
-    // JPEG library
     if lib_dir.join("libjpeg.a").exists() {
         println!("cargo:rustc-link-lib=static=jpeg");
     } else if lib_dir.join("jpeg-static.lib").exists() {
         println!("cargo:rustc-link-lib=static=jpeg-static");
     } else {
-        // Fallback
         println!("cargo:rustc-link-lib=static=jpeg");
     }
 

@@ -17,6 +17,15 @@ impl Image {
         }
     }
 
+    /// Create an image with uninitialized memory. Caller must fill all pixels before reading.
+    /// Use this for output images that will be fully overwritten.
+    pub fn new_uninit(width: u32, height: u32) -> Self {
+        let len = (width * height * 4) as usize;
+        let mut data = Vec::with_capacity(len);
+        unsafe { data.set_len(len) };
+        Self { data, width, height }
+    }
+
     #[inline]
     pub fn as_u32(&self) -> &[u32] {
         // SAFETY: Vec<u8> with length divisible by 4 can be viewed as &[u32]

@@ -1,0 +1,290 @@
+[
+  {
+    "name": "blazediff - 4k/1",
+    "throughput": 3.5014627903265163,
+    "latency": {
+      "mean": 285.8273199558258,
+      "min": 276.4377920627594,
+      "max": 310.4936671257019
+    }
+  },
+  {
+    "name": "blazediff - 4k/1 (identical)",
+    "throughput": 4.4130918044779035,
+    "latency": {
+      "mean": 229.05102673530578,
+      "min": 209.6055829524994,
+      "max": 302.321084022522
+    }
+  },
+  {
+    "name": "blazediff - 4k/2",
+    "throughput": 2.764928286785306,
+    "latency": {
+      "mean": 362.60058521270753,
+      "min": 355.5022921562195,
+      "max": 462.4854998588562
+    }
+  },
+  {
+    "name": "blazediff - 4k/2 (identical)",
+    "throughput": 3.899100597385436,
+    "latency": {
+      "mean": 256.49304998397827,
+      "min": 253.5887908935547,
+      "max": 265.5503749847412
+    }
+  },
+  {
+    "name": "blazediff - 4k/3",
+    "throughput": 2.6581527914820184,
+    "latency": {
+      "mean": 376.7046450138092,
+      "min": 365.3742079734802,
+      "max": 440.61358308792114
+    }
+  },
+  {
+    "name": "blazediff - 4k/3 (identical)",
+    "throughput": 3.681472407875395,
+    "latency": {
+      "mean": 271.82485829353334,
+      "min": 265.64620900154114,
+      "max": 302.03400015830994
+    }
+  },
+  {
+    "name": "blazediff - blazediff/1",
+    "throughput": 443.8666393816841,
+    "latency": {
+      "mean": 2.328155117034912,
+      "min": 2.025791883468628,
+      "max": 4.767416954040527
+    }
+  },
+  {
+    "name": "blazediff - blazediff/1 (identical)",
+    "throughput": 951.7092137674485,
+    "latency": {
+      "mean": 1.0598899459838866,
+      "min": 1.002458095550537,
+      "max": 1.594749927520752
+    }
+  },
+  {
+    "name": "blazediff - blazediff/2",
+    "throughput": 419.0586367345664,
+    "latency": {
+      "mean": 2.4630418395996094,
+      "min": 2.1601669788360596,
+      "max": 5.416416883468628
+    }
+  },
+  {
+    "name": "blazediff - blazediff/2 (identical)",
+    "throughput": 803.1650494529179,
+    "latency": {
+      "mean": 1.248380002975464,
+      "min": 1.1607921123504639,
+      "max": 1.558499813079834
+    }
+  },
+  {
+    "name": "blazediff - blazediff/3",
+    "throughput": 39.03180114994607,
+    "latency": {
+      "mean": 26.468691635131837,
+      "min": 23.702374935150146,
+      "max": 50.24175000190735
+    }
+  },
+  {
+    "name": "blazediff - blazediff/3 (identical)",
+    "throughput": 60.19126847871193,
+    "latency": {
+      "mean": 16.648933334350588,
+      "min": 15.861500024795532,
+      "max": 19.22420907020569
+    }
+  },
+  {
+    "name": "blazediff - page/1",
+    "throughput": 2.262087505954997,
+    "latency": {
+      "mean": 444.64441997528075,
+      "min": 412.3397500514984,
+      "max": 610.4537091255188
+    }
+  },
+  {
+    "name": "blazediff - page/1 (identical)",
+    "throughput": 3.583750548500677,
+    "latency": {
+      "mean": 279.11584838867185,
+      "min": 275.6840410232544,
+      "max": 299.90345907211304
+    }
+  },
+  {
+    "name": "blazediff - page/2",
+    "throughput": 3.739033306286267,
+    "latency": {
+      "mean": 268.38976165771487,
+      "min": 248.7140829563141,
+      "max": 307.7692918777466
+    }
+  },
+  {
+    "name": "blazediff - page/2 (identical)",
+    "throughput": 14.441081630364593,
+    "latency": {
+      "mean": 69.2609515285492,
+      "min": 67.72416687011719,
+      "max": 71.5726249217987
+    }
+  },
+  {
+    "name": "blazediff - pixelmatch/1",
+    "throughput": 657.1035714497038,
+    "latency": {
+      "mean": 1.7503250789642335,
+      "min": 1.3440001010894775,
+      "max": 8.291707992553711
+    }
+  },
+  {
+    "name": "blazediff - pixelmatch/1 (identical)",
+    "throughput": 924.0548911565758,
+    "latency": {
+      "mean": 1.0895134353637694,
+      "min": 0.9781661033630371,
+      "max": 1.370332956314087
+    }
+  },
+  {
+    "name": "blazediff - pixelmatch/2",
+    "throughput": 441.88547456017733,
+    "latency": {
+      "mean": 2.416408157348633,
+      "min": 1.9224591255187988,
+      "max": 5.972208023071289
+    }
+  },
+  {
+    "name": "blazediff - pixelmatch/2 (identical)",
+    "throughput": 1783.4977777288232,
+    "latency": {
+      "mean": 0.6167882442474365,
+      "min": 0.45600008964538574,
+      "max": 1.8937921524047852
+    }
+  },
+  {
+    "name": "blazediff - pixelmatch/3",
+    "throughput": 858.2842925816407,
+    "latency": {
+      "mean": 1.1882650470733642,
+      "min": 1.0800001621246338,
+      "max": 2.163583993911743
+    }
+  },
+  {
+    "name": "blazediff - pixelmatch/3 (identical)",
+    "throughput": 1154.0871604733338,
+    "latency": {
+      "mean": 0.891411771774292,
+      "min": 0.7410001754760742,
+      "max": 1.9115419387817383
+    }
+  },
+  {
+    "name": "blazediff - pixelmatch/4",
+    "throughput": 179.04236414140732,
+    "latency": {
+      "mean": 5.607434911727905,
+      "min": 5.335458040237427,
+      "max": 7.348999977111816
+    }
+  },
+  {
+    "name": "blazediff - pixelmatch/4 (identical)",
+    "throughput": 341.85238050125366,
+    "latency": {
+      "mean": 3.1963017749786378,
+      "min": 2.307374954223633,
+      "max": 8.255625009536743
+    }
+  },
+  {
+    "name": "blazediff - pixelmatch/5",
+    "throughput": 1221.87069994058,
+    "latency": {
+      "mean": 0.8318434619903564,
+      "min": 0.7254579067230225,
+      "max": 1.1650409698486328
+    }
+  },
+  {
+    "name": "blazediff - pixelmatch/5 (identical)",
+    "throughput": 1693.4306685221934,
+    "latency": {
+      "mean": 0.6066700458526612,
+      "min": 0.5055830478668213,
+      "max": 0.9877090454101562
+    }
+  },
+  {
+    "name": "blazediff - pixelmatch/6",
+    "throughput": 542.0390353361531,
+    "latency": {
+      "mean": 1.8535284900665283,
+      "min": 1.744499921798706,
+      "max": 2.460749864578247
+    }
+  },
+  {
+    "name": "blazediff - pixelmatch/6 (identical)",
+    "throughput": 1255.6772039420152,
+    "latency": {
+      "mean": 0.8055666065216065,
+      "min": 0.7289581298828125,
+      "max": 1.2863750457763672
+    }
+  },
+  {
+    "name": "blazediff - pixelmatch/7",
+    "throughput": 571.892646068601,
+    "latency": {
+      "mean": 1.7516515445709229,
+      "min": 1.6374588012695312,
+      "max": 1.969041109085083
+    }
+  },
+  {
+    "name": "blazediff - pixelmatch/7 (identical)",
+    "throughput": 1360.8954649426614,
+    "latency": {
+      "mean": 0.7646833229064941,
+      "min": 0.6427500247955322,
+      "max": 1.8519999980926514
+    }
+  },
+  {
+    "name": "blazediff - same/1",
+    "throughput": 211.29539404727728,
+    "latency": {
+      "mean": 4.853563442230224,
+      "min": 4.000041961669922,
+      "max": 8.198167085647583
+    }
+  },
+  {
+    "name": "blazediff - same/1 (identical)",
+    "throughput": 246.87445875037213,
+    "latency": {
+      "mean": 4.07604660987854,
+      "min": 3.7070000171661377,
+      "max": 4.737499952316284
+    }
+  }
+]
