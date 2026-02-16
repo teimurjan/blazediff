@@ -17,6 +17,10 @@
 //! println!("{} pixels differ", result.diff_count);
 //! ```
 
+// Use mimalloc for better memory reclamation (important for N-API bindings)
+#[global_allocator]
+static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
 pub mod antialiasing;
 pub mod diff;
 pub mod io;
