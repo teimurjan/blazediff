@@ -6,10 +6,16 @@ on:
       platform:
         description: 'Platform to benchmark on'
         required: true
+        default: ubuntu-latest
         type: choice
         options:
           - ubuntu-latest
           - ubuntu-24.04-arm
+
+  # TODO: Remove this once the feature is ready
+  push:
+    branches:
+      - feat/speed-up-io
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.inputs.platform }}
