@@ -87,6 +87,7 @@ dependencies = [
  "clap",
  "cmake",
  "criterion",
+ "libc",
  "memmap2",
  "napi",
  "napi-build",

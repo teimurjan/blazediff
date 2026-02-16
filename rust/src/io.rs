@@ -170,7 +170,8 @@ pub fn save_png_with_compression<P: AsRef<Path>>(
             return Err(DiffError::PngError(msg));
         }
 
-        // Get the internal buffer (owned by spng, freed with context)
+        // Get the internal buffer - NOTE: spng_get_png_buffer transfers ownership,
+        // so we must free it ourselves (spng_ctx_free won't free it after this call)
         let mut len: usize = 0;
         let mut error: c_int = 0;
         let buf_ptr = spng_get_png_buffer(ctx, &mut len, &mut error);
@@ -179,10 +180,13 @@ pub fn save_png_with_compression<P: AsRef<Path>>(
             return Err(DiffError::PngError("Failed to get PNG buffer".into()));
         }
 
+        // Write directly from spng's buffer (no copy needed)
         let output_slice = std::slice::from_raw_parts(buf_ptr as *const u8, len);
-
         let mut file = File::create(path.as_ref())?;
         file.write_all(output_slice)?;
+
+        // Free the buffer we now own
+        libc::free(buf_ptr);
 
         Ok(())
     }
