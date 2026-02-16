@@ -10,7 +10,6 @@ on:
         options:
           - ubuntu-latest
           - ubuntu-24.04-arm
-          - windows-latest
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.inputs.platform }}
@@ -22,13 +21,13 @@ jobs:
     runs-on: ${{ github.event.inputs.platform }}
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version-file: ".node-version"
           cache: "pnpm"
@@ -39,52 +38,12 @@ jobs:
       - name: Build
         run: pnpm build
 
-      - name: Install hyperfine (Ubuntu x64)
-        if: github.event.inputs.platform == 'ubuntu-latest'
-        run: |
-          wget https://github.com/sharkdp/hyperfine/releases/download/v1.18.0/hyperfine_1.18.0_amd64.deb -O /tmp/hyperfine.deb
-          sudo dpkg -i /tmp/hyperfine.deb
+      - name: Run Benchmark (odiff)
+        run: pnpm benchmark:odiff -- --format=json --output=odiff.json
 
-      - name: Install hyperfine (Ubuntu ARM64)
-        if: github.event.inputs.platform == 'ubuntu-24.04-arm'
-        run: |
-          wget https://github.com/sharkdp/hyperfine/releases/download/v1.18.0/hyperfine_1.18.0_arm64.deb -O /tmp/hyperfine.deb
-          sudo dpkg -i /tmp/hyperfine.deb
+      - name: Run Benchmark (blazediff)
+        run: pnpm benchmark:binary -- --format=json --output=blazediff.json
 
-      - name: Install hyperfine (Windows)
-        if: startsWith(github.event.inputs.platform, 'windows')
-        run: choco install hyperfine -y
-
-      - name: Run Binary Benchmark (Ubuntu x64)
-        if: github.event.inputs.platform == 'ubuntu-latest'
-        working-directory: apps/image-benchmark
-        run: |
-          chmod +x ../../packages/bin-linux-x64/blazediff
-          chmod +x ./node_modules/odiff-bin/raw_binaries/odiff-linux-x64
-          BLAZEDIFF_BIN="../../packages/bin-linux-x64/blazediff" \
-          ODIFF_BIN="./node_modules/odiff-bin/raw_binaries/odiff-linux-x64" \
-          bash ./binary-benchmark.sh
-
-      - name: Run Binary Benchmark (Ubuntu ARM64)
-        if: github.event.inputs.platform == 'ubuntu-24.04-arm'
-        working-directory: apps/image-benchmark
-        run: |
-          chmod +x ../../packages/bin-linux-arm64/blazediff
-          chmod +x ./node_modules/odiff-bin/raw_binaries/odiff-linux-arm64
-          BLAZEDIFF_BIN="../../packages/bin-linux-arm64/blazediff" \
-          ODIFF_BIN="./node_modules/odiff-bin/raw_binaries/odiff-linux-arm64" \
-          bash ./binary-benchmark.sh
-
-      - name: Run Binary Benchmark (Windows)
-        if: startsWith(github.event.inputs.platform, 'windows')
-        working-directory: apps/image-benchmark
-        shell: bash
-        run: |
-          BLAZEDIFF_BIN="../bin-win32-x64/blazediff.exe" \
-          ODIFF_BIN="./node_modules/odiff-bin/raw_binaries/odiff-windows-x64.exe" \
-          bash ./binary-benchmark.sh
-
-      - name: Print Results
+      - name: Compare and Print Combined Markdown Table (binary)
         if: always()
-        working-directory: apps/image-benchmark
-        run: cat output/benchmark-results.md
+        run: node .github/workflows/scripts/compare-and-print-binary.js
