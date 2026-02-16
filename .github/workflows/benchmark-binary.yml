@@ -38,11 +38,11 @@ jobs:
       - name: Build
         run: pnpm build
 
-      - name: Run Benchmark (odiff)
-        run: pnpm benchmark:odiff -- --format=json --output=odiff.json
-
       - name: Run Benchmark (blazediff)
         run: pnpm benchmark:binary -- --format=json --output=blazediff.json
+
+      - name: Run Benchmark (odiff)
+        run: pnpm benchmark:odiff -- --format=json --output=odiff.json
 
       - name: Compare and Print Combined Markdown Table (binary)
         if: always()
