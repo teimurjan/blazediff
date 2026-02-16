@@ -59,9 +59,9 @@ jobs:
         if: github.event.inputs.platform == 'ubuntu-latest'
         working-directory: apps/image-benchmark
         run: |
-          chmod +x ../bin-linux-x64/blazediff
+          chmod +x ../../packages/bin-linux-x64/blazediff
           chmod +x ./node_modules/odiff-bin/raw_binaries/odiff-linux-x64
-          BLAZEDIFF_BIN="../bin-linux-x64/blazediff" \
+          BLAZEDIFF_BIN="../../packages/bin-linux-x64/blazediff" \
           ODIFF_BIN="./node_modules/odiff-bin/raw_binaries/odiff-linux-x64" \
           bash ./binary-benchmark.sh
 
@@ -69,9 +69,9 @@ jobs:
         if: github.event.inputs.platform == 'ubuntu-24.04-arm'
         working-directory: apps/image-benchmark
         run: |
-          chmod +x ../bin-linux-arm64/blazediff
+          chmod +x ../../packages/bin-linux-arm64/blazediff
           chmod +x ./node_modules/odiff-bin/raw_binaries/odiff-linux-arm64
-          BLAZEDIFF_BIN="../bin-linux-arm64/blazediff" \
+          BLAZEDIFF_BIN="../../packages/bin-linux-arm64/blazediff" \
           ODIFF_BIN="./node_modules/odiff-bin/raw_binaries/odiff-linux-arm64" \
           bash ./binary-benchmark.sh
 
