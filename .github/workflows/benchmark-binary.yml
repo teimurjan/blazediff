@@ -2,29 +2,19 @@ name: Benchmark Binary
 
 on:
   workflow_dispatch:
-    inputs:
-      platform:
-        description: 'Platform to benchmark on'
-        required: true
-        default: ubuntu-latest
-        type: choice
-        options:
-          - ubuntu-latest
-          - ubuntu-24.04-arm
-
   # TODO: Remove this once the feature is ready
   push:
     branches:
       - feat/speed-up-io
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.inputs.platform }}
+  group: ${{ github.workflow }}
   cancel-in-progress: true
 
 jobs:
   benchmark-binary:
-    name: Binary Benchmark (${{ github.event.inputs.platform }})
-    runs-on: ${{ github.event.inputs.platform }}
+    name: Binary Benchmark (ubuntu-latest)
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v5
@@ -47,9 +37,10 @@ jobs:
       - name: Run Benchmark (blazediff)
         run: pnpm benchmark:binary -- --format=json --output=blazediff.json
 
-      - name: Run Benchmark (odiff)
-        run: pnpm benchmark:odiff -- --format=json --output=odiff.json
+      # TODO: Uncomment this once the feature is ready
+      # - name: Run Benchmark (odiff)
+      #   run: pnpm benchmark:odiff -- --format=json --output=odiff.json
 
-      - name: Compare and Print Combined Markdown Table (binary)
-        if: always()
-        run: node .github/workflows/scripts/compare-and-print-binary.js
+      # - name: Compare and Print Combined Markdown Table (binary)
+      #   if: always()
+      #   run: node .github/workflows/scripts/compare-and-print-binary.js
