@@ -1,4 +1,4 @@
-//! PNG I/O via libspng with mmap and skip-CRC optimizations.
+//! PNG I/O via libspng with skip-CRC optimizations.
 
 use crate::spng_ffi::*;
 use crate::types::{DiffError, Image};
@@ -19,7 +19,7 @@ impl Drop for CtxGuard {
 
 pub fn load_png<P: AsRef<Path>>(path: P) -> Result<Image, DiffError> {
     let file = File::open(path.as_ref())?;
-    let mmap = unsafe { Mmap::map(&file)? };
+    let file_data = unsafe { Mmap::map(&file)? };
 
     unsafe {
         let ctx = spng_ctx_new(0);
@@ -37,7 +37,7 @@ pub fn load_png<P: AsRef<Path>>(path: P) -> Result<Image, DiffError> {
 
         spng_set_chunk_limits(ctx, 64 * 1024 * 1024, 64 * 1024 * 1024);
 
-        if spng_set_png_buffer(ctx, mmap.as_ptr() as *const _, mmap.len()) != 0 {
+        if spng_set_png_buffer(ctx, file_data.as_ptr() as *const _, file_data.len()) != 0 {
             return Err(DiffError::PngError("Failed to set PNG buffer".into()));
         }
 

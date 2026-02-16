@@ -1,13 +1,17 @@
 #!/usr/bin/env node
 
-import { compare } from "@blazediff/bin";
+import { compare, hasNativeBinding } from "@blazediff/bin";
 import { Bench, hrtimeNow } from "tinybench";
 import { getBenchmarkImagePairs, parseBenchmarkArgs } from "../utils";
 
 async function main() {
 	const { iterations, format, output } = parseBenchmarkArgs();
 
+	console.log(`[blazediff] Starting benchmark with ${iterations} iterations`);
+	console.log(`[blazediff] Native binding available: ${hasNativeBinding()}`);
+
 	const pairs = getBenchmarkImagePairs();
+	console.log(`[blazediff] Found ${pairs.length} image pairs`);
 
 	const bench = new Bench({
 		iterations,
@@ -24,7 +28,9 @@ async function main() {
 		});
 	}
 
+	console.log(`[blazediff] Starting bench.run()...`);
 	await bench.run();
+	console.log(`[blazediff] bench.run() completed`);
 
 	console.log("\n🔥 BlazeDiff Benchmark Results:\n");
 	console.table(
