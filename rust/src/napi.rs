@@ -4,12 +4,10 @@
 //! without spawning child processes.
 
 use crate::{
-    diff, load_jpeg, load_jpegs, load_png, load_pngs, save_jpeg, save_png_with_compression,
-    DiffError, DiffOptions, Image,
+    diff, load_jpeg, load_png, save_jpeg, save_png_with_compression, DiffError, DiffOptions, Image,
 };
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
-use rayon::prelude::*;
 use std::path::Path;
 
 /// Supported image formats
@@ -30,8 +28,8 @@ impl ImageFormat {
     }
 }
 
-/// Load two images in parallel, auto-detecting format
-fn load_images<P1: AsRef<Path> + Sync, P2: AsRef<Path> + Sync>(
+/// Load two images sequentially, auto-detecting format
+fn load_images<P1: AsRef<Path>, P2: AsRef<Path>>(
     path1: P1,
     path2: P2,
 ) -> std::result::Result<(Image, Image), DiffError> {
@@ -42,26 +40,17 @@ fn load_images<P1: AsRef<Path> + Sync, P2: AsRef<Path> + Sync>(
         DiffError::UnsupportedFormat(format!("Unsupported format: {}", path2.as_ref().display()))
     })?;
 
-    if fmt1 == fmt2 {
-        return match fmt1 {
-            ImageFormat::Png => load_pngs(&path1, &path2),
-            ImageFormat::Jpeg => load_jpegs(&path1, &path2),
-        };
-    }
+    let img1 = match fmt1 {
+        ImageFormat::Png => load_png(&path1)?,
+        ImageFormat::Jpeg => load_jpeg(&path1)?,
+    };
 
-    let results: Vec<std::result::Result<Image, DiffError>> = [
-        (path1.as_ref().to_path_buf(), fmt1),
-        (path2.as_ref().to_path_buf(), fmt2),
-    ]
-    .par_iter()
-    .map(|(path, fmt)| match fmt {
-        ImageFormat::Png => load_png(path),
-        ImageFormat::Jpeg => load_jpeg(path),
-    })
-    .collect();
+    let img2 = match fmt2 {
+        ImageFormat::Png => load_png(&path2)?,
+        ImageFormat::Jpeg => load_jpeg(&path2)?,
+    };
 
-    let mut iter = results.into_iter();
-    Ok((iter.next().unwrap()?, iter.next().unwrap()?))
+    Ok((img1, img2))
 }
 
 /// Save an image, auto-detecting format from extension

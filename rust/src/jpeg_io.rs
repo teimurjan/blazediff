@@ -34,7 +34,7 @@ unsafe fn get_tj_error(handle: tjhandle) -> String {
 /// Load a JPEG image from file into RGBA format
 pub fn load_jpeg<P: AsRef<Path>>(path: P) -> Result<Image, DiffError> {
     let file = File::open(path.as_ref())?;
-    let mmap = unsafe { Mmap::map(&file)? };
+    let file_data = unsafe { Mmap::map(&file)? };
 
     unsafe {
         // Initialize decompressor
@@ -47,7 +47,7 @@ pub fn load_jpeg<P: AsRef<Path>>(path: P) -> Result<Image, DiffError> {
         let _guard = TjHandle(handle);
 
         // Read JPEG header
-        if tj3DecompressHeader(handle, mmap.as_ptr(), mmap.len()) != 0 {
+        if tj3DecompressHeader(handle, file_data.as_ptr(), file_data.len()) != 0 {
             return Err(DiffError::JpegError(get_tj_error(handle)));
         }
 
@@ -68,8 +68,8 @@ pub fn load_jpeg<P: AsRef<Path>>(path: P) -> Result<Image, DiffError> {
         // Decompress to RGBA
         if tj3Decompress8(
             handle,
-            mmap.as_ptr(),
-            mmap.len(),
+            file_data.as_ptr(),
+            file_data.len(),
             data.as_mut_ptr(),
             stride,
             TJPF_TJPF_RGBA,
