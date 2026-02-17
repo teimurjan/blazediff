@@ -7,4 +7,7 @@
 "@blazediff/bin-win32-x64": minor
 ---
 
-LUTs over computation, loop unrolling, constant hoisting, and fast paths for common cases
+Performance optimizations achieving ~63% faster diffs vs ODiff (weighted average):
+
+- Add optimized grayscale fill with f32 math, loop unrolling (4 pixels/iteration), and constant hoisting
+- Fix memory leak in PNG encoding (proper `libc::free` after `spng_get_png_buffer`)

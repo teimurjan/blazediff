@@ -17,6 +17,15 @@ impl Image {
         }
     }
 
+    /// Create a new image without zero-initializing the buffer.
+    /// Use when the buffer will be fully overwritten (e.g., diff output).
+    pub fn new_uninit(width: u32, height: u32) -> Self {
+        let size = (width * height * 4) as usize;
+        let mut data = Vec::with_capacity(size);
+        unsafe { data.set_len(size) };
+        Self { data, width, height }
+    }
+
     #[inline]
     pub fn as_u32(&self) -> &[u32] {
         // SAFETY: Vec<u8> with length divisible by 4 can be viewed as &[u32]

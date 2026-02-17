@@ -1,4 +1,4 @@
-//! PNG I/O via libspng with skip-CRC optimizations.
+//! PNG I/O: spng for both decoding (mmap + skip-CRC) and encoding (no-filter + level 0).
 
 use crate::spng_ffi::*;
 use crate::types::{DiffError, Image};
@@ -104,14 +104,18 @@ pub fn save_png_with_compression<P: AsRef<Path>>(
     path: P,
     compression: u8,
 ) -> Result<(), DiffError> {
+    let png_data = encode_png(image, compression as i32)?;
+    let mut file = File::create(path.as_ref())?;
+    file.write_all(&png_data)?;
+    Ok(())
+}
+
+fn encode_png(image: &Image, compression_level: i32) -> Result<Vec<u8>, DiffError> {
     unsafe {
         let ctx = spng_ctx_new(spng_ctx_flags_SPNG_CTX_ENCODER as c_int);
         if ctx.is_null() {
-            return Err(DiffError::PngError(
-                "Failed to create encoder context".into(),
-            ));
+            return Err(DiffError::PngError("Failed to create spng encoder context".into()));
         }
-        let _guard = CtxGuard(ctx);
 
         let mut ihdr = spng_ihdr {
             width: image.width,
@@ -124,71 +128,47 @@ pub fn save_png_with_compression<P: AsRef<Path>>(
         };
 
         if spng_set_ihdr(ctx, &mut ihdr) != 0 {
+            spng_ctx_free(ctx);
             return Err(DiffError::PngError("Failed to set IHDR".into()));
         }
 
-        // Use internal buffer mode (faster than callback)
-        if spng_set_option(ctx, spng_option_SPNG_ENCODE_TO_BUFFER, 1) != 0 {
-            return Err(DiffError::PngError("Failed to set encode to buffer".into()));
-        }
-
-        // No filtering + no compression = fastest encode
-        if spng_set_option(
+        spng_set_option(ctx, spng_option_SPNG_ENCODE_TO_BUFFER, 1);
+        spng_set_option(
             ctx,
             spng_option_SPNG_FILTER_CHOICE,
             spng_filter_choice_SPNG_DISABLE_FILTERING as c_int,
-        ) != 0
-        {
-            return Err(DiffError::PngError("Failed to disable filtering".into()));
-        }
+        );
+        spng_set_option(ctx, spng_option_SPNG_IMG_COMPRESSION_LEVEL, compression_level);
 
-        // Compression level 0-9 (0=store/fastest, 9=best compression)
-        let level = compression.min(9) as c_int;
-        if spng_set_option(ctx, spng_option_SPNG_IMG_COMPRESSION_LEVEL, level) != 0 {
-            return Err(DiffError::PngError(
-                "Failed to set compression level".into(),
-            ));
-        }
-
-        let res = spng_encode_image(
+        let flags = spng_encode_flags_SPNG_ENCODE_FINALIZE as c_int;
+        let ret = spng_encode_image(
             ctx,
             image.data.as_ptr() as *const _,
             image.data.len(),
             spng_format_SPNG_FMT_PNG as c_int,
-            spng_encode_flags_SPNG_ENCODE_FINALIZE as c_int,
+            flags,
         );
 
-        if res != 0 {
-            let err_str = spng_strerror(res);
-            let msg = if !err_str.is_null() {
-                std::ffi::CStr::from_ptr(err_str)
-                    .to_string_lossy()
-                    .into_owned()
-            } else {
-                format!("Encode error: {}", res)
-            };
-            return Err(DiffError::PngError(msg));
+        if ret != 0 {
+            spng_ctx_free(ctx);
+            return Err(DiffError::PngError(format!("Failed to encode image: {}", ret)));
         }
 
-        // Get the internal buffer - NOTE: spng_get_png_buffer transfers ownership,
-        // so we must free it ourselves (spng_ctx_free won't free it after this call)
         let mut len: usize = 0;
         let mut error: c_int = 0;
-        let buf_ptr = spng_get_png_buffer(ctx, &mut len, &mut error);
+        let buf = spng_get_png_buffer(ctx, &mut len, &mut error);
 
-        if buf_ptr.is_null() || error != 0 {
-            return Err(DiffError::PngError("Failed to get PNG buffer".into()));
+        if buf.is_null() || error != 0 {
+            spng_ctx_free(ctx);
+            return Err(DiffError::PngError(format!("Failed to get PNG buffer: {}", error)));
         }
 
-        // Write directly from spng's buffer (no copy needed)
-        let output_slice = std::slice::from_raw_parts(buf_ptr as *const u8, len);
-        let mut file = File::create(path.as_ref())?;
-        file.write_all(output_slice)?;
+        let result = std::slice::from_raw_parts(buf as *const u8, len).to_vec();
 
-        // Free the buffer we now own
-        libc::free(buf_ptr);
+        libc::free(buf);
+        spng_ctx_free(ctx);
 
-        Ok(())
+        Ok(result)
     }
 }
 
