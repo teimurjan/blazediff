@@ -1,5 +1,14 @@
 # @blazediff/bin-linux-x64
 
+## 3.4.0
+
+### Minor Changes
+
+- 9cafd0c: Performance optimizations achieving ~63% faster diffs vs ODiff (weighted average):
+
+  - Add optimized grayscale fill with f32 math, loop unrolling (4 pixels/iteration), and constant hoisting
+  - Fix memory leak in PNG encoding (proper `libc::free` after `spng_get_png_buffer`)
+
 ## 3.3.0
 
 ## 3.2.0

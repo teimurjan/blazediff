@@ -1,5 +1,11 @@
 # @blazediff/cli
 
+## 2.1.2
+
+### Patch Changes
+
+- @blazediff/bin@3.4.0
+
 ## 2.1.1
 
 ### Patch Changes
