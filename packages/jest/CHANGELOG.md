@@ -1,5 +1,11 @@
 # @blazediff/jest
 
+## 1.1.6
+
+### Patch Changes
+
+- @blazediff/matcher@1.2.4
+
 ## 1.1.5
 
 ### Patch Changes
