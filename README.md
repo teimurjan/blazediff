@@ -17,7 +17,7 @@
 ## Available Packages
 
 ### Core Libraries
-- **[@blazediff/bin](./packages/bin#readme)** - The fastest single-threaded image diff in the world (Rust + SIMD, 3-4x faster than odiff)
+- **[@blazediff/bin](./packages/bin#readme)** - The fastest single-threaded image diff in the world (Rust + SIMD, 3-4x faster than odiff on 4K images)
 - **[@blazediff/core](./packages/core#readme)** - Pixel-perfect image comparison (1.5x faster than pixelmatch)
 - **[@blazediff/object](./packages/object#readme)** - High-performance object diffing with detailed change tracking
 - **[@blazediff/ssim](./packages/ssim#readme)** - SSIM, MS-SSIM, and Hitchhiker's SSIM for perceptual quality assessment

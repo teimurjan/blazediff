@@ -31,7 +31,7 @@ pub mod simd;
     non_snake_case,
     dead_code
 )]
-mod spng_ffi;
+pub mod spng_ffi;
 #[allow(
     non_upper_case_globals,
     non_camel_case_types,

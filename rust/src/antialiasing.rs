@@ -2,7 +2,9 @@
 //! by V. Vysniauskas (2009). Examines 3x3 neighborhood to find gradient patterns.
 
 use crate::types::Image;
-use crate::yiq::color_delta;
+
+// f32 YIQ coefficients for Y-only calculation
+const YIQ_Y_F32: [f32; 3] = [0.29889531, 0.58662247, 0.11448223];
 
 /// Check if pixel has more than 2 identical neighbors (not anti-aliased edge)
 #[inline]
@@ -177,6 +179,24 @@ fn has_many_siblings_scalar(
     count > 2
 }
 
+/// Fast f32 Y-only delta for AA detection
+#[inline(always)]
+fn brightness_delta_f32(pixel_a: u32, pixel_b: u32) -> f32 {
+    let r1 = (pixel_a & 0xFF) as f32;
+    let g1 = ((pixel_a >> 8) & 0xFF) as f32;
+    let b1 = ((pixel_a >> 16) & 0xFF) as f32;
+
+    let r2 = (pixel_b & 0xFF) as f32;
+    let g2 = ((pixel_b >> 8) & 0xFF) as f32;
+    let b2 = ((pixel_b >> 16) & 0xFF) as f32;
+
+    let dr = r1 - r2;
+    let dg = g1 - g2;
+    let db = b1 - b2;
+
+    dr * YIQ_Y_F32[0] + dg * YIQ_Y_F32[1] + db * YIQ_Y_F32[2]
+}
+
 pub fn is_antialiased(image1: &Image, image2: &Image, x: u32, y: u32) -> bool {
     let a32 = image1.as_u32();
     let b32 = image2.as_u32();
@@ -200,8 +220,8 @@ pub fn is_antialiased(image1: &Image, image2: &Image, x: u32, y: u32) -> bool {
         0
     };
 
-    let mut min_delta = 0.0f64;
-    let mut max_delta = 0.0f64;
+    let mut min_delta = 0.0f32;
+    let mut max_delta = 0.0f32;
     let mut min_x = 0u32;
     let mut min_y = 0u32;
     let mut max_x = 0u32;
@@ -224,8 +244,8 @@ pub fn is_antialiased(image1: &Image, image2: &Image, x: u32, y: u32) -> bool {
                     return false;
                 }
             } else {
-                // Calculate brightness delta (Y only)
-                let delta = color_delta(center_pixel, adj_pixel, pos, true);
+                // Calculate brightness delta (Y only) - using f32 for speed
+                let delta = brightness_delta_f32(center_pixel, adj_pixel);
 
                 if delta < min_delta {
                     min_delta = delta;

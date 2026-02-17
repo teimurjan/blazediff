@@ -186,7 +186,7 @@ fn main() -> ExitCode {
     };
 
     let mut output_image = if args.output.is_some() {
-        Some(Image::new(img1.width, img1.height))
+        Some(Image::new_uninit(img1.width, img1.height))
     } else {
         None
     };

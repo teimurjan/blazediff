@@ -21,113 +21,256 @@ Performance benchmarks comparing BlazeDiff ecosystem components against popular 
 
 ## Native Binary (`@blazediff/bin` vs `odiff`) (image IO included)
 
-*25 runs (5 warmup)*
+_25 runs (5 warmup)_
 
 > **3-4x faster than odiff** on 4K images.
+> **~50%** performance improvement on average.
 
 The native Rust binary with SIMD optimization is the fastest single-threaded image diff in the world.
 
 <table>
-  <thead>
     <tr>
-      <th width="400">Benchmark</th>
-      <th width="300">blazediff (Rust)</th>
-      <th width="300">odiff (Zig)</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td><strong>4k/1</strong> (5600×3200)</td>
-      <td><strong>327ms</strong></td>
-      <td>1215ms (3.7x slower)</td>
+        <td width="500">Benchmark</td>
+        <td width="500">ODiff</td>
+        <td width="500">BlazeDiff</td>
+        <td width="500">Time Saved</td>
+        <td width="500">% Improvement</td>
     </tr>
     <tr>
-      <td><strong>4k/2</strong> (5600×3200)</td>
-      <td><strong>397ms</strong></td>
-      <td>1604ms (4.0x slower)</td>
+        <td>4k/1</td>
+        <td>1190.92ms</td>
+        <td>293.86ms</td>
+        <td>897.06ms</td>
+        <td>75.3%</td>
     </tr>
     <tr>
-      <td><strong>4k/3</strong> (5600×3200)</td>
-      <td><strong>416ms</strong></td>
-      <td>1753ms (4.2x slower)</td>
+        <td>4k/1 (identical)</td>
+        <td>273.40ms</td>
+        <td>215.40ms</td>
+        <td>58.00ms</td>
+        <td>21.2%</td>
     </tr>
     <tr>
-      <td><strong>page/1</strong> (3598×16384)</td>
-      <td><strong>640ms</strong></td>
-      <td>1085ms (1.7x slower)</td>
+        <td>4k/2</td>
+        <td>1530.21ms</td>
+        <td>363.50ms</td>
+        <td>1166.70ms</td>
+        <td>76.2%</td>
     </tr>
     <tr>
-      <td><strong>page/2</strong> (3598×16384)</td>
-      <td><strong>339ms</strong></td>
-      <td>613ms (1.8x slower)</td>
+        <td>4k/2 (identical)</td>
+        <td>346.58ms</td>
+        <td>259.08ms</td>
+        <td>87.50ms</td>
+        <td>25.2%</td>
     </tr>
     <tr>
-      <td><strong>same/1</strong> (1498×1160)</td>
-      <td><strong>13ms</strong></td>
-      <td>12ms (1.0x)</td>
+        <td>4k/3</td>
+        <td>1835.47ms</td>
+        <td>389.67ms</td>
+        <td>1445.79ms</td>
+        <td>78.8%</td>
     </tr>
     <tr>
-      <td><strong>blazediff/1</strong> (362×354)</td>
-      <td><strong>4ms</strong></td>
-      <td>6ms (1.3x slower)</td>
+        <td>4k/3 (identical)</td>
+        <td>435.21ms</td>
+        <td>272.26ms</td>
+        <td>162.95ms</td>
+        <td>37.4%</td>
     </tr>
     <tr>
-      <td><strong>blazediff/2</strong> (362×354)</td>
-      <td><strong>4ms</strong></td>
-      <td>5ms (1.1x slower)</td>
+        <td>blazediff/1</td>
+        <td>5.08ms</td>
+        <td>1.92ms</td>
+        <td>3.16ms</td>
+        <td>62.2%</td>
     </tr>
     <tr>
-      <td><strong>blazediff/3</strong> (1024×1024)</td>
-      <td><strong>29ms</strong></td>
-      <td>50ms (1.8x slower)</td>
+        <td>blazediff/1 (identical)</td>
+        <td>1.57ms</td>
+        <td>1.17ms</td>
+        <td>0.39ms</td>
+        <td>25.2%</td>
     </tr>
     <tr>
-      <td><strong>pixelmatch/1</strong> (512×256)</td>
-      <td><strong>3ms</strong></td>
-      <td>5ms (1.7x slower)</td>
+        <td>blazediff/2</td>
+        <td>3.53ms</td>
+        <td>2.13ms</td>
+        <td>1.40ms</td>
+        <td>39.7%</td>
     </tr>
     <tr>
-      <td><strong>pixelmatch/2</strong> (400×300)</td>
-      <td>7ms</td>
-      <td><strong>5ms</strong> (1.3x faster)</td>
+        <td>blazediff/2 (identical)</td>
+        <td>1.44ms</td>
+        <td>1.31ms</td>
+        <td>0.13ms</td>
+        <td>8.9%</td>
     </tr>
     <tr>
-      <td><strong>pixelmatch/3</strong> (512×256)</td>
-      <td><strong>4ms</strong></td>
-      <td>5ms (1.3x slower)</td>
+        <td>blazediff/3</td>
+        <td>51.35ms</td>
+        <td>24.93ms</td>
+        <td>26.42ms</td>
+        <td>51.5%</td>
     </tr>
     <tr>
-      <td><strong>pixelmatch/4</strong> (544×384)</td>
-      <td><strong>8ms</strong></td>
-      <td>14ms (1.8x slower)</td>
+        <td>blazediff/3 (identical)</td>
+        <td>20.71ms</td>
+        <td>16.07ms</td>
+        <td>4.65ms</td>
+        <td>22.4%</td>
     </tr>
     <tr>
-      <td><strong>pixelmatch/5</strong> (400×300)</td>
-      <td><strong>3ms</strong></td>
-      <td>3ms (1.0x)</td>
+        <td>page/1</td>
+        <td>1035.20ms</td>
+        <td>472.99ms</td>
+        <td>562.20ms</td>
+        <td>54.3%</td>
     </tr>
     <tr>
-      <td><strong>pixelmatch/6</strong> (400×300)</td>
-      <td><strong>4ms</strong></td>
-      <td>8ms (1.8x slower)</td>
+        <td>page/1 (identical)</td>
+        <td>511.07ms</td>
+        <td>289.93ms</td>
+        <td>221.14ms</td>
+        <td>43.3%</td>
     </tr>
     <tr>
-      <td><strong>pixelmatch/7</strong> (513×512)</td>
-      <td><strong>4ms</strong></td>
-      <td>8ms (2.0x slower)</td>
+        <td>page/2</td>
+        <td>598.79ms</td>
+        <td>263.90ms</td>
+        <td>334.89ms</td>
+        <td>55.9%</td>
     </tr>
-  </tbody>
+    <tr>
+        <td>page/2 (identical)</td>
+        <td>107.73ms</td>
+        <td>80.12ms</td>
+        <td>27.60ms</td>
+        <td>25.6%</td>
+    </tr>
+    <tr>
+        <td>pixelmatch/1</td>
+        <td>3.14ms</td>
+        <td>2.73ms</td>
+        <td>0.40ms</td>
+        <td>12.8%</td>
+    </tr>
+    <tr>
+        <td>pixelmatch/1 (identical)</td>
+        <td>1.72ms</td>
+        <td>1.00ms</td>
+        <td>0.72ms</td>
+        <td>42.0%</td>
+    </tr>
+    <tr>
+        <td>pixelmatch/2</td>
+        <td>3.42ms</td>
+        <td>1.71ms</td>
+        <td>1.71ms</td>
+        <td>49.9%</td>
+    </tr>
+    <tr>
+        <td>pixelmatch/2 (identical)</td>
+        <td>0.48ms</td>
+        <td>0.50ms</td>
+        <td>-0.02ms</td>
+        <td>-3.1%</td>
+    </tr>
+    <tr>
+        <td>pixelmatch/3</td>
+        <td>2.42ms</td>
+        <td>1.12ms</td>
+        <td>1.31ms</td>
+        <td>54.0%</td>
+    </tr>
+    <tr>
+        <td>pixelmatch/3 (identical)</td>
+        <td>1.71ms</td>
+        <td>0.78ms</td>
+        <td>0.93ms</td>
+        <td>54.4%</td>
+    </tr>
+    <tr>
+        <td>pixelmatch/4</td>
+        <td>9.24ms</td>
+        <td>4.85ms</td>
+        <td>4.39ms</td>
+        <td>47.5%</td>
+    </tr>
+    <tr>
+        <td>pixelmatch/4 (identical)</td>
+        <td>3.36ms</td>
+        <td>2.21ms</td>
+        <td>1.15ms</td>
+        <td>34.2%</td>
+    </tr>
+    <tr>
+        <td>pixelmatch/5</td>
+        <td>0.85ms</td>
+        <td>0.59ms</td>
+        <td>0.26ms</td>
+        <td>30.8%</td>
+    </tr>
+    <tr>
+        <td>pixelmatch/5 (identical)</td>
+        <td>0.79ms</td>
+        <td>0.53ms</td>
+        <td>0.26ms</td>
+        <td>32.7%</td>
+    </tr>
+    <tr>
+        <td>pixelmatch/6</td>
+        <td>5.52ms</td>
+        <td>1.61ms</td>
+        <td>3.91ms</td>
+        <td>70.9%</td>
+    </tr>
+    <tr>
+        <td>pixelmatch/6 (identical)</td>
+        <td>1.12ms</td>
+        <td>0.78ms</td>
+        <td>0.34ms</td>
+        <td>30.2%</td>
+    </tr>
+    <tr>
+        <td>pixelmatch/7</td>
+        <td>3.29ms</td>
+        <td>1.61ms</td>
+        <td>1.68ms</td>
+        <td>51.0%</td>
+    </tr>
+    <tr>
+        <td>pixelmatch/7 (identical)</td>
+        <td>0.72ms</td>
+        <td>0.71ms</td>
+        <td>0.01ms</td>
+        <td>1.8%</td>
+    </tr>
+    <tr>
+        <td>same/1</td>
+        <td>5.50ms</td>
+        <td>4.70ms</td>
+        <td>0.80ms</td>
+        <td>14.6%</td>
+    </tr>
+    <tr>
+        <td>same/1 (identical)</td>
+        <td>10.71ms</td>
+        <td>4.66ms</td>
+        <td>6.05ms</td>
+        <td>56.5%</td>
+    </tr>
 </table>
 
-*Benchmarks run on MacBook Pro M1 Max using hyperfine*
+_Benchmarks run on MacBook Pro M1 Max using hyperfine_
 
 ## Pixel By Pixel
 
 ### JavaScript (`@blazediff/core` vs `pixelmatch`) (image IO excluded)
 
-*50 iterations (5 warmup)*
+_50 iterations (5 warmup)_
 
-> **Median: 82%** | Arithmetic mean: 65% | Weighted average: 42%
+> **~82%** performance improvement on average
 
 <table>
   <thead>
@@ -367,13 +510,13 @@ The native Rust binary with SIMD optimization is the fastest single-threaded ima
   </tbody>
 </table>
 
-*Benchmarks run on MacBook Pro M1 Max, Node.js 22*
+_Benchmarks run on MacBook Pro M1 Max, Node.js 22_
 
 ## SSIM
 
 ### Fast Original ( `@blazediff/ssim` using `ssim` vs `ssim.js` using `fast` algorithm) (image IO excluded)
 
-*25 iterations (3 warmup)*
+_25 iterations (3 warmup)_
 
 > **~25%** performance improvement on average.
 
@@ -533,7 +676,7 @@ The native Rust binary with SIMD optimization is the fastest single-threaded ima
 
 ### Hitchhikers SSIM SSIM (`@blazediff/ssim` using `hitchhikers-ssim` vs `ssim.js` using `weber` algorithm) (image IO excluded)
 
-*25 iterations (3 warmup)*
+_25 iterations (3 warmup)_
 
 > **~70%** performance improvement on average.
 
@@ -691,13 +834,14 @@ The native Rust binary with SIMD optimization is the fastest single-threaded ima
   </tbody>
 </table>
 
-*Benchmarks run on MacBook Pro M1 Max, Node.js 22*
+_Benchmarks run on MacBook Pro M1 Max, Node.js 22_
 
 ## Object (`@blazediff/object` vs `microdiff`)
 
-*10000 iterations (50 warmup)*
+_10000 iterations (50 warmup)_
 
 > **~55%** performance improvement on average.
+
 <table>
   <thead>
     <tr>
@@ -768,7 +912,7 @@ The native Rust binary with SIMD optimization is the fastest single-threaded ima
   </tbody>
 </table>
 
-*Benchmarks run on MacBook Pro M1 Max, Node.js 22*
+_Benchmarks run on MacBook Pro M1 Max, Node.js 22_
 
 ## GitHub Actions
 
@@ -780,9 +924,11 @@ Automated benchmarks run on every commit:
 ## Test Fixtures
 
 ### Image Fixtures
+
 The image benchmark fixtures used for testing are documented in the [fixtures README](./fixtures/README.md).
 
 ### Object Fixtures
+
 The object benchmark fixtures can be viewed [here](./apps/object-benchmark/src/fixtures.ts).
 
 ## Hardware Specifications
