@@ -1,6 +1,6 @@
 {
 	"name": "@blazediff/bin",
-	"version": "3.3.0",
+	"version": "3.4.0",
 	"description": "Native Rust binaries for blazediff - the fastest image diff in the world",
 	"private": false,
 	"publishConfig": {
@@ -27,12 +27,12 @@
 		"test:watch": "vitest"
 	},
 	"optionalDependencies": {
-		"@blazediff/bin-darwin-arm64": "3.3.0",
-		"@blazediff/bin-darwin-x64": "3.3.0",
-		"@blazediff/bin-linux-arm64": "3.3.0",
-		"@blazediff/bin-linux-x64": "3.3.0",
-		"@blazediff/bin-win32-arm64": "3.3.0",
-		"@blazediff/bin-win32-x64": "3.3.0"
+		"@blazediff/bin-darwin-arm64": "3.4.0",
+		"@blazediff/bin-darwin-x64": "3.4.0",
+		"@blazediff/bin-linux-arm64": "3.4.0",
+		"@blazediff/bin-linux-x64": "3.4.0",
+		"@blazediff/bin-win32-arm64": "3.4.0",
+		"@blazediff/bin-win32-x64": "3.4.0"
 	},
 	"keywords": [
 		"image",

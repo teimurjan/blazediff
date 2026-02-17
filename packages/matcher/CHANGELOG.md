@@ -1,5 +1,11 @@
 # @blazediff/matcher
 
+## 1.2.4
+
+### Patch Changes
+
+- @blazediff/bin@3.4.0
+
 ## 1.2.3
 
 ### Patch Changes
