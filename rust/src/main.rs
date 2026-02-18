@@ -3,7 +3,7 @@
 //! Usage:
 //!   blazediff <image1> <image2> [diff] [options]
 //!
-//! Supports PNG and JPEG formats (auto-detected by extension).
+//! Supports PNG, JPEG, and QOI formats (auto-detected by extension).
 //!
 //! Exit codes:
 //!   0 - Images identical (within threshold)
@@ -11,8 +11,8 @@
 //!   2 - Error
 
 use blazediff::{
-    diff, load_jpeg, load_jpegs, load_png, load_pngs, save_jpeg, save_png_with_compression,
-    DiffError, DiffOptions, Image,
+    diff, load_jpeg, load_jpegs, load_png, load_pngs, load_qoi, load_qois, save_jpeg,
+    save_png_with_compression, save_qoi, DiffError, DiffOptions, Image,
 };
 use clap::Parser;
 use rayon::prelude::*;
@@ -68,6 +68,7 @@ struct Args {
 enum ImageFormat {
     Png,
     Jpeg,
+    Qoi,
 }
 
 impl ImageFormat {
@@ -76,6 +77,7 @@ impl ImageFormat {
         match ext.as_str() {
             "png" => Some(ImageFormat::Png),
             "jpg" | "jpeg" => Some(ImageFormat::Jpeg),
+            "qoi" => Some(ImageFormat::Qoi),
             _ => None,
         }
     }
@@ -93,6 +95,7 @@ fn load_image<P: AsRef<Path>>(path: P) -> Result<Image, DiffError> {
     match format {
         ImageFormat::Png => load_png(path),
         ImageFormat::Jpeg => load_jpeg(path),
+        ImageFormat::Qoi => load_qoi(path),
     }
 }
 
@@ -113,6 +116,7 @@ fn load_images<P1: AsRef<Path> + Sync, P2: AsRef<Path> + Sync>(
         return match fmt1 {
             ImageFormat::Png => load_pngs(&path1, &path2),
             ImageFormat::Jpeg => load_jpegs(&path1, &path2),
+            ImageFormat::Qoi => load_qois(&path1, &path2),
         };
     }
 
@@ -125,6 +129,7 @@ fn load_images<P1: AsRef<Path> + Sync, P2: AsRef<Path> + Sync>(
     .map(|(path, fmt)| match fmt {
         ImageFormat::Png => load_png(path),
         ImageFormat::Jpeg => load_jpeg(path),
+        ImageFormat::Qoi => load_qoi(path),
     })
     .collect();
 
@@ -140,6 +145,7 @@ fn save_image<P: AsRef<Path>>(image: &Image, path: P, args: &Args) -> Result<(),
     match format {
         ImageFormat::Png => save_png_with_compression(image, path, args.compression),
         ImageFormat::Jpeg => save_jpeg(image, path, args.quality),
+        ImageFormat::Qoi => save_qoi(image, path),
     }
 }
 

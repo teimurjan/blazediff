@@ -11,7 +11,7 @@
 The fastest single-threaded image diff in the world. Native Rust implementation with SIMD optimization, **3-4x faster** and **3x smaller** than [odiff](https://github.com/dmtrKovalenko/odiff).
 
 **Features:**
-- **PNG & JPEG support** - auto-detected by file extension
+- **PNG, JPEG & QOI support** - auto-detected by file extension
 - SIMD-accelerated (NEON on ARM, SSE4.1 on x86)
 - Block-based two-pass optimization
 - YIQ perceptual color difference
@@ -21,6 +21,7 @@ The fastest single-threaded image diff in the world. Native Rust implementation 
 **Vendored Libraries:**
 - [libspng](https://libspng.org/) - Fast PNG decoding/encoding with SIMD
 - [libjpeg-turbo](https://libjpeg-turbo.org/) - High-performance JPEG codec with SIMD
+- [qoi](https://github.com/aldanor/qoi-rust) - QOI (Quite OK Image) format for fast lossless compression
 
 ## Installation
 
@@ -141,8 +142,11 @@ npx blazediff expected.png actual.png diff.png
 # Compare two JPEG images
 npx blazediff expected.jpg actual.jpg diff.jpg
 
-# Mixed formats (PNG input, JPEG output)
-npx blazediff expected.png actual.png diff.jpg
+# Compare two QOI images
+npx blazediff expected.qoi actual.qoi diff.qoi
+
+# Mixed formats (PNG input, QOI output - recommended for smallest diff files)
+npx blazediff expected.png actual.png diff.qoi
 
 # With options
 npx blazediff expected.png actual.png diff.png --threshold 0.05 --antialiasing
@@ -163,8 +167,8 @@ npx blazediff expected.png actual.png diff.png --output-format json
 Usage: blazediff [OPTIONS] <IMAGE1> <IMAGE2> [OUTPUT]
 
 Arguments:
-  <IMAGE1>  First image path (PNG or JPEG)
-  <IMAGE2>  Second image path (PNG or JPEG)
+  <IMAGE1>  First image path (PNG, JPEG, or QOI)
+  <IMAGE2>  Second image path (PNG, JPEG, or QOI)
   [OUTPUT]  Output diff image path (optional, format detected from extension)
 
 Options:
@@ -184,8 +188,11 @@ Options:
 |--------|------------|-------|
 | PNG | `.png` | Lossless, supports transparency |
 | JPEG | `.jpg`, `.jpeg` | Lossy, smaller file sizes |
+| QOI | `.qoi` | Fast lossless, ideal for diff outputs (12x smaller than uncompressed PNG) |
 
 Input images can be mixed formats (e.g., compare PNG to JPEG). Output format is determined by the output file extension.
+
+**QOI for diff outputs:** QOI excels at encoding diff images with large uniform areas, producing files 12x smaller than PNG (level 0) while being faster to encode.
 
 ### Exit Codes
 

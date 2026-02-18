@@ -116,6 +116,7 @@ pub enum DiffError {
     IoError(std::io::Error),
     PngError(String),
     JpegError(String),
+    QoiError(String),
     UnsupportedFormat(String),
 }
 
@@ -144,6 +145,7 @@ impl std::fmt::Display for DiffError {
             DiffError::IoError(e) => write!(f, "IO error: {}", e),
             DiffError::PngError(e) => write!(f, "PNG error: {}", e),
             DiffError::JpegError(e) => write!(f, "JPEG error: {}", e),
+            DiffError::QoiError(e) => write!(f, "QOI error: {}", e),
             DiffError::UnsupportedFormat(e) => write!(f, "Unsupported format: {}", e),
         }
     }
