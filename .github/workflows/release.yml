@@ -5,12 +5,12 @@ on:
     branches:
       - main
     paths:
+      - "apps/**"
       - "packages/**"
       - "rust/**"
       - "package.json"
       - "pnpm-lock.yaml"
       - ".changeset/**"
-      - ".changeset/config.json"
       - ".github/workflows/release.yml"
 
 concurrency: ${{ github.workflow }}-${{ github.ref }}
