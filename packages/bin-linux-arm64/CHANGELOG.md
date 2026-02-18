@@ -1,5 +1,11 @@
 # @blazediff/bin-linux-arm64
 
+## 3.5.0
+
+### Minor Changes
+
+- d1ceb10: Add QOI format support
+
 ## 3.4.0
 
 ### Minor Changes

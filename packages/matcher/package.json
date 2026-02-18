@@ -1,6 +1,6 @@
 {
 	"name": "@blazediff/matcher",
-	"version": "1.2.4",
+	"version": "1.2.5",
 	"description": "Core matcher logic for visual regression testing with blazediff",
 	"private": false,
 	"publishConfig": {
