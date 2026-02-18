@@ -9,7 +9,7 @@ High-performance image diffing with block-based optimization and SIMD accelerati
 
 - **Block-based optimization** - Skip identical regions for massive speedups on similar images
 - **SIMD acceleration** - Native SSE4.1 (x86) and NEON (ARM) implementations
-- **Multiple formats** - PNG and JPEG support via vendored libspng and libjpeg-turbo
+- **Multiple formats** - PNG, JPEG, and QOI support
 - **Perceptual diffing** - YIQ-based color difference with antialiasing detection
 - **Cross-platform** - Linux, macOS, and Windows support
 
