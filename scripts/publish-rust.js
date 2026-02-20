@@ -24,9 +24,20 @@ async function versionExistsOnCratesIo(version) {
 	try {
 		const res = await fetch(
 			`https://crates.io/api/v1/crates/${CRATE_NAME}/${version}`,
+			{
+				headers: {
+					"User-Agent": "blazediff-publish-script (https://github.com/teimurjan/blazediff)",
+				},
+			},
 		);
-		return res.ok;
-	} catch {
+		if (res.ok) {
+			console.log(`Found ${CRATE_NAME}@${version} on crates.io`);
+			return true;
+		}
+		console.log(`${CRATE_NAME}@${version} not found on crates.io (status: ${res.status})`);
+		return false;
+	} catch (err) {
+		console.log(`Failed to check crates.io: ${err.message}`);
 		return false;
 	}
 }
