@@ -8,6 +8,7 @@ const ROOT = path.resolve(__dirname, "..");
 const BIN_PKG_PATH = path.join(ROOT, "packages", "bin", "package.json");
 const CARGO_TOML_PATH = path.join(ROOT, "rust", "Cargo.toml");
 const RUST_DIR = path.join(ROOT, "rust");
+const CRATE_NAME = "blazediff";
 
 function getVersions() {
 	const binPkg = JSON.parse(fs.readFileSync(BIN_PKG_PATH, "utf8"));
@@ -17,6 +18,17 @@ function getVersions() {
 		bin: binPkg.version,
 		rust: match?.[1],
 	};
+}
+
+async function versionExistsOnCratesIo(version) {
+	try {
+		const res = await fetch(
+			`https://crates.io/api/v1/crates/${CRATE_NAME}/${version}`,
+		);
+		return res.ok;
+	} catch {
+		return false;
+	}
 }
 
 function syncVersion(targetVersion) {
@@ -29,7 +41,7 @@ function syncVersion(targetVersion) {
 	console.log(`Synced Cargo.toml to version ${targetVersion}`);
 }
 
-function main() {
+async function main() {
 	const token = process.env.CRATES_IO_TOKEN;
 	if (!token) {
 		console.log("CRATES_IO_TOKEN not set, skipping crates.io publish");
@@ -42,6 +54,13 @@ function main() {
 
 	if (versions.bin !== versions.rust) {
 		syncVersion(versions.bin);
+	}
+
+	if (await versionExistsOnCratesIo(versions.bin)) {
+		console.log(
+			`Version ${versions.bin} already exists on crates.io, skipping`,
+		);
+		return;
 	}
 
 	console.log("Publishing to crates.io via Docker...");
@@ -61,19 +80,12 @@ function main() {
 		);
 
 		console.log("Published to crates.io");
-	} catch (err) {
-		const stderr = err.stderr?.toString() || err.message || "";
-		if (
-			stderr.includes("already uploaded") ||
-			stderr.includes("already exists")
-		) {
-			console.log(`Version ${versions.bin} already published, skipping`);
-			return;
-		}
-		throw err;
 	} finally {
 		fs.unlinkSync(tokenFile);
 	}
 }
 
-main();
+main().catch((err) => {
+	console.error(err);
+	process.exit(1);
+});
