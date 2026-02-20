@@ -10,5 +10,5 @@ RUN apt-get update && apt-get install -y \
 
 COPY . .
 
-# Token passed via file mount at runtime, not build arg
-CMD ["sh", "-c", "cargo publish --token \"$(cat /run/secrets/crates_token)\""]
+# Token passed via file mount at runtime as env var (--token is deprecated)
+CMD ["sh", "-c", "CARGO_REGISTRY_TOKEN=$(cat /run/secrets/crates_token) cargo publish"]
