@@ -9,25 +9,25 @@ import Link from "next/link";
 
 <div className="grid grid-cols-3 gap-8 mt-8 mb-12">
   <div className="flex flex-col items-center text-center">
-    <IconBolt size={42} className="mb-3" />
-    <h3 className="font-bold mb-2">Blazing Fast</h3>
-    <div className="text-sm text-gray-600 dark:text-gray-400">
+    <IconBolt size={48} className="mb-3" />
+    <h3 className="font-bold mb-2 text-lg">Blazing Fast</h3>
+    <div className="text-md text-gray-600 dark:text-gray-400">
       Algorithms that outperform traditional solutions
     </div>
   </div>
   
   <div className="flex flex-col items-center text-center">
-    <IconFeather size={42} className='mb-3' />
-    <h3 className="font-bold mb-2">Lightweight</h3>
-    <div className="text-sm text-gray-600 dark:text-gray-400">
+    <IconFeather size={48} className='mb-3' />
+    <h3 className="font-bold mb-2 text-lg">Lightweight</h3>
+    <div className="text-md text-gray-600 dark:text-gray-400">
       Minimal bundle size and low memory usage
     </div>
   </div>
 
   <div className="flex flex-col items-center text-center">
-    <IconBox size={42} className='mb-3' />
-    <h3 className="font-bold mb-2">Type-Safe</h3>
-    <div className="text-sm text-gray-600 dark:text-gray-400">
+    <IconBox size={48} className='mb-3' />
+    <h3 className="font-bold mb-2 text-lg">Type-Safe</h3>
+    <div className="text-md text-gray-600 dark:text-gray-400">
       TypeScript support out of the box
     </div>
   </div>
@@ -46,8 +46,8 @@ import Link from "next/link";
         <span>@blazediff/bin</span>
       </Link>
 
-      <div className="text-gray-600 dark:text-gray-400 m-0 text-sm">
-        The fastest single-threaded image diff in the world. Native Rust implementation with SIMD optimization, 3-4x faster than odiff.
+      <div className="text-gray-600 dark:text-gray-400 m-0 text-md">
+        Fastest single-threaded image diff — native Rust + SIMD, ~3–4× faster than odiff.
       </div>
     </div>
 
@@ -56,8 +56,8 @@ import Link from "next/link";
         <span>@blazediff/core</span>
       </Link>
 
-      <div className="text-gray-600 dark:text-gray-400 m-0 text-sm">
-        JavaScript implementation of the BlazeDiff image comparison library. 1.5x faster than pixelmatch while maintaining identical accuracy.
+      <div className="text-gray-600 dark:text-gray-400 m-0 text-md">
+        Pure JS image comparison — ~1.5× faster than pixelmatch with identical accuracy.
       </div>
     </div>
 
@@ -66,7 +66,7 @@ import Link from "next/link";
         <span>@blazediff/cli</span>
       </Link>
 
-      <div className="text-gray-600 dark:text-gray-400 m-0 text-sm">
+      <div className="text-gray-600 dark:text-gray-400 m-0 text-md">
         Command-line interface for the BlazeDiff image comparison library.
       </div>
     </div>
@@ -80,8 +80,8 @@ import Link from "next/link";
         <span>@blazediff/ssim</span>
       </Link>
 
-      <div className="text-gray-600 dark:text-gray-400 m-0 text-sm">
-        SSIM (Structural Similarity Index) implementations including standard SSIM, MS-SSIM, and Hitchhiker's SSIM for perceptual image quality measurement.
+      <div className="text-gray-600 dark:text-gray-400 m-0 text-md">
+        Standard SSIM, MS-SSIM, and Hitchhiker’s SSIM for perceptual image quality measurement.
       </div>
     </div>
 
@@ -90,8 +90,8 @@ import Link from "next/link";
         <span>@blazediff/gmsd</span>
       </Link>
 
-      <div className="text-gray-600 dark:text-gray-400 m-0 text-sm">
-        GMSD (Gradient Magnitude Similarity Deviation) metric for perceptual image quality assessment.
+      <div className="text-gray-600 dark:text-gray-400 m-0 text-md">
+        GMSD metric for perceptual image quality assessment.
       </div>
     </div>
   </div>  
@@ -104,7 +104,7 @@ import Link from "next/link";
         <span>@blazediff/object</span>
       </Link>
 
-      <div className="text-gray-600 dark:text-gray-400 m-0 text-sm">
+      <div className="text-gray-600 dark:text-gray-400 m-0 text-md">
         Lightning-fast structural object comparison with detailed change tracking.
       </div>
     </div>
@@ -114,7 +114,7 @@ import Link from "next/link";
   <div className="mb-4">
     <h4 className="text-xl">Integrate in Your Tests</h4>
 
-    <div className="text-gray-600 dark:text-gray-400 m-0 text-sm">
+    <div className="text-gray-600 dark:text-gray-400 m-0 text-md">
       Use BlazeDiff in your Jest tests with a minimal setup.
     </div>
 
@@ -138,7 +138,7 @@ import Link from "next/link";
     <h4 className="text-xl">Visualize Differences</h4>
 
     <div>
-      <div className="text-gray-600 dark:text-gray-400 m-0 text-sm">
+      <div className="text-gray-600 dark:text-gray-400 m-0 text-md">
         Build image comparison interfaces with Web or React Components.
       </div>
 
@@ -158,15 +158,15 @@ import Link from "next/link";
 
 ## Powering
 
-<div className="flex flex-wrap items-center justify-center gap-8 my-8">
+<div className="grid grid-cols-3 md:grid-cols-5 gap-8 my-8">
   <a
-    href="https://github.com/voidzero-dev"
+    href="https://github.com/vitest-dev/vitest"
     target="_blank"
     rel="noopener noreferrer"
     className="flex flex-col items-center gap-2"
   >
-    <img src="/vitest-logo.png" alt="Shopify" className="h-12" />
-    <span className="text-sm text-gray-600 dark:text-gray-400">Vitest</span>
+    <img src="/vitest-logo.png" alt="Shopify" className="h-14" />
+    <span className="text-md text-gray-600 dark:text-gray-400">Vitest</span>
   </a>
   <a
     href="https://github.com/Shopify/react-native-skia"
@@ -174,8 +174,8 @@ import Link from "next/link";
     rel="noopener noreferrer"
     className="flex flex-col items-center gap-2"
   >
-    <img src="/shopify-logo.png" alt="Shopify" className="h-12" />
-    <span className="text-sm text-gray-600 dark:text-gray-400">Shopify</span>
+    <img src="/shopify-logo.png" alt="Shopify" className="h-14" />
+    <span className="text-md text-gray-600 dark:text-gray-400">Shopify</span>
   </a>
   <a
     href="https://github.com/heroui-inc/heroui"
@@ -183,8 +183,8 @@ import Link from "next/link";
     rel="noopener noreferrer"
     className="flex flex-col items-center gap-2"
   >
-    <img src="/heroui-logo.png" alt="Shopify" className="h-12" />
-    <span className="text-sm text-gray-600 dark:text-gray-400">HeroUI</span>
+    <img src="/heroui-logo.png" alt="Shopify" className="h-14" />
+    <span className="text-md text-gray-600 dark:text-gray-400">HeroUI</span>
   </a>
   <a
     href="https://github.com/ant-design/ant-design"
@@ -192,8 +192,8 @@ import Link from "next/link";
     rel="noopener noreferrer"
     className="flex flex-col items-center gap-2"
   >
-    <img src="/antdesign-logo.png" alt="Ant Design" className="h-12" />
-    <span className="text-sm text-gray-600 dark:text-gray-400">Ant Design</span>
+    <img src="/antdesign-logo.png" alt="Ant Design" className="h-14" />
+    <span className="text-md text-gray-600 dark:text-gray-400">Ant Design</span>
   </a>
   <a
     href="https://github.com/antvis/G"
@@ -201,8 +201,8 @@ import Link from "next/link";
     rel="noopener noreferrer"
     className="flex flex-col items-center gap-2"
   >
-    <img src="/antv-logo.png" alt="Ant Vis G" className="h-12" />
-    <span className="text-sm text-gray-600 dark:text-gray-400">Ant Vis G</span>
+    <img src="/antv-logo.png" alt="Ant Vis G" className="h-14" />
+    <span className="text-md text-gray-600 dark:text-gray-400">Ant Vis G</span>
   </a>
   <a
     href="https://github.com/ant-design/x"
@@ -210,8 +210,8 @@ import Link from "next/link";
     rel="noopener noreferrer"
     className="flex flex-col items-center gap-2"
   >
-    <img src="/antx-logo.png" alt="Ant Design X" className="h-12" />
-    <span className="text-sm text-gray-600 dark:text-gray-400">
+    <img src="/antx-logo.png" alt="Ant Design X" className="h-14" />
+    <span className="text-md text-gray-600 dark:text-gray-400">
       Ant Design X
     </span>
   </a>
@@ -221,8 +221,8 @@ import Link from "next/link";
     rel="noopener noreferrer"
     className="flex flex-col items-center gap-2"
   >
-    <img src="/gptvis-logo.png" alt="Ant Vis GPT-Vis" className="h-12" />
-    <span className="text-sm text-gray-600 dark:text-gray-400">GPT-Vis</span>
+    <img src="/gptvis-logo.png" alt="Ant Vis GPT-Vis" className="h-14" />
+    <span className="text-md text-gray-600 dark:text-gray-400">GPT-Vis</span>
   </a>
   <a
     href="https://github.com/vega/vega"
@@ -230,8 +230,8 @@ import Link from "next/link";
     rel="noopener noreferrer"
     className="flex flex-col items-center gap-2"
   >
-    <img src="/vega-logo.png" alt="Vega" className="h-12" />
-    <span className="text-sm text-gray-600 dark:text-gray-400">Vega</span>
+    <img src="/vega-logo.png" alt="Vega" className="h-14" />
+    <span className="text-md text-gray-600 dark:text-gray-400">Vega</span>
   </a>
   <a
     href="https://github.com/apexcharts/apexcharts.js"
@@ -239,8 +239,8 @@ import Link from "next/link";
     rel="noopener noreferrer"
     className="flex flex-col items-center gap-2"
   >
-    <img src="/apexcharts-logo.png" alt="ApexCharts" className="h-12" />
-    <span className="text-sm text-gray-600 dark:text-gray-400">ApexCharts</span>
+    <img src="/apexcharts-logo.png" alt="ApexCharts" className="h-14" />
+    <span className="text-md text-gray-600 dark:text-gray-400">ApexCharts</span>
   </a>
 </div>
 
