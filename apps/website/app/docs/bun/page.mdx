@@ -73,6 +73,7 @@ await expect(imageInput).toMatchImageSnapshot(options?);
 | `snapshotsDir` | `string` | `'__snapshots__'` | Snapshot directory (relative to test) |
 | `updateSnapshots` | `boolean` | `false` | Force snapshot update |
 | `threshold` | `number` | `0.1` | Color threshold for `core`/`bin` (0-1) |
+| `runInWorker` | `boolean` | `true` | Run comparison in worker thread for better performance |
 
 See [@blazediff/matcher](/docs/matcher) for all available options.
 

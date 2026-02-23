@@ -1,5 +1,10 @@
 import { join } from "node:path";
+import { terminateWorker } from "@blazediff/matcher";
 import "./index";
+
+afterAll(async () => {
+	await terminateWorker();
+});
 
 const FIXTURES_PATH = join(__dirname, "../../../fixtures");
 const TEMP_DIR = join(__dirname, "__test_snapshots__");

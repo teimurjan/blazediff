@@ -2,7 +2,7 @@ import { defineConfig } from "tsup";
 
 export default defineConfig([
 	{
-		entry: ["src/index.ts"],
+		entry: ["src/index.ts", "src/worker.ts"],
 		format: ["cjs", "esm"],
 		dts: false,
 		splitting: false,
@@ -10,7 +10,7 @@ export default defineConfig([
 		clean: true,
 		treeshake: true,
 		minify: true,
-		shims: false,
+		shims: true,
 	},
 	{
 		entry: ["src/index.ts"],

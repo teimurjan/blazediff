@@ -111,6 +111,12 @@ Bun test matcher for image snapshot comparison.
     <td>0.1</td>
     <td>Color difference threshold (0-1) for core/bin methods</td>
   </tr>
+  <tr>
+    <td><code>runInWorker</code></td>
+    <td>boolean</td>
+    <td>true</td>
+    <td>Run comparison in worker thread for better performance</td>
+  </tr>
 </table>
 
 See [@blazediff/matcher](https://www.npmjs.com/package/@blazediff/matcher) for full options documentation.
