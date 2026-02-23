@@ -112,12 +112,30 @@ async function sendRequest<T>(type: WorkerRequest["type"], payload: WorkerReques
 	});
 }
 
-export function normalizeInWorker(input: ImageInput): Promise<ImageData> {
-	return sendRequest<ImageData>("normalize", { input });
+/**
+ * Ensure ImageData has proper Uint8Array after crossing worker boundary.
+ * Structured clone can sometimes produce array-like objects that need reconstruction.
+ */
+function ensureImageData(result: ImageData): ImageData {
+	if (result.data instanceof Uint8Array) {
+		return result;
+	}
+	// Reconstruct Uint8Array if it was converted to plain object/array
+	return {
+		data: new Uint8Array(result.data),
+		width: result.width,
+		height: result.height,
+	};
 }
 
-export function loadPNGInWorker(filePath: string): Promise<ImageData> {
-	return sendRequest<ImageData>("loadPNG", { filePath });
+export async function normalizeInWorker(input: ImageInput): Promise<ImageData> {
+	const result = await sendRequest<ImageData>("normalize", { input });
+	return ensureImageData(result);
+}
+
+export async function loadPNGInWorker(filePath: string): Promise<ImageData> {
+	const result = await sendRequest<ImageData>("loadPNG", { filePath });
+	return ensureImageData(result);
 }
 
 export function compareInWorker(
@@ -127,8 +145,10 @@ export function compareInWorker(
 	options: MatcherOptions,
 	diffOutputPath?: string,
 ): Promise<RunComparisonResult> {
+	// Ensure received data is a proper Uint8Array before sending to worker
+	const normalizedReceived = ensureImageData(received);
 	return sendRequest<RunComparisonResult>("compare", {
-		received,
+		received: normalizedReceived,
 		baseline,
 		method,
 		options,

@@ -3,6 +3,20 @@ import { runComparison } from "./comparators";
 import { loadPNG, normalizeImageInput } from "./image-io";
 import type { ComparisonMethod, ImageData, ImageInput, MatcherOptions } from "./types";
 
+/**
+ * Ensure ImageData has proper Uint8Array after crossing worker boundary.
+ */
+function ensureImageData(data: ImageData): ImageData {
+	if (data.data instanceof Uint8Array) {
+		return data;
+	}
+	return {
+		data: new Uint8Array(data.data),
+		width: data.width,
+		height: data.height,
+	};
+}
+
 export interface WorkerRequest {
 	id: number;
 	type: "normalize" | "compare" | "loadPNG";
@@ -44,7 +58,7 @@ async function handleRequest(request: WorkerRequest): Promise<unknown> {
 		}
 		case "compare": {
 			const { received, baseline, method, options, diffOutputPath } = request.payload as ComparePayload;
-			return runComparison(received, baseline, method, options, diffOutputPath);
+			return runComparison(ensureImageData(received), baseline, method, options, diffOutputPath);
 		}
 		default:
 			throw new Error(`Unknown request type: ${(request as WorkerRequest).type}`);
