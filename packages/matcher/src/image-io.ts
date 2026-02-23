@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { pngjsTransformer } from "@blazediff/pngjs-transformer";
 import type { ImageData, ImageInput } from "./types";
@@ -40,6 +40,19 @@ export function isImageBuffer(input: ImageInput): input is {
 }
 
 /**
+ * Type guard for ImageData
+ */
+export function isImageData(input: ImageInput): input is ImageData {
+	return (
+		typeof input === "object" &&
+		input !== null &&
+		"data" in input &&
+		"width" in input &&
+		"height" in input
+	);
+}
+
+/**
  * Load a PNG image from file path
  */
 export async function loadPNG(filePath: string): Promise<ImageData> {
@@ -48,7 +61,6 @@ export async function loadPNG(filePath: string): Promise<ImageData> {
 	}
 
 	const image = await pngjsTransformer.read(filePath);
-
 	return {
 		data: new Uint8Array(image.data),
 		width: image.width,
@@ -70,18 +82,33 @@ export async function savePNG(
 		mkdirSync(dir, { recursive: true });
 	}
 
-	await pngjsTransformer.write({ data, width, height }, filePath);
+	await pngjsTransformer.write(
+		{ data: data instanceof Uint8Array ? data : new Uint8Array(data), width, height },
+		filePath,
+	);
+}
+
+/**
+ * Save a raw PNG buffer directly to file (no decode/encode cycle)
+ */
+export function saveRawPNGBuffer(
+	filePath: string,
+	buffer: Buffer | Uint8Array,
+): void {
+	const dir = dirname(filePath);
+	if (!existsSync(dir)) {
+		mkdirSync(dir, { recursive: true });
+	}
+	writeFileSync(filePath, buffer);
 }
 
 /**
  * Normalize image input to ImageData
  * - File path: loads the PNG
  * - Raw PNG buffer: decodes to get dimensions
- * - Buffer with dimensions: returns as-is with normalized Uint8Array
+ * - Buffer with dimensions: returns as-is (avoids unnecessary copy if already Uint8Array)
  */
-export async function normalizeImageInput(
-	input: ImageInput,
-): Promise<ImageData> {
+export async function normalizeImageInput(input: ImageInput): Promise<ImageData> {
 	if (isFilePath(input)) {
 		return loadPNG(input);
 	}
@@ -94,6 +121,11 @@ export async function normalizeImageInput(
 			width: image.width,
 			height: image.height,
 		};
+	}
+
+	// If already ImageData with Uint8Array, return as-is to avoid unnecessary copy
+	if (input.data instanceof Uint8Array) {
+		return input as ImageData;
 	}
 
 	return {

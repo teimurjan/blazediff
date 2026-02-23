@@ -1,23 +1,31 @@
 import { existsSync, unlinkSync } from "node:fs";
 import { dirname, isAbsolute, join } from "node:path";
-import { runComparison } from "./comparators";
+import { type RunComparisonResult, runComparison } from "./comparators";
 import { isSsimMethod } from "./comparators/ssim";
 import {
 	ensureDir,
 	fileExists,
 	isFilePath,
+	isImageData,
 	isRawPngBuffer,
 	loadPNG,
 	normalizeImageInput,
 	savePNG,
+	saveRawPNGBuffer,
 } from "./image-io";
 import { formatMessage } from "./reporter";
 import type {
 	ComparisonResult,
+	ImageData,
 	ImageInput,
 	MatcherOptions,
 	TestContext,
 } from "./types";
+import {
+	compareInWorker,
+	loadPNGInWorker,
+	normalizeInWorker,
+} from "./worker-pool";
 
 /**
  * Generate snapshot identifier from test context
@@ -121,10 +129,21 @@ export async function getOrCreateSnapshot(
 	const paths = getSnapshotPaths(testContext, options);
 	const { snapshotDir, baselinePath, receivedPath, diffPath } = paths;
 
-	// Normalize raw PNG buffers to ImageData with dimensions
-	const normalizedReceived = isRawPngBuffer(received)
-		? await normalizeImageInput(received)
-		: received;
+	// Track if input is a raw PNG buffer for fast path on first run
+	const isRawPng = isRawPngBuffer(received);
+	const rawPngBuffer = isRawPng ? (received as Buffer | Uint8Array) : null;
+
+	// Use worker by default for better performance
+	const useWorker = options.runInWorker !== false;
+
+	// Helper functions that use worker or main thread based on option
+	const normalize = useWorker ? normalizeInWorker : normalizeImageInput;
+	const loadImage = useWorker ? loadPNGInWorker : loadPNG;
+	const compare = useWorker
+		? (r: ImageData, b: ImageInput, diffPath?: string) =>
+				compareInWorker(r, b, options.method, options, diffPath)
+		: (r: ImageData, b: ImageInput, diffPath?: string) =>
+				runComparison(r, b, options.method, options, diffPath);
 
 	// Ensure snapshot directory exists
 	ensureDir(snapshotDir);
@@ -137,7 +156,7 @@ export async function getOrCreateSnapshot(
 		options.updateSnapshots === true
 			? "all"
 			: options.updateSnapshots === false ||
-				  options.updateSnapshots === undefined
+					options.updateSnapshots === undefined
 				? "new"
 				: options.updateSnapshots;
 
@@ -148,16 +167,26 @@ export async function getOrCreateSnapshot(
 		(updateMode === "new" || updateMode === "all");
 
 	if (shouldCreateNew) {
-		// Save received as new baseline
-		if (isFilePath(normalizedReceived)) {
-			const img = await loadPNG(normalizedReceived);
+		// Fast path: if we have the raw PNG buffer, write it directly (no decode/encode)
+		if (rawPngBuffer) {
+			saveRawPNGBuffer(baselinePath, rawPngBuffer);
+		} else if (isFilePath(received)) {
+			const img = await loadImage(received);
 			await savePNG(baselinePath, img.data, img.width, img.height);
-		} else {
+		} else if (isImageData(received)) {
 			await savePNG(
 				baselinePath,
-				normalizedReceived.data,
-				normalizedReceived.width,
-				normalizedReceived.height,
+				received.data,
+				received.width,
+				received.height,
+			);
+		} else {
+			const normalized = await normalize(received);
+			await savePNG(
+				baselinePath,
+				normalized.data,
+				normalized.width,
+				normalized.height,
 			);
 		}
 
@@ -184,14 +213,34 @@ export async function getOrCreateSnapshot(
 		};
 	}
 
-	// Run comparison
-	const result = await runComparison(
-		normalizedReceived,
-		baselinePath,
-		options.method,
-		options,
-		diffPath,
-	);
+	// For bin method, skip normalization - it requires file paths
+	// For other methods, normalize if needed
+	let result: RunComparisonResult;
+	let normalizedReceived: ImageInput;
+
+	if (options.method === "bin") {
+		// bin method requires file paths, call runComparison directly
+		result = await runComparison(
+			received,
+			baselinePath,
+			options.method,
+			options,
+			diffPath,
+		);
+		normalizedReceived = received; // Keep as file path for bin method
+	} else {
+		// Normalize received for comparison (deferred until needed)
+		normalizedReceived = isRawPng ? await normalize(received) : received;
+
+		// Run comparison (in worker or main thread based on option)
+		result = await compare(
+			isImageData(normalizedReceived)
+				? normalizedReceived
+				: await normalize(normalizedReceived),
+			baselinePath,
+			diffPath,
+		);
+	}
 
 	// Check if it passes threshold
 	const pass = checkThreshold(options.method, result, options);
@@ -229,10 +278,13 @@ export async function getOrCreateSnapshot(
 
 	// If update mode is 'all' and images differ, update the baseline
 	if (updateMode === "all") {
-		if (isFilePath(normalizedReceived)) {
-			const img = await loadPNG(normalizedReceived);
+		// For raw PNG buffers in updateAll mode, use direct write
+		if (rawPngBuffer) {
+			saveRawPNGBuffer(baselinePath, rawPngBuffer);
+		} else if (isFilePath(normalizedReceived)) {
+			const img = await loadImage(normalizedReceived);
 			await savePNG(baselinePath, img.data, img.width, img.height);
-		} else {
+		} else if (isImageData(normalizedReceived)) {
 			await savePNG(
 				baselinePath,
 				normalizedReceived.data,
@@ -269,10 +321,13 @@ export async function getOrCreateSnapshot(
 	}
 
 	// Save received image for debugging
-	if (isFilePath(normalizedReceived)) {
-		const img = await loadPNG(normalizedReceived);
+	// For raw PNG buffers, use direct write
+	if (rawPngBuffer) {
+		saveRawPNGBuffer(receivedPath, rawPngBuffer);
+	} else if (isFilePath(normalizedReceived)) {
+		const img = await loadImage(normalizedReceived);
 		await savePNG(receivedPath, img.data, img.width, img.height);
-	} else {
+	} else if (isImageData(normalizedReceived)) {
 		await savePNG(
 			receivedPath,
 			normalizedReceived.data,
@@ -281,15 +336,12 @@ export async function getOrCreateSnapshot(
 		);
 	}
 
-	// Save diff output if available
-	if (result.diffOutput) {
-		const receivedData = await normalizeImageInput(normalizedReceived);
-		await savePNG(
-			diffPath,
-			result.diffOutput,
-			receivedData.width,
-			receivedData.height,
-		);
+	// Save diff output if available (not for bin method which doesn't produce diff)
+	if (result.diffOutput && options.method !== "bin") {
+		const dims = isImageData(normalizedReceived)
+			? normalizedReceived
+			: await normalize(normalizedReceived);
+		await savePNG(diffPath, result.diffOutput, dims.width, dims.height);
 	}
 
 	const message = formatMessage({

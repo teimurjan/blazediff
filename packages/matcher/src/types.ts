@@ -119,6 +119,13 @@ export interface MatcherOptions {
 	 * @default 0
 	 */
 	downsample?: 0 | 1;
+
+	/**
+	 * Run image I/O and comparison in a worker thread
+	 * Worker threads provide better performance by avoiding V8 heap contention
+	 * @default true
+	 */
+	runInWorker?: boolean;
 }
 
 /**

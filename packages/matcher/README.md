@@ -165,6 +165,12 @@ Main function for snapshot comparison.
     <td>0</td>
     <td>Downsample factor for GMSD</td>
   </tr>
+  <tr>
+    <td><code>runInWorker</code></td>
+    <td>boolean</td>
+    <td>true</td>
+    <td>Run image I/O and comparison in a worker thread for better performance</td>
+  </tr>
 </table>
 
 ### ComparisonResult
