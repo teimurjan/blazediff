@@ -1,4 +1,4 @@
-import { isFilePath, normalizeImageInput } from "../image-io";
+import { isFilePath, isImageData, normalizeImageInput } from "../image-io";
 import type {
 	ComparisonMethod,
 	ImageData,
@@ -67,9 +67,13 @@ export async function runComparison(
 		};
 	}
 
-	// For all other methods, normalize to ImageData
-	const receivedData: ImageData = await normalizeImageInput(received);
-	const baselineData: ImageData = await normalizeImageInput(baseline);
+	// For all other methods, normalize to ImageData (skip if already ImageData)
+	const receivedData: ImageData = isImageData(received)
+		? received
+		: await normalizeImageInput(received);
+	const baselineData: ImageData = isImageData(baseline)
+		? baseline
+		: await normalizeImageInput(baseline);
 	const generateDiff = diffOutputPath !== undefined;
 
 	// SSIM variants
