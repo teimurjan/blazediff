@@ -86,34 +86,26 @@ export function parseBenchmarkArgs(): BenchmarkArgs {
 		?.split("=")[1] ?? "markdown") as "markdown" | "json" | undefined;
 	const output =
 		args.find((arg) => arg.startsWith("--output="))?.split("=")[1] ?? "console";
+	const fixturesStr = args
+		.find((arg) => arg.startsWith("--fixtures="))
+		?.split("=")[1];
+	const fixtures = fixturesStr ? fixturesStr.split(",") : undefined;
 
-	return { iterations, target, variant, format, output };
+	return { iterations, target, variant, format, output, fixtures };
 }
 
-export const getBenchmarkImagePairs = (): Array<ImagePair> => {
-	const fourKImagePairs = shuffleArray(
-		getImagePairs(join(__dirname, "../../../../fixtures"), "4k"),
-	);
-	const pixelmatchImagePairs = shuffleArray(
-		getImagePairs(join(__dirname, "../../../../fixtures"), "pixelmatch"),
-	);
-	const blazediffImagePairs = shuffleArray(
-		getImagePairs(join(__dirname, "../../../../fixtures"), "blazediff"),
-	);
-	const pageImagePairs = shuffleArray(
-		getImagePairs(join(__dirname, "../../../../fixtures"), "page"),
-	);
-	const sameImagePairs = shuffleArray(
-		getImagePairs(join(__dirname, "../../../../fixtures"), "same"),
-	);
+const ALL_PIXEL_FIXTURE_DIRS = ["pixelmatch", "blazediff", "4k", "page", "same"] as const;
 
-	const pairs = [
-		...pixelmatchImagePairs,
-		...blazediffImagePairs,
-		...fourKImagePairs,
-		...pageImagePairs,
-		...sameImagePairs,
-	];
+export const getBenchmarkImagePairs = (
+	fixtures?: string[],
+): Array<ImagePair> => {
+	const dirs = fixtures ?? ALL_PIXEL_FIXTURE_DIRS;
+	const fixturesDir = join(__dirname, "../../../../fixtures");
+
+	const pairs: ImagePair[] = [];
+	for (const dir of dirs) {
+		pairs.push(...shuffleArray(getImagePairs(fixturesDir, dir)));
+	}
 
 	// Identical have equal metadata, while same pairs are visually identical
 	const identicalPairs: ImagePair[] = [];
@@ -131,14 +123,18 @@ export const getBenchmarkImagePairs = (): Array<ImagePair> => {
 	return pairs;
 };
 
-export const getStructureBenchmarkImagePairs = (): Array<ImagePair> => {
-	const pixelmatchImagePairs = shuffleArray(
-		getImagePairs(join(__dirname, "../../../../fixtures"), "pixelmatch"),
-	);
-	const blazediffImagePairs = shuffleArray(
-		getImagePairs(join(__dirname, "../../../../fixtures"), "blazediff"),
-	);
-	const pairs = [...pixelmatchImagePairs, ...blazediffImagePairs];
+const ALL_STRUCTURE_FIXTURE_DIRS = ["pixelmatch", "blazediff"] as const;
+
+export const getStructureBenchmarkImagePairs = (
+	fixtures?: string[],
+): Array<ImagePair> => {
+	const dirs = fixtures ?? ALL_STRUCTURE_FIXTURE_DIRS;
+	const fixturesDir = join(__dirname, "../../../../fixtures");
+
+	const pairs: ImagePair[] = [];
+	for (const dir of dirs) {
+		pairs.push(...shuffleArray(getImagePairs(fixturesDir, dir)));
+	}
 
 	// Identical have equal metadata, while same pairs are visually identical
 	const identicalPairs: ImagePair[] = [];

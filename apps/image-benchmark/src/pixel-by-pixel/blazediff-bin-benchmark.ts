@@ -5,12 +5,12 @@ import { Bench, hrtimeNow } from "tinybench";
 import { getBenchmarkImagePairs, parseBenchmarkArgs } from "../utils";
 
 async function main() {
-	const { iterations, format, output } = parseBenchmarkArgs();
+	const { iterations, format, output, fixtures } = parseBenchmarkArgs();
 
 	console.log(`[blazediff] Starting benchmark with ${iterations} iterations`);
 	console.log(`[blazediff] Native binding available: ${hasNativeBinding()}`);
 
-	const pairs = getBenchmarkImagePairs();
+	const pairs = getBenchmarkImagePairs(fixtures);
 	console.log(`[blazediff] Found ${pairs.length} image pairs`);
 
 	const bench = new Bench({

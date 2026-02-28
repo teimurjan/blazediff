@@ -3,12 +3,12 @@
 import microdiff from "microdiff";
 import { Bench, hrtimeNow } from "tinybench";
 import { objectPairs } from "./fixtures";
-import { parseBenchmarkArgs, shuffleArray } from "./utils";
+import { filterFixtures, parseBenchmarkArgs, shuffleArray } from "./utils";
 
 async function main() {
-	const { iterations, format, output } = parseBenchmarkArgs();
+	const { iterations, format, output, fixtures } = parseBenchmarkArgs();
 
-	const pairs = shuffleArray([...objectPairs]);
+	const pairs = shuffleArray(filterFixtures([...objectPairs], fixtures));
 
 	const bench = new Bench({
 		iterations,

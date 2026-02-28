@@ -22,4 +22,5 @@ export type BenchmarkArgs = {
 	variant: string;
 	format?: "markdown" | "json";
 	output?: string;
+	fixtures?: string[];
 };
