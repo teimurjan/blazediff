@@ -6,9 +6,9 @@ import { Bench, hrtimeNow } from "tinybench";
 import { getBenchmarkImagePairs, parseBenchmarkArgs } from "../utils";
 
 async function main() {
-	const { iterations, format, output } = parseBenchmarkArgs();
+	const { iterations, format, output, fixtures } = parseBenchmarkArgs();
 
-	const pairs = getBenchmarkImagePairs();
+	const pairs = getBenchmarkImagePairs(fixtures);
 
 	const bench = new Bench({
 		iterations,

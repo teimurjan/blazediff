@@ -9,9 +9,9 @@ import {
 } from "../utils";
 
 async function main() {
-	const { iterations, format, output } = parseBenchmarkArgs();
+	const { iterations, format, output, fixtures } = parseBenchmarkArgs();
 
-	const pairs = getBenchmarkImagePairs();
+	const pairs = getBenchmarkImagePairs(fixtures);
 	const pairsLoaded = await loadImagePairs(pairs);
 
 	const bench = new Bench({
