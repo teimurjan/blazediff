@@ -23,9 +23,6 @@ export type { FormatOptions } from "./reporter";
 export { formatMessage as formatReport } from "./reporter";
 // Snapshot management
 export { compareImages, getOrCreateSnapshot } from "./snapshot";
-
-// Worker utilities
-export { terminateWorker } from "./worker-pool";
 export type {
 	ComparisonMethod,
 	ComparisonResult,
@@ -34,3 +31,5 @@ export type {
 	MatcherOptions,
 	TestContext,
 } from "./types";
+// Worker utilities
+export { terminateWorker } from "./worker-pool";

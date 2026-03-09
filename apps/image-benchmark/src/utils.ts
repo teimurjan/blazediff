@@ -94,7 +94,13 @@ export function parseBenchmarkArgs(): BenchmarkArgs {
 	return { iterations, target, variant, format, output, fixtures };
 }
 
-const ALL_PIXEL_FIXTURE_DIRS = ["pixelmatch", "blazediff", "4k", "page", "same"] as const;
+const ALL_PIXEL_FIXTURE_DIRS = [
+	"pixelmatch",
+	"blazediff",
+	"4k",
+	"page",
+	"same",
+] as const;
 
 export const getBenchmarkImagePairs = (
 	fixtures?: string[],

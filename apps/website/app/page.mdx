@@ -2,8 +2,12 @@
 title: BlazeDiff - High-Performance Diff Checking
 ---
 
-import { IconBolt, IconBox, IconFeather } from "@tabler/icons-react";
+import { IconBolt, IconBox, IconFeather, IconBrandJavascript, IconBrandRust, IconTerminal2 } from "@tabler/icons-react";
 import Link from "next/link";
+import DiffImageComparison from "../components/diff-image-comparison";
+import SsimImageComparison from "../components/ssim-image-comparison";
+import GmsdImageComparison from "../components/gmsd-image-comparison";
+import TerminalTyping from "../components/terminal-typing";
 
 <h1 className="text-5xl font-bold mt-8 mb-16 text-center">BlazeDiff</h1>
 
@@ -15,7 +19,7 @@ import Link from "next/link";
       Algorithms that outperform traditional solutions
     </div>
   </div>
-  
+
   <div className="flex flex-col items-center text-center">
     <IconFeather size={48} className='mb-3' />
     <h3 className="font-bold mb-2 text-lg">Lightweight</h3>
@@ -35,126 +39,22 @@ import Link from "next/link";
 
 **BlazeDiff** is a high-performance diff checking ecosystem. Built with cutting-edge algorithms and optimized for speed, BlazeDiff provides tools for comparing content, visualizing differences, and integrating diff functionality into your applications.
 
-## Use Cases
+## Quickstart
 
-<div className="flex flex-col gap-2 mt-4">
-  <div className="mb-4">
-    <h4 className="text-xl mb-1">Detect Different Pixels</h4>
+```sh npm2yarn
+npm i @blazediff/cli
+```
 
-    <div>
-      <Link href="/docs/bin" className="flex items-center font-semibold gap-2 text-blue-500 dark:text-blue-400">
-        <span>@blazediff/bin</span>
-      </Link>
-
-      <div className="text-gray-600 dark:text-gray-400 m-0 text-md">
-        Fastest single-threaded image diff — native Rust + SIMD, ~3–4× faster than odiff.
-      </div>
-    </div>
-
-    <div>
-      <Link href="/docs/core" className="flex items-center font-semibold gap-2 text-blue-500 dark:text-blue-400">
-        <span>@blazediff/core</span>
-      </Link>
-
-      <div className="text-gray-600 dark:text-gray-400 m-0 text-md">
-        Pure JS image comparison — ~1.5× faster than pixelmatch with identical accuracy.
-      </div>
-    </div>
-
-    <div>
-      <Link href="/docs/cli" className="flex items-center font-semibold gap-2 text-blue-500 dark:text-blue-400">
-        <span>@blazediff/cli</span>
-      </Link>
-
-      <div className="text-gray-600 dark:text-gray-400 m-0 text-md">
-        Command-line interface for the BlazeDiff image comparison library.
-      </div>
-    </div>
-
+<div className="mt-4 mb-8">
+  <div className="text-gray-600 dark:text-gray-400 mb-4">
+    Compare images directly from the command line with{" "}
+    <Link href="/docs/cli" className="text-blue-500 dark:text-blue-400">@blazediff/cli</Link>.
+    Supports all algorithms: pixel diff, SSIM, MS-SSIM, GMSD, and the native Rust binary.
   </div>
 
-  <div className="mb-4">
-    <h4 className="text-xl mb-1">Compare Perceptual Quality</h4>
-        <div>
-      <Link href="/docs/ssim" className="flex items-center font-semibold gap-2 text-blue-500 dark:text-blue-400">
-        <span>@blazediff/ssim</span>
-      </Link>
-
-      <div className="text-gray-600 dark:text-gray-400 m-0 text-md">
-        Standard SSIM, MS-SSIM, and Hitchhiker’s SSIM for perceptual image quality measurement.
-      </div>
-    </div>
-
-    <div>
-      <Link href="/docs/gmsd" className="flex items-center font-semibold gap-2 text-blue-500 dark:text-blue-400">
-        <span>@blazediff/gmsd</span>
-      </Link>
-
-      <div className="text-gray-600 dark:text-gray-400 m-0 text-md">
-        GMSD metric for perceptual image quality assessment.
-      </div>
-    </div>
-  </div>  
-  
-  <div className="mb-4">
-    <h4 className="text-xl mb-1">Find Object Inequalities</h4>
-
-    <div>
-      <Link href="/docs/object" className="flex items-center font-semibold gap-2 text-blue-500 dark:text-blue-400">
-        <span>@blazediff/object</span>
-      </Link>
-
-      <div className="text-gray-600 dark:text-gray-400 m-0 text-md">
-        Lightning-fast structural object comparison with detailed change tracking.
-      </div>
-    </div>
-
-  </div>
-
-  <div className="mb-4">
-    <h4 className="text-xl">Integrate in Your Tests</h4>
-
-    <div className="text-gray-600 dark:text-gray-400 m-0 text-md">
-      Use BlazeDiff in your Jest tests with a minimal setup.
-    </div>
-
-    <div className="flex gap-4">
-      <Link href="/docs/jest" className="flex items-center font-semibold gap-2 text-blue-500 dark:text-blue-400">
-        <span>@blazediff/jest</span>
-      </Link>
-
-      <Link href="/docs/vitest" className="flex items-center font-semibold gap-2 text-blue-500 dark:text-blue-400">
-        <span>@blazediff/vitest</span>
-      </Link>
-
-      <Link href="/docs/bun" className="flex items-center font-semibold gap-2 text-blue-500 dark:text-blue-400">
-        <span>@blazediff/bun</span>
-      </Link>
-    </div>
-
-  </div>
-
-  <div className="mb-4">
-    <h4 className="text-xl">Visualize Differences</h4>
-
-    <div>
-      <div className="text-gray-600 dark:text-gray-400 m-0 text-md">
-        Build image comparison interfaces with Web or React Components.
-      </div>
-
-      <div className="flex gap-4">
-        <Link href="/docs/ui" className="flex items-center font-semibold gap-2 text-blue-500 dark:text-blue-400">
-          <span>@blazediff/ui</span>
-        </Link>
-
-        <Link href="/docs/react" className="flex items-center font-semibold gap-2 text-blue-500 dark:text-blue-400">
-          <span>@blazediff/react</span>
-        </Link>
-      </div>
-    </div>
-
-  </div>
+  <TerminalTyping />
 </div>
+
 
 ## Powering
 
@@ -165,7 +65,7 @@ import Link from "next/link";
     rel="noopener noreferrer"
     className="flex flex-col items-center gap-2"
   >
-    <img src="/vitest-logo.png" alt="Shopify" className="h-14" />
+    <img src="/vitest-logo.png" alt="Vitest" className="h-14" />
     <span className="text-md text-gray-600 dark:text-gray-400">Vitest</span>
   </a>
   <a
@@ -183,7 +83,7 @@ import Link from "next/link";
     rel="noopener noreferrer"
     className="flex flex-col items-center gap-2"
   >
-    <img src="/heroui-logo.png" alt="Shopify" className="h-14" />
+    <img src="/heroui-logo.png" alt="HeroUI" className="h-14" />
     <span className="text-md text-gray-600 dark:text-gray-400">HeroUI</span>
   </a>
   <a
@@ -221,7 +121,7 @@ import Link from "next/link";
     rel="noopener noreferrer"
     className="flex flex-col items-center gap-2"
   >
-    <img src="/gptvis-logo.png" alt="Ant Vis GPT-Vis" className="h-14" />
+    <img src="/gptvis-logo.png" alt="GPT-Vis" className="h-14" />
     <span className="text-md text-gray-600 dark:text-gray-400">GPT-Vis</span>
   </a>
   <a
@@ -244,7 +144,120 @@ import Link from "next/link";
   </a>
 </div>
 
-## Getting Started
+## Usage
+
+### Detect Different Pixels
+
+<div className="mt-4 mb-6">
+  <DiffImageComparison
+    fixtureA="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3a.png"
+    fixtureB="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3b.png"
+  />
+</div>
+
+<div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6 mb-8">
+  <div className="p-5 rounded-lg border border-gray-200 dark:border-gray-700">
+    <div className="flex items-center gap-3 mb-3">
+      <IconBrandJavascript size={32} className="text-yellow-500" />
+      <Link href="/docs/core" className="font-semibold text-lg text-blue-500 dark:text-blue-400">
+        @blazediff/core
+      </Link>
+    </div>
+    <div className="text-gray-600 dark:text-gray-400 text-sm">
+      Pure JavaScript image comparison — ~1.5x faster than pixelmatch with identical accuracy. Runs anywhere JS runs: browsers, Node.js, Deno, Bun.
+    </div>
+  </div>
+
+  <div className="p-5 rounded-lg border border-gray-200 dark:border-gray-700">
+    <div className="flex items-center gap-3 mb-3">
+      <IconBrandRust size={32} className="text-orange-500" />
+      <Link href="/docs/bin" className="font-semibold text-lg text-blue-500 dark:text-blue-400">
+        @blazediff/bin
+      </Link>
+    </div>
+    <div className="text-gray-600 dark:text-gray-400 text-sm">
+      Native Rust + SIMD binary via N-API — the fastest single-threaded image diff. ~3-4x faster than odiff on large images.
+    </div>
+  </div>
+</div>
+
+### Compare Perceptual Quality
+
+<div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4 mb-8">
+  <div>
+    <h4 className="text-lg font-semibold mb-3">
+      <Link href="/docs/ssim" className="text-blue-500 dark:text-blue-400">SSIM</Link>
+      {" "}<span className="text-gray-500 dark:text-gray-400 font-normal text-sm">Structural Similarity Index</span>
+    </h4>
+    <SsimImageComparison
+      fixtureA="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3a.png"
+      fixtureB="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3b.png"
+      variant="ssim"
+    />
+  </div>
+
+  <div>
+    <h4 className="text-lg font-semibold mb-3">
+      <Link href="/docs/gmsd" className="text-blue-500 dark:text-blue-400">GMSD</Link>
+      {" "}<span className="text-gray-500 dark:text-gray-400 font-normal text-sm">Gradient Magnitude Similarity Deviation</span>
+    </h4>
+    <GmsdImageComparison
+      fixtureA="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3a.png"
+      fixtureB="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3b.png"
+    />
+  </div>
+</div>
+
+### Find Object Inequalities
+
+<div className="mb-8">
+  <div className="text-gray-600 dark:text-gray-400 mb-3 text-md">
+    Lightning-fast structural object comparison with detailed change tracking.
+  </div>
+  
+  <Link href="/docs/object" className="flex items-center font-semibold gap-2 text-blue-500 dark:text-blue-400">
+    <span>@blazediff/object</span>
+  </Link>
+</div>
+
+### Integrate in Your Tests
+
+<div className="mb-8">
+  <div className="text-gray-600 dark:text-gray-400 mb-3">
+    Drop-in image snapshot matchers for your test framework of choice.
+  </div>
+
+  <div className="flex gap-4 flex-wrap">
+    <Link href="/docs/jest" className="flex items-center font-semibold gap-2 text-blue-500 dark:text-blue-400">
+      @blazediff/jest
+    </Link>
+    <Link href="/docs/vitest" className="flex items-center font-semibold gap-2 text-blue-500 dark:text-blue-400">
+      @blazediff/vitest
+    </Link>
+    <Link href="/docs/bun" className="flex items-center font-semibold gap-2 text-blue-500 dark:text-blue-400">
+      @blazediff/bun
+    </Link>
+  </div>
+</div>
+
+### Visualize Differences
+
+<div className="mb-8">
+  <div className="text-gray-600 dark:text-gray-400 mb-3">
+    Build image comparison interfaces with Web or React Components.
+  </div>
+
+  <div className="flex gap-4">
+    <Link href="/docs/ui" className="flex items-center font-semibold gap-2 text-blue-500 dark:text-blue-400">
+      @blazediff/ui
+    </Link>
+    <Link href="/docs/react" className="flex items-center font-semibold gap-2 text-blue-500 dark:text-blue-400">
+      @blazediff/react
+    </Link>
+  </div>
+</div>
+
+---
 
 <div className="flex flex-col md:flex-row gap-4 mt-4">
 

@@ -316,21 +316,27 @@ describe("runComparison", () => {
 		it("should handle dimension mismatch in core method", async () => {
 			const img1 = createTestImage(100, 100);
 			const img2 = createTestImage(50, 50);
-			const result = await runComparison(img1, img2, "core", { method: "core" });
+			const result = await runComparison(img1, img2, "core", {
+				method: "core",
+			});
 			expect(result.diffPercentage).toBe(100);
 		});
 
 		it("should handle dimension mismatch in ssim method", async () => {
 			const img1 = createTestImage(100, 100);
 			const img2 = createTestImage(50, 50);
-			const result = await runComparison(img1, img2, "ssim", { method: "ssim" });
+			const result = await runComparison(img1, img2, "ssim", {
+				method: "ssim",
+			});
 			expect(result.score).toBe(0);
 		});
 
 		it("should handle dimension mismatch in gmsd method", async () => {
 			const img1 = createTestImage(100, 100);
 			const img2 = createTestImage(50, 50);
-			const result = await runComparison(img1, img2, "gmsd", { method: "gmsd" });
+			const result = await runComparison(img1, img2, "gmsd", {
+				method: "gmsd",
+			});
 			expect(result.score).toBe(1);
 		});
 	});
@@ -338,7 +344,9 @@ describe("runComparison", () => {
 	describe("ssim variants", () => {
 		it("should work with msssim method", async () => {
 			const img = createTestImage(100, 100);
-			const result = await runComparison(img, img, "msssim", { method: "msssim" });
+			const result = await runComparison(img, img, "msssim", {
+				method: "msssim",
+			});
 			expect(result.score).toBeCloseTo(1, 2);
 		});
 
@@ -353,7 +361,9 @@ describe("runComparison", () => {
 		it("should detect differences with msssim", async () => {
 			const img1 = createTestImage(100, 100, [0, 0, 0, 255]);
 			const img2 = createTestImage(100, 100, [255, 255, 255, 255]);
-			const result = await runComparison(img1, img2, "msssim", { method: "msssim" });
+			const result = await runComparison(img1, img2, "msssim", {
+				method: "msssim",
+			});
 			expect(result.score).toBeLessThan(0.5);
 		});
 
@@ -458,7 +468,9 @@ describe("compareImages", () => {
 		const filePath = join(FIXTURES_PATH, "same/1a.png");
 		const pngBuffer = readFileSync(filePath);
 
-		const result = await compareImages(pngBuffer, pngBuffer, { method: "core" });
+		const result = await compareImages(pngBuffer, pngBuffer, {
+			method: "core",
+		});
 		expect(result.pass).toBe(true);
 	});
 
