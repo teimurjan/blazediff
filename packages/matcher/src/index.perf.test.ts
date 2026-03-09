@@ -29,9 +29,7 @@ describe("Performance", () => {
 
 	describe("first run optimization (direct buffer write)", () => {
 		it("small image: direct write should be under 50ms", async () => {
-			const pngBuffer = readFileSync(
-				join(FIXTURES_PATH, "pixelmatch/1a.png"),
-			);
+			const pngBuffer = readFileSync(join(FIXTURES_PATH, "pixelmatch/1a.png"));
 			const testContext = createTestContext("perf-first-run-small");
 
 			const start = performance.now();
@@ -67,9 +65,7 @@ describe("Performance", () => {
 
 	describe("comparison path (no double-normalization)", () => {
 		it("small image comparison should be fast", async () => {
-			const pngBuffer = readFileSync(
-				join(FIXTURES_PATH, "pixelmatch/1a.png"),
-			);
+			const pngBuffer = readFileSync(join(FIXTURES_PATH, "pixelmatch/1a.png"));
 			const testContext = createTestContext("perf-comparison-small");
 
 			// First run to create baseline
@@ -91,13 +87,15 @@ describe("Performance", () => {
 		});
 
 		it("runInWorker=false falls back to main thread", async () => {
-			const pngBuffer = readFileSync(
-				join(FIXTURES_PATH, "pixelmatch/1a.png"),
-			);
+			const pngBuffer = readFileSync(join(FIXTURES_PATH, "pixelmatch/1a.png"));
 			const testContext = createTestContext("perf-no-worker");
 
 			// Create baseline
-			await getOrCreateSnapshot(pngBuffer, { method: "core", runInWorker: false }, testContext);
+			await getOrCreateSnapshot(
+				pngBuffer,
+				{ method: "core", runInWorker: false },
+				testContext,
+			);
 
 			// Measure comparison without worker
 			const start = performance.now();

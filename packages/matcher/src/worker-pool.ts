@@ -1,17 +1,25 @@
 import { existsSync } from "node:fs";
-import { Worker } from "node:worker_threads";
 import { join } from "node:path";
-import type { WorkerRequest, WorkerResponse } from "./worker";
-import type { ComparisonMethod, ImageData, ImageInput, MatcherOptions } from "./types";
+import { Worker } from "node:worker_threads";
 import type { RunComparisonResult } from "./comparators";
+import type {
+	ComparisonMethod,
+	ImageData,
+	ImageInput,
+	MatcherOptions,
+} from "./types";
+import type { WorkerRequest, WorkerResponse } from "./worker";
 
 let worker: Worker | null = null;
 let requestId = 0;
 let useInProcessFallback = false;
-const pendingRequests = new Map<number, {
-	resolve: (value: unknown) => void;
-	reject: (error: Error) => void;
-}>();
+const pendingRequests = new Map<
+	number,
+	{
+		resolve: (value: unknown) => void;
+		reject: (error: Error) => void;
+	}
+>();
 
 function getWorkerPath(): string | null {
 	// Try dist/worker.js first (production)
@@ -75,7 +83,10 @@ function getWorker(): Worker | null {
 	return worker;
 }
 
-async function sendRequest<T>(type: WorkerRequest["type"], payload: WorkerRequest["payload"]): Promise<T> {
+async function sendRequest<T>(
+	type: WorkerRequest["type"],
+	payload: WorkerRequest["payload"],
+): Promise<T> {
 	const workerInstance = getWorker();
 
 	// Fallback to in-process execution if worker not available
@@ -85,9 +96,13 @@ async function sendRequest<T>(type: WorkerRequest["type"], payload: WorkerReques
 
 		switch (type) {
 			case "normalize":
-				return normalizeImageInput((payload as { input: ImageInput }).input) as Promise<T>;
+				return normalizeImageInput(
+					(payload as { input: ImageInput }).input,
+				) as Promise<T>;
 			case "loadPNG":
-				return loadPNG((payload as { filePath: string }).filePath) as Promise<T>;
+				return loadPNG(
+					(payload as { filePath: string }).filePath,
+				) as Promise<T>;
 			case "compare": {
 				const p = payload as {
 					received: ImageData;
@@ -96,7 +111,13 @@ async function sendRequest<T>(type: WorkerRequest["type"], payload: WorkerReques
 					options: MatcherOptions;
 					diffOutputPath?: string;
 				};
-				return runComparison(p.received, p.baseline, p.method, p.options, p.diffOutputPath) as Promise<T>;
+				return runComparison(
+					p.received,
+					p.baseline,
+					p.method,
+					p.options,
+					p.diffOutputPath,
+				) as Promise<T>;
 			}
 			default:
 				throw new Error(`Unknown request type: ${type}`);
@@ -105,7 +126,10 @@ async function sendRequest<T>(type: WorkerRequest["type"], payload: WorkerReques
 
 	return new Promise((resolve, reject) => {
 		const id = ++requestId;
-		pendingRequests.set(id, { resolve: resolve as (value: unknown) => void, reject });
+		pendingRequests.set(id, {
+			resolve: resolve as (value: unknown) => void,
+			reject,
+		});
 
 		const request: WorkerRequest = { id, type, payload };
 		workerInstance.postMessage(request);

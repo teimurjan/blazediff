@@ -1,7 +1,12 @@
 import { parentPort } from "node:worker_threads";
 import { runComparison } from "./comparators";
 import { loadPNG, normalizeImageInput } from "./image-io";
-import type { ComparisonMethod, ImageData, ImageInput, MatcherOptions } from "./types";
+import type {
+	ComparisonMethod,
+	ImageData,
+	ImageInput,
+	MatcherOptions,
+} from "./types";
 
 /**
  * Ensure ImageData has proper Uint8Array after crossing worker boundary.
@@ -57,11 +62,20 @@ async function handleRequest(request: WorkerRequest): Promise<unknown> {
 			return loadPNG(filePath);
 		}
 		case "compare": {
-			const { received, baseline, method, options, diffOutputPath } = request.payload as ComparePayload;
-			return runComparison(ensureImageData(received), baseline, method, options, diffOutputPath);
+			const { received, baseline, method, options, diffOutputPath } =
+				request.payload as ComparePayload;
+			return runComparison(
+				ensureImageData(received),
+				baseline,
+				method,
+				options,
+				diffOutputPath,
+			);
 		}
 		default:
-			throw new Error(`Unknown request type: ${(request as WorkerRequest).type}`);
+			throw new Error(
+				`Unknown request type: ${(request as WorkerRequest).type}`,
+			);
 	}
 }
 

@@ -6,7 +6,7 @@ export default {
 		theme: {
 			toc: false,
 			copyPage: false,
-			layout: "full"
+			layout: "full",
 		},
 	},
 	docs: {

@@ -83,7 +83,11 @@ export async function savePNG(
 	}
 
 	await pngjsTransformer.write(
-		{ data: data instanceof Uint8Array ? data : new Uint8Array(data), width, height },
+		{
+			data: data instanceof Uint8Array ? data : new Uint8Array(data),
+			width,
+			height,
+		},
 		filePath,
 	);
 }
@@ -108,7 +112,9 @@ export function saveRawPNGBuffer(
  * - Raw PNG buffer: decodes to get dimensions
  * - Buffer with dimensions: returns as-is (avoids unnecessary copy if already Uint8Array)
  */
-export async function normalizeImageInput(input: ImageInput): Promise<ImageData> {
+export async function normalizeImageInput(
+	input: ImageInput,
+): Promise<ImageData> {
 	if (isFilePath(input)) {
 		return loadPNG(input);
 	}

@@ -26,7 +26,8 @@ async function versionExistsOnCratesIo(version) {
 			`https://crates.io/api/v1/crates/${CRATE_NAME}/${version}`,
 			{
 				headers: {
-					"User-Agent": "blazediff-publish-script (https://github.com/teimurjan/blazediff)",
+					"User-Agent":
+						"blazediff-publish-script (https://github.com/teimurjan/blazediff)",
 				},
 			},
 		);
@@ -34,7 +35,9 @@ async function versionExistsOnCratesIo(version) {
 			console.log(`Found ${CRATE_NAME}@${version} on crates.io`);
 			return true;
 		}
-		console.log(`${CRATE_NAME}@${version} not found on crates.io (status: ${res.status})`);
+		console.log(
+			`${CRATE_NAME}@${version} not found on crates.io (status: ${res.status})`,
+		);
 		return false;
 	} catch (err) {
 		console.log(`Failed to check crates.io: ${err.message}`);
