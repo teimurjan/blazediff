@@ -106,7 +106,6 @@ export default async function RootLayout({
 					pageMap={await getPageMap()}
 					docsRepositoryBase="https://github.com/teimurjan/blazediff/tree/main/apps/website"
 					footer={footer}
-					copyPageButton={false}
 				>
 					{children}
 				</Layout>
