@@ -7,13 +7,12 @@
 
 </div>
 
-High-performance pixel-by-pixel image comparison with block-based optimization. 20% faster than pixelmatch with zero memory allocation.
+High-performance pixel-by-pixel image comparison with two-pass block-based optimization and YIQ perceptual color difference. Up to 90% faster than pixelmatch on identical images, ~82% median improvement overall.
 
 **Features:**
 - YIQ color space for perceptual color difference
 - Anti-aliasing detection and filtering
-- Block-based optimization with 32-bit integer comparison
-- Zero memory allocation during comparison
+- Two-pass block-based optimization with 32-bit integer comparison
 - Support for alpha channel and transparency
 
 For detailed algorithm explanation and mathematical formulas, see [FORMULA.md](./FORMULA.md).
