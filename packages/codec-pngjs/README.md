@@ -2,13 +2,13 @@
 
 <div align="center">
 
-[![npm bundle size](https://img.shields.io/bundlephobia/min/%40blazediff%2Fpngjs-transformer)](https://www.npmjs.com/package/@blazediff/codec-pngjs)
-[![NPM Downloads](https://img.shields.io/npm/dy/%40blazediff%2Fpngjs-transformer)](https://www.npmjs.com/package/@blazediff/codec-pngjs)
+[![npm bundle size](https://img.shields.io/bundlephobia/min/%40blazediff%2Fcodec-pngjs)](https://www.npmjs.com/package/@blazediff/codec-pngjs)
+[![NPM Downloads](https://img.shields.io/npm/dy/%40blazediff%2Fcodec-pngjs)](https://www.npmjs.com/package/@blazediff/codec-pngjs)
 
 </div>
 
 
-PNG image transformer using [pngjs](https://www.npmjs.com/package/pngjs) for the BlazeDiff library.
+PNG image codec using [pngjs](https://www.npmjs.com/package/pngjs) for the BlazeDiff library.
 
 > **Note:** This package was previously published as [`@blazediff/pngjs-transformer`](https://www.npmjs.com/package/@blazediff/pngjs-transformer), which is now deprecated. Please use `@blazediff/codec-pngjs` instead.
 
@@ -42,10 +42,10 @@ Write a BlazeDiff image to a PNG file.
 ## Usage
 
 ```typescript
-import { pngjsTransformer } from '@blazediff/codec-pngjs';
+import { codecPngjs } from '@blazediff/codec-pngjs';
 
-const image = await pngjsTransformer.read('./image.png');
+const image = await codecPngjs.read('./image.png');
 
-await pngjsTransformer.write(image, './output.png');
+await codecPngjs.write(image, './output.png');
 ```
 

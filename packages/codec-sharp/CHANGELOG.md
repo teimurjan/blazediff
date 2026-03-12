@@ -1,4 +1,4 @@
-# @blazediff/sharp-transformer
+# @blazediff/codec-sharp
 
 ## 3.0.0
 

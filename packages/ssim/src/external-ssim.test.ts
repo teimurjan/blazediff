@@ -5,7 +5,7 @@
 
 import { execSync } from "node:child_process";
 import { join } from "node:path";
-import transformer from "@blazediff/codec-pngjs";
+import codec from "@blazediff/codec-pngjs";
 import ssimjs from "ssim.js";
 import { describe, expect, it } from "vitest";
 
@@ -54,8 +54,8 @@ describe("ssim.js vs MATLAB Comparison", () => {
 				const img2Path = join(fixturesDir, img2);
 
 				const [image1, image2] = await Promise.all([
-					transformer.read(img1Path),
-					transformer.read(img2Path),
+					codec.read(img1Path),
+					codec.read(img2Path),
 				]);
 
 				const imageData1 = {
@@ -105,7 +105,7 @@ describe("ssim.js vs MATLAB Comparison", () => {
 		async () => {
 			const img1Path = join(fixturesDir, "1a.png");
 
-			const image1 = await transformer.read(img1Path);
+			const image1 = await codec.read(img1Path);
 
 			const imageData1 = {
 				data: image1.data as Uint8ClampedArray,

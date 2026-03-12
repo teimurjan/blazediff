@@ -1,4 +1,4 @@
-# @blazediff/pngjs-transformer
+# @blazediff/codec-pngjs
 
 ## 3.0.0
 

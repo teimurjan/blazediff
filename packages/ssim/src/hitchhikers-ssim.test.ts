@@ -15,7 +15,7 @@
 import { execSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import transformer from "@blazediff/codec-pngjs";
+import codec from "@blazediff/codec-pngjs";
 import { describe, expect, it } from "vitest";
 import { hitchhikersSSIM } from "./hitchhikers-ssim";
 import { ssim } from "./ssim";
@@ -59,8 +59,8 @@ describe("Hitchhiker's SSIM - Comparison with MATLAB SSIM", () => {
 		const img1Path = join(fixturesPath, "1a.png");
 		const img2Path = join(fixturesPath, "1b.png");
 
-		const png1 = await transformer.read(readFileSync(img1Path));
-		const png2 = await transformer.read(readFileSync(img2Path));
+		const png1 = await codec.read(readFileSync(img1Path));
+		const png2 = await codec.read(readFileSync(img2Path));
 
 		// Compute Hitchhiker's SSIM with both pooling methods
 		const hitchhikersCov = hitchhikersSSIM(
@@ -111,8 +111,8 @@ describe("Hitchhiker's SSIM - Comparison with MATLAB SSIM", () => {
 		const img1Path = join(fixturesPath, "2a.png");
 		const img2Path = join(fixturesPath, "2b.png");
 
-		const png1 = await transformer.read(readFileSync(img1Path));
-		const png2 = await transformer.read(readFileSync(img2Path));
+		const png1 = await codec.read(readFileSync(img1Path));
+		const png2 = await codec.read(readFileSync(img2Path));
 
 		const hitchhikersCov = hitchhikersSSIM(
 			png1.data,
@@ -160,8 +160,8 @@ describe("Hitchhiker's SSIM - Comparison with MATLAB SSIM", () => {
 			const img1Path = join(fixturesPath, "3a.png");
 			const img2Path = join(fixturesPath, "3b.png");
 
-			const png1 = await transformer.read(readFileSync(img1Path));
-			const png2 = await transformer.read(readFileSync(img2Path));
+			const png1 = await codec.read(readFileSync(img1Path));
+			const png2 = await codec.read(readFileSync(img2Path));
 
 			const hitchhikersCov = hitchhikersSSIM(
 				png1.data,
@@ -207,8 +207,8 @@ describe("Hitchhiker's SSIM - Comparison with MATLAB SSIM", () => {
 		const img1Path = join(fixturesPath, "1a.png");
 		const img2Path = join(fixturesPath, "1a.png");
 
-		const png1 = await transformer.read(readFileSync(img1Path));
-		const png2 = await transformer.read(readFileSync(img2Path));
+		const png1 = await codec.read(readFileSync(img1Path));
+		const png2 = await codec.read(readFileSync(img2Path));
 
 		const hitchhikersCov = hitchhikersSSIM(
 			png1.data,
