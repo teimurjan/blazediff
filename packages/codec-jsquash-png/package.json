@@ -1,7 +1,7 @@
 {
-	"name": "@blazediff/codec-pngjs",
-	"version": "3.0.0",
-	"description": "PNG image codec using pngjs for the blazediff library",
+	"name": "@blazediff/codec-jsquash-png",
+	"version": "0.0.1",
+	"description": "WASM-based PNG image codec using @jsquash/png for the blazediff library",
 	"private": false,
 	"publishConfig": {
 		"access": "public"
@@ -29,17 +29,18 @@
 		"png",
 		"image",
 		"codec",
-		"pngjs"
+		"jsquash",
+		"wasm"
 	],
 	"author": "Teimur Gasanov <me@teimurjan.dev> (https://github.com/teimurjan)",
 	"repository": "https://github.com/teimurjan/blazediff",
 	"homepage": "https://blazediff.dev",
 	"license": "MIT",
 	"dependencies": {
-		"pngjs": "7.0.0"
+		"@jsquash/png": "3.1.1"
 	},
 	"devDependencies": {
-		"@types/pngjs": "6.0.5",
+		"@types/node": "^24.3.0",
 		"tsup": "8.5.0",
 		"typescript": "5.9.2"
 	}

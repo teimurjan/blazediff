@@ -6,7 +6,7 @@ export interface Image {
 	height: number;
 }
 
-export interface Transformer {
+export interface Codec {
 	read: (input: string | Buffer) => Promise<Image>;
 	write: (image: Image, output: string | Buffer) => Promise<void>;
 }
@@ -15,28 +15,28 @@ export type ComparisonMode = "diff" | "gmsd" | "ssim" | "msssim";
 
 export interface DiffModeOptions {
 	outputPath?: string;
-	transformer: Transformer;
+	codec: Codec;
 	mode?: "diff";
 	options?: Record<string, unknown>;
 }
 
 export interface GmsdModeOptions {
 	outputPath?: string;
-	transformer: Transformer;
+	codec: Codec;
 	mode: "gmsd";
 	options?: Record<string, unknown>;
 }
 
 export interface SsimModeOptions {
 	outputPath?: string;
-	transformer: Transformer;
+	codec: Codec;
 	mode: "ssim";
 	options?: Record<string, unknown>;
 }
 
 export interface MsssimModeOptions {
 	outputPath?: string;
-	transformer: Transformer;
+	codec: Codec;
 	mode: "msssim";
 	options?: Record<string, unknown>;
 }

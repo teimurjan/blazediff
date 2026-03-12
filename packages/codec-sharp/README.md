@@ -2,12 +2,12 @@
 
 <div align="center">
 
-[![npm bundle size](https://img.shields.io/bundlephobia/min/%40blazediff%2Fsharp-transformer)](https://www.npmjs.com/package/@blazediff/codec-sharp)
-[![NPM Downloads](https://img.shields.io/npm/dy/%40blazediff%2Fsharp-transformer)](https://www.npmjs.com/package/@blazediff/codec-sharp)
+[![npm bundle size](https://img.shields.io/bundlephobia/min/%40blazediff%codec-sharp)](https://www.npmjs.com/package/@blazediff/codec-sharp)
+[![NPM Downloads](https://img.shields.io/npm/dy/%40blazediff%2Fcodec-sharp)](https://www.npmjs.com/package/@blazediff/codec-sharp)
 
 </div>
 
-Image transformer using Sharp for the BlazeDiff library.
+Image codec using Sharp for the BlazeDiff library.
 
 > **Note:** This package was previously published as [`@blazediff/sharp-transformer`](https://www.npmjs.com/package/@blazediff/sharp-transformer), which is now deprecated. Please use `@blazediff/codec-sharp` instead.
 
@@ -21,7 +21,7 @@ npm install @blazediff/codec-sharp
 
 ### read(filePath)
 
-Transform an image file to BlazeDiff image format.
+Read an image file to BlazeDiff image format.
 
 **Parameters:**
 - `filePath` (string) - Path to the image file
@@ -41,10 +41,10 @@ Write a BlazeDiff image to a PNG file.
 ## Usage
 
 ```typescript
-import { sharpTransformer } from '@blazediff/codec-sharp';
+import { codecSharp } from '@blazediff/codec-sharp';
 
-const image = await sharpTransformer.read('./image.png');
+const image = await codecSharp.read('./image.png');
 
-await sharpTransformer.write(image, './output.png');
+await codecSharp.write(image, './output.png');
 ```
 

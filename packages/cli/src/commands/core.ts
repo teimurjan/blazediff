@@ -32,7 +32,7 @@ Options:
   --diff-color-alt <r,g,b>  Alternative color for dark differences (default: same as diff-color)
   --include-aa              Include anti-aliasing detection
   --diff-mask               Draw diff over transparent background
-  --transformer <name>      Specify transformer to use (e.g. pngjs, sharp)
+  --codec <name>            Specify codec to use (pngjs, sharp, jsquash-png)
   -h, --help                Show this help message
 
 Examples:
@@ -42,16 +42,20 @@ Examples:
 `);
 }
 
-const getTransformer = async (transformer?: string) => {
-	if (!transformer || transformer === "pngjs") {
-		const { default: transformer } = await import("@blazediff/codec-pngjs");
-		return transformer;
+const getCodec = async (codec?: string) => {
+	if (!codec || codec === "pngjs") {
+		const { default: c } = await import("@blazediff/codec-pngjs");
+		return c;
 	}
-	if (transformer === "sharp") {
-		const { default: transformer } = await import("@blazediff/codec-sharp");
-		return transformer;
+	if (codec === "sharp") {
+		const { default: c } = await import("@blazediff/codec-sharp");
+		return c;
 	}
-	throw new Error(`Unknown transformer: ${transformer}`);
+	if (codec === "jsquash-png") {
+		const { default: c } = await import("@blazediff/codec-jsquash-png");
+		return c;
+	}
+	throw new Error(`Unknown codec: ${codec}`);
 };
 
 export default async function main(): Promise<void> {
@@ -138,9 +142,9 @@ export default async function main(): Promise<void> {
 				case "--diff-mask":
 					options.diffMask = true;
 					break;
-				case "--transformer":
+				case "--codec":
 					if (nextArg) {
-						options.transformer = nextArg;
+						options.codec = nextArg;
 						i++;
 					}
 					break;
@@ -151,14 +155,12 @@ export default async function main(): Promise<void> {
 			}
 		}
 
-		const transformer = await getTransformer(
-			options.transformer as string | undefined,
-		);
+		const codec = await getCodec(options.codec as string | undefined);
 
 		// Load images
 		const [img1, img2] = await Promise.all([
-			transformer.read(image1),
-			transformer.read(image2),
+			codec.read(image1),
+			codec.read(image2),
 		]);
 
 		if (img1.width !== img2.width || img1.height !== img2.height) {
@@ -199,7 +201,7 @@ export default async function main(): Promise<void> {
 
 		// Write output if needed
 		if (diffCount > 0 && options.outputPath && outputData) {
-			await transformer.write(
+			await codec.write(
 				{
 					data: outputData,
 					width: img1.width,

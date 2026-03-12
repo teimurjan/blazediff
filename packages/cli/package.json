@@ -48,6 +48,7 @@
 		"@blazediff/gmsd": "workspace:*",
 		"@blazediff/codec-pngjs": "workspace:*",
 		"@blazediff/codec-sharp": "workspace:*",
+		"@blazediff/codec-jsquash-png": "workspace:*",
 		"@blazediff/ssim": "workspace:*"
 	},
 	"devDependencies": {

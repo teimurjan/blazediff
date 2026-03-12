@@ -1,7 +1,7 @@
 {
 	"name": "@blazediff/codec-sharp",
 	"version": "3.0.0",
-	"description": "Image transformer using Sharp for the blazediff library",
+	"description": "Image codec using Sharp for the blazediff library",
 	"private": false,
 	"publishConfig": {
 		"access": "public"
@@ -27,7 +27,7 @@
 	},
 	"keywords": [
 		"image",
-		"transformer",
+		"codec",
 		"sharp"
 	],
 	"author": "Teimur Gasanov <me@teimurjan.dev> (https://github.com/teimurjan)",

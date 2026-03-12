@@ -47,9 +47,9 @@ async function write(image: Image, output: string | Buffer): Promise<void> {
 	}
 }
 
-export const sharpTransformer = {
+export const codecSharp = {
 	read,
 	write,
 };
 
-export default sharpTransformer;
+export default codecSharp;

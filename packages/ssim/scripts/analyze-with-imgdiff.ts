@@ -15,7 +15,7 @@
 import { execSync } from "node:child_process";
 import { existsSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { pngjsTransformer } from "@blazediff/codec-pngjs";
+import { codecPngjs } from "@blazediff/codec-pngjs";
 import ssimjs from "ssim.js";
 import { hitchhikersSSIM } from "../src/hitchhikers-ssim";
 import { ssim } from "../src/ssim";
@@ -471,8 +471,8 @@ async function main() {
 		process.stdout.write(`\r⏳ Processing ${name}...`);
 
 		const [image1, image2] = await Promise.all([
-			pngjsTransformer.read(img1),
-			pngjsTransformer.read(img2),
+			codecPngjs.read(img1),
+			codecPngjs.read(img2),
 		]);
 
 		// Hitchhiker's SSIM (CoV)

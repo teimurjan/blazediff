@@ -57,7 +57,7 @@ blazediff-cli core image1.png image2.png [options]
 - `--diff-color-alt <r,g,b>` - Alternative color for dark differences
 - `--include-aa` - Include anti-aliasing detection
 - `--diff-mask` - Draw diff over transparent background
-- `--transformer <name>` - Specify transformer to use (pngjs, sharp)
+- `--codec <name>` - Specify codec to use (pngjs, sharp, jsquash-png)
 - `-h, --help` - Show help message
 
 ### `gmsd` - Gradient Magnitude Similarity Deviation
@@ -71,7 +71,7 @@ blazediff-cli gmsd image1.png image2.png [options]
 - `-o, --output <path>` - Output path for GMS similarity map
 - `--downsample <0|1>` - Downsample factor (0=full-res, 1=2x, default: 0)
 - `--gmsd-c <num>` - Stability constant (default: 170)
-- `--transformer <name>` - Specify transformer to use (pngjs, sharp)
+- `--codec <name>` - Specify codec to use (pngjs, sharp, jsquash-png)
 - `-h, --help` - Show help message
 
 ### `ssim` - Structural Similarity Index
@@ -83,7 +83,7 @@ blazediff-cli ssim image1.png image2.png [options]
 
 **Options:**
 - `-o, --output <path>` - Output path for SSIM map visualization
-- `--transformer <name>` - Specify transformer to use (pngjs, sharp)
+- `--codec <name>` - Specify codec to use (pngjs, sharp, jsquash-png)
 - `-h, --help` - Show help message
 
 ### `msssim` - Multi-Scale Structural Similarity Index
@@ -95,7 +95,7 @@ blazediff-cli msssim image1.png image2.png [options]
 
 **Options:**
 - `-o, --output <path>` - Output path for MS-SSIM map visualization
-- `--transformer <name>` - Specify transformer to use (pngjs, sharp)
+- `--codec <name>` - Specify codec to use (pngjs, sharp, jsquash-png)
 - `-h, --help` - Show help message
 
 ### `hitchhikers-ssim` - Fast SSIM
@@ -127,14 +127,15 @@ blazediff-cli ssim image1.png image2.png -o ssim-map.png
 blazediff-cli msssim image1.png image2.png
 blazediff-cli msssim image1.png image2.png -o msssim-map.png
 
-# Use Sharp transformer for better performance (core/gmsd/ssim)
-blazediff-cli core image1.jpg image2.jpg --transformer sharp
+# Use Sharp codec for better performance (core/gmsd/ssim)
+blazediff-cli core image1.jpg image2.jpg --codec sharp
 ```
 
-## Transformers (for `core`, `gmsd`, `ssim`, `msssim`)
+## Codecs (for `core`, `gmsd`, `ssim`, `msssim`)
 
-- **pngjs** - Pure JavaScript, works everywhere. Supports PNG only.
+- **pngjs** (default) - Pure JavaScript, works everywhere. Supports PNG only.
 - **sharp** - Native bindings, significantly faster. Supports PNG and JPEG.
+- **jsquash-png** - WASM-based, zero native deps. Faster than pngjs. PNG only.
 
 ## Exit Codes
 

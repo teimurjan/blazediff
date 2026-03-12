@@ -1,6 +1,6 @@
 import { readdirSync } from "node:fs";
 import { join } from "node:path";
-import { pngjsTransformer } from "@blazediff/codec-pngjs";
+import { codecPngjs } from "@blazediff/codec-pngjs";
 import type { BenchmarkArgs, ImagePair, ImagePairLoaded } from "./types";
 
 export const shuffleArray = <T>(array: T[]): T[] => {
@@ -57,8 +57,8 @@ export async function loadImagePairs(
 		pairs.map(async (pair) => {
 			const { a, b, name } = pair;
 			const [imageA, imageB] = await Promise.all([
-				pngjsTransformer.read(a),
-				pngjsTransformer.read(b),
+				codecPngjs.read(a),
+				codecPngjs.read(b),
 			]);
 			return {
 				a: imageA,

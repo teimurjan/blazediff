@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
-import { pngjsTransformer } from "@blazediff/codec-pngjs";
+import { codecPngjs } from "@blazediff/codec-pngjs";
 import type { ImageData, ImageInput } from "./types";
 
 /**
@@ -60,7 +60,7 @@ export async function loadPNG(filePath: string): Promise<ImageData> {
 		throw new Error(`Image file not found: ${filePath}`);
 	}
 
-	const image = await pngjsTransformer.read(filePath);
+	const image = await codecPngjs.read(filePath);
 	return {
 		data: new Uint8Array(image.data),
 		width: image.width,
@@ -82,7 +82,7 @@ export async function savePNG(
 		mkdirSync(dir, { recursive: true });
 	}
 
-	await pngjsTransformer.write(
+	await codecPngjs.write(
 		{
 			data: data instanceof Uint8Array ? data : new Uint8Array(data),
 			width,
@@ -121,7 +121,7 @@ export async function normalizeImageInput(
 
 	if (isRawPngBuffer(input)) {
 		const buffer = Buffer.isBuffer(input) ? input : Buffer.from(input);
-		const image = await pngjsTransformer.read(buffer);
+		const image = await codecPngjs.read(buffer);
 		return {
 			data: new Uint8Array(image.data),
 			width: image.width,

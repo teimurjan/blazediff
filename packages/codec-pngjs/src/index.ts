@@ -39,9 +39,9 @@ async function write(image: Image, output: string | Buffer): Promise<void> {
 	});
 }
 
-export const pngjsTransformer = {
+export const codecPngjs = {
 	read,
 	write,
 };
 
-export default pngjsTransformer;
+export default codecPngjs;

@@ -43,6 +43,7 @@ export default defineConfig([
 			"@blazediff/ssim",
 			"@blazediff/codec-pngjs",
 			"@blazediff/codec-sharp",
+			"@blazediff/codec-jsquash-png",
 		],
 		external: ["@blazediff/core-native"], // Don't bundle - binary path relies on __dirname
 	},
