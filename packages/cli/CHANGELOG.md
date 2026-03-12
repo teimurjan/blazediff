@@ -1,5 +1,11 @@
 # @blazediff/cli
 
+## 3.0.0
+
+### Major Changes
+
+- 707ad86: Rename transformer cli arg to codec, add jsquash png
+
 ## 2.1.4
 
 ### Patch Changes
