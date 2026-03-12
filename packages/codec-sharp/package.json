@@ -1,6 +1,6 @@
 {
 	"name": "@blazediff/codec-sharp",
-	"version": "2.0.1",
+	"version": "3.0.0",
 	"description": "Image transformer using Sharp for the blazediff library",
 	"private": false,
 	"publishConfig": {

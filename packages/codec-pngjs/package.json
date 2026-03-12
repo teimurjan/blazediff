@@ -1,6 +1,6 @@
 {
 	"name": "@blazediff/codec-pngjs",
-	"version": "2.1.1",
+	"version": "3.0.0",
 	"description": "PNG image transformer using pngjs for the blazediff library",
 	"private": false,
 	"publishConfig": {
