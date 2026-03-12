@@ -1,5 +1,11 @@
 # @blazediff/sharp-transformer
 
+## 3.0.0
+
+### Major Changes
+
+- e6638e3: Rename bin and bin-_ to core-native-_, _-transformer to codec-_ for consistency
+
 ## 2.0.1
 
 ### Patch Changes

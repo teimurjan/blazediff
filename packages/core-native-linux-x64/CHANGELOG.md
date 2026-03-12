@@ -1,5 +1,11 @@
 # @blazediff/core-native-linux-x64
 
+## 4.0.0
+
+### Major Changes
+
+- e6638e3: Rename bin and bin-_ to core-native-_, _-transformer to codec-_ for consistency
+
 ## 3.5.0
 
 ### Minor Changes

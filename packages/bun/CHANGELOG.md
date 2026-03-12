@@ -1,5 +1,11 @@
 # @blazediff/bun
 
+## 1.1.9
+
+### Patch Changes
+
+- @blazediff/matcher@1.3.1
+
 ## 1.1.8
 
 ### Patch Changes
