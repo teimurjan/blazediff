@@ -5,7 +5,7 @@
 
 import { execSync } from "node:child_process";
 import { join } from "node:path";
-import transformer from "@blazediff/pngjs-transformer";
+import transformer from "@blazediff/codec-pngjs";
 import ssimjs from "ssim.js";
 import { describe, expect, it } from "vitest";
 

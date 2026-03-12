@@ -41,10 +41,10 @@
 	"homepage": "https://blazediff.dev",
 	"license": "MIT",
 	"dependencies": {
-		"@blazediff/bin": "workspace:*",
+		"@blazediff/core-native": "workspace:*",
 		"@blazediff/core": "workspace:*",
 		"@blazediff/gmsd": "workspace:*",
-		"@blazediff/pngjs-transformer": "workspace:*",
+		"@blazediff/codec-pngjs": "workspace:*",
 		"@blazediff/ssim": "workspace:*",
 		"picocolors": "^1.1.1"
 	},

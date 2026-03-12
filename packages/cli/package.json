@@ -43,11 +43,11 @@
 	"homepage": "https://blazediff.dev",
 	"license": "MIT",
 	"dependencies": {
-		"@blazediff/bin": "workspace:*",
+		"@blazediff/core-native": "workspace:*",
 		"@blazediff/core": "workspace:*",
 		"@blazediff/gmsd": "workspace:*",
-		"@blazediff/pngjs-transformer": "workspace:*",
-		"@blazediff/sharp-transformer": "workspace:*",
+		"@blazediff/codec-pngjs": "workspace:*",
+		"@blazediff/codec-sharp": "workspace:*",
 		"@blazediff/ssim": "workspace:*"
 	},
 	"devDependencies": {

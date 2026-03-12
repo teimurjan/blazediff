@@ -2,7 +2,7 @@
  * Comparison methods available in blazediff
  */
 export type ComparisonMethod =
-	| "bin" // @blazediff/bin (Rust N-API, file paths only)
+	| "core-native" // @blazediff/core-native (Rust N-API, file paths only)
 	| "core" // @blazediff/core (pixel-by-pixel YIQ)
 	| "ssim" // @blazediff/ssim (standard SSIM)
 	| "msssim" // @blazediff/ssim/msssim (multi-scale SSIM)
@@ -78,14 +78,14 @@ export interface MatcherOptions {
 	// Method-specific options passed through to comparators
 
 	/**
-	 * Color difference threshold for core/bin methods (0-1)
+	 * Color difference threshold for core/core-native methods (0-1)
 	 * Lower = more strict
 	 * @default 0.1
 	 */
 	threshold?: number;
 
 	/**
-	 * Enable anti-aliasing detection (bin method)
+	 * Enable anti-aliasing detection (core-native method)
 	 * @default false
 	 */
 	antialiasing?: boolean;

@@ -38,12 +38,12 @@ jobs:
       - name: Build
         run: pnpm build
 
-      - name: Run Benchmark (blazediff)
-        run: pnpm benchmark:binary -- --format=json --output=blazediff.json
+      - name: Run Benchmark (@blazediff/core-native)
+        run: pnpm benchmark:core-native -- --format=json --output=blazediff.json
 
       - name: Run Benchmark (odiff)
         run: pnpm benchmark:odiff -- --format=json --output=odiff.json
 
-      - name: Compare and Print Combined Markdown Table (binary)
+      - name: Compare and Print Combined Markdown Table
         if: always()
         run: node .github/workflows/scripts/compare-and-print-binary.js

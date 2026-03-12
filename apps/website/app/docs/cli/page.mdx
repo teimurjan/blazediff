@@ -38,21 +38,21 @@ npx blazediff-cli image1.png image2.png diff.png
 
 ## Available Commands
 
-<Tabs items={['bin (default)', 'core', 'gmsd', 'ssim', 'msssim', 'hitchhikers-ssim']}>
+<Tabs items={['core-native (default)', 'core', 'gmsd', 'ssim', 'msssim', 'hitchhikers-ssim']}>
   <Tabs.Tab>
 
-### `blazediff-cli bin` (default)
+### `blazediff-cli core-native` (default)
 
 Native Rust binary with SIMD optimization. The fastest option - **3-4x faster** than odiff on large images.
 
 #### Basic Usage
 
 ```bash
-# Default command (bin)
+# Default command (core-native)
 blazediff-cli image1.png image2.png diff.png
 
 # Or explicitly
-blazediff-cli bin image1.png image2.png diff.png
+blazediff-cli core-native image1.png image2.png diff.png
 ```
 
 #### With Options
@@ -64,7 +64,7 @@ blazediff-cli image1.png image2.png diff.png --threshold 0.05 --antialiasing
 #### Options
 
 ```bash
-blazediff-cli bin <image1> <image2> <output> [options]
+blazediff-cli core-native <image1> <image2> <output> [options]
 
 Options:
   -t, --threshold <n>      Color difference threshold (0-1, default: 0.1)
@@ -99,7 +99,7 @@ fi
 
 ### `blazediff-cli core`
 
-Pure JavaScript pixel-by-pixel comparison. Slower than `bin` but offers more customization options like custom diff colors and color spaces.
+Pure JavaScript pixel-by-pixel comparison. Slower than `core-native` but offers more customization options like custom diff colors and color spaces.
 
 #### Basic Usage
 
@@ -367,7 +367,7 @@ SSIM map saved to: ssim-map.png
 
 ## When to Use Each Algorithm
 
-**Use `bin` (default) when:**
+**Use `core-native` (default) when:**
 - You need maximum performance
 - You're running in CI/CD pipelines
 - You're comparing large images (4K+)

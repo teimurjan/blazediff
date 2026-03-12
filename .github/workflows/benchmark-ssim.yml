@@ -30,7 +30,7 @@ jobs:
       - name: Build
         run: pnpm build
 
-      - name: Run Benchmark (blazediff)
+      - name: Run Benchmark (@blazediff/ssim)
         run: pnpm benchmark:hitchhikers-ssim -- --format=json --output=ssim.json
 
       - name: Run Benchmark (ssim.js)

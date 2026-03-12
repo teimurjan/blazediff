@@ -37,15 +37,11 @@ Examples:
 
 const getTransformer = async (transformer?: string) => {
 	if (!transformer || transformer === "pngjs") {
-		const { default: transformer } = await import(
-			"@blazediff/pngjs-transformer"
-		);
+		const { default: transformer } = await import("@blazediff/codec-pngjs");
 		return transformer;
 	}
 	if (transformer === "sharp") {
-		const { default: transformer } = await import(
-			"@blazediff/sharp-transformer"
-		);
+		const { default: transformer } = await import("@blazediff/codec-sharp");
 		return transformer;
 	}
 	throw new Error(`Unknown transformer: ${transformer}`);

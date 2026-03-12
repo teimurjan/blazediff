@@ -5,8 +5,8 @@ import type {
 	ImageInput,
 	MatcherOptions,
 } from "../types";
-import { compareBin } from "./bin";
 import { compareCore } from "./core";
+import { compareBin } from "./core-native";
 import { compareGmsd } from "./gmsd";
 import { compareSsim, isSsimMethod } from "./ssim";
 
@@ -31,9 +31,9 @@ export function validateMethodSupportsInput(
 	method: ComparisonMethod,
 	input: ImageInput,
 ): void {
-	if (method === "bin" && !isFilePath(input)) {
+	if (method === "core-native" && !isFilePath(input)) {
 		throw new Error(
-			`Method 'bin' only supports file paths, but received a buffer. ` +
+			`Method 'core-native' only supports file paths, but received a buffer. ` +
 				`Use method 'core', 'ssim', or 'gmsd' for buffer inputs.`,
 		);
 	}
@@ -53,8 +53,8 @@ export async function runComparison(
 	validateMethodSupportsInput(method, received);
 	validateMethodSupportsInput(method, baseline);
 
-	// Handle bin method separately (file paths only)
-	if (method === "bin") {
+	// Handle core-native method separately (file paths only)
+	if (method === "core-native") {
 		const result = await compareBin(
 			received,
 			baseline,
@@ -114,7 +114,7 @@ export async function runComparison(
 	};
 }
 
-export { compareBin } from "./bin";
 export { compareCore } from "./core";
+export { compareBin } from "./core-native";
 export { compareGmsd } from "./gmsd";
 export { compareSsim, isSsimMethod } from "./ssim";

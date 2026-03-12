@@ -173,14 +173,14 @@ describe("image-io", () => {
 describe("validateMethodSupportsInput", () => {
 	it("should not throw for bin method with file path", () => {
 		expect(() =>
-			validateMethodSupportsInput("bin", "/path/to/image.png"),
+			validateMethodSupportsInput("core-native", "/path/to/image.png"),
 		).not.toThrow();
 	});
 
 	it("should throw for bin method with buffer", () => {
 		const img = createTestImage(10, 10);
-		expect(() => validateMethodSupportsInput("bin", img)).toThrow(
-			"Method 'bin' only supports file paths",
+		expect(() => validateMethodSupportsInput("core-native", img)).toThrow(
+			"Method 'core-native' only supports file paths",
 		);
 	});
 
@@ -274,8 +274,8 @@ describe("runComparison", () => {
 
 		it("should return 0 diff for identical file paths", async () => {
 			const samePath = join(FIXTURES_PATH, "same/1a.png");
-			const result = await runComparison(samePath, samePath, "bin", {
-				method: "bin",
+			const result = await runComparison(samePath, samePath, "core-native", {
+				method: "core-native",
 			});
 			expect(result.diffCount).toBe(0);
 		});
@@ -283,8 +283,8 @@ describe("runComparison", () => {
 		it("should detect differences in file paths", async () => {
 			const path1 = join(FIXTURES_PATH, "pixelmatch/1a.png");
 			const path2 = join(FIXTURES_PATH, "pixelmatch/1b.png");
-			const result = await runComparison(path1, path2, "bin", {
-				method: "bin",
+			const result = await runComparison(path1, path2, "core-native", {
+				method: "core-native",
 			});
 			expect(result.diffCount).toBeGreaterThan(0);
 		});
@@ -292,23 +292,25 @@ describe("runComparison", () => {
 		it("should throw for buffer input", async () => {
 			const img = createTestImage(10, 10);
 			await expect(
-				runComparison(img, img, "bin", { method: "bin" }),
-			).rejects.toThrow("Method 'bin' only supports file paths");
+				runComparison(img, img, "core-native", { method: "core-native" }),
+			).rejects.toThrow("Method 'core-native' only supports file paths");
 		});
 
 		it("should throw for raw PNG buffer input", async () => {
 			const pngBuffer = readFileSync(join(FIXTURES_PATH, "same/1a.png"));
 			await expect(
-				runComparison(pngBuffer, pngBuffer, "bin", { method: "bin" }),
-			).rejects.toThrow("Method 'bin' only supports file paths");
+				runComparison(pngBuffer, pngBuffer, "core-native", {
+					method: "core-native",
+				}),
+			).rejects.toThrow("Method 'core-native' only supports file paths");
 		});
 
 		it("should throw when mixing buffer and file path", async () => {
 			const img = createTestImage(10, 10);
 			const filePath = join(FIXTURES_PATH, "same/1a.png");
 			await expect(
-				runComparison(img, filePath, "bin", { method: "bin" }),
-			).rejects.toThrow("Method 'bin' only supports file paths");
+				runComparison(img, filePath, "core-native", { method: "core-native" }),
+			).rejects.toThrow("Method 'core-native' only supports file paths");
 		});
 	});
 
@@ -812,7 +814,7 @@ describe("integration with real fixtures", () => {
 			"ssim",
 			"hitchhikers-ssim",
 			"gmsd",
-			"bin",
+			"core-native",
 		];
 
 		for (const method of methods) {

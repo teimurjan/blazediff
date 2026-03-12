@@ -5,7 +5,7 @@ function printUsage(): void {
 Usage: blazediff-cli<command> <image1> <image2> [options]
 
 Commands:
-	bin                Pixel-by-pixel comparison (Rust + SIMD) (default)
+	core-native        Pixel-by-pixel comparison (Rust + SIMD) (default)
   core               Pixel-by-pixel comparison (JavaScript)
   gmsd               Gradient Magnitude Similarity Deviation metric
   ssim               Structural Similarity Index (Gaussian-based)
@@ -42,7 +42,7 @@ async function main(): Promise<void> {
 
 	// Check if first arg is a command or a file path
 	const validCommands = [
-		"bin",
+		"core-native",
 		"core",
 		"gmsd",
 		"ssim",
@@ -62,8 +62,8 @@ async function main(): Promise<void> {
 		process.argv = [process.argv[0], process.argv[1], ...args.slice(1)];
 
 		switch (command) {
-			case "bin":
-				await import("./commands/bin");
+			case "core-native":
+				await import("./commands/core-native");
 				break;
 			case "core":
 				await import("./commands/core");
@@ -82,8 +82,8 @@ async function main(): Promise<void> {
 				break;
 		}
 	} else {
-		// Default to bin command if no command specified
-		await import("./commands/bin");
+		// Default to core-native command if no command specified
+		await import("./commands/core-native");
 	}
 }
 

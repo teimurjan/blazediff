@@ -1,6 +1,6 @@
 import { readdirSync } from "node:fs";
 import { join } from "node:path";
-import { pngjsTransformer } from "@blazediff/pngjs-transformer";
+import { pngjsTransformer } from "@blazediff/codec-pngjs";
 import type { BenchmarkArgs, ImagePair, ImagePairLoaded } from "./types";
 
 export const shuffleArray = <T>(array: T[]): T[] => {

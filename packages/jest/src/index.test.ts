@@ -69,7 +69,7 @@ describe("toMatchImageSnapshot", () => {
 			const imagePath = join(FIXTURES_PATH, "same/1a.png");
 
 			await expect(imagePath).toMatchImageSnapshot({
-				method: "bin",
+				method: "core-native",
 				snapshotsDir: TEMP_DIR,
 				snapshotIdentifier: "file-path-bin",
 			});

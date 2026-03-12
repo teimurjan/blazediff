@@ -68,7 +68,7 @@ await expect(imageInput).toMatchImageSnapshot(options?);
 | `snapshotsDir` | `string` | `'__snapshots__'` | Snapshot directory (relative to test) |
 | `snapshotIdentifier` | `string` | auto-generated | Custom snapshot filename |
 | `updateSnapshots` | `boolean` | `false` | Force snapshot update |
-| `threshold` | `number` | `0.1` | Color threshold for `core`/`bin` (0-1) |
+| `threshold` | `number` | `0.1` | Color threshold for `core`/`core-native` (0-1) |
 | `runInWorker` | `boolean` | `true` | Run comparison in worker thread for better performance |
 
 See [@blazediff/matcher](/docs/matcher) for all available options.
@@ -82,10 +82,10 @@ await expect(screenshot).toMatchImageSnapshot({
 });
 ```
 
-### `bin` - Rust Native (Fastest)
+### `core-native` - Rust Native (Fastest)
 ```typescript
 await expect('/path/to/image.png').toMatchImageSnapshot({
-  method: 'bin', // Requires file paths
+  method: 'core-native', // Requires file paths
 });
 ```
 

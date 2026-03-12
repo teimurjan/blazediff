@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
-import { pngjsTransformer } from "@blazediff/pngjs-transformer";
+import { pngjsTransformer } from "@blazediff/codec-pngjs";
 import type { ImageData, ImageInput } from "./types";
 
 /**

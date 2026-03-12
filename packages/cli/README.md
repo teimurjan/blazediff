@@ -25,13 +25,13 @@ blazediff-cli <command> <image1> <image2> [options]
 
 BlazeDiff supports multiple comparison algorithms, each optimized for different use cases:
 
-### `bin` - Native binary comparison (default)
+### `core-native` - Native binary comparison (default)
 The fastest option. Uses the native Rust binary with SIMD optimization for maximum performance.
 
 ```bash
 blazediff-cli image1.png image2.png diff.png [options]
 # Or explicitly:
-blazediff-cli bin image1.png image2.png diff.png [options]
+blazediff-cli core-native image1.png image2.png diff.png [options]
 ```
 
 **Options:**
@@ -42,7 +42,7 @@ blazediff-cli bin image1.png image2.png diff.png [options]
 - `-h, --help` - Show help message
 
 ### `core` - JavaScript pixel comparison
-Pure JavaScript implementation. Slower than `bin` but offers more customization options.
+Pure JavaScript implementation. Slower than `core-native` but offers more customization options.
 
 ```bash
 blazediff-cli core image1.png image2.png [options]
@@ -110,7 +110,7 @@ blazediff-cli hitchhikers-ssim image1.png image2.png [options]
 ```bash
 # Native binary diff (default, fastest)
 blazediff-cli image1.png image2.png diff.png
-blazediff-cli bin image1.png image2.png diff.png -t 0.05 -a
+blazediff-cli core-native image1.png image2.png diff.png -t 0.05 -a
 
 # JavaScript pixel diff (more options)
 blazediff-cli core image1.png image2.png -o diff.png -t 0.05
@@ -138,7 +138,7 @@ blazediff-cli core image1.jpg image2.jpg --transformer sharp
 
 ## Exit Codes
 
-### bin/core Mode
+### core-native/core Mode
 - `0` - Images are identical
 - `1` - Images have differences
 - `2` - Error (file not found, invalid format, etc.)

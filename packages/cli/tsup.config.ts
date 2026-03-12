@@ -23,7 +23,7 @@ export default defineConfig([
 	{
 		entry: {
 			cli: "src/cli.ts",
-			"commands/bin": "src/commands/bin.ts",
+			"commands/core-native": "src/commands/core-native.ts",
 			"commands/core": "src/commands/core.ts",
 			"commands/gmsd": "src/commands/gmsd.ts",
 			"commands/ssim": "src/commands/ssim.ts",
@@ -41,9 +41,9 @@ export default defineConfig([
 			"@blazediff/core",
 			"@blazediff/gmsd",
 			"@blazediff/ssim",
-			"@blazediff/pngjs-transformer",
-			"@blazediff/sharp-transformer",
+			"@blazediff/codec-pngjs",
+			"@blazediff/codec-sharp",
 		],
-		external: ["@blazediff/bin"], // Don't bundle - binary path relies on __dirname
+		external: ["@blazediff/core-native"], // Don't bundle - binary path relies on __dirname
 	},
 ]);

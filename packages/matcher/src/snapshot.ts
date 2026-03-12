@@ -111,7 +111,7 @@ function checkThreshold(
 		return gmsdScore <= threshold / 100;
 	}
 
-	// For pixel-based methods (bin, core)
+	// For pixel-based methods (core-native, core)
 	if (thresholdType === "percent") {
 		return (result.diffPercentage ?? 0) <= threshold;
 	}
@@ -213,13 +213,13 @@ export async function getOrCreateSnapshot(
 		};
 	}
 
-	// For bin method, skip normalization - it requires file paths
+	// For core-native method, skip normalization - it requires file paths
 	// For other methods, normalize if needed
 	let result: RunComparisonResult;
 	let normalizedReceived: ImageInput;
 
-	if (options.method === "bin") {
-		// bin method requires file paths, call runComparison directly
+	if (options.method === "core-native") {
+		// core-native method requires file paths, call runComparison directly
 		result = await runComparison(
 			received,
 			baselinePath,
@@ -227,7 +227,7 @@ export async function getOrCreateSnapshot(
 			options,
 			diffPath,
 		);
-		normalizedReceived = received; // Keep as file path for bin method
+		normalizedReceived = received; // Keep as file path for core-native method
 	} else {
 		// Normalize received for comparison (deferred until needed)
 		normalizedReceived = isRawPng ? await normalize(received) : received;
@@ -336,8 +336,8 @@ export async function getOrCreateSnapshot(
 		);
 	}
 
-	// Save diff output if available (not for bin method which doesn't produce diff)
-	if (result.diffOutput && options.method !== "bin") {
+	// Save diff output if available (not for core-native method which doesn't produce diff)
+	if (result.diffOutput && options.method !== "core-native") {
 		const dims = isImageData(normalizedReceived)
 			? normalizedReceived
 			: await normalize(normalizedReceived);

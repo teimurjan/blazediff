@@ -6,7 +6,7 @@ Performance benchmarks comparing BlazeDiff ecosystem components against popular 
 
 - [BlazeDiff Benchmarks](#blazediff-benchmarks)
   - [Table of Contents](#table-of-contents)
-  - [Native Binary (`@blazediff/bin` vs `odiff`) (image IO included)](#native-binary-blazediffbin-vs-odiff-image-io-included)
+  - [Native Binary (`@blazediff/core-native` vs `odiff`) (image IO included)](#native-binary-blazediffbin-vs-odiff-image-io-included)
   - [Pixel By Pixel](#pixel-by-pixel)
     - [JavaScript (`@blazediff/core` vs `pixelmatch`) (image IO excluded)](#javascript-blazediffcore-vs-pixelmatch-image-io-excluded)
   - [SSIM](#ssim)
@@ -19,7 +19,7 @@ Performance benchmarks comparing BlazeDiff ecosystem components against popular 
     - [Object Fixtures](#object-fixtures)
   - [Hardware Specifications](#hardware-specifications)
 
-## Native Binary (`@blazediff/bin` vs `odiff`) (image IO included)
+## Native Binary (`@blazediff/core-native` vs `odiff`) (image IO included)
 
 _25 runs (5 warmup)_
 

@@ -13,7 +13,7 @@ Vitest matcher for visual regression testing with blazediff. Powered by @blazedi
 
 - **Native Vitest matcher**: `toMatchImageSnapshot()` extends Vitest's expect
 - **Snapshot state tracking**: Vitest reports accurate snapshot counts (added/matched/updated/failed)
-- **Multiple comparison algorithms**: `core`, `bin`, `ssim`, `msssim`, `hitchhikers-ssim`, `gmsd`
+- **Multiple comparison algorithms**: `core`, `core-native`, `ssim`, `msssim`, `hitchhikers-ssim`, `gmsd`
 - **Auto-setup**: Imports and registers automatically
 - **Update mode**: Works with Vitest's `-u` flag
 - **TypeScript support**: Full type definitions included
@@ -71,7 +71,7 @@ Vitest matcher for image snapshot comparison.
   </tr>
   <tr>
     <td><code>method</code></td>
-    <td>'core' | 'bin' | 'ssim' | 'msssim' | 'hitchhikers-ssim' | 'gmsd'</td>
+    <td>'core' | 'core-native' | 'ssim' | 'msssim' | 'hitchhikers-ssim' | 'gmsd'</td>
     <td>'core'</td>
     <td>Comparison algorithm to use</td>
   </tr>
@@ -109,7 +109,7 @@ Vitest matcher for image snapshot comparison.
     <td><code>threshold</code></td>
     <td>number</td>
     <td>0.1</td>
-    <td>Color difference threshold (0-1) for core/bin methods</td>
+    <td>Color difference threshold (0-1) for core/core-native methods</td>
   </tr>
   <tr>
     <td><code>runInWorker</code></td>
@@ -143,7 +143,7 @@ it('renders correctly', async () => {
 ```typescript
 // Fast Rust-native comparison (file paths only)
 await expect('/path/to/image.png').toMatchImageSnapshot({
-  method: 'bin',
+  method: 'core-native',
 });
 
 // Pure JavaScript comparison
