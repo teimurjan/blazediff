@@ -11,7 +11,7 @@ Core matcher logic for visual regression testing. Provides snapshot comparison w
 
 ## Features
 
-- **Multiple comparison methods**: `core`, `bin`, `ssim`, `msssim`, `hitchhikers-ssim`, `gmsd`
+- **Multiple comparison methods**: `core`, `core-native`, `ssim`, `msssim`, `hitchhikers-ssim`, `gmsd`
 - **Flexible input types**: File paths or image buffers
 - **Snapshot state tracking**: Reports added/matched/updated/failed status
 - **Configurable thresholds**: Pixel count or percentage-based
@@ -127,13 +127,13 @@ Main function for snapshot comparison.
     <td><code>threshold</code></td>
     <td>number</td>
     <td>0.1</td>
-    <td>Color difference threshold for core/bin methods (0-1)</td>
+    <td>Color difference threshold for core/core-native methods (0-1)</td>
   </tr>
   <tr>
     <td><code>antialiasing</code></td>
     <td>boolean</td>
     <td>false</td>
-    <td>Enable anti-aliasing detection (bin method)</td>
+    <td>Enable anti-aliasing detection (core-native method)</td>
   </tr>
   <tr>
     <td><code>includeAA</code></td>
@@ -242,7 +242,7 @@ type ImageInput =
 
 ## Comparison Methods
 
-### `bin`
+### `core-native`
 Rust-native comparison via N-API bindings. **Fastest method** with native performance.
 - **Input**: File paths only
 - **Algorithm**: YIQ color space with block-based optimization
@@ -287,7 +287,7 @@ Gradient Magnitude Similarity Deviation.
 ```typescript
 const result = await getOrCreateSnapshot(
   '/path/to/screenshot.png',
-  { method: 'bin' },
+  { method: 'core-native' },
   { testPath: __filename, testName: 'test name' }
 );
 ```
@@ -326,7 +326,7 @@ const result = await getOrCreateSnapshot(
 
 ```typescript
 // Fastest - Rust native (file paths only)
-await getOrCreateSnapshot(imagePath, { method: 'bin' }, context);
+await getOrCreateSnapshot(imagePath, { method: 'core-native' }, context);
 
 // Pure JavaScript
 await getOrCreateSnapshot(imageBuffer, { method: 'core' }, context);

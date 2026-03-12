@@ -8,5 +8,5 @@ export default defineConfig({
 	sourcemap: true,
 	clean: true,
 	treeshake: true,
-	external: ["@blazediff/bin"],
+	external: ["@blazediff/core-native"],
 });

@@ -12,7 +12,7 @@
 		"dev": "tsup --watch",
 		"clean": "rm -rf dist",
 		"core": "node dist/pixel-by-pixel/blazediff-core-benchmark.js",
-		"binary": "node dist/pixel-by-pixel/blazediff-bin-benchmark.js",
+		"core-native": "node dist/pixel-by-pixel/blazediff-core-native-benchmark.js",
 		"odiff": "node dist/pixel-by-pixel/blazediff-odiff-benchmark.js",
 		"pixelmatch": "node dist/pixel-by-pixel/external-pixelmatch-benchmark.js",
 		"gmsd": "node dist/structure/gmsd-benchmark.js",
@@ -22,11 +22,11 @@
 		"weber-ssim.js": "node dist/structure/external-ssim-weber-benchmark.js"
 	},
 	"devDependencies": {
-		"@blazediff/bin": "workspace:*",
+		"@blazediff/core-native": "workspace:*",
 		"@blazediff/cli": "workspace:*",
 		"@blazediff/core": "workspace:*",
 		"@blazediff/gmsd": "workspace:*",
-		"@blazediff/pngjs-transformer": "workspace:*",
+		"@blazediff/codec-pngjs": "workspace:*",
 		"@blazediff/ssim": "workspace:*",
 		"@types/node": "^24.3.0",
 		"odiff-bin": "^4.3.2",

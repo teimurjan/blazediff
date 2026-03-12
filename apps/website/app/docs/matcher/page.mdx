@@ -12,7 +12,7 @@ npm install @blazediff/matcher
 
 ## Features
 
-- **Multiple comparison methods**: Choose from `core`, `bin`, `ssim`, `msssim`, `hitchhikers-ssim`, `gmsd`
+- **Multiple comparison methods**: Choose from `core`, `core-native`, `ssim`, `msssim`, `hitchhikers-ssim`, `gmsd`
 - **Flexible input types**: Accepts file paths or image buffers with dimensions
 - **Snapshot state tracking**: Reports `added`, `matched`, `updated`, `failed` status
 - **Configurable thresholds**: Set tolerance by pixel count or percentage
@@ -68,7 +68,7 @@ Core comparison options:
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `method` | `ComparisonMethod` | - | Comparison algorithm: `'core'`, `'bin'`, `'ssim'`, `'msssim'`, `'hitchhikers-ssim'`, `'gmsd'` |
+| `method` | `ComparisonMethod` | - | Comparison algorithm: `'core'`, `'core-native'`, `'ssim'`, `'msssim'`, `'hitchhikers-ssim'`, `'gmsd'` |
 | `failureThreshold` | `number` | `0` | Number of pixels or percentage difference allowed |
 | `failureThresholdType` | `'pixel' \| 'percent'` | `'pixel'` | How to interpret failureThreshold |
 | `snapshotsDir` | `string` | `'__snapshots__'` | Directory to store snapshots (relative to test file) |
@@ -79,8 +79,8 @@ Method-specific options:
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `threshold` | `number` | `0.1` | Color difference threshold (0-1) for `core`/`bin` methods |
-| `antialiasing` | `boolean` | `false` | Enable anti-aliasing detection (`bin` method) |
+| `threshold` | `number` | `0.1` | Color difference threshold (0-1) for `core`/`core-native` methods |
+| `antialiasing` | `boolean` | `false` | Enable anti-aliasing detection (`core-native` method) |
 | `includeAA` | `boolean` | `false` | Include anti-aliased pixels in diff count (`core` method) |
 | `windowSize` | `number` | `11` | Window size for SSIM variants |
 | `k1` | `number` | `0.01` | k1 constant for SSIM |
@@ -118,7 +118,7 @@ type ImageInput =
 
 ## Comparison Methods
 
-### `bin` - Rust Native (Fastest)
+### `core-native` - Rust Native (Fastest)
 
 Rust-native comparison via N-API bindings with native performance.
 
@@ -130,7 +130,7 @@ Rust-native comparison via N-API bindings with native performance.
 ```typescript
 const result = await getOrCreateSnapshot(
   '/path/to/image.png',
-  { method: 'bin' },
+  { method: 'core-native' },
   testContext
 );
 ```
@@ -213,7 +213,7 @@ const result = await getOrCreateSnapshot(
 ```typescript
 const result = await getOrCreateSnapshot(
   '/path/to/screenshot.png',
-  { method: 'bin' },
+  { method: 'core-native' },
   {
     testPath: '/path/to/test.spec.ts',
     testName: 'homepage renders',
@@ -295,4 +295,4 @@ These packages wrap `@blazediff/matcher` and integrate with framework snapshot s
 - [@blazediff/core](/docs/core) - Core comparison algorithm
 - [@blazediff/ssim](/docs/ssim) - SSIM algorithms
 - [@blazediff/gmsd](/docs/gmsd) - GMSD algorithm
-- [@blazediff/bin](/docs/bin) - Rust-native bindings
+- [@blazediff/core-native](/docs/core-native) - Rust-native bindings

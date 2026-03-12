@@ -8,4 +8,4 @@ onlyBuiltDependencies:
   - odiff-bin
 
 ignoredOptionalDependencies:
-  - "@blazediff/bin-*"
+  - "@blazediff/core-native-*"

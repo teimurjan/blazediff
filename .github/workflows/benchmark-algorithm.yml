@@ -30,12 +30,12 @@ jobs:
       - name: Build
         run: pnpm build
 
-      - name: Run Benchmark (blazediff)
+      - name: Run Benchmark (@blazediff/core)
         run: pnpm benchmark:core -- --format=json --output=blazediff.json
 
       - name: Run Benchmark (pixelmatch)
         run: pnpm benchmark:pixelmatch -- --format=json --output=pixelmatch.json
 
-      - name: Compare and Print Combined Markdown Table (algorithm)
+      - name: Compare and Print Combined Markdown Table
         if: always()
-        run: node .github/workflows/scripts/compare-and-print-algorithm.js
+        run: node .github/workflows/scripts/compare-and-print-core.js

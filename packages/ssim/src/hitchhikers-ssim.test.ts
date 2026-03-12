@@ -15,7 +15,7 @@
 import { execSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import transformer from "@blazediff/pngjs-transformer";
+import transformer from "@blazediff/codec-pngjs";
 import { describe, expect, it } from "vitest";
 import { hitchhikersSSIM } from "./hitchhikers-ssim";
 import { ssim } from "./ssim";

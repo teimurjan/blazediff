@@ -28,12 +28,12 @@ get_friendly_name() {
 # Target triple -> package directory name
 get_package_name() {
     case "$1" in
-        aarch64-apple-darwin) echo "bin-darwin-arm64" ;;
-        x86_64-apple-darwin) echo "bin-darwin-x64" ;;
-        aarch64-unknown-linux-gnu) echo "bin-linux-arm64" ;;
-        x86_64-unknown-linux-gnu) echo "bin-linux-x64" ;;
-        x86_64-pc-windows-msvc|x86_64-pc-windows-gnu) echo "bin-win32-x64" ;;
-        aarch64-pc-windows-msvc|aarch64-pc-windows-gnu) echo "bin-win32-arm64" ;;
+        aarch64-apple-darwin) echo "core-native-darwin-arm64" ;;
+        x86_64-apple-darwin) echo "core-native-darwin-x64" ;;
+        aarch64-unknown-linux-gnu) echo "core-native-linux-arm64" ;;
+        x86_64-unknown-linux-gnu) echo "core-native-linux-x64" ;;
+        x86_64-pc-windows-msvc|x86_64-pc-windows-gnu) echo "core-native-win32-x64" ;;
+        aarch64-pc-windows-msvc|aarch64-pc-windows-gnu) echo "core-native-win32-arm64" ;;
         *) echo "" ;;
     esac
 }

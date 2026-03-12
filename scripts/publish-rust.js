@@ -5,7 +5,7 @@ const path = require("node:path");
 const os = require("node:os");
 
 const ROOT = path.resolve(__dirname, "..");
-const BIN_PKG_PATH = path.join(ROOT, "packages", "bin", "package.json");
+const BIN_PKG_PATH = path.join(ROOT, "packages", "core-native", "package.json");
 const CARGO_TOML_PATH = path.join(ROOT, "rust", "Cargo.toml");
 const RUST_DIR = path.join(ROOT, "rust");
 const CRATE_NAME = "blazediff";
@@ -63,7 +63,7 @@ async function main() {
 	}
 
 	const versions = getVersions();
-	console.log(`@blazediff/bin version: ${versions.bin}`);
+	console.log(`@blazediff/core-native version: ${versions.bin}`);
 	console.log(`Cargo.toml version: ${versions.rust}`);
 
 	if (versions.bin !== versions.rust) {

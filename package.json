@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "postinstall": "node ./scripts/link-local-platform-bin.js && node ./scripts/link-local-bin.js",
+    "postinstall": "node ./scripts/link-local-platform-core-native.js && node ./scripts/link-local-core-native.js",
     "build": "pnpm -r --filter=!@blazediff/website build",
     "build:rust": "cd rust && ./scripts/build-all.sh --all",
     "test": "pnpm -r test",
@@ -12,7 +12,7 @@
     "changeset": "changeset",
     "release": "changeset publish && node scripts/publish-rust.js",
     "benchmark:core": "pnpm --filter @blazediff/image-benchmark core",
-    "benchmark:binary": "pnpm --filter @blazediff/image-benchmark binary",
+    "benchmark:core-native": "pnpm --filter @blazediff/image-benchmark core-native",
     "benchmark:odiff": "pnpm --filter @blazediff/image-benchmark odiff",
     "benchmark:pixelmatch": "pnpm --filter @blazediff/image-benchmark pixelmatch",
     "benchmark:gmsd": "pnpm --filter @blazediff/image-benchmark gmsd",

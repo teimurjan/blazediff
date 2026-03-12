@@ -15,7 +15,7 @@ declare global {
 			 * ```typescript
 			 * // Compare file path
 			 * await expect('/path/to/screenshot.png').toMatchImageSnapshot({
-			 *   method: 'bin',
+			 *   method: 'core-native',
 			 *   failureThreshold: 100,
 			 *   failureThresholdType: 'pixel',
 			 * });

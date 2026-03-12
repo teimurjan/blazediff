@@ -4,13 +4,13 @@
 	"commit": false,
 	"fixed": [
 		[
-			"@blazediff/bin",
-			"@blazediff/bin-darwin-arm64",
-			"@blazediff/bin-darwin-x64",
-			"@blazediff/bin-linux-arm64",
-			"@blazediff/bin-linux-x64",
-			"@blazediff/bin-win32-arm64",
-			"@blazediff/bin-win32-x64"
+			"@blazediff/core-native",
+			"@blazediff/core-native-darwin-arm64",
+			"@blazediff/core-native-darwin-x64",
+			"@blazediff/core-native-linux-arm64",
+			"@blazediff/core-native-linux-x64",
+			"@blazediff/core-native-win32-arm64",
+			"@blazediff/core-native-win32-x64"
 		]
 	],
 	"linked": [],

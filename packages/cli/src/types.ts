@@ -77,7 +77,7 @@ export interface MsssimModeResult {
 	duration: number;
 }
 
-export type BlazeDiffBinResult =
+export type BlazeDiffCoreNativeResult =
 	| DiffModeResult
 	| GmsdModeResult
 	| SsimModeResult

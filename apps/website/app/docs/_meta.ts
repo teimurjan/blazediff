@@ -17,8 +17,8 @@ export default {
 	cli: {
 		title: "@blazediff/cli",
 	},
-	bin: {
-		title: "@blazediff/bin",
+	"core-native": {
+		title: "@blazediff/core-native",
 	},
 	matcher: {
 		title: "@blazediff/matcher",

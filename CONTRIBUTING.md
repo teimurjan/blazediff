@@ -43,7 +43,7 @@ pnpm build
 pnpm benchmark
 
 # Run specific benchmark
-pnpm benchmark --target=bin
+pnpm benchmark --target=core-native
 ```
 
 ## Submitting Changes
