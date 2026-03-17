@@ -51,31 +51,3 @@ cmake = "0.1.57"
 
 [dev-dependencies]
 criterion = { version = "0.5", features = ["html_reports"] }
-
-# =============================================================================
-# Performance Profiles
-# =============================================================================
-
-[profile.release]
-opt-level = 3
-lto = "fat"              # Full LTO for max optimization (slower build, faster binary)
-codegen-units = 1        # Single codegen unit = better optimization
-panic = "abort"          # No unwinding = smaller/faster binary
-strip = true             # Strip symbols for smaller binary
-debug = false
-
-[profile.release-fast]
-inherits = "release"
-lto = "thin"             # Faster builds, slightly less optimized
-codegen-units = 4
-
-[profile.bench]
-inherits = "release"
-debug = true             # Debug info for profiling
-
-[profile.dev]
-opt-level = 1            # Some optimization in dev for faster iteration
-debug = true
-
-[profile.dev.package."*"]
-opt-level = 3            # Optimize dependencies in dev mode

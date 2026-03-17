@@ -58,3 +58,25 @@ pnpm benchmark:core -- --fixtures=pixelmatch --iterations=2
 ```
 
 When making changes to diff algorithms, use `--fixtures` with a small subset (e.g., `pixelmatch`) and low `--iterations` for fast verification, then run the full suite before merging.
+
+## blazediff-interpret
+
+Rust crate at `crates/blazediff-interpret/`. Wraps `blazediff::diff()` to produce structured region analysis.
+
+### Pipeline
+
+```
+change mask → morph close → connected components → per-region analysis → classify → describe
+```
+
+- **Don't add watershed/distance-transform** — morph close + CC is sufficient for grouping changed pixels. Watershed over-segments the known change mask.
+- **Don't restructure into atomic-regions → semantic-groups → score-labels** — the 6-label decision tree is adequate. Better results come from better evidence extraction, not pipeline restructuring.
+- Architecture details in `crates/blazediff-interpret/README.md`.
+
+### Testing
+
+```sh
+cd crates && cargo test -p blazediff-interpret
+cargo check -p blazediff-interpret --features napi  # verify N-API compiles
+cargo run -p blazediff-interpret -- ../fixtures/blazediff/3a.png ../fixtures/blazediff/3b.png
+```

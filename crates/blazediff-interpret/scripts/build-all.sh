@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Cross-platform release build script for blazediff
+# Cross-platform release build script for blazediff-interpret
 # Outputs binaries to dist/ directory and syncs to platform-specific packages
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
-ROOT_DIR="$(dirname "$PROJECT_DIR")"
+PROJECT_DIR="$(dirname "$SCRIPT_DIR")"          # crates/blazediff-interpret
+WORKSPACE_DIR="$(dirname "$PROJECT_DIR")"       # crates/
+ROOT_DIR="$(dirname "$WORKSPACE_DIR")"          # repo root
+TARGET_DIR="$WORKSPACE_DIR/target"              # workspace target
 DIST_DIR="$PROJECT_DIR/dist"
 PACKAGES_DIR="$ROOT_DIR/packages"
 
@@ -28,12 +30,12 @@ get_friendly_name() {
 # Target triple -> package directory name
 get_package_name() {
     case "$1" in
-        aarch64-apple-darwin) echo "core-native-darwin-arm64" ;;
-        x86_64-apple-darwin) echo "core-native-darwin-x64" ;;
-        aarch64-unknown-linux-gnu) echo "core-native-linux-arm64" ;;
-        x86_64-unknown-linux-gnu) echo "core-native-linux-x64" ;;
-        x86_64-pc-windows-msvc|x86_64-pc-windows-gnu) echo "core-native-win32-x64" ;;
-        aarch64-pc-windows-msvc|aarch64-pc-windows-gnu) echo "core-native-win32-arm64" ;;
+        aarch64-apple-darwin) echo "interpret-native-darwin-arm64" ;;
+        x86_64-apple-darwin) echo "interpret-native-darwin-x64" ;;
+        aarch64-unknown-linux-gnu) echo "interpret-native-linux-arm64" ;;
+        x86_64-unknown-linux-gnu) echo "interpret-native-linux-x64" ;;
+        x86_64-pc-windows-msvc|x86_64-pc-windows-gnu) echo "interpret-native-win32-x64" ;;
+        aarch64-pc-windows-msvc|aarch64-pc-windows-gnu) echo "interpret-native-win32-arm64" ;;
         *) echo "" ;;
     esac
 }
@@ -66,9 +68,7 @@ print_usage() {
     echo "  --list             List supported targets"
     echo "  --help             Show this help"
     echo ""
-    echo "Output naming: blazediff-{os}-{arch}[.exe|.node]"
-    echo "Example: blazediff-macos-arm64, blazediff-linux-x64, blazediff-windows-x64.exe"
-    echo "N-API:   blazediff-macos-arm64.node, blazediff-linux-x64.node"
+    echo "Output naming: blazediff-interpret-{os}-{arch}[.exe|.node]"
 }
 
 check_cross() {
@@ -89,7 +89,7 @@ build_target() {
     local target="$1"
     local use_cross="${2:-false}"
     local friendly_name=$(get_friendly_name "$target")
-    local output_name="blazediff-${friendly_name}"
+    local output_name="blazediff-interpret-${friendly_name}"
 
     echo "Building $output_name ($target)..."
 
@@ -98,21 +98,19 @@ build_target() {
     local flags=$(get_rustflags "$target")
 
     if [[ "$target" == "aarch64-pc-windows-msvc" ]]; then
-        # Windows ARM64 requires cargo-xwin with llvm in PATH
         if ! command -v cargo-xwin &> /dev/null; then
             echo "  Error: cargo-xwin required for $target (cargo install cargo-xwin)"
             return 1
         fi
-        # Add homebrew llvm to PATH if available
         if [[ -d "/opt/homebrew/opt/llvm/bin" ]]; then
-            PATH="/opt/homebrew/opt/llvm/bin:$PATH" RUSTFLAGS="$flags" cargo xwin build --release --target "$target"
+            PATH="/opt/homebrew/opt/llvm/bin:$PATH" RUSTFLAGS="$flags" cargo xwin build --release --target "$target" -p blazediff-interpret
         else
-            RUSTFLAGS="$flags" cargo xwin build --release --target "$target"
+            RUSTFLAGS="$flags" cargo xwin build --release --target "$target" -p blazediff-interpret
         fi
     elif [[ "$use_cross" == "true" ]]; then
-        RUSTFLAGS="$flags" cross build --release --target "$target"
+        RUSTFLAGS="$flags" cross build --release --target "$target" -p blazediff-interpret
     else
-        RUSTFLAGS="$flags" cargo build --release --target "$target"
+        RUSTFLAGS="$flags" cargo build --release --target "$target" -p blazediff-interpret
     fi
 
     local ext=""
@@ -120,7 +118,7 @@ build_target() {
         ext=".exe"
     fi
 
-    local src="$PROJECT_DIR/target/$target/release/blazediff${ext}"
+    local src="$TARGET_DIR/$target/release/blazediff-interpret${ext}"
     local dst="$DIST_DIR/${output_name}${ext}"
 
     if [[ -f "$src" ]]; then
@@ -137,7 +135,7 @@ build_target() {
 build_native() {
     echo "Building native release (optimized for this CPU)..."
 
-    RUSTFLAGS="-C target-cpu=native" cargo build --release
+    RUSTFLAGS="-C target-cpu=native" cargo build --release -p blazediff-interpret
 
     mkdir -p "$DIST_DIR"
 
@@ -158,8 +156,8 @@ build_native() {
     local ext=""
     [[ "$os" == "windows" ]] && ext=".exe"
 
-    local src="$PROJECT_DIR/target/release/blazediff${ext}"
-    local dst="$DIST_DIR/blazediff-${os}-${arch}${ext}"
+    local src="$TARGET_DIR/release/blazediff-interpret${ext}"
+    local dst="$DIST_DIR/blazediff-interpret-${os}-${arch}${ext}"
 
     cp "$src" "$dst"
     chmod +x "$dst"
@@ -171,7 +169,7 @@ build_native() {
 build_native_napi() {
     echo "Building native N-API release (optimized for this CPU)..."
 
-    RUSTFLAGS="-C target-cpu=native" cargo build --release --features napi --lib
+    RUSTFLAGS="-C target-cpu=native" cargo build --release --features napi --lib -p blazediff-interpret
 
     mkdir -p "$DIST_DIR"
 
@@ -200,8 +198,8 @@ build_native_napi() {
         lib_ext=".so"
     fi
 
-    local src="$PROJECT_DIR/target/release/${lib_prefix}blazediff${lib_ext}"
-    local dst="$DIST_DIR/blazediff-${os}-${arch}.node"
+    local src="$TARGET_DIR/release/${lib_prefix}blazediff_interpret${lib_ext}"
+    local dst="$DIST_DIR/blazediff-interpret-${os}-${arch}.node"
 
     if [[ -f "$src" ]]; then
         cp "$src" "$dst"
@@ -217,7 +215,7 @@ build_napi_target() {
     local target="$1"
     local use_cross="${2:-false}"
     local friendly_name=$(get_friendly_name "$target")
-    local output_name="blazediff-${friendly_name}.node"
+    local output_name="blazediff-interpret-${friendly_name}.node"
 
     echo "Building N-API $output_name ($target)..."
 
@@ -231,14 +229,14 @@ build_napi_target() {
             return 1
         fi
         if [[ -d "/opt/homebrew/opt/llvm/bin" ]]; then
-            PATH="/opt/homebrew/opt/llvm/bin:$PATH" RUSTFLAGS="$flags" cargo xwin build --release --target "$target" --features napi --lib
+            PATH="/opt/homebrew/opt/llvm/bin:$PATH" RUSTFLAGS="$flags" cargo xwin build --release --target "$target" --features napi --lib -p blazediff-interpret
         else
-            RUSTFLAGS="$flags" cargo xwin build --release --target "$target" --features napi --lib
+            RUSTFLAGS="$flags" cargo xwin build --release --target "$target" --features napi --lib -p blazediff-interpret
         fi
     elif [[ "$use_cross" == "true" ]]; then
-        RUSTFLAGS="$flags" cross build --release --target "$target" --features napi --lib
+        RUSTFLAGS="$flags" cross build --release --target "$target" --features napi --lib -p blazediff-interpret
     else
-        RUSTFLAGS="$flags" cargo build --release --target "$target" --features napi --lib
+        RUSTFLAGS="$flags" cargo build --release --target "$target" --features napi --lib -p blazediff-interpret
     fi
 
     # Find the cdylib output (.so on Linux, .dylib on macOS, .dll on Windows)
@@ -252,7 +250,7 @@ build_napi_target() {
         lib_ext=".so"
     fi
 
-    local src="$PROJECT_DIR/target/$target/release/${lib_prefix}blazediff${lib_ext}"
+    local src="$TARGET_DIR/$target/release/${lib_prefix}blazediff_interpret${lib_ext}"
     local dst="$DIST_DIR/${output_name}"
 
     if [[ -f "$src" ]]; then
@@ -278,7 +276,7 @@ build_macos() {
 
     echo ""
     echo "macOS builds complete:"
-    ls -lh "$DIST_DIR"/blazediff-macos-*
+    ls -lh "$DIST_DIR"/blazediff-interpret-macos-*
 }
 
 sync_to_packages() {
@@ -286,19 +284,19 @@ sync_to_packages() {
     echo "Syncing binaries to platform packages..."
 
     local synced=0
-    for binary in "$DIST_DIR"/blazediff-*; do
+    for binary in "$DIST_DIR"/blazediff-interpret-*; do
         if [[ -f "$binary" ]]; then
             local name=$(basename "$binary")
             local target=""
 
             # Map binary name to target triple for package lookup
             case "$name" in
-                blazediff-macos-arm64|blazediff-macos-arm64.node) target="aarch64-apple-darwin" ;;
-                blazediff-macos-x64|blazediff-macos-x64.node) target="x86_64-apple-darwin" ;;
-                blazediff-linux-arm64|blazediff-linux-arm64.node) target="aarch64-unknown-linux-gnu" ;;
-                blazediff-linux-x64|blazediff-linux-x64.node) target="x86_64-unknown-linux-gnu" ;;
-                blazediff-windows-arm64.exe|blazediff-windows-arm64.node) target="aarch64-pc-windows-msvc" ;;
-                blazediff-windows-x64.exe|blazediff-windows-x64.node) target="x86_64-pc-windows-gnu" ;;
+                blazediff-interpret-macos-arm64|blazediff-interpret-macos-arm64.node) target="aarch64-apple-darwin" ;;
+                blazediff-interpret-macos-x64|blazediff-interpret-macos-x64.node) target="x86_64-apple-darwin" ;;
+                blazediff-interpret-linux-arm64|blazediff-interpret-linux-arm64.node) target="aarch64-unknown-linux-gnu" ;;
+                blazediff-interpret-linux-x64|blazediff-interpret-linux-x64.node) target="x86_64-unknown-linux-gnu" ;;
+                blazediff-interpret-windows-arm64.exe|blazediff-interpret-windows-arm64.node) target="aarch64-pc-windows-msvc" ;;
+                blazediff-interpret-windows-x64.exe|blazediff-interpret-windows-x64.node) target="x86_64-pc-windows-gnu" ;;
                 *) continue ;;
             esac
 
@@ -307,11 +305,11 @@ sync_to_packages() {
                 local pkg_dir="$PACKAGES_DIR/$pkg_name"
                 if [[ -d "$pkg_dir" ]]; then
                     # Determine output filename based on file type
-                    local output_name="blazediff"
+                    local output_name="blazediff-interpret"
                     if [[ "$name" == *".exe" ]]; then
-                        output_name="blazediff.exe"
+                        output_name="blazediff-interpret.exe"
                     elif [[ "$name" == *".node" ]]; then
-                        output_name="blazediff.node"
+                        output_name="blazediff-interpret.node"
                     fi
                     cp "$binary" "$pkg_dir/$output_name"
                     [[ "$output_name" != *.node ]] && chmod +x "$pkg_dir/$output_name"
@@ -331,8 +329,6 @@ sync_to_packages() {
 }
 
 # Default targets for --all
-# Windows x64: MinGW via cross
-# Windows ARM64: MSVC via cargo-xwin (requires llvm in PATH)
 ALL_TARGETS="aarch64-apple-darwin x86_64-apple-darwin aarch64-unknown-linux-gnu x86_64-unknown-linux-gnu x86_64-pc-windows-gnu aarch64-pc-windows-msvc"
 
 # Parse arguments
@@ -387,7 +383,7 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-cd "$PROJECT_DIR"
+cd "$WORKSPACE_DIR"
 
 case "$MODE" in
     native)
@@ -441,7 +437,6 @@ case "$MODE" in
         fi
 
         for target in $ALL_TARGETS; do
-            # Native target or same-OS target on macOS
             if [[ "$target" == "$current_target" ]]; then
                 build_target "$target" false || echo "  Skipped $target"
                 if [[ "$BUILD_NAPI" == "true" ]]; then
@@ -454,7 +449,6 @@ case "$MODE" in
                     build_napi_target "$target" false || echo "  Skipped N-API for $target"
                 fi
             elif [[ "$target" == "aarch64-pc-windows-msvc" ]]; then
-                # Windows ARM64 uses cargo-xwin, not cross
                 rustup target add "$target" 2>/dev/null || true
                 build_target "$target" false || echo "  Skipped $target (cargo-xwin failed)"
                 if [[ "$BUILD_NAPI" == "true" ]]; then

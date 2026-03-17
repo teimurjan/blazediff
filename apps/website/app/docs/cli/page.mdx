@@ -2,7 +2,7 @@
 
 import { Callout, Tabs } from 'nextra/components'
 
-Command-line tool for high-performance image comparison. Supports multiple algorithms including the native Rust binary (fastest), JavaScript pixel diff, GMSD, SSIM, MS-SSIM, and Hitchhiker's SSIM.
+Command-line tool for high-performance image comparison. Supports multiple algorithms including the native Rust binary (fastest), JavaScript pixel diff, GMSD, SSIM, MS-SSIM, Hitchhiker's SSIM, and structured diff interpretation.
 
 [View Detailed Benchmarks](https://github.com/teimurjan/blazediff/blob/main/BENCHMARKS.md)
 
@@ -29,7 +29,7 @@ npx blazediff-cli image1.png image2.png diff.png
 ## Features
 
 - **Native Binary**: Rust + SIMD for maximum performance (3-4x faster than odiff)
-- **Multiple Algorithms**: Pixel diff, GMSD, SSIM, MS-SSIM, Hitchhiker's SSIM
+- **Multiple Algorithms**: Pixel diff, GMSD, SSIM, MS-SSIM, Hitchhiker's SSIM, Interpret
 - **Multiple Formats**: PNG, JPEG, WebP support
 - **High Performance**: Optimized implementations for all algorithms
 - **Flexible Output**: Save diff/similarity maps or get exit codes
@@ -38,7 +38,7 @@ npx blazediff-cli image1.png image2.png diff.png
 
 ## Available Commands
 
-<Tabs items={['core-native (default)', 'core', 'gmsd', 'ssim', 'msssim', 'hitchhikers-ssim']}>
+<Tabs items={['core-native (default)', 'core', 'gmsd', 'ssim', 'msssim', 'hitchhikers-ssim', 'interpret']}>
   <Tabs.Tab>
 
 ### `blazediff-cli core-native` (default)
@@ -363,6 +363,74 @@ SSIM map saved to: ssim-map.png
 </Callout>
 
   </Tabs.Tab>
+
+  <Tabs.Tab>
+
+### `blazediff-cli interpret`
+
+Structured diff analysis — detects change regions and classifies them with content-aware change types (Addition, Deletion, Shift, ContentChange, ColorChange, RenderingNoise). Returns a structured summary grouped by change type.
+
+#### Basic Usage
+
+```bash
+blazediff-cli interpret image1.png image2.png
+```
+
+#### Compact Output
+
+```bash
+blazediff-cli interpret image1.png image2.png --compact
+```
+
+#### Options
+
+```bash
+blazediff-cli interpret <image1> <image2> [options]
+
+Options:
+  -t, --threshold <n>      Color difference threshold (0-1, default: 0.1)
+  -a, --antialiasing       Enable anti-aliasing detection
+  --compact                Return compact results (summary + severity only)
+  -h, --help               Display help
+```
+
+#### Output
+
+Prints structured JSON with:
+- **Summary** — structured overview grouped by change type
+- **Severity** — Low (&lt;1%), Medium (1-10%), High (&gt;10%)
+- **Regions** — each with position, change type, confidence, and percentage
+
+#### Exit Codes
+
+- `0` - Images are identical
+- `1` - Images have differences
+
+#### Example
+
+```bash
+$ blazediff-cli interpret reference.png test.png
+{
+  "summary": "Moderate visual change detected (1.87% of image, 12 regions).\nContent changed: 4 regions (bottom, center).\nContent added: 3 regions (right, bottom, bottom-left).\n...",
+  "severity": "Medium",
+  "diffPercentage": 1.87,
+  "regions": [...]
+}
+
+$ blazediff-cli interpret reference.png test.png --compact
+{
+  "summary": "Moderate visual change detected (1.87% of image, 12 regions).\n...",
+  "severity": "Medium",
+  "diffPercentage": 1.87,
+  "regions": [{ "position": "Bottom", "changeType": "Deletion", "confidence": 1.0, ... }]
+}
+```
+
+<Callout type="info">
+  **Same engine as `@blazediff/interpret-native`** — the CLI command uses the same Rust + SIMD binary under the hood, just wrapped for command-line use.
+</Callout>
+
+  </Tabs.Tab>
 </Tabs>
 
 ## When to Use Each Algorithm
@@ -402,6 +470,12 @@ SSIM map saved to: ssim-map.png
 - You're processing large images or many images
 - You want O(1) window computation
 - You need flexible window stride for overlapping/non-overlapping windows
+
+**Use `interpret` when:**
+- You need to understand _what_ changed, not just _how much_
+- You want semantic classification of diff regions
+- You're building CI/CD reports with human-readable summaries
+- You need region-level analysis (position, shape, severity)
 
 ## Links
 

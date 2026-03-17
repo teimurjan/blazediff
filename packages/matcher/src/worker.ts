@@ -83,13 +83,13 @@ if (parentPort) {
 	parentPort.on("message", async (request: WorkerRequest) => {
 		try {
 			const result = await handleRequest(request);
-			parentPort!.postMessage({
+			parentPort?.postMessage({
 				id: request.id,
 				success: true,
 				result,
 			} satisfies WorkerResponse);
 		} catch (error) {
-			parentPort!.postMessage({
+			parentPort?.postMessage({
 				id: request.id,
 				success: false,
 				error: error instanceof Error ? error.message : String(error),

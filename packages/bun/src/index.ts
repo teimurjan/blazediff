@@ -61,7 +61,8 @@ export function setupBlazediffMatchers(): void {
 			);
 
 			// Attempt to update Bun snapshot state (if exposed)
-			const snapshotState = (this as any).snapshotState;
+			// @ts-expect-error Try to check if a custom snapshotState property is set
+			const snapshotState = this.snapshotState;
 			if (snapshotState && result.snapshotStatus) {
 				switch (result.snapshotStatus) {
 					case "added":
@@ -92,7 +93,7 @@ export function setupBlazediffMatchers(): void {
  */
 function getTestPath(): string {
 	// Try Bun.main first
-	if (typeof Bun !== "undefined" && Bun.main) {
+	if (Bun?.main) {
 		return Bun.main;
 	}
 

@@ -1,0 +1,77 @@
+# Interpret
+
+import { Tabs } from "nextra/components";
+import InterpretComparison from "../../../components/interpret-comparison";
+import diffData from "../../../data/interpret/blazediff-3-diff.json";
+import identicalData from "../../../data/interpret/blazediff-3-identical.json";
+
+Structured image diff analysis powered by a native Rust binary. Unlike pixel-level or perceptual comparison methods, `interpret` identifies **change regions** and classifies them semantically — telling you _what_ changed and _where_.
+
+## Installation
+
+```bash npm2yarn
+npm install @blazediff/interpret-native
+```
+
+## Overview
+
+The interpret function analyzes two images and returns structured results including severity, diff percentage, and detailed region analysis with content-aware change types (Addition, Deletion, Shift, ContentChange, ColorChange, RenderingNoise).
+
+<Tabs items={['Different Images', 'Identical Images']}>
+  <Tabs.Tab>
+
+    <InterpretComparison
+      fixtureA="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3a.png"
+      fixtureB="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3b.png"
+      fullResult={diffData.full}
+      compactResult={diffData.compact}
+    />
+
+```ts
+import { interpret } from "@blazediff/interpret-native";
+
+const result = await interpret("fixtures/3a.png", "fixtures/3b.png");
+console.log(result.summary);
+console.log(`Severity: ${result.severity}`);
+console.log(`Changed: ${result.diffPercentage.toFixed(2)}%`);
+
+for (const region of result.regions) {
+  console.log(`${region.position}: ${region.changeType} (${region.percentage.toFixed(2)}%)`);
+}
+```
+
+  </Tabs.Tab>
+
+  <Tabs.Tab>
+
+    <InterpretComparison
+      fixtureA="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3a.png"
+      fixtureB="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3a.png"
+      fullResult={identicalData.full}
+      compactResult={identicalData.compact}
+    />
+
+```ts
+import { interpret } from "@blazediff/interpret-native";
+
+// Comparing identical images
+const result = await interpret("fixtures/3a.png", "fixtures/3a.png");
+console.log(result.summary); // "Images are identical"
+console.log(result.regions.length); // 0
+```
+
+  </Tabs.Tab>
+</Tabs>
+
+### Compact Mode
+
+Use compact mode to get a simplified result with only the essential information:
+
+```ts
+import { interpret } from "@blazediff/interpret-native";
+
+const result = await interpret("fixtures/3a.png", "fixtures/3b.png", {
+  compact: true,
+});
+// Returns: { summary, severity, diffPercentage, regions: CompactRegion[] }
+```

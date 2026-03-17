@@ -1,0 +1,27 @@
+{
+	"name": "@blazediff/interpret-native-win32-x64",
+	"version": "0.1.0",
+	"description": "blazediff-interpret binary for Windows x64",
+	"main": "blazediff-interpret.node",
+	"os": [
+		"win32"
+	],
+	"cpu": [
+		"x64"
+	],
+	"bin": {
+		"blazediff-interpret": "./blazediff-interpret.exe"
+	},
+	"files": [
+		"blazediff-interpret.exe",
+		"blazediff-interpret.node"
+	],
+	"private": false,
+	"publishConfig": {
+		"access": "public"
+	},
+	"author": "Teimur Gasanov <me@teimurjan.dev> (https://github.com/teimurjan)",
+	"repository": "https://github.com/teimurjan/blazediff",
+	"homepage": "https://blazediff.dev",
+	"license": "MIT"
+}

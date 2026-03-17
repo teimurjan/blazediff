@@ -134,6 +134,9 @@ importers:
       '@blazediff/gmsd':
         specifier: workspace:*
         version: link:../../packages/gmsd
+      '@blazediff/interpret-native':
+        specifier: workspace:*
+        version: link:../../packages/interpret-native
       '@blazediff/object':
         specifier: workspace:*
         version: link:../../packages/object
@@ -226,6 +229,9 @@ importers:
       '@blazediff/gmsd':
         specifier: workspace:*
         version: link:../gmsd
+      '@blazediff/interpret-native':
+        specifier: workspace:*
+        version: link:../interpret-native
       '@blazediff/ssim':
         specifier: workspace:*
         version: link:../ssim
@@ -362,6 +368,30 @@ importers:
       vitest:
         specifier: ^3.2.4
         version: 3.2.4(@types/debug@4.1.12)(@types/node@24.3.0)(@vitest/ui@3.2.4)(happy-dom@18.0.1)(jiti@2.6.0)(lightningcss@1.30.1)(tsx@4.20.6)(yaml@2.8.1)
+
+  packages/interpret-native:
+    devDependencies:
+      '@types/node':
+        specifier: ^24.3.0
+        version: 24.3.0
+      tsup:
+        specifier: 8.5.0
+        version: 8.5.0(jiti@2.6.0)(postcss@8.5.6)(tsx@4.20.6)(typescript@5.9.2)(yaml@2.8.1)
+      typescript:
+        specifier: 5.9.2
+        version: 5.9.2
+
+  packages/interpret-native-darwin-arm64: {}
+
+  packages/interpret-native-darwin-x64: {}
+
+  packages/interpret-native-linux-arm64: {}
+
+  packages/interpret-native-linux-x64: {}
+
+  packages/interpret-native-win32-arm64: {}
+
+  packages/interpret-native-win32-x64: {}
 
   packages/jest:
     dependencies:
@@ -5713,6 +5743,7 @@ packages:
 
 ignoredOptionalDependencies:
   - '@blazediff/core-native-*'
+  - '@blazediff/interpret-native-*'
 
 snapshots:
 

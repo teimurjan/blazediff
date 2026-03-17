@@ -1,0 +1,27 @@
+{
+	"name": "@blazediff/interpret-native-linux-arm64",
+	"version": "0.1.0",
+	"description": "blazediff-interpret binary for Linux ARM64",
+	"main": "blazediff-interpret.node",
+	"os": [
+		"linux"
+	],
+	"cpu": [
+		"arm64"
+	],
+	"bin": {
+		"blazediff-interpret": "./blazediff-interpret"
+	},
+	"files": [
+		"blazediff-interpret",
+		"blazediff-interpret.node"
+	],
+	"private": false,
+	"publishConfig": {
+		"access": "public"
+	},
+	"author": "Teimur Gasanov <me@teimurjan.dev> (https://github.com/teimurjan)",
+	"repository": "https://github.com/teimurjan/blazediff",
+	"homepage": "https://blazediff.dev",
+	"license": "MIT"
+}

@@ -100,6 +100,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "blazediff-interpret"
+version = "0.1.0"
+dependencies = [
+ "blazediff",
+ "clap",
+ "napi",
+ "napi-build",
+ "napi-derive",
+ "rayon",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "bumpalo"
 version = "3.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

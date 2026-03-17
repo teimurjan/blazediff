@@ -31,6 +31,16 @@ const LINES: TerminalLine[] = [
 	},
 	{ text: "GMSD: 0.0234", isCommand: false },
 	{ text: "GMS map saved to: gms-map.png", isCommand: false },
+	{ text: "", isCommand: false },
+	{
+		text: "$ blazediff-cli interpret image1.png image2.png --compact",
+		isCommand: true,
+		typingDelay: 40,
+	},
+	{
+		text: '{ "severity": "Medium", "diffPercentage": 1.87, "summary": "Moderate visual change detected (1.87%, 10 regions), Content changed: 4 regions. Content added: 3 regions." }',
+		isCommand: false,
+	},
 ];
 
 export default function TerminalTyping() {
@@ -97,18 +107,16 @@ export default function TerminalTyping() {
 		currentCharIndex < (currentLine?.text.length ?? 0);
 
 	return (
-		<div className="rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
-			<div className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-				<div className="w-3 h-3 rounded-full bg-red-500" />
-				<div className="w-3 h-3 rounded-full bg-yellow-500" />
-				<div className="w-3 h-3 rounded-full bg-green-500" />
-				<span className="ml-2 text-xs text-gray-500 dark:text-gray-400">
-					terminal
-				</span>
+		<div className="rounded-lg overflow-hidden border border-gray-800">
+			<div className="flex items-center gap-2 px-4 py-2 bg-neutral-700 border-b border-gray-800">
+				<div className="w-3 h-3 rounded-full bg-neutral-400" />
+				<div className="w-3 h-3 rounded-full bg-neutral-400" />
+				<div className="w-3 h-3 rounded-full bg-neutral-400" />
+				<span className="ml-2 text-xs">terminal</span>
 			</div>
 			<div
 				ref={containerRef}
-				className="bg-gray-950 p-4 min-h-[240px] max-h-[280px] overflow-y-auto"
+				className="bg-black px-4 py-2 min-h-[240px] max-h-[340px] overflow-y-auto"
 			>
 				{displayedLines.map((line, lineIndex) => (
 					<div
@@ -116,14 +124,14 @@ export default function TerminalTyping() {
 						className="leading-relaxed"
 					>
 						{LINES[lineIndex]?.isCommand ? (
-							<span className="text-green-400 text-sm">
+							<span className="text-blue-400 text-sm">
 								{line}
 								{showCursor && lineIndex === currentLineIndex && (
 									<span className="animate-pulse">|</span>
 								)}
 							</span>
 						) : (
-							<span className="text-gray-300 text-sm">{line}</span>
+							<span className="text-gray-400 text-sm">{line}</span>
 						)}
 					</div>
 				))}
@@ -131,7 +139,7 @@ export default function TerminalTyping() {
 					showCursor &&
 					displayedLines.length - 1 < currentLineIndex && (
 						<div className="leading-relaxed">
-							<span className="text-green-400 text-sm">
+							<span className="text-blue-500 text-sm">
 								{displayedLines[currentLineIndex] ?? ""}
 								<span className="animate-pulse">|</span>
 							</span>

@@ -20,6 +20,9 @@ export default {
 	"core-native": {
 		title: "@blazediff/core-native",
 	},
+	"interpret-native": {
+		title: "@blazediff/interpret-native",
+	},
 	matcher: {
 		title: "@blazediff/matcher",
 	},

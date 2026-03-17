@@ -9,4 +9,12 @@ export default withNextra({
 			"next-mdx-import-source-file": "./mdx-components.ts",
 		},
 	},
+	images: {
+		remotePatterns: [
+			{
+				protocol: "https",
+				hostname: "raw.githubusercontent.com",
+			},
+		],
+	},
 });

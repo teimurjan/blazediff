@@ -2,12 +2,14 @@
 title: BlazeDiff - High-Performance Diff Checking
 ---
 
-import { IconBolt, IconBox, IconFeather, IconBrandJavascript, IconBrandRust, IconTerminal2 } from "@tabler/icons-react";
+import { IconBolt, IconBox, IconFeather, IconBrandJavascript, IconBrandRust, IconTerminal2, IconLanguage } from "@tabler/icons-react";
 import Link from "next/link";
 import DiffImageComparison from "../components/diff-image-comparison";
 import SsimImageComparison from "../components/ssim-image-comparison";
 import GmsdImageComparison from "../components/gmsd-image-comparison";
+import InterpretSummary from "../components/interpret-summary";
 import TerminalTyping from "../components/terminal-typing";
+import diffData from "../data/interpret/blazediff-3-diff.json";
 
 <h1 className="text-5xl font-bold mt-8 mb-16 text-center">BlazeDiff</h1>
 
@@ -49,7 +51,7 @@ npm i @blazediff/cli
   <div className="text-gray-600 dark:text-gray-400 mb-4">
     Compare images directly from the command line with{" "}
     <Link href="/docs/cli" className="text-blue-500 dark:text-blue-400">@blazediff/cli</Link>.
-    Supports all algorithms: pixel diff, SSIM, MS-SSIM, GMSD, and the native Rust binary.
+    Supports all algorithms: pixel diff, SSIM, MS-SSIM, GMSD, interpret, and the native Rust binary.
   </div>
 
   <TerminalTyping />
@@ -181,30 +183,55 @@ npm i @blazediff/cli
   </div>
 </div>
 
+### Interpret Differences
+
+<div className="mt-4 mb-6">
+  <InterpretSummary severity={diffData.compact.severity} diffPercentage={diffData.compact.diffPercentage}>
+    <p className="text-sm whitespace-pre-line">
+      {diffData.compact.summary}
+    </p>
+  </InterpretSummary>
+</div>
+
+<div className="mb-8">
+  <div className="p-5 rounded-lg border border-gray-200 dark:border-gray-700">
+    <div className="flex items-center gap-3 mb-3">
+      <IconLanguage size={32} className="text-emerald-700" />
+      <Link href="/docs/interpret-native" className="font-semibold text-lg text-blue-500 dark:text-blue-400">
+        @blazediff/interpret-native
+      </Link>
+    </div>
+    <div className="text-gray-600 dark:text-gray-400 text-sm">
+      Structured diff analysis — region detection, content-aware classification, severity scoring, and human-readable descriptions. Same Rust + SIMD engine, with a content analysis layer on top.
+    </div>
+  </div>
+</div>
+
 ### Compare Perceptual Quality
 
 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4 mb-8">
   <div>
-    <h4 className="text-lg font-semibold mb-3">
-      <Link href="/docs/ssim" className="text-blue-500 dark:text-blue-400">SSIM</Link>
-      {" "}<span className="text-gray-500 dark:text-gray-400 font-normal text-sm">Structural Similarity Index</span>
-    </h4>
-    <SsimImageComparison
-      fixtureA="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3a.png"
-      fixtureB="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3b.png"
-      variant="ssim"
-    />
+    <div className="mb-3">
+      <SsimImageComparison
+        fixtureA="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3a.png"
+        fixtureB="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3b.png"
+        variant="ssim"
+      />
+    </div>
+
+
+    <Link href="/docs/ssim" className="text-blue-500 dark:text-blue-400">@blazediff/ssim</Link>
   </div>
 
   <div>
-    <h4 className="text-lg font-semibold mb-3">
-      <Link href="/docs/gmsd" className="text-blue-500 dark:text-blue-400">GMSD</Link>
-      {" "}<span className="text-gray-500 dark:text-gray-400 font-normal text-sm">Gradient Magnitude Similarity Deviation</span>
-    </h4>
-    <GmsdImageComparison
-      fixtureA="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3a.png"
-      fixtureB="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3b.png"
-    />
+    <div className="mb-3">
+      <GmsdImageComparison
+        fixtureA="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3a.png"
+        fixtureB="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3b.png"
+      />
+    </div>
+
+    <Link href="/docs/ssim" className="text-blue-500 dark:text-blue-400">@blazediff/gmsd</Link>
   </div>
 </div>
 

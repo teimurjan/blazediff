@@ -9,3 +9,4 @@ onlyBuiltDependencies:
 
 ignoredOptionalDependencies:
   - "@blazediff/core-native-*"
+  - "@blazediff/interpret-native-*"
