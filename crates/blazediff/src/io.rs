@@ -110,11 +110,13 @@ pub fn save_png_with_compression<P: AsRef<Path>>(
     Ok(())
 }
 
-fn encode_png(image: &Image, compression_level: i32) -> Result<Vec<u8>, DiffError> {
+pub fn encode_png(image: &Image, compression_level: i32) -> Result<Vec<u8>, DiffError> {
     unsafe {
         let ctx = spng_ctx_new(spng_ctx_flags_SPNG_CTX_ENCODER as c_int);
         if ctx.is_null() {
-            return Err(DiffError::PngError("Failed to create spng encoder context".into()));
+            return Err(DiffError::PngError(
+                "Failed to create spng encoder context".into(),
+            ));
         }
 
         let mut ihdr = spng_ihdr {
@@ -138,7 +140,11 @@ fn encode_png(image: &Image, compression_level: i32) -> Result<Vec<u8>, DiffErro
             spng_option_SPNG_FILTER_CHOICE,
             spng_filter_choice_SPNG_DISABLE_FILTERING as c_int,
         );
-        spng_set_option(ctx, spng_option_SPNG_IMG_COMPRESSION_LEVEL, compression_level);
+        spng_set_option(
+            ctx,
+            spng_option_SPNG_IMG_COMPRESSION_LEVEL,
+            compression_level,
+        );
 
         let flags = spng_encode_flags_SPNG_ENCODE_FINALIZE as c_int;
         let ret = spng_encode_image(
@@ -151,7 +157,10 @@ fn encode_png(image: &Image, compression_level: i32) -> Result<Vec<u8>, DiffErro
 
         if ret != 0 {
             spng_ctx_free(ctx);
-            return Err(DiffError::PngError(format!("Failed to encode image: {}", ret)));
+            return Err(DiffError::PngError(format!(
+                "Failed to encode image: {}",
+                ret
+            )));
         }
 
         let mut len: usize = 0;
@@ -160,7 +169,10 @@ fn encode_png(image: &Image, compression_level: i32) -> Result<Vec<u8>, DiffErro
 
         if buf.is_null() || error != 0 {
             spng_ctx_free(ctx);
-            return Err(DiffError::PngError(format!("Failed to get PNG buffer: {}", error)));
+            return Err(DiffError::PngError(format!(
+                "Failed to get PNG buffer: {}",
+                error
+            )));
         }
 
         let result = std::slice::from_raw_parts(buf as *const u8, len).to_vec();

@@ -167,7 +167,8 @@ fn fill_block_gray_neon(
                 // Luminance: Y = 0.299*R + 0.587*G + 0.114*B
                 let luminance = vfmaq_n_f32(
                     vfmaq_n_f32(vmulq_n_f32(r, YIQ_Y_F32[0]), g, YIQ_Y_F32[1]),
-                    b, YIQ_Y_F32[2]
+                    b,
+                    YIQ_Y_F32[2],
                 );
 
                 // Gray = 255 + (luminance - 255) * alpha_scaled * pixel_alpha
@@ -179,9 +180,9 @@ fn fill_block_gray_neon(
                 let result = vorrq_u32(
                     vorrq_u32(
                         vorrq_u32(gray_u32, vshlq_n_u32(gray_u32, 8)),
-                        vshlq_n_u32(gray_u32, 16)
+                        vshlq_n_u32(gray_u32, 16),
                     ),
-                    alpha_byte
+                    alpha_byte,
                 );
 
                 vst1q_u32(dst_ptr.add(offset), result);
@@ -254,7 +255,7 @@ unsafe fn fill_block_gray_avx2(
             let gray_f = _mm256_fmadd_ps(
                 _mm256_sub_ps(luminance, v255),
                 _mm256_mul_ps(alpha_vec, a),
-                v255
+                v255,
             );
             let gray_clamped = _mm256_min_ps(_mm256_max_ps(gray_f, zero), v255);
             let gray_u32 = _mm256_cvtps_epi32(gray_clamped);
@@ -263,9 +264,9 @@ unsafe fn fill_block_gray_avx2(
             let result = _mm256_or_si256(
                 _mm256_or_si256(
                     _mm256_or_si256(gray_u32, _mm256_slli_epi32(gray_u32, 8)),
-                    _mm256_slli_epi32(gray_u32, 16)
+                    _mm256_slli_epi32(gray_u32, 16),
                 ),
-                alpha_byte
+                alpha_byte,
             );
 
             _mm256_storeu_si256(dst_ptr.add(offset) as *mut __m256i, result);
@@ -274,7 +275,13 @@ unsafe fn fill_block_gray_avx2(
 
         // Process remaining 4 pixels with SSE
         if offset + 4 <= row_width {
-            fill_row_gray_sse4(source_pixels, output_pixels, row_start, offset, alpha_scaled);
+            fill_row_gray_sse4(
+                source_pixels,
+                output_pixels,
+                row_start,
+                offset,
+                alpha_scaled,
+            );
             offset += 4;
         }
 
@@ -321,17 +328,23 @@ unsafe fn fill_row_gray_sse4(
     let b = _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(pixels, 16), mask_ff));
     let a = _mm_cvtepi32_ps(_mm_srli_epi32(pixels, 24));
 
-    let luminance = _mm_add_ps(_mm_add_ps(_mm_mul_ps(r, y_r), _mm_mul_ps(g, y_g)), _mm_mul_ps(b, y_b));
-    let gray_f = _mm_add_ps(v255, _mm_mul_ps(_mm_sub_ps(luminance, v255), _mm_mul_ps(alpha_vec, a)));
+    let luminance = _mm_add_ps(
+        _mm_add_ps(_mm_mul_ps(r, y_r), _mm_mul_ps(g, y_g)),
+        _mm_mul_ps(b, y_b),
+    );
+    let gray_f = _mm_add_ps(
+        v255,
+        _mm_mul_ps(_mm_sub_ps(luminance, v255), _mm_mul_ps(alpha_vec, a)),
+    );
     let gray_clamped = _mm_min_ps(_mm_max_ps(gray_f, zero), v255);
     let gray_u32 = _mm_cvtps_epi32(gray_clamped);
 
     let result = _mm_or_si128(
         _mm_or_si128(
             _mm_or_si128(gray_u32, _mm_slli_epi32(gray_u32, 8)),
-            _mm_slli_epi32(gray_u32, 16)
+            _mm_slli_epi32(gray_u32, 16),
         ),
-        alpha_byte
+        alpha_byte,
     );
 
     _mm_storeu_si128(dst_ptr as *mut __m128i, result);
@@ -361,7 +374,13 @@ unsafe fn fill_block_gray_sse(
         let mut offset = 0usize;
 
         while offset + 4 <= row_width {
-            fill_row_gray_sse4(source_pixels, output_pixels, row_start, offset, alpha_scaled);
+            fill_row_gray_sse4(
+                source_pixels,
+                output_pixels,
+                row_start,
+                offset,
+                alpha_scaled,
+            );
             offset += 4;
         }
 

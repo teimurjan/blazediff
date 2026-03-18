@@ -25,6 +25,7 @@ default = []
 napi = ["dep:napi", "dep:napi-derive"]
 
 [dependencies]
+base64 = "0.22"
 blazediff = { path = "../blazediff" }
 clap = { version = "4", features = ["derive"] }
 rayon = "1.10"

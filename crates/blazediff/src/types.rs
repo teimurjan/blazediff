@@ -23,7 +23,11 @@ impl Image {
         let size = (width * height * 4) as usize;
         let mut data = Vec::with_capacity(size);
         unsafe { data.set_len(size) };
-        Self { data, width, height }
+        Self {
+            data,
+            width,
+            height,
+        }
     }
 
     #[inline]

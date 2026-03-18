@@ -131,6 +131,7 @@ Via `@blazediff/cli`:
 ```bash
 blazediff-cli interpret expected.png actual.png
 blazediff-cli interpret expected.png actual.png --compact
+blazediff-cli interpret expected.png actual.png --output report.html
 blazediff-cli interpret expected.png actual.png --threshold 0.05 --antialiasing
 ```
 
@@ -142,6 +143,9 @@ npx blazediff-interpret expected.png actual.png
 
 # Compact output
 npx blazediff-interpret expected.png actual.png --compact
+
+# Interactive HTML report
+npx blazediff-interpret expected.png actual.png --output report.html
 
 # Text output
 npx blazediff-interpret expected.png actual.png --output-format text
@@ -164,9 +168,12 @@ Options:
   -a, --antialiasing           Enable anti-aliasing detection
       --output-format <FORMAT> Output format (json or text) [default: json]
       --compact                Output compact JSON
+  -o, --output <PATH>          Write output to a file; `.html` generates an interactive report
   -h, --help                   Print help
   -V, --version                Print version
 ```
+
+If `--output` ends with `.html`, the CLI writes an interactive review page with side-by-side images, clickable region rows, and keyboard navigation. In that mode it does not print JSON or text to stdout.
 
 ### Exit Codes
 

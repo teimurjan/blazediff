@@ -11,8 +11,8 @@ pub fn load_qoi<P: AsRef<Path>>(path: P) -> Result<Image, DiffError> {
     let file = File::open(path.as_ref())?;
     let file_data = unsafe { Mmap::map(&file)? };
 
-    let (header, pixels) = qoi::decode_to_vec(&file_data)
-        .map_err(|e| DiffError::QoiError(e.to_string()))?;
+    let (header, pixels) =
+        qoi::decode_to_vec(&file_data).map_err(|e| DiffError::QoiError(e.to_string()))?;
 
     let width = header.width;
     let height = header.height;
@@ -90,5 +90,4 @@ mod tests {
 
         std::fs::remove_file(temp_path).ok();
     }
-
 }

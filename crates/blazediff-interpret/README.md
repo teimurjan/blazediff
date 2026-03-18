@@ -30,6 +30,9 @@ cargo install blazediff-interpret
 # JSON output (default)
 blazediff-interpret image1.png image2.png
 
+# Interactive HTML report
+blazediff-interpret image1.png image2.png --output report.html
+
 # Compact output (summary + severity + compact regions)
 blazediff-interpret image1.png image2.png --compact
 
@@ -39,6 +42,8 @@ blazediff-interpret image1.png image2.png --output-format text
 # Custom threshold + anti-aliasing detection
 blazediff-interpret image1.png image2.png -t 0.05 --antialiasing
 ```
+
+When `--output` points to a `.html` file, `blazediff-interpret` writes a self-contained visual report instead of printing JSON/text to stdout. The report embeds both images, lists compact region rows, and lets you step through changes with mouse clicks or `ArrowUp` / `ArrowDown`.
 
 ### Exit Codes
 

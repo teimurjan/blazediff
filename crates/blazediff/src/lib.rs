@@ -21,10 +21,10 @@ pub mod antialiasing;
 pub mod diff;
 pub mod io;
 pub mod jpeg_io;
-pub mod qoi_io;
 #[cfg(feature = "napi")]
 mod napi;
 pub mod output;
+pub mod qoi_io;
 pub mod simd;
 #[allow(
     non_upper_case_globals,
@@ -45,7 +45,7 @@ pub mod yiq;
 
 // Re-export main types and functions
 pub use diff::diff;
-pub use io::{load_png, load_pngs, save_png, save_png_with_compression};
+pub use io::{encode_png, load_png, load_pngs, save_png, save_png_with_compression};
 pub use jpeg_io::{load_jpeg, load_jpegs, save_jpeg};
 pub use qoi_io::{load_qoi, load_qois, save_qoi};
 pub use types::{DiffError, DiffOptions, DiffResult, Image};

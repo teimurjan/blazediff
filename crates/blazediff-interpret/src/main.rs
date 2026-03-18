@@ -8,9 +8,12 @@
 //!   1 - Images differ
 //!   2 - Error
 
+mod html_report;
+
 use blazediff::DiffOptions;
 use blazediff_interpret::{interpret, io::load_images};
 use clap::Parser;
+use std::path::Path;
 use std::process::ExitCode;
 
 #[derive(Parser, Debug)]
@@ -42,6 +45,10 @@ struct Args {
     /// Output compact JSON (summary, severity, diff_percentage, compact regions)
     #[arg(long)]
     compact: bool,
+
+    /// Write output to a file. `.html` generates an interactive report.
+    #[arg(short, long)]
+    output: Option<String>,
 }
 
 fn main() -> ExitCode {
@@ -69,7 +76,29 @@ fn main() -> ExitCode {
         }
     };
 
-    if args.compact {
+    if let Some(output_path) = &args.output {
+        let is_html = Path::new(output_path)
+            .extension()
+            .and_then(|ext| ext.to_str())
+            .is_some_and(|ext| ext.eq_ignore_ascii_case("html"));
+
+        if !is_html {
+            output_error(
+                &args,
+                "Unsupported output path. Only `.html` output is currently supported.",
+            );
+            return ExitCode::from(2);
+        }
+
+        if let Err(e) =
+            html_report::generate_html_report(&result, &args.image1, &args.image2, output_path)
+        {
+            output_error(&args, &format!("Failed to write report: {e}"));
+            return ExitCode::from(2);
+        }
+
+        eprintln!("Wrote HTML report to {output_path}");
+    } else if args.compact {
         println!(
             "{}",
             serde_json::to_string_pretty(&result.to_compact()).unwrap()
@@ -89,10 +118,7 @@ fn main() -> ExitCode {
 
 fn output_error(args: &Args, message: &str) {
     if args.output_format == "json" {
-        eprintln!(
-            "{}",
-            serde_json::json!({ "error": message })
-        );
+        eprintln!("{}", serde_json::json!({ "error": message }));
     } else {
         eprintln!("Error: {message}");
     }

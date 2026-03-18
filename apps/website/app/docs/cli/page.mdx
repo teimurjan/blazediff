@@ -382,6 +382,12 @@ blazediff-cli interpret image1.png image2.png
 blazediff-cli interpret image1.png image2.png --compact
 ```
 
+#### HTML Report
+
+```bash
+blazediff-cli interpret image1.png image2.png --output report.html
+```
+
 #### Options
 
 ```bash
@@ -391,6 +397,7 @@ Options:
   -t, --threshold <n>      Color difference threshold (0-1, default: 0.1)
   -a, --antialiasing       Enable anti-aliasing detection
   --compact                Return compact results (summary + severity only)
+  -o, --output <path>      Write output to a file; `.html` generates an interactive report
   -h, --help               Display help
 ```
 
@@ -400,6 +407,8 @@ Prints structured JSON with:
 - **Summary** — structured overview grouped by change type
 - **Severity** — Low (&lt;1%), Medium (1-10%), High (&gt;10%)
 - **Regions** — each with position, change type, confidence, and percentage
+
+If `--output` ends with `.html`, the command writes an interactive visual report instead of printing JSON to stdout.
 
 #### Exit Codes
 
@@ -424,6 +433,9 @@ $ blazediff-cli interpret reference.png test.png --compact
   "diffPercentage": 1.87,
   "regions": [{ "position": "Bottom", "changeType": "Deletion", "confidence": 1.0, ... }]
 }
+
+$ blazediff-cli interpret reference.png test.png --output report.html
+# writes report.html with side-by-side images and clickable region rows
 ```
 
 <Callout type="info">

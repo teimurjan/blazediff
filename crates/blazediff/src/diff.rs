@@ -660,9 +660,23 @@ fn process_hot_block(
     image2: &Image,
 ) -> u32 {
     process_hot_block_neon(
-        a32, b32, out32, width, start_x, start_y, end_x, end_y,
-        max_delta, include_aa, draw_background, diff_color, diff_color_alt, aa_color,
-        alpha_f32, image1, image2,
+        a32,
+        b32,
+        out32,
+        width,
+        start_x,
+        start_y,
+        end_x,
+        end_y,
+        max_delta,
+        include_aa,
+        draw_background,
+        diff_color,
+        diff_color_alt,
+        aa_color,
+        alpha_f32,
+        image1,
+        image2,
     )
 }
 
@@ -692,24 +706,66 @@ fn process_hot_block_with_features(
     if features.has_avx2_fma {
         unsafe {
             process_hot_block_avx2(
-                a32, b32, out32, width, start_x, start_y, end_x, end_y,
-                max_delta, include_aa, draw_background, diff_color, diff_color_alt, aa_color,
-                alpha_f32, image1, image2,
+                a32,
+                b32,
+                out32,
+                width,
+                start_x,
+                start_y,
+                end_x,
+                end_y,
+                max_delta,
+                include_aa,
+                draw_background,
+                diff_color,
+                diff_color_alt,
+                aa_color,
+                alpha_f32,
+                image1,
+                image2,
             )
         }
     } else if features.has_sse41 {
         unsafe {
             process_hot_block_sse(
-                a32, b32, out32, width, start_x, start_y, end_x, end_y,
-                max_delta, include_aa, draw_background, diff_color, diff_color_alt, aa_color,
-                alpha_f32, image1, image2,
+                a32,
+                b32,
+                out32,
+                width,
+                start_x,
+                start_y,
+                end_x,
+                end_y,
+                max_delta,
+                include_aa,
+                draw_background,
+                diff_color,
+                diff_color_alt,
+                aa_color,
+                alpha_f32,
+                image1,
+                image2,
             )
         }
     } else {
         process_hot_block_scalar(
-            a32, b32, out32, width, start_x, start_y, end_x, end_y,
-            max_delta, include_aa, draw_background, diff_color, diff_color_alt, aa_color,
-            alpha_f32, image1, image2,
+            a32,
+            b32,
+            out32,
+            width,
+            start_x,
+            start_y,
+            end_x,
+            end_y,
+            max_delta,
+            include_aa,
+            draw_background,
+            diff_color,
+            diff_color_alt,
+            aa_color,
+            alpha_f32,
+            image1,
+            image2,
         )
     }
 }
@@ -737,9 +793,23 @@ fn process_hot_block(
     image2: &Image,
 ) -> u32 {
     process_hot_block_scalar(
-        a32, b32, out32, width, start_x, start_y, end_x, end_y,
-        max_delta, include_aa, draw_background, diff_color, diff_color_alt, aa_color,
-        alpha_f32, image1, image2,
+        a32,
+        b32,
+        out32,
+        width,
+        start_x,
+        start_y,
+        end_x,
+        end_y,
+        max_delta,
+        include_aa,
+        draw_background,
+        diff_color,
+        diff_color_alt,
+        aa_color,
+        alpha_f32,
+        image1,
+        image2,
     )
 }
 
@@ -1861,7 +1931,13 @@ pub fn diff(
             } else if let Some(ref mut out) = output {
                 if !options.diff_mask {
                     fill_block_gray_optimized(
-                        image1, out, options.alpha, start_x, start_y, end_x, end_y,
+                        image1,
+                        out,
+                        options.alpha,
+                        start_x,
+                        start_y,
+                        end_x,
+                        end_y,
                     );
                 }
             }
@@ -1880,9 +1956,24 @@ pub fn diff(
             .iter()
             .map(|&(start_x, start_y, end_x, end_y)| {
                 process_hot_block_with_features(
-                    a32, b32, Some(out32), width, start_x, start_y, end_x, end_y,
-                    max_delta, include_aa, draw_background, diff_color, diff_color_alt, aa_color,
-                    alpha_f32, image1, image2, features,
+                    a32,
+                    b32,
+                    Some(out32),
+                    width,
+                    start_x,
+                    start_y,
+                    end_x,
+                    end_y,
+                    max_delta,
+                    include_aa,
+                    draw_background,
+                    diff_color,
+                    diff_color_alt,
+                    aa_color,
+                    alpha_f32,
+                    image1,
+                    image2,
+                    features,
                 )
             })
             .sum()
@@ -1891,9 +1982,24 @@ pub fn diff(
             .iter()
             .map(|&(start_x, start_y, end_x, end_y)| {
                 process_hot_block_with_features(
-                    a32, b32, None, width, start_x, start_y, end_x, end_y,
-                    max_delta, include_aa, draw_background, diff_color, diff_color_alt, aa_color,
-                    alpha_f32, image1, image2, features,
+                    a32,
+                    b32,
+                    None,
+                    width,
+                    start_x,
+                    start_y,
+                    end_x,
+                    end_y,
+                    max_delta,
+                    include_aa,
+                    draw_background,
+                    diff_color,
+                    diff_color_alt,
+                    aa_color,
+                    alpha_f32,
+                    image1,
+                    image2,
+                    features,
                 )
             })
             .sum()
@@ -1906,9 +2012,23 @@ pub fn diff(
             .iter()
             .map(|&(start_x, start_y, end_x, end_y)| {
                 process_hot_block(
-                    a32, b32, Some(out32), width, start_x, start_y, end_x, end_y,
-                    max_delta, include_aa, draw_background, diff_color, diff_color_alt, aa_color,
-                    alpha_f32, image1, image2,
+                    a32,
+                    b32,
+                    Some(out32),
+                    width,
+                    start_x,
+                    start_y,
+                    end_x,
+                    end_y,
+                    max_delta,
+                    include_aa,
+                    draw_background,
+                    diff_color,
+                    diff_color_alt,
+                    aa_color,
+                    alpha_f32,
+                    image1,
+                    image2,
                 )
             })
             .sum()
@@ -1917,9 +2037,23 @@ pub fn diff(
             .iter()
             .map(|&(start_x, start_y, end_x, end_y)| {
                 process_hot_block(
-                    a32, b32, None, width, start_x, start_y, end_x, end_y,
-                    max_delta, include_aa, draw_background, diff_color, diff_color_alt, aa_color,
-                    alpha_f32, image1, image2,
+                    a32,
+                    b32,
+                    None,
+                    width,
+                    start_x,
+                    start_y,
+                    end_x,
+                    end_y,
+                    max_delta,
+                    include_aa,
+                    draw_background,
+                    diff_color,
+                    diff_color_alt,
+                    aa_color,
+                    alpha_f32,
+                    image1,
+                    image2,
                 )
             })
             .sum()

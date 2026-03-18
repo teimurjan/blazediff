@@ -9,8 +9,8 @@ use crate::{
 };
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
-use std::path::Path;
 use rayon::prelude::*;
+use std::path::Path;
 
 /// Supported image formats
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -48,9 +48,6 @@ fn load_images<P1: AsRef<Path> + Sync, P2: AsRef<Path> + Sync>(
             ImageFormat::Jpeg => load_jpegs(&path1, &path2),
         };
     }
-
-
-
 
     let results: Vec<std::result::Result<Image, DiffError>> = [
         (path1.as_ref().to_path_buf(), fmt1),
