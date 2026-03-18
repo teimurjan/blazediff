@@ -4,8 +4,9 @@
 //! without spawning child processes.
 
 use crate::{
-    diff, load_jpeg, load_jpegs, load_png, load_pngs, save_jpeg, save_png_with_compression,
-    DiffError, DiffOptions, Image,
+    diff, interpret::html_report::generate_html_report, interpret::interpret,
+    interpret::types as itypes, load_jpeg, load_jpegs, load_png, load_pngs, save_jpeg,
+    save_png_with_compression, DiffError, DiffOptions, Image,
 };
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
@@ -17,6 +18,7 @@ use std::path::Path;
 enum ImageFormat {
     Png,
     Jpeg,
+    Qoi,
 }
 
 impl ImageFormat {
@@ -25,6 +27,7 @@ impl ImageFormat {
         match ext.as_str() {
             "png" => Some(ImageFormat::Png),
             "jpg" | "jpeg" => Some(ImageFormat::Jpeg),
+            "qoi" => Some(ImageFormat::Qoi),
             _ => None,
         }
     }
@@ -46,6 +49,7 @@ fn load_images<P1: AsRef<Path> + Sync, P2: AsRef<Path> + Sync>(
         return match fmt1 {
             ImageFormat::Png => load_pngs(&path1, &path2),
             ImageFormat::Jpeg => load_jpegs(&path1, &path2),
+            ImageFormat::Qoi => crate::load_qois(&path1, &path2),
         };
     }
 
@@ -57,6 +61,7 @@ fn load_images<P1: AsRef<Path> + Sync, P2: AsRef<Path> + Sync>(
     .map(|(path, fmt)| match fmt {
         ImageFormat::Png => load_png(path),
         ImageFormat::Jpeg => load_jpeg(path),
+        ImageFormat::Qoi => crate::load_qoi(path),
     })
     .collect();
 
@@ -77,6 +82,7 @@ fn save_image<P: AsRef<Path>>(
     match format {
         ImageFormat::Png => save_png_with_compression(image, path, compression),
         ImageFormat::Jpeg => save_jpeg(image, path, quality),
+        ImageFormat::Qoi => crate::save_qoi(image, path),
     }
 }
 
@@ -93,6 +99,10 @@ pub struct NapiDiffOptions {
     pub compression: Option<u8>,
     /// JPEG quality (1-100). Default: 90
     pub quality: Option<u8>,
+    /// Run structured interpretation instead of raw diff
+    pub interpret: Option<bool>,
+    /// Output format for diff: "png" (default) or "html" (interpret report)
+    pub output_format: Option<String>,
 }
 
 /// Result of image comparison
@@ -106,6 +116,8 @@ pub struct NapiDiffResult {
     pub diff_count: Option<u32>,
     /// Percentage of different pixels (only for pixel-diff)
     pub diff_percentage: Option<f64>,
+    /// Structured interpretation (only when interpret option is true)
+    pub interpretation: Option<NapiInterpretResult>,
 }
 
 /// Compare two images and optionally generate a diff image.
@@ -124,6 +136,8 @@ pub fn compare(
         diff_mask: None,
         compression: None,
         quality: None,
+        interpret: None,
+        output_format: None,
     });
 
     let threshold = opts.threshold.unwrap_or(0.1);
@@ -131,6 +145,8 @@ pub fn compare(
     let diff_mask = opts.diff_mask.unwrap_or(false);
     let compression = opts.compression.unwrap_or(0);
     let quality = opts.quality.unwrap_or(90);
+    let output_format = opts.output_format.as_deref().unwrap_or("png");
+    let run_interpret = opts.interpret.unwrap_or(false) || output_format == "html";
 
     // Load images
     let (img1, img2) = load_images(&base_path, &compare_path).map_err(|e| {
@@ -147,6 +163,7 @@ pub fn compare(
             reason: Some("layout-diff".to_string()),
             diff_count: None,
             diff_percentage: None,
+            interpretation: None,
         });
     }
 
@@ -157,6 +174,52 @@ pub fn compare(
         compression,
         ..Default::default()
     };
+
+    // Interpret mode: run structured analysis and return early
+    if run_interpret {
+        let result = interpret(&img1, &img2, &diff_options).map_err(|e| {
+            Error::new(
+                Status::GenericFailure,
+                format!("Interpret failed: {}", e),
+            )
+        })?;
+
+        // Generate HTML report if requested
+        if output_format == "html" {
+            if let Some(ref output_path) = diff_output {
+                generate_html_report(&result, &base_path, &compare_path, output_path).map_err(
+                    |e| {
+                        Error::new(
+                            Status::GenericFailure,
+                            format!("Failed to write HTML report: {}", e),
+                        )
+                    },
+                )?;
+            }
+        }
+
+        let is_identical = result.total_regions == 0;
+        let diff_count = result.diff_count;
+        let diff_percentage = result.diff_percentage;
+        let regions: Vec<NapiChangeRegion> = result.regions.iter().map(convert_region).collect();
+
+        return Ok(NapiDiffResult {
+            match_result: is_identical,
+            reason: if is_identical { None } else { Some("pixel-diff".to_string()) },
+            diff_count: Some(diff_count),
+            diff_percentage: Some(diff_percentage),
+            interpretation: Some(NapiInterpretResult {
+                summary: result.summary,
+                diff_count: result.diff_count,
+                total_regions: result.total_regions as u32,
+                regions,
+                severity: result.severity.to_string(),
+                diff_percentage: result.diff_percentage,
+                width: result.width,
+                height: result.height,
+            }),
+        });
+    }
 
     let mut output_image = if diff_output.is_some() {
         Some(Image::new_uninit(img1.width, img1.height))
@@ -185,6 +248,7 @@ pub fn compare(
             reason: None,
             diff_count: None,
             diff_percentage: None,
+            interpretation: None,
         })
     } else {
         Ok(NapiDiffResult {
@@ -192,6 +256,181 @@ pub fn compare(
             reason: Some("pixel-diff".to_string()),
             diff_count: Some(result.diff_count),
             diff_percentage: Some(result.diff_percentage),
+            interpretation: None,
         })
     }
 }
+
+// ─── Interpret N-API bindings ────────────────────────────────────────────────
+
+#[napi(object)]
+pub struct NapiInterpretOptions {
+    pub threshold: Option<f64>,
+    pub antialiasing: Option<bool>,
+}
+
+#[napi(object)]
+pub struct NapiBoundingBox {
+    pub x: u32,
+    pub y: u32,
+    pub width: u32,
+    pub height: u32,
+}
+
+#[napi(object)]
+pub struct NapiShapeStats {
+    pub fill_ratio: f64,
+    pub border_ratio: f64,
+    pub inner_fill_ratio: f64,
+    pub center_density: f64,
+    pub row_occupancy: f64,
+    pub col_occupancy: f64,
+}
+
+#[napi(object)]
+pub struct NapiColorDeltaStats {
+    pub mean_delta: f64,
+    pub max_delta: f64,
+}
+
+#[napi(object)]
+pub struct NapiGradientStats {
+    pub edge_score: f64,
+}
+
+#[napi(object)]
+pub struct NapiClassificationSignals {
+    pub blends_with_bg_in_img1: bool,
+    pub blends_with_bg_in_img2: bool,
+    pub low_color_delta: bool,
+    pub low_edge_change: bool,
+    pub dense_fill: bool,
+    pub sparse_fill: bool,
+    pub tiny_region: bool,
+    pub confidence: f64,
+}
+
+#[napi(object)]
+pub struct NapiChangeRegion {
+    pub bbox: NapiBoundingBox,
+    pub pixel_count: u32,
+    pub percentage: f64,
+    pub position: String,
+    pub shape: String,
+    pub shape_stats: NapiShapeStats,
+    pub change_type: String,
+    pub signals: NapiClassificationSignals,
+    pub confidence: f64,
+    pub color_delta: NapiColorDeltaStats,
+    pub gradient: NapiGradientStats,
+}
+
+#[napi(object)]
+pub struct NapiInterpretResult {
+    pub summary: String,
+    pub diff_count: u32,
+    pub total_regions: u32,
+    pub regions: Vec<NapiChangeRegion>,
+    pub severity: String,
+    pub diff_percentage: f64,
+    pub width: u32,
+    pub height: u32,
+}
+
+fn convert_region(r: &itypes::ChangeRegion) -> NapiChangeRegion {
+    NapiChangeRegion {
+        bbox: NapiBoundingBox {
+            x: r.bbox.x,
+            y: r.bbox.y,
+            width: r.bbox.width,
+            height: r.bbox.height,
+        },
+        pixel_count: r.pixel_count,
+        percentage: r.percentage,
+        position: r.position.to_string(),
+        shape: r.shape.to_string(),
+        shape_stats: NapiShapeStats {
+            fill_ratio: r.shape_stats.fill_ratio,
+            border_ratio: r.shape_stats.border_ratio,
+            inner_fill_ratio: r.shape_stats.inner_fill_ratio,
+            center_density: r.shape_stats.center_density,
+            row_occupancy: r.shape_stats.row_occupancy,
+            col_occupancy: r.shape_stats.col_occupancy,
+        },
+        change_type: r.change_type.to_string(),
+        signals: NapiClassificationSignals {
+            blends_with_bg_in_img1: r.signals.blends_with_bg_in_img1,
+            blends_with_bg_in_img2: r.signals.blends_with_bg_in_img2,
+            low_color_delta: r.signals.low_color_delta,
+            low_edge_change: r.signals.low_edge_change,
+            dense_fill: r.signals.dense_fill,
+            sparse_fill: r.signals.sparse_fill,
+            tiny_region: r.signals.tiny_region,
+            confidence: r.signals.confidence as f64,
+        },
+        confidence: r.confidence as f64,
+        color_delta: NapiColorDeltaStats {
+            mean_delta: r.color_delta.mean_delta as f64,
+            max_delta: r.color_delta.max_delta as f64,
+        },
+        gradient: NapiGradientStats {
+            edge_score: r.gradient.edge_score as f64,
+        },
+    }
+}
+
+fn run_interpret(
+    image1_path: &str,
+    image2_path: &str,
+    options: Option<NapiInterpretOptions>,
+) -> Result<itypes::InterpretResult> {
+    let opts = options.unwrap_or(NapiInterpretOptions {
+        threshold: None,
+        antialiasing: None,
+    });
+
+    let threshold = opts.threshold.unwrap_or(0.1);
+    let antialiasing = opts.antialiasing.unwrap_or(false);
+
+    let (img1, img2) = load_images(image1_path, image2_path).map_err(|e| {
+        Error::new(
+            Status::GenericFailure,
+            format!("Failed to load images: {}", e),
+        )
+    })?;
+
+    let diff_options = DiffOptions {
+        threshold,
+        include_aa: !antialiasing,
+        ..Default::default()
+    };
+
+    interpret(&img1, &img2, &diff_options).map_err(|e| {
+        Error::new(
+            Status::GenericFailure,
+            format!("Interpret failed: {}", e),
+        )
+    })
+}
+
+/// Interpret the diff between two images, returning full structured results.
+#[napi]
+pub fn interpret_images(
+    image1_path: String,
+    image2_path: String,
+    options: Option<NapiInterpretOptions>,
+) -> Result<NapiInterpretResult> {
+    let result = run_interpret(&image1_path, &image2_path, options)?;
+
+    Ok(NapiInterpretResult {
+        summary: result.summary,
+        diff_count: result.diff_count,
+        total_regions: result.total_regions as u32,
+        regions: result.regions.iter().map(convert_region).collect(),
+        severity: result.severity.to_string(),
+        diff_percentage: result.diff_percentage,
+        width: result.width,
+        height: result.height,
+    })
+}
+

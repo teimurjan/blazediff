@@ -1,4 +1,4 @@
-use crate::types::{BoundingBox, ChangeShape, ShapeStats};
+use super::types::{BoundingBox, ChangeShape, ShapeStats};
 
 pub fn compute_shape_stats(
     mask: &[bool],

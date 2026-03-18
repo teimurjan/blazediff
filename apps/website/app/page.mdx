@@ -2,13 +2,12 @@
 title: BlazeDiff - High-Performance Diff Checking
 ---
 
-import { IconBolt, IconBox, IconFeather, IconBrandJavascript, IconBrandRust, IconTerminal2, IconLanguage } from "@tabler/icons-react";
+import { IconBolt, IconBox, IconFeather, IconBrandJavascript, IconBrandRust, IconLanguage } from "@tabler/icons-react";
 import Link from "next/link";
 import DiffImageComparison from "../components/diff-image-comparison";
 import SsimImageComparison from "../components/ssim-image-comparison";
 import GmsdImageComparison from "../components/gmsd-image-comparison";
-import InterpretSummary from "../components/interpret-summary";
-import TerminalTyping from "../components/terminal-typing";
+import InterpretComparison from "../components/interpret-comparison";
 import diffData from "../data/interpret/blazediff-3-diff.json";
 
 <h1 className="text-5xl font-bold mt-8 mb-16 text-center">BlazeDiff</h1>
@@ -44,18 +43,8 @@ import diffData from "../data/interpret/blazediff-3-diff.json";
 ## Quickstart
 
 ```sh npm2yarn
-npm i @blazediff/cli
+npm i @blazediff/core-native
 ```
-
-<div className="mt-4 mb-8">
-  <div className="text-gray-600 dark:text-gray-400 mb-4">
-    Compare images directly from the command line with{" "}
-    <Link href="/docs/cli" className="text-blue-500 dark:text-blue-400">@blazediff/cli</Link>.
-    Supports all algorithms: pixel diff, SSIM, MS-SSIM, GMSD, interpret, and the native Rust binary.
-  </div>
-
-  <TerminalTyping />
-</div>
 
 
 ## Powering
@@ -186,11 +175,11 @@ npm i @blazediff/cli
 ### Interpret Differences
 
 <div className="mt-4 mb-6">
-  <InterpretSummary severity={diffData.compact.severity} diffPercentage={diffData.compact.diffPercentage}>
-    <p className="text-sm whitespace-pre-line">
-      {diffData.compact.summary}
-    </p>
-  </InterpretSummary>
+  <InterpretComparison
+    fixtureA="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3a.png"
+    fixtureB="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3b.png"
+    fullResult={diffData}
+  />
 </div>
 
 <div className="mb-8">
@@ -198,7 +187,7 @@ npm i @blazediff/cli
     <div className="flex items-center gap-3 mb-3">
       <IconLanguage size={32} className="text-emerald-700" />
       <Link href="/docs/interpret-native" className="font-semibold text-lg text-blue-500 dark:text-blue-400">
-        @blazediff/interpret-native
+        Interpret (via @blazediff/core-native)
       </Link>
     </div>
     <div className="text-gray-600 dark:text-gray-400 text-sm">

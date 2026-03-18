@@ -1,7 +1,7 @@
 /// Extract labeled regions from a watershed label map into ComponentInfo structs.
 
-use crate::region::ComponentInfo;
-use crate::types::BoundingBox;
+use super::ComponentInfo;
+use super::super::types::BoundingBox;
 use std::collections::HashMap;
 
 /// Convert a label map + original mask into ComponentInfo bounding boxes and pixel counts.

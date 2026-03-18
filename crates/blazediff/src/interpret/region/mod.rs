@@ -1,7 +1,7 @@
 mod label_extract;
 mod morphology;
 
-use crate::types::BoundingBox;
+use super::types::BoundingBox;
 use label_extract::extract_labeled_regions;
 use morphology::morph_close;
 

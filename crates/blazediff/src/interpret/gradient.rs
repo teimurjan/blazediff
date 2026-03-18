@@ -1,6 +1,6 @@
-use blazediff::Image;
+use crate::types::Image;
 
-use crate::types::{BoundingBox, GradientStats};
+use super::types::{BoundingBox, GradientStats};
 
 const EDGE_GRADIENT_THRESHOLD_SQ: f32 = 30.0 * 30.0;
 
@@ -116,7 +116,7 @@ fn lum_at(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_helpers::*;
+    use crate::interpret::test_helpers::*;
 
     #[test]
     fn test_flat_image_zero_edge_score() {

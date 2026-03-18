@@ -376,12 +376,6 @@ Structured diff analysis — detects change regions and classifies them with con
 blazediff-cli interpret image1.png image2.png
 ```
 
-#### Compact Output
-
-```bash
-blazediff-cli interpret image1.png image2.png --compact
-```
-
 #### HTML Report
 
 ```bash
@@ -396,7 +390,6 @@ blazediff-cli interpret <image1> <image2> [options]
 Options:
   -t, --threshold <n>      Color difference threshold (0-1, default: 0.1)
   -a, --antialiasing       Enable anti-aliasing detection
-  --compact                Return compact results (summary + severity only)
   -o, --output <path>      Write output to a file; `.html` generates an interactive report
   -h, --help               Display help
 ```
@@ -426,20 +419,12 @@ $ blazediff-cli interpret reference.png test.png
   "regions": [...]
 }
 
-$ blazediff-cli interpret reference.png test.png --compact
-{
-  "summary": "Moderate visual change detected (1.87% of image, 12 regions).\n...",
-  "severity": "Medium",
-  "diffPercentage": 1.87,
-  "regions": [{ "position": "Bottom", "changeType": "Deletion", "confidence": 1.0, ... }]
-}
-
 $ blazediff-cli interpret reference.png test.png --output report.html
 # writes report.html with side-by-side images and clickable region rows
 ```
 
 <Callout type="info">
-  **Same engine as `@blazediff/interpret-native`** — the CLI command uses the same Rust + SIMD binary under the hood, just wrapped for command-line use.
+  **Same engine as `@blazediff/core-native`** — the CLI command uses the same Rust + SIMD binary under the hood, just wrapped for command-line use.
 </Callout>
 
   </Tabs.Tab>

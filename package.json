@@ -4,10 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "postinstall": "node ./scripts/link-local-platform-core-native.js && node ./scripts/link-local-core-native.js && node ./scripts/link-local-platform-interpret-native.js && node ./scripts/link-local-interpret-native.js",
+    "postinstall": "node ./scripts/link-local-platform-core-native.js && node ./scripts/link-local-core-native.js",
     "build": "pnpm -r --filter=!@blazediff/website build",
     "build:rust": "cd crates/blazediff && ./scripts/build-all.sh --all",
-    "build:rust:interpret": "cd crates/blazediff-interpret && ./scripts/build-all.sh --native --napi",
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck",
     "changeset": "changeset",

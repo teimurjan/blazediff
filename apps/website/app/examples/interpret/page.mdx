@@ -10,7 +10,7 @@ Structured image diff analysis powered by a native Rust binary. Unlike pixel-lev
 ## Installation
 
 ```bash npm2yarn
-npm install @blazediff/interpret-native
+npm install @blazediff/core-native
 ```
 
 ## Overview
@@ -23,12 +23,11 @@ The interpret function analyzes two images and returns structured results includ
     <InterpretComparison
       fixtureA="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3a.png"
       fixtureB="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3b.png"
-      fullResult={diffData.full}
-      compactResult={diffData.compact}
+      fullResult={diffData}
     />
 
 ```ts
-import { interpret } from "@blazediff/interpret-native";
+import { interpret } from "@blazediff/core-native";
 
 const result = await interpret("fixtures/3a.png", "fixtures/3b.png");
 console.log(result.summary);
@@ -47,12 +46,11 @@ for (const region of result.regions) {
     <InterpretComparison
       fixtureA="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3a.png"
       fixtureB="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3a.png"
-      fullResult={identicalData.full}
-      compactResult={identicalData.compact}
+      fullResult={identicalData}
     />
 
 ```ts
-import { interpret } from "@blazediff/interpret-native";
+import { interpret } from "@blazediff/core-native";
 
 // Comparing identical images
 const result = await interpret("fixtures/3a.png", "fixtures/3a.png");
@@ -62,16 +60,3 @@ console.log(result.regions.length); // 0
 
   </Tabs.Tab>
 </Tabs>
-
-### Compact Mode
-
-Use compact mode to get a simplified result with only the essential information:
-
-```ts
-import { interpret } from "@blazediff/interpret-native";
-
-const result = await interpret("fixtures/3a.png", "fixtures/3b.png", {
-  compact: true,
-});
-// Returns: { summary, severity, diffPercentage, regions: CompactRegion[] }
-```

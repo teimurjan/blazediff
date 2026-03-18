@@ -1,6 +1,6 @@
-use blazediff::Image;
+use crate::types::Image;
 
-use crate::types::BoundingBox;
+use super::types::BoundingBox;
 
 /// Evidence about content at a change region in both source images.
 ///

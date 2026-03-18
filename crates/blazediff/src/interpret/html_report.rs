@@ -1,6 +1,6 @@
 use base64::{engine::general_purpose::STANDARD, Engine as _};
-use blazediff::{encode_png, load_qoi, DiffError};
-use blazediff_interpret::types::{ChangeSeverity, InterpretResult};
+use crate::{io::encode_png, qoi_io::load_qoi, types::DiffError};
+use super::types::{ChangeSeverity, InterpretResult};
 use std::fs;
 use std::path::Path;
 
@@ -61,7 +61,7 @@ where
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>blazediff-interpret report</title>
+  <title>blazediff interpret report</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     body {{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }}

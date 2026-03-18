@@ -3,48 +3,13 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct InterpretResult {
     pub summary: String,
+    pub diff_count: u32,
     pub total_regions: usize,
     pub regions: Vec<ChangeRegion>,
     pub severity: ChangeSeverity,
     pub diff_percentage: f64,
     pub width: u32,
     pub height: u32,
-}
-
-impl InterpretResult {
-    pub fn to_compact(&self) -> CompactResult {
-        CompactResult {
-            summary: self.summary.clone(),
-            severity: self.severity,
-            diff_percentage: self.diff_percentage,
-            regions: self
-                .regions
-                .iter()
-                .map(|r| CompactRegion {
-                    position: r.position,
-                    change_type: r.change_type,
-                    confidence: r.confidence,
-                    percentage: r.percentage,
-                })
-                .collect(),
-        }
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct CompactResult {
-    pub summary: String,
-    pub severity: ChangeSeverity,
-    pub diff_percentage: f64,
-    pub regions: Vec<CompactRegion>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct CompactRegion {
-    pub position: SpatialPosition,
-    pub change_type: ChangeType,
-    pub confidence: f32,
-    pub percentage: f64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

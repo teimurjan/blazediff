@@ -21,13 +21,6 @@ interface ChangeRegion {
   confidence: number;
 }
 
-interface CompactRegion {
-  position: string;
-  changeType: string;
-  confidence: number;
-  percentage: number;
-}
-
 interface InterpretResult {
   summary: string;
   totalRegions: number;
@@ -38,20 +31,10 @@ interface InterpretResult {
   height: number;
 }
 
-interface CompactResult {
-  summary: string;
-  severity: string;
-  diffPercentage: number;
-  regions: CompactRegion[];
-}
-
-type Mode = "full" | "compact";
-
 interface InterpretComparisonProps {
   fixtureA: string;
   fixtureB: string;
   fullResult: InterpretResult;
-  compactResult: CompactResult;
 }
 
 function RegionHighlight({
@@ -81,13 +64,9 @@ export default function InterpretComparison({
   fixtureA,
   fixtureB,
   fullResult,
-  compactResult,
 }: InterpretComparisonProps) {
-  const [mode, setMode] = useState<Mode>("full");
   const [jsonExpanded, setJsonExpanded] = useState(false);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-
-  const activeResult = mode === "full" ? fullResult : compactResult;
 
   const hoveredBbox =
     hoveredIndex !== null && hoveredIndex < fullResult.regions.length
@@ -138,78 +117,42 @@ export default function InterpretComparison({
       </div>
 
       <div className="space-y-4">
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={() => setMode("full")}
-            className={`px-3 py-1 rounded text-sm ${mode === "full" ? "bg-blue-600 text-white" : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300"}`}
-          >
-            Full
-          </button>
-          <button
-            type="button"
-            onClick={() => setMode("compact")}
-            className={`px-3 py-1 rounded text-sm ${mode === "compact" ? "bg-blue-600 text-white" : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300"}`}
-          >
-            Compact
-          </button>
-        </div>
-
         <InterpretSummary
-          severity={activeResult.severity}
-          diffPercentage={activeResult.diffPercentage}
+          severity={fullResult.severity}
+          diffPercentage={fullResult.diffPercentage}
         >
-          <p className="text-sm whitespace-pre-line">{activeResult.summary}</p>
+          <p className="text-sm whitespace-pre-line">{fullResult.summary}</p>
         </InterpretSummary>
 
-        {activeResult.regions.length > 0 && (
+        {fullResult.regions.length > 0 && (
           <div className="space-y-2 max-h-96 overflow-y-auto">
-            <p className="text-sm font-medium">
-              Regions ({activeResult.regions.length})
+            <p className="text-sm font-medium flex items-center gap-2 justify-between">
+              <span>Regions ({fullResult.regions.length})</span>
+			  <span className="text-gray-500">Hover a region to highlight</span>
             </p>
-            {mode === "full"
-              ? (activeResult.regions as ChangeRegion[]).map((region, i) => (
-                  // biome-ignore lint/a11y/noStaticElementInteractions: hover highlight
-                  <div
-                    key={`${region.position}-${i}`}
-                    className={`p-3 rounded-lg border text-sm cursor-pointer transition-colors ${hoveredIndex === i ? "border-blue-400 bg-blue-50 dark:bg-blue-950/30" : "border-gray-200 dark:border-gray-700"}`}
-                    onMouseEnter={() => setHoveredIndex(i)}
-                    onMouseLeave={() => setHoveredIndex(null)}
-                  >
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-medium">{region.position}</span>
-                      <span className="text-gray-500">·</span>
-                      <span>{region.changeType}</span>
-                      <span className="text-gray-500">·</span>
-                      <span className="text-gray-500">{region.shape}</span>
-                      <span className="text-gray-500">·</span>
-                      <span className="text-xs text-gray-400">
-                        ({region.bbox.x}, {region.bbox.y},{" "}
-                        {region.bbox.width}×{region.bbox.height}) ·{" "}
-                        {region.percentage.toFixed(2)}%
-                      </span>
-                    </div>
-                  </div>
-                ))
-              : (activeResult.regions as CompactRegion[]).map((region, i) => (
-                  // biome-ignore lint/a11y/noStaticElementInteractions: hover highlight
-                  <div
-                    key={`${region.position}-${i}`}
-                    className={`p-3 rounded-lg border text-sm cursor-pointer transition-colors ${hoveredIndex === i ? "border-blue-400 bg-blue-50 dark:bg-blue-950/30" : "border-gray-200 dark:border-gray-700"}`}
-                    onMouseEnter={() => setHoveredIndex(i)}
-                    onMouseLeave={() => setHoveredIndex(null)}
-                  >
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-medium">{region.position}</span>
-                      <span className="text-gray-500">·</span>
-                      <span>{region.changeType}</span>
-                      <span className="text-gray-500">·</span>
-                      <span className="text-xs text-gray-400">
-                        {region.percentage.toFixed(2)}%
-                      </span>
-                    </div>
-                  </div>
-                ))}
+            {fullResult.regions.map((region, i) => (
+              // biome-ignore lint/a11y/noStaticElementInteractions: hover highlight
+              <div
+                key={`${region.position}-${i}`}
+                className={`p-3 rounded-lg border text-sm cursor-pointer transition-colors ${hoveredIndex === i ? "border-blue-400 bg-blue-50 dark:bg-blue-950/30" : "border-gray-200 dark:border-gray-700"}`}
+                onMouseEnter={() => setHoveredIndex(i)}
+                onMouseLeave={() => setHoveredIndex(null)}
+              >
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-medium">{region.position}</span>
+                  <span className="text-gray-500">·</span>
+                  <span>{region.changeType}</span>
+                  <span className="text-gray-500">·</span>
+                  <span className="text-gray-500">{region.shape}</span>
+                  <span className="text-gray-500">·</span>
+                  <span className="text-xs text-gray-400">
+                    ({region.bbox.x}, {region.bbox.y},{" "}
+                    {region.bbox.width}×{region.bbox.height}) ·{" "}
+                    {region.percentage.toFixed(2)}%
+                  </span>
+                </div>
+              </div>
+            ))}
           </div>
         )}
 
@@ -223,7 +166,7 @@ export default function InterpretComparison({
           </button>
           {jsonExpanded && (
             <pre className="mt-2 p-3 rounded-lg bg-gray-100 dark:bg-gray-800 text-xs overflow-x-auto max-h-80">
-              {JSON.stringify(activeResult, null, 2)}
+              {JSON.stringify(fullResult, null, 2)}
             </pre>
           )}
         </div>

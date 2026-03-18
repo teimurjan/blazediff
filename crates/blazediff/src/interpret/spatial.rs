@@ -1,4 +1,4 @@
-use crate::types::{BoundingBox, SpatialPosition};
+use super::types::{BoundingBox, SpatialPosition};
 
 /// Classify the spatial position of a bounding box within a 3x3 grid.
 /// Uses the center point of the bbox to determine which cell it falls into.

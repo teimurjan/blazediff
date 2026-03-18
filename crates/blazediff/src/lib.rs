@@ -18,6 +18,7 @@
 //! ```
 
 pub mod antialiasing;
+pub mod interpret;
 pub mod diff;
 pub mod io;
 pub mod jpeg_io;

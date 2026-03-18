@@ -7,10 +7,8 @@
 mod color_delta;
 mod content_analysis;
 mod gradient;
+pub mod html_report;
 mod interpretation;
-pub mod io;
-#[cfg(feature = "napi")]
-mod napi;
 mod region;
 mod severity;
 mod shape;
@@ -19,7 +17,8 @@ mod spatial;
 pub(crate) mod test_helpers;
 pub mod types;
 
-use blazediff::{diff, DiffError, DiffOptions, Image};
+use crate::diff::diff;
+use crate::types::{DiffError, DiffOptions, Image};
 use color_delta::compute_color_delta;
 use content_analysis::{analyze_content, luminance_stats};
 use gradient::compute_gradient_stats;
@@ -54,6 +53,7 @@ pub fn interpret(
     if diff_result.identical {
         return Ok(InterpretResult {
             summary: "Images are identical".to_string(),
+            diff_count: 0,
             total_regions: 0,
             regions: Vec::new(),
             severity: classify_severity(0.0),
@@ -116,6 +116,7 @@ pub fn interpret(
 
     Ok(InterpretResult {
         summary,
+        diff_count: diff_result.diff_count,
         total_regions: regions.len(),
         regions,
         severity,
@@ -252,7 +253,7 @@ fn build_summary(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_helpers::*;
+    use crate::interpret::test_helpers::*;
     use types::*;
 
     #[test]
@@ -473,28 +474,6 @@ mod tests {
 
         let result = interpret(&img1, &img2, &DiffOptions::default());
         assert!(result.is_err());
-    }
-
-    #[test]
-    fn test_compact_result() {
-        let img1 = make_solid_image(100, 100, 128, 128, 128);
-        let mut img2 = make_solid_image(100, 100, 128, 128, 128);
-        fill_block(&mut img2, 10, 10, 20, 20, 255, 0, 0);
-
-        let result = interpret(&img1, &img2, &DiffOptions::default()).unwrap();
-        let compact = result.to_compact();
-
-        assert_eq!(compact.severity, result.severity);
-        assert_eq!(compact.diff_percentage, result.diff_percentage);
-        assert_eq!(compact.summary, result.summary);
-        assert_eq!(compact.regions.len(), result.regions.len());
-        assert_eq!(compact.regions[0].position, result.regions[0].position);
-        assert_eq!(compact.regions[0].change_type, result.regions[0].change_type);
-        assert_eq!(compact.regions[0].confidence, result.regions[0].confidence);
-
-        let json = serde_json::to_string(&compact).unwrap();
-        let deserialized: CompactResult = serde_json::from_str(&json).unwrap();
-        assert_eq!(compact, deserialized);
     }
 
     #[test]

@@ -1,5 +1,5 @@
-use crate::content_analysis::{ContentEvidence, BG_BLEND_THRESHOLD};
-use crate::types::{
+use super::content_analysis::{ContentEvidence, BG_BLEND_THRESHOLD};
+use super::types::{
     BoundingBox, ChangeType, ClassificationSignals, ColorDeltaStats, GradientStats, ShapeStats,
 };
 

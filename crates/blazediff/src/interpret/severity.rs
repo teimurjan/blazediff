@@ -1,4 +1,4 @@
-use crate::types::ChangeSeverity;
+use super::types::ChangeSeverity;
 
 /// Classify severity from diff percentage.
 /// - Low: < 1%

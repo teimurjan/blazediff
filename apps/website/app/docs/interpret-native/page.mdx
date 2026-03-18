@@ -1,18 +1,16 @@
-# @blazediff/interpret-native
+# Interpret
 
 import { Callout } from "nextra/components";
 
 Structured image diff analysis. Takes two images, runs a pixel diff, then classifies the result into regions with content-aware change types, spatial positions, and severity scoring.
 
-Built on [`blazediff`](https://crates.io/crates/blazediff) — same Rust + SIMD engine, with a content analysis layer on top.
+Built on the [`blazediff`](https://crates.io/crates/blazediff) Rust + SIMD engine — interpret is included as part of `@blazediff/core-native`.
 
 ## Installation
 
 ```sh npm2yarn
-npm install @blazediff/interpret-native
+npm install @blazediff/core-native
 ```
-
-Also available as a Rust crate: [`cargo install blazediff-interpret`](https://crates.io/crates/blazediff-interpret)
 
 Pre-built binaries are included for all major platforms — no compilation required:
 - macOS ARM64 (Apple Silicon) & x64 (Intel)
@@ -28,7 +26,6 @@ Pre-built binaries are included for all major platforms — no compilation requi
 - **Shape analysis** — solid, contour frame, sparse, edge-dominated, mixed
 - **Color delta & gradient stats** — per-region YIQ color difference and edge scoring
 - **Structured summary** — grouped by change type for CI/review
-- **Compact mode** — summary + compact regions for quick triage
 
 ## API Reference
 
@@ -50,7 +47,6 @@ Runs a diff and returns structured analysis results.
 | -------------- | --------- | ------- | -------------------------------------------------------- |
 | `threshold`    | `number`  | `0.1`   | Color difference threshold (0.0-1.0). Lower = more strict |
 | `antialiasing` | `boolean` | `false` | Enable anti-aliasing detection to exclude AA pixels      |
-| `compact`      | `boolean` | `false` | Return compact results (summary + severity + compact regions) |
 
 #### Return Types
 
@@ -61,15 +57,9 @@ interface InterpretResult {
   regions: ChangeRegion[];
   severity: string;      // "Low" | "Medium" | "High"
   diffPercentage: number;
+  diffCount: number;
   width: number;
   height: number;
-}
-
-interface CompactResult {
-  summary: string;
-  severity: string;
-  diffPercentage: number;
-  regions: CompactRegion[];
 }
 
 interface ChangeRegion {
@@ -85,13 +75,6 @@ interface ChangeRegion {
   colorDelta: ColorDeltaStats;
   gradient: GradientStats;
 }
-
-interface CompactRegion {
-  position: string;
-  changeType: string;
-  confidence: number;
-  percentage: number;
-}
 ```
 
 <Callout type="info">
@@ -103,7 +86,7 @@ interface CompactRegion {
 ### Programmatic API
 
 ```typescript
-import { interpret } from '@blazediff/interpret-native';
+import { interpret } from '@blazediff/core-native';
 
 const result = await interpret('expected.png', 'actual.png');
 console.log(result.summary);
@@ -117,47 +100,20 @@ for (const region of result.regions) {
 }
 ```
 
-### Compact Mode
-
-```typescript
-const compact = await interpret('expected.png', 'actual.png', { compact: true });
-console.log(compact.severity, compact.diffPercentage);
-```
-
 ### CLI Usage
 
 Via `@blazediff/cli`:
 
 ```bash
 blazediff-cli interpret expected.png actual.png
-blazediff-cli interpret expected.png actual.png --compact
 blazediff-cli interpret expected.png actual.png --output report.html
 blazediff-cli interpret expected.png actual.png --threshold 0.05 --antialiasing
-```
-
-Or via the standalone binary:
-
-```bash
-# JSON output (default)
-npx blazediff-interpret expected.png actual.png
-
-# Compact output
-npx blazediff-interpret expected.png actual.png --compact
-
-# Interactive HTML report
-npx blazediff-interpret expected.png actual.png --output report.html
-
-# Text output
-npx blazediff-interpret expected.png actual.png --output-format text
-
-# With options
-npx blazediff-interpret expected.png actual.png --threshold 0.05 --antialiasing
 ```
 
 ### CLI Options
 
 ```bash
-blazediff-interpret [OPTIONS] <IMAGE1> <IMAGE2>
+blazediff-cli interpret [OPTIONS] <IMAGE1> <IMAGE2>
 
 Arguments:
   <IMAGE1>  First image path (PNG, JPEG, or QOI)
@@ -167,7 +123,6 @@ Options:
   -t, --threshold <THRESHOLD>  Color difference threshold (0.0-1.0) [default: 0.1]
   -a, --antialiasing           Enable anti-aliasing detection
       --output-format <FORMAT> Output format (json or text) [default: json]
-      --compact                Output compact JSON
   -o, --output <PATH>          Write output to a file; `.html` generates an interactive report
   -h, --help                   Print help
   -V, --version                Print version
@@ -197,5 +152,3 @@ The classifier compares changed pixels against local background in both source i
 ## Links
 
 - [GitHub Repository](https://github.com/teimurjan/blazediff)
-- [NPM Package](https://www.npmjs.com/package/@blazediff/interpret-native)
-- [Rust Crate](https://crates.io/crates/blazediff-interpret)

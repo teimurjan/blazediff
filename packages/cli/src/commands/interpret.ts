@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { type InterpretOptions, interpret } from "@blazediff/interpret-native";
+import { type BlazeDiffOptions, interpret } from "@blazediff/core-native";
 
 function printUsage(): void {
 	console.log(`
@@ -13,13 +13,11 @@ Arguments:
 Options:
   -t, --threshold <num>     Color difference threshold (0 to 1, default: 0.1)
   -a, --antialiasing        Enable anti-aliasing detection
-  --compact                 Return compact results (summary + severity only)
   -h, --help                Show this help message
 
 Examples:
   blazediff-cli interpret image1.png image2.png
   blazediff-cli interpret image1.png image2.png -t 0.05 -a
-  blazediff-cli interpret image1.png image2.png --compact
 `);
 }
 
@@ -40,7 +38,7 @@ export default async function main(): Promise<void> {
 
 		const image1 = args[0];
 		const image2 = args[1];
-		const options: InterpretOptions = {};
+		const options: Pick<BlazeDiffOptions, "threshold" | "antialiasing"> = {};
 
 		for (let i = 2; i < args.length; i++) {
 			const arg = args[i];
@@ -63,9 +61,6 @@ export default async function main(): Promise<void> {
 				case "-a":
 				case "--antialiasing":
 					options.antialiasing = true;
-					break;
-				case "--compact":
-					options.compact = true;
 					break;
 				default:
 					console.error(`Unknown option: ${arg}`);

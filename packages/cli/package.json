@@ -43,7 +43,6 @@
 	"homepage": "https://blazediff.dev",
 	"license": "MIT",
 	"dependencies": {
-		"@blazediff/interpret-native": "workspace:*",
 		"@blazediff/core-native": "workspace:*",
 		"@blazediff/core": "workspace:*",
 		"@blazediff/gmsd": "workspace:*",

@@ -89,6 +89,7 @@ checksum = "812e12b5285cc515a9c72a5c1d3b6d46a19dac5acfef5265968c166106e31dd3"
 name = "blazediff"
 version = "3.1.1"
 dependencies = [
+ "base64",
  "cc",
  "clap",
  "cmake",
@@ -100,21 +101,6 @@ dependencies = [
  "napi-derive",
  "pkg-config",
  "qoi",
- "rayon",
- "serde",
- "serde_json",
-]
-
-[[package]]
-name = "blazediff-interpret"
-version = "0.1.0"
-dependencies = [
- "base64",
- "blazediff",
- "clap",
- "napi",
- "napi-build",
- "napi-derive",
  "rayon",
  "serde",
  "serde_json",

@@ -15,18 +15,6 @@ const CRATES = [
 		dockerfile: "blazediff/Dockerfile.publish",
 		dockerTag: "blazediff-publish",
 	},
-	{
-		name: "blazediff-interpret",
-		npmPkgPath: path.join(ROOT, "packages", "interpret-native", "package.json"),
-		cargoTomlPath: path.join(
-			ROOT,
-			"crates",
-			"blazediff-interpret",
-			"Cargo.toml",
-		),
-		dockerfile: "blazediff-interpret/Dockerfile.publish",
-		dockerTag: "blazediff-interpret-publish",
-	},
 ];
 
 function getVersions(npmPkgPath, cargoTomlPath) {

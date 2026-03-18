@@ -46,6 +46,6 @@ export default defineConfig([
 			"@blazediff/codec-sharp",
 			"@blazediff/codec-jsquash-png",
 		],
-		external: ["@blazediff/core-native", "@blazediff/interpret-native"], // Don't bundle - binary paths rely on __dirname
+		external: ["@blazediff/core-native"], // Don't bundle - binary paths rely on __dirname
 	},
 ]);

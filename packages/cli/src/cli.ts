@@ -23,7 +23,6 @@ Examples:
   blazediff-cli msssim image1.png image2.png
   blazediff-cli hitchhikers-ssim image1.png image2.png
   blazediff-cli interpret image1.png image2.png
-  blazediff-cli interpret image1.png image2.png --compact
 
   # Default command (diff) if no command specified
   blazediff-cli image1.png image2.png

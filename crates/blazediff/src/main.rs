@@ -13,6 +13,7 @@
 use blazediff::{
     diff, load_jpeg, load_jpegs, load_png, load_pngs, load_qoi, load_qois, save_jpeg,
     save_png_with_compression, save_qoi, DiffError, DiffOptions, Image,
+    interpret::{interpret, html_report::generate_html_report},
 };
 use clap::Parser;
 use rayon::prelude::*;
@@ -61,6 +62,10 @@ struct Args {
     /// JPEG quality (1-100, default 90)
     #[arg(short = 'q', long, default_value = "90")]
     quality: u8,
+
+    /// Run structured interpretation after raw pixel diff
+    #[arg(long)]
+    interpret: bool,
 }
 
 /// Supported image formats
@@ -191,6 +196,10 @@ fn main() -> ExitCode {
         ..Default::default()
     };
 
+    if args.interpret {
+        return run_interpret(&args, &img1, &img2, &options);
+    }
+
     let mut output_image = if args.output.is_some() {
         Some(Image::new_uninit(img1.width, img1.height))
     } else {
@@ -217,6 +226,50 @@ fn main() -> ExitCode {
     output_result(&args, &result);
 
     if result.identical {
+        ExitCode::from(0)
+    } else {
+        ExitCode::from(1)
+    }
+}
+
+fn run_interpret(args: &Args, img1: &Image, img2: &Image, options: &DiffOptions) -> ExitCode {
+    let result = match interpret(img1, img2, options) {
+        Ok(r) => r,
+        Err(e) => {
+            output_error(args, &format!("Interpret failed: {e}"));
+            return ExitCode::from(2);
+        }
+    };
+
+    if let Some(output_path) = &args.output {
+        let is_html = Path::new(output_path)
+            .extension()
+            .and_then(|ext| ext.to_str())
+            .is_some_and(|ext| ext.eq_ignore_ascii_case("html"));
+
+        if !is_html {
+            output_error(
+                args,
+                "Unsupported output path. Only `.html` output is currently supported for --interpret.",
+            );
+            return ExitCode::from(2);
+        }
+
+        if let Err(e) =
+            generate_html_report(&result, &args.image1, &args.image2, output_path)
+        {
+            output_error(args, &format!("Failed to write report: {e}"));
+            return ExitCode::from(2);
+        }
+
+        eprintln!("Wrote HTML report to {output_path}");
+    } else if args.output_format == "json" {
+        println!("{}", serde_json::to_string_pretty(&result).unwrap());
+    } else {
+        println!("{}", result.summary);
+    }
+
+    if result.total_regions == 0 {
         ExitCode::from(0)
     } else {
         ExitCode::from(1)
