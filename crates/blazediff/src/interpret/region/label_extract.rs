@@ -1,7 +1,6 @@
-/// Extract labeled regions from a watershed label map into ComponentInfo structs.
-
-use super::ComponentInfo;
 use super::super::types::BoundingBox;
+/// Extract labeled regions from a watershed label map into ComponentInfo structs.
+use super::ComponentInfo;
 use std::collections::HashMap;
 
 /// Convert a label map + original mask into ComponentInfo bounding boxes and pixel counts.
@@ -55,7 +54,15 @@ mod tests {
 
         assert_eq!(regions.len(), 1);
         assert_eq!(regions[0].pixel_count, 9);
-        assert_eq!(regions[0].bbox, BoundingBox { x: 0, y: 0, width: 3, height: 3 });
+        assert_eq!(
+            regions[0].bbox,
+            BoundingBox {
+                x: 0,
+                y: 0,
+                width: 3,
+                height: 3
+            }
+        );
     }
 
     #[test]
@@ -79,7 +86,15 @@ mod tests {
 
         assert_eq!(regions.len(), 1);
         assert_eq!(regions[0].pixel_count, 2); // only original mask pixels
-        assert_eq!(regions[0].bbox, BoundingBox { x: 0, y: 0, width: 4, height: 1 });
+        assert_eq!(
+            regions[0].bbox,
+            BoundingBox {
+                x: 0,
+                y: 0,
+                width: 4,
+                height: 1
+            }
+        );
     }
 
     #[test]
@@ -119,6 +134,14 @@ mod tests {
 
         assert_eq!(regions.len(), 1);
         assert_eq!(regions[0].pixel_count, 3);
-        assert_eq!(regions[0].bbox, BoundingBox { x: 1, y: 1, width: 3, height: 3 });
+        assert_eq!(
+            regions[0].bbox,
+            BoundingBox {
+                x: 1,
+                y: 1,
+                width: 3,
+                height: 3
+            }
+        );
     }
 }

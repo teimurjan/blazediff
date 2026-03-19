@@ -79,8 +79,7 @@ pub fn interpret(
             let position = classify_position(&c.bbox, width, height);
 
             let color_delta = compute_color_delta(img1, img2, &mask, &c.bbox, width);
-            let gradient_stats =
-                compute_gradient_stats(img1, &mask, &c.bbox, width, height);
+            let gradient_stats = compute_gradient_stats(img1, &mask, &c.bbox, width, height);
             let content = analyze_content(img1, img2, &mask, &c.bbox, width, height);
             let (change_type, signals) = classify_change_type(
                 &content,
@@ -164,8 +163,7 @@ fn detect_shifts(
             }
 
             // Pixel count similarity within 50%
-            let px_ratio =
-                regions[d].pixel_count as f64 / regions[a].pixel_count.max(1) as f64;
+            let px_ratio = regions[d].pixel_count as f64 / regions[a].pixel_count.max(1) as f64;
             if !(0.67..=1.5).contains(&px_ratio) {
                 continue;
             }
@@ -197,7 +195,11 @@ fn build_summary(
     use std::collections::BTreeMap;
     use types::SpatialPosition;
 
-    let region_word = if regions.len() == 1 { "region" } else { "regions" };
+    let region_word = if regions.len() == 1 {
+        "region"
+    } else {
+        "regions"
+    };
     let severity_label = match severity {
         types::ChangeSeverity::Low => "Low-impact",
         types::ChangeSeverity::Medium => "Moderate",
@@ -328,7 +330,10 @@ mod tests {
         assert!(positions.contains(&SpatialPosition::TopLeft));
         assert!(positions.contains(&SpatialPosition::BottomRight));
         // Both should be additions (new content on uniform background)
-        assert!(result.regions.iter().all(|r| r.change_type == ChangeType::Addition));
+        assert!(result
+            .regions
+            .iter()
+            .all(|r| r.change_type == ChangeType::Addition));
     }
 
     #[test]
@@ -460,9 +465,16 @@ mod tests {
         assert_eq!(result.total_regions, 2);
         // Both regions should be reclassified as Shift
         assert!(
-            result.regions.iter().all(|r| r.change_type == ChangeType::Shift),
+            result
+                .regions
+                .iter()
+                .all(|r| r.change_type == ChangeType::Shift),
             "Expected both regions as Shift, got: {:?}",
-            result.regions.iter().map(|r| r.change_type).collect::<Vec<_>>()
+            result
+                .regions
+                .iter()
+                .map(|r| r.change_type)
+                .collect::<Vec<_>>()
         );
         assert!(result.summary.contains("Content shifted"));
     }

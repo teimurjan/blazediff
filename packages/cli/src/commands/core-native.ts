@@ -1,6 +1,10 @@
 #!/usr/bin/env node
 
-import { type BlazeDiffOptions, compare, interpret } from "@blazediff/core-native";
+import {
+	type BlazeDiffOptions,
+	compare,
+	interpret,
+} from "@blazediff/core-native";
 
 function printUsage(): void {
 	console.log(`

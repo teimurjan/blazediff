@@ -145,12 +145,7 @@ fn changed_pixel_distance(
 
 /// Compute luminance stats of changed pixels in an image region.
 /// Returns (mean_luminance, stddev_luminance).
-pub fn luminance_stats(
-    img: &Image,
-    mask: &[bool],
-    bbox: &BoundingBox,
-    width: u32,
-) -> (f64, f64) {
+pub fn luminance_stats(img: &Image, mask: &[bool], bbox: &BoundingBox, width: u32) -> (f64, f64) {
     let mut sum = 0.0f64;
     let mut sum_sq = 0.0f64;
     let mut count = 0u64;

@@ -124,7 +124,12 @@ mod tests {
         let height = 20;
         let img = make_solid_image(width, height, 128, 128, 128);
         let mask = vec![true; (width * height) as usize];
-        let bbox = BoundingBox { x: 0, y: 0, width, height };
+        let bbox = BoundingBox {
+            x: 0,
+            y: 0,
+            width,
+            height,
+        };
         let stats = compute_gradient_stats(&img, &mask, &bbox, width, height);
 
         assert!(stats.edge_score < 0.01);
@@ -154,7 +159,12 @@ mod tests {
             }
         }
 
-        let bbox = BoundingBox { x: 9, y: 0, width: 3, height };
+        let bbox = BoundingBox {
+            x: 9,
+            y: 0,
+            width: 3,
+            height,
+        };
         let stats = compute_gradient_stats(&img, &mask, &bbox, width, height);
 
         assert!(stats.edge_score > 0.3);
@@ -173,7 +183,12 @@ mod tests {
         mask[((height - 1) * width) as usize] = true;
         mask[((height - 1) * width + width - 1) as usize] = true;
 
-        let bbox = BoundingBox { x: 0, y: 0, width, height };
+        let bbox = BoundingBox {
+            x: 0,
+            y: 0,
+            width,
+            height,
+        };
         let stats = compute_gradient_stats(&img, &mask, &bbox, width, height);
 
         // Flat image, even at corners gradient should be ~0

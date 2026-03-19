@@ -151,8 +151,7 @@ fn label_connected_components(mask: &[bool], width: u32, height: u32) -> Vec<i32
     }
 
     // Map roots to sequential labels
-    let mut root_to_label: std::collections::HashMap<u32, i32> =
-        std::collections::HashMap::new();
+    let mut root_to_label: std::collections::HashMap<u32, i32> = std::collections::HashMap::new();
     let mut next_label = 1i32;
 
     for i in 0..total {
@@ -241,9 +240,7 @@ mod tests {
 
     #[test]
     fn test_find_connected_components_l_shape() {
-        let mask = vec![
-            true, false, false, true, false, false, true, true, true,
-        ];
+        let mask = vec![true, false, false, true, false, false, true, true, true];
         let components = find_connected_components(&mask, 3, 3);
         assert_eq!(components.len(), 1);
         assert_eq!(components[0].pixel_count, 5);
@@ -300,7 +297,7 @@ mod tests {
     fn test_detect_regions_nearby_blobs_bridged() {
         // Two blobs with small gap — morph close should bridge
         let mut mask = vec![false; 10000]; // 100x100
-        // Blob 1
+                                           // Blob 1
         for y in 40..50 {
             for x in 40..48 {
                 mask[y * 100 + x] = true;
@@ -314,7 +311,11 @@ mod tests {
         }
         let regions = detect_regions(&mask, 100, 100);
         // With adaptive radius=2 for 100x100, a 3px gap should be bridged
-        assert_eq!(regions.len(), 1, "nearby blobs should be merged by morph close");
+        assert_eq!(
+            regions.len(),
+            1,
+            "nearby blobs should be merged by morph close"
+        );
     }
 
     #[test]
@@ -343,7 +344,7 @@ mod tests {
         // Test with various sizes to exercise SIMD + scalar tail
         for size in [1, 15, 16, 17, 31, 32, 33, 64, 100] {
             let mut data = vec![128u8; size * 4]; // all gray
-            // Sprinkle some colored pixels
+                                                  // Sprinkle some colored pixels
             for i in (0..size).step_by(3) {
                 data[i * 4] = 255; // R=255, G=128, B=128 → changed
             }

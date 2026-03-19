@@ -249,9 +249,7 @@ mod tests {
 
         // After close with radius ≥ 2, gap should be bridged
         // Check that at least some gap pixels are now true
-        let gap_filled = (1..4).any(|y: u32| {
-            (4..6).any(|x: u32| closed[(y * w + x) as usize])
-        });
+        let gap_filled = (1..4).any(|y: u32| (4..6).any(|x: u32| closed[(y * w + x) as usize]));
         assert!(gap_filled, "close should bridge the 2px gap");
     }
 
@@ -272,7 +270,10 @@ mod tests {
         // All original pixels should still be set
         for y in 3..7 {
             for x in 3..7 {
-                assert!(closed[y * 10 + x], "original pixel ({x},{y}) lost after close");
+                assert!(
+                    closed[y * 10 + x],
+                    "original pixel ({x},{y}) lost after close"
+                );
             }
         }
     }
@@ -299,6 +300,9 @@ mod tests {
         let closed = morph_close(&mask, w, h);
 
         // Middle of the gap should remain false
-        assert!(!closed[(5 * w + 35) as usize], "large gap should not be bridged");
+        assert!(
+            !closed[(5 * w + 35) as usize],
+            "large gap should not be bridged"
+        );
     }
 }

@@ -177,12 +177,8 @@ pub fn compare(
 
     // Interpret mode: run structured analysis and return early
     if run_interpret {
-        let result = interpret(&img1, &img2, &diff_options).map_err(|e| {
-            Error::new(
-                Status::GenericFailure,
-                format!("Interpret failed: {}", e),
-            )
-        })?;
+        let result = interpret(&img1, &img2, &diff_options)
+            .map_err(|e| Error::new(Status::GenericFailure, format!("Interpret failed: {}", e)))?;
 
         // Generate HTML report if requested
         if output_format == "html" {
@@ -205,7 +201,11 @@ pub fn compare(
 
         return Ok(NapiDiffResult {
             match_result: is_identical,
-            reason: if is_identical { None } else { Some("pixel-diff".to_string()) },
+            reason: if is_identical {
+                None
+            } else {
+                Some("pixel-diff".to_string())
+            },
             diff_count: Some(diff_count),
             diff_percentage: Some(diff_percentage),
             interpretation: Some(NapiInterpretResult {
@@ -405,12 +405,8 @@ fn run_interpret(
         ..Default::default()
     };
 
-    interpret(&img1, &img2, &diff_options).map_err(|e| {
-        Error::new(
-            Status::GenericFailure,
-            format!("Interpret failed: {}", e),
-        )
-    })
+    interpret(&img1, &img2, &diff_options)
+        .map_err(|e| Error::new(Status::GenericFailure, format!("Interpret failed: {}", e)))
 }
 
 /// Interpret the diff between two images, returning full structured results.
@@ -433,4 +429,3 @@ pub fn interpret_images(
         height: result.height,
     })
 }
-

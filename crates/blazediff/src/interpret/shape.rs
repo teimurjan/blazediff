@@ -101,7 +101,9 @@ pub fn classify_shape(stats: &ShapeStats) -> ChangeShape {
     // ContourFrame: changes concentrate on edges, interior/center mostly empty
     if stats.inner_fill_ratio < 0.20
         && (stats.border_ratio > 0.60
-            || (stats.center_density < 0.10 && stats.border_ratio > 0.30 && stats.fill_ratio < 0.50))
+            || (stats.center_density < 0.10
+                && stats.border_ratio > 0.30
+                && stats.fill_ratio < 0.50))
     {
         return ChangeShape::ContourFrame;
     }
@@ -124,7 +126,12 @@ mod tests {
     #[test]
     fn test_solid_block() {
         let mask = vec![true; 100]; // 10x10 all true
-        let bbox = BoundingBox { x: 0, y: 0, width: 10, height: 10 };
+        let bbox = BoundingBox {
+            x: 0,
+            y: 0,
+            width: 10,
+            height: 10,
+        };
         let stats = compute_shape_stats(&mask, 10, &bbox, 100);
 
         assert!((stats.fill_ratio - 1.0).abs() < f64::EPSILON);
@@ -152,7 +159,12 @@ mod tests {
             }
         }
 
-        let bbox = BoundingBox { x: 0, y: 0, width, height };
+        let bbox = BoundingBox {
+            x: 0,
+            y: 0,
+            width,
+            height,
+        };
         let stats = compute_shape_stats(&mask, width, &bbox, pixel_count);
 
         assert!(stats.fill_ratio < 0.30);
@@ -178,7 +190,12 @@ mod tests {
             }
         }
 
-        let bbox = BoundingBox { x: 0, y: 0, width, height };
+        let bbox = BoundingBox {
+            x: 0,
+            y: 0,
+            width,
+            height,
+        };
         let stats = compute_shape_stats(&mask, width, &bbox, pixel_count);
 
         assert!(stats.inner_fill_ratio < 0.05);
@@ -200,7 +217,12 @@ mod tests {
             pixel_count += 1;
         }
 
-        let bbox = BoundingBox { x: 0, y: 0, width, height };
+        let bbox = BoundingBox {
+            x: 0,
+            y: 0,
+            width,
+            height,
+        };
         let stats = compute_shape_stats(&mask, width, &bbox, pixel_count);
 
         assert!(stats.fill_ratio < 0.30);
@@ -224,7 +246,12 @@ mod tests {
             }
         }
 
-        let bbox = BoundingBox { x: 5, y: 5, width: 10, height: 10 };
+        let bbox = BoundingBox {
+            x: 5,
+            y: 5,
+            width: 10,
+            height: 10,
+        };
         let stats = compute_shape_stats(&mask, width, &bbox, pixel_count);
 
         assert!(stats.center_density > 0.8);
@@ -251,7 +278,12 @@ mod tests {
             }
         }
 
-        let bbox = BoundingBox { x: 0, y: 0, width, height };
+        let bbox = BoundingBox {
+            x: 0,
+            y: 0,
+            width,
+            height,
+        };
         let stats = compute_shape_stats(&mask, width, &bbox, pixel_count);
 
         assert!(stats.center_density < 0.10);
@@ -262,7 +294,12 @@ mod tests {
     #[test]
     fn test_empty_bbox() {
         let mask = vec![false; 100];
-        let bbox = BoundingBox { x: 0, y: 0, width: 10, height: 10 };
+        let bbox = BoundingBox {
+            x: 0,
+            y: 0,
+            width: 10,
+            height: 10,
+        };
         let stats = compute_shape_stats(&mask, 10, &bbox, 0);
 
         assert!((stats.fill_ratio).abs() < f64::EPSILON);

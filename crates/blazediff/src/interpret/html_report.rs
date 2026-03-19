@@ -1,6 +1,6 @@
-use base64::{engine::general_purpose::STANDARD, Engine as _};
-use crate::{io::encode_png, qoi_io::load_qoi, types::DiffError};
 use super::types::{ChangeSeverity, InterpretResult};
+use crate::{io::encode_png, qoi_io::load_qoi, types::DiffError};
+use base64::{engine::general_purpose::STANDARD, Engine as _};
 use std::fs;
 use std::path::Path;
 

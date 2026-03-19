@@ -91,25 +91,44 @@ mod tests {
     }
 
     fn square_bbox() -> BoundingBox {
-        BoundingBox { x: 0, y: 0, width: 100, height: 100 }
+        BoundingBox {
+            x: 0,
+            y: 0,
+            width: 100,
+            height: 100,
+        }
     }
 
     fn blends_both() -> ContentEvidence {
-        ContentEvidence { bg_distance_img1: 0.01, bg_distance_img2: 0.01 }
+        ContentEvidence {
+            bg_distance_img1: 0.01,
+            bg_distance_img2: 0.01,
+        }
     }
 
     fn no_blends() -> ContentEvidence {
-        ContentEvidence { bg_distance_img1: 0.50, bg_distance_img2: 0.50 }
+        ContentEvidence {
+            bg_distance_img1: 0.50,
+            bg_distance_img2: 0.50,
+        }
     }
 
     #[test]
     fn test_rendering_noise_tiny() {
         let (ct, signals) = classify_change_type(
             &blends_both(),
-            &ColorDeltaStats { mean_delta: 0.01, max_delta: 0.02 },
+            &ColorDeltaStats {
+                mean_delta: 0.01,
+                max_delta: 0.02,
+            },
             &GradientStats { edge_score: 1.0 },
             &default_shape_stats(),
-            &BoundingBox { x: 50, y: 50, width: 1, height: 1 },
+            &BoundingBox {
+                x: 50,
+                y: 50,
+                width: 1,
+                height: 1,
+            },
         );
         assert_eq!(ct, ChangeType::RenderingNoise);
         assert!(signals.tiny_region);
@@ -118,10 +137,16 @@ mod tests {
 
     #[test]
     fn test_rendering_noise_sparse() {
-        let stats = ShapeStats { fill_ratio: 0.10, ..default_shape_stats() };
+        let stats = ShapeStats {
+            fill_ratio: 0.10,
+            ..default_shape_stats()
+        };
         let (ct, signals) = classify_change_type(
             &blends_both(),
-            &ColorDeltaStats { mean_delta: 0.02, max_delta: 0.04 },
+            &ColorDeltaStats {
+                mean_delta: 0.02,
+                max_delta: 0.04,
+            },
             &GradientStats { edge_score: 0.01 },
             &stats,
             &square_bbox(),
@@ -135,10 +160,16 @@ mod tests {
     #[test]
     fn test_addition() {
         // Blends with bg in img1 (was background), distinct in img2 (content appeared)
-        let content = ContentEvidence { bg_distance_img1: 0.02, bg_distance_img2: 0.40 };
+        let content = ContentEvidence {
+            bg_distance_img1: 0.02,
+            bg_distance_img2: 0.40,
+        };
         let (ct, signals) = classify_change_type(
             &content,
-            &ColorDeltaStats { mean_delta: 0.30, max_delta: 0.50 },
+            &ColorDeltaStats {
+                mean_delta: 0.30,
+                max_delta: 0.50,
+            },
             &GradientStats { edge_score: 0.10 },
             &default_shape_stats(),
             &square_bbox(),
@@ -151,10 +182,16 @@ mod tests {
     #[test]
     fn test_deletion() {
         // Distinct in img1 (had content), blends with bg in img2 (content removed)
-        let content = ContentEvidence { bg_distance_img1: 0.40, bg_distance_img2: 0.02 };
+        let content = ContentEvidence {
+            bg_distance_img1: 0.40,
+            bg_distance_img2: 0.02,
+        };
         let (ct, signals) = classify_change_type(
             &content,
-            &ColorDeltaStats { mean_delta: 0.30, max_delta: 0.50 },
+            &ColorDeltaStats {
+                mean_delta: 0.30,
+                max_delta: 0.50,
+            },
             &GradientStats { edge_score: 0.10 },
             &default_shape_stats(),
             &square_bbox(),
@@ -169,7 +206,10 @@ mod tests {
         // Both have content, low edge (no structural change), moderate color delta
         let (ct, signals) = classify_change_type(
             &no_blends(),
-            &ColorDeltaStats { mean_delta: 0.20, max_delta: 0.30 },
+            &ColorDeltaStats {
+                mean_delta: 0.20,
+                max_delta: 0.30,
+            },
             &GradientStats { edge_score: 0.01 },
             &default_shape_stats(),
             &square_bbox(),
@@ -181,10 +221,16 @@ mod tests {
     #[test]
     fn test_color_change_subtle() {
         // Dense region with low edge AND low color delta → still ColorChange (not ContentChange)
-        let stats = ShapeStats { fill_ratio: 0.95, ..default_shape_stats() };
+        let stats = ShapeStats {
+            fill_ratio: 0.95,
+            ..default_shape_stats()
+        };
         let (ct, signals) = classify_change_type(
             &no_blends(),
-            &ColorDeltaStats { mean_delta: 0.02, max_delta: 0.04 },
+            &ColorDeltaStats {
+                mean_delta: 0.02,
+                max_delta: 0.04,
+            },
             &GradientStats { edge_score: 0.03 },
             &stats,
             &square_bbox(),
@@ -198,7 +244,10 @@ mod tests {
         // Both have content, high edge + high color → ContentChange
         let (ct, signals) = classify_change_type(
             &no_blends(),
-            &ColorDeltaStats { mean_delta: 0.50, max_delta: 0.80 },
+            &ColorDeltaStats {
+                mean_delta: 0.50,
+                max_delta: 0.80,
+            },
             &GradientStats { edge_score: 0.30 },
             &default_shape_stats(),
             &square_bbox(),
@@ -210,15 +259,25 @@ mod tests {
     #[test]
     fn test_tiny_region_high_color_not_noise() {
         // Tiny but high color delta — skips noise rule, classifies by content
-        let content = ContentEvidence { bg_distance_img1: 0.01, bg_distance_img2: 0.40 };
+        let content = ContentEvidence {
+            bg_distance_img1: 0.01,
+            bg_distance_img2: 0.40,
+        };
         let (ct, _) = classify_change_type(
             &content,
-            &ColorDeltaStats { mean_delta: 0.50, max_delta: 0.50 },
+            &ColorDeltaStats {
+                mean_delta: 0.50,
+                max_delta: 0.50,
+            },
             &GradientStats { edge_score: 1.0 },
             &default_shape_stats(),
-            &BoundingBox { x: 50, y: 50, width: 1, height: 1 },
+            &BoundingBox {
+                x: 50,
+                y: 50,
+                width: 1,
+                height: 1,
+            },
         );
         assert_eq!(ct, ChangeType::Addition);
     }
-
 }

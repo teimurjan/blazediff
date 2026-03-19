@@ -2170,7 +2170,10 @@ mod tests {
         let result_with = diff(&img1, &img2, None, &options_with_aa).unwrap();
         let result_without = diff(&img1, &img2, None, &options_without_aa).unwrap();
 
-        assert_eq!(result_with.diff_count, result_without.diff_count, 
-            "With same threshold, include_aa should not affect diff count (it only affects output coloring)");
+        assert_eq!(
+            result_with.diff_count,
+            result_without.diff_count,
+            "With same threshold, include_aa should not affect diff count (it only affects output coloring)"
+        );
     }
 }

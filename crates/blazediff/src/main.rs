@@ -11,9 +11,10 @@
 //!   2 - Error
 
 use blazediff::{
-    diff, load_jpeg, load_jpegs, load_png, load_pngs, load_qoi, load_qois, save_jpeg,
+    diff,
+    interpret::{html_report::generate_html_report, interpret},
+    load_jpeg, load_jpegs, load_png, load_pngs, load_qoi, load_qois, save_jpeg,
     save_png_with_compression, save_qoi, DiffError, DiffOptions, Image,
-    interpret::{interpret, html_report::generate_html_report},
 };
 use clap::Parser;
 use rayon::prelude::*;
@@ -92,10 +93,7 @@ impl ImageFormat {
 #[allow(dead_code)]
 fn load_image<P: AsRef<Path>>(path: P) -> Result<Image, DiffError> {
     let format = ImageFormat::from_path(&path).ok_or_else(|| {
-        DiffError::UnsupportedFormat(format!(
-            "Unsupported format: {}",
-            path.as_ref().display()
-        ))
+        DiffError::UnsupportedFormat(format!("Unsupported format: {}", path.as_ref().display()))
     })?;
     match format {
         ImageFormat::Png => load_png(path),
@@ -255,9 +253,7 @@ fn run_interpret(args: &Args, img1: &Image, img2: &Image, options: &DiffOptions)
             return ExitCode::from(2);
         }
 
-        if let Err(e) =
-            generate_html_report(&result, &args.image1, &args.image2, output_path)
-        {
+        if let Err(e) = generate_html_report(&result, &args.image1, &args.image2, output_path) {
             output_error(args, &format!("Failed to write report: {e}"));
             return ExitCode::from(2);
         }

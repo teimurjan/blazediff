@@ -18,8 +18,8 @@
 //! ```
 
 pub mod antialiasing;
-pub mod interpret;
 pub mod diff;
+pub mod interpret;
 pub mod io;
 pub mod jpeg_io;
 #[cfg(feature = "napi")]

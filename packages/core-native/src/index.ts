@@ -335,8 +335,7 @@ function getBinaryPathInternal(): string {
 
 function buildArgs(diffOutput?: string, options?: BlazeDiffOptions): string[] {
 	const args: string[] = [];
-	const useInterpret =
-		options?.interpret || options?.outputFormat === "html";
+	const useInterpret = options?.interpret || options?.outputFormat === "html";
 
 	if (diffOutput) args.push(diffOutput);
 	if (useInterpret) args.push("--interpret");
@@ -469,11 +468,7 @@ async function execFileInterpretCompare(
 		const errorOutput = stderr || stdout || "";
 
 		if (code === 2) {
-			const missingFile = detectMissingFile(
-				errorOutput,
-				basePath,
-				comparePath,
-			);
+			const missingFile = detectMissingFile(errorOutput, basePath, comparePath);
 			if (missingFile) {
 				return { match: false, reason: "file-not-exists", file: missingFile };
 			}
