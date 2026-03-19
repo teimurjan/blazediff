@@ -2,7 +2,7 @@
 
 import { Callout } from 'nextra/components'
 
-Vitest matcher for visual regression testing with blazediff. Provides native `toMatchImageSnapshot()` matcher with automatic snapshot state tracking and support for multiple comparison algorithms.
+`toMatchImageSnapshot()` for Vitest. Auto-registers on import, tracks snapshot state, supports all comparison methods.
 
 ## Installation
 
@@ -11,15 +11,6 @@ npm install --save-dev @blazediff/vitest
 ```
 
 **Peer dependencies**: Vitest >= 1.0.0
-
-## Features
-
-- **Native Vitest matcher**: `toMatchImageSnapshot()` extends Vitest's `expect` API
-- **Snapshot state tracking**: Accurate snapshot counts in Vitest's test summary
-- **Multiple algorithms**: Choose from 6 comparison methods
-- **Auto-setup**: Imports and registers automatically
-- **Update mode**: Works seamlessly with Vitest's `-u` flag
-- **Full TypeScript support**: Complete type definitions included
 
 ## Quick Start
 
@@ -202,125 +193,6 @@ await expect(after).not.toMatchImageSnapshot({
 });
 ```
 
-### Sequential Tests
-
-For tests that share state, use sequential execution:
-
-```typescript
-import { describe, it } from 'vitest';
-
-describe.sequential('Visual regression tests', () => {
-  it('test 1', async () => {
-    await expect(image1).toMatchImageSnapshot({ method: 'core' });
-  });
-
-  it('test 2', async () => {
-    await expect(image2).toMatchImageSnapshot({ method: 'core' });
-  });
-});
-```
-
-## Integrations
-
-### Playwright
-
-```typescript
-import { test, expect } from 'vitest';
-import '@blazediff/vitest';
-import { chromium } from 'playwright';
-
-test('visual regression with Playwright', async () => {
-  const browser = await chromium.launch();
-  const page = await browser.newPage();
-  await page.goto('https://example.com');
-
-  const screenshot = await page.screenshot();
-  await expect(screenshot).toMatchImageSnapshot({
-    method: 'core',
-  });
-
-  await browser.close();
-});
-```
-
-### Puppeteer
-
-```typescript
-import { test, expect } from 'vitest';
-import '@blazediff/vitest';
-import puppeteer from 'puppeteer';
-
-test('captures homepage', async () => {
-  const browser = await puppeteer.launch();
-  const page = await browser.newPage();
-  await page.goto('https://example.com');
-
-  const screenshot = await page.screenshot({ fullPage: true });
-
-  await expect(screenshot).toMatchImageSnapshot({
-    method: 'core',
-  });
-
-  await browser.close();
-});
-```
-
-### React Testing Library
-
-```typescript
-import { test, expect } from 'vitest';
-import { render } from '@testing-library/react';
-import '@blazediff/vitest';
-import html2canvas from 'html2canvas';
-
-test('renders button correctly', async () => {
-  const { container } = render(<Button>Click me</Button>);
-
-  const canvas = await html2canvas(container);
-  const imageData = canvas.toDataURL();
-
-  await expect(imageData).toMatchImageSnapshot({
-    method: 'core',
-  });
-});
-```
-
-## Snapshot State Tracking
-
-The matcher integrates with Vitest's snapshot state system. Test summaries show accurate counts:
-
-```
-Snapshots  2 written | 1 updated | 5 passed
-```
-
-Tracked states:
-- **Written**: New snapshots created
-- **Updated**: Snapshots updated with `-u` flag
-- **Passed**: Existing snapshots matched
-- **Failed**: Comparisons failed (shown in test results)
-
-## TypeScript
-
-Full TypeScript support is included:
-
-```typescript
-import { expect, it } from 'vitest';
-import '@blazediff/vitest';
-
-// Types are automatically augmented
-it('typed test', async () => {
-  const screenshot: Buffer = await takeScreenshot();
-
-  await expect(screenshot).toMatchImageSnapshot({
-    method: 'core',
-    failureThreshold: 0.1,
-    failureThresholdType: 'percent',
-  });
-});
-```
-
-The type augmentation is automatic when you import the package.
-
 ## Configuration
 
 ### Global Setup
@@ -341,92 +213,6 @@ export default defineConfig({
 ```typescript
 // vitest.setup.ts
 import '@blazediff/vitest';
-```
-
-### Default Options
-
-Create a wrapper to set default options:
-
-```typescript
-// test-utils.ts
-import { expect } from 'vitest';
-import type { MatcherOptions } from '@blazediff/matcher';
-
-export async function expectImageSnapshot(
-  image: any,
-  options?: Partial<MatcherOptions>
-) {
-  return expect(image).toMatchImageSnapshot({
-    method: 'core',
-    failureThreshold: 0.1,
-    failureThresholdType: 'percent',
-    ...options,
-  });
-}
-```
-
-```typescript
-// test.spec.ts
-import { expectImageSnapshot } from './test-utils';
-
-it('uses default options', async () => {
-  await expectImageSnapshot(screenshot);
-});
-```
-
-## Watch Mode
-
-Vitest's watch mode works seamlessly with image snapshots:
-
-```bash
-# Start in watch mode
-vitest --watch
-
-# Update snapshots in watch mode
-# Press 'u' in the terminal when prompted
-```
-
-<Callout type="info">
-  In watch mode, Vitest will prompt you to update snapshots when they fail. Press `u` to update all failing snapshots.
-</Callout>
-
-## Troubleshooting
-
-### Snapshots Not Updating
-
-Ensure you're using the `-u` flag:
-
-```bash
-vitest -u
-```
-
-Or set `updateSnapshots: true` in options.
-
-### Type Errors
-
-Make sure `@blazediff/vitest` is imported:
-
-```typescript
-import '@blazediff/vitest';
-```
-
-### Snapshot Directory Not Found
-
-The matcher creates directories automatically. If you see errors, check file permissions or specify an absolute path:
-
-```typescript
-await expect(screenshot).toMatchImageSnapshot({
-  method: 'core',
-  snapshotsDir: '/absolute/path/to/snapshots',
-});
-```
-
-### Worker Thread Issues
-
-If you encounter issues with Vitest's worker threads, ensure you're using the latest version:
-
-```bash
-npm update vitest
 ```
 
 ## Links

@@ -81,7 +81,7 @@ export const metadata = {
 
 const banner = (
 	<Banner storageKey="interpret-launch">
-		<Link href="/docs/interpret-native">
+		<Link href="/docs/core-native">
 			New: <b className="text-blue-400">@blazediff/core-native</b> now includes interpret — structured diff analysis to understand what changed. Read more →
 		</Link>
 	</Banner>

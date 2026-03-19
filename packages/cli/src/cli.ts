@@ -11,7 +11,6 @@ Commands:
   ssim               Structural Similarity Index (Gaussian-based)
   msssim             Multi-Scale Structural Similarity Index
   hitchhikers-ssim   Hitchhiker's SSIM (fast, integral image-based)
-  interpret          Structured diff analysis (region detection + interpretation)
 
 Options:
   -h, --help    Show this help message
@@ -22,7 +21,7 @@ Examples:
   blazediff-cli ssim image1.png image2.png -o ssim-map.png
   blazediff-cli msssim image1.png image2.png
   blazediff-cli hitchhikers-ssim image1.png image2.png
-  blazediff-cli interpret image1.png image2.png
+  blazediff-cli image1.png image2.png --interpret
 
   # Default command (diff) if no command specified
   blazediff-cli image1.png image2.png
@@ -50,7 +49,6 @@ async function main(): Promise<void> {
 		"ssim",
 		"msssim",
 		"hitchhikers-ssim",
-		"interpret",
 	];
 	const isCommand = validCommands.includes(command);
 
@@ -82,9 +80,6 @@ async function main(): Promise<void> {
 				break;
 			case "hitchhikers-ssim":
 				await import("./commands/hitchhikers-ssim");
-				break;
-			case "interpret":
-				await import("./commands/interpret");
 				break;
 		}
 	} else {

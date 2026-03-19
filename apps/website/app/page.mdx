@@ -15,17 +15,17 @@ import diffData from "../data/interpret/blazediff-3-diff.json";
 <div className="grid grid-cols-3 gap-8 mt-8 mb-12">
   <div className="flex flex-col items-center text-center">
     <IconBolt size={48} className="mb-3" />
-    <h3 className="font-bold mb-2 text-lg">Blazing Fast</h3>
+    <h3 className="font-bold mb-2 text-lg">Fast</h3>
     <div className="text-md text-gray-600 dark:text-gray-400">
-      Algorithms that outperform traditional solutions
+      1.5-4x faster than pixelmatch and odiff
     </div>
   </div>
 
   <div className="flex flex-col items-center text-center">
     <IconFeather size={48} className='mb-3' />
-    <h3 className="font-bold mb-2 text-lg">Lightweight</h3>
+    <h3 className="font-bold mb-2 text-lg">Small</h3>
     <div className="text-md text-gray-600 dark:text-gray-400">
-      Minimal bundle size and low memory usage
+      ~700KB native binary, zero-dep JS core
     </div>
   </div>
 
@@ -38,7 +38,7 @@ import diffData from "../data/interpret/blazediff-3-diff.json";
   </div>
 </div>
 
-**BlazeDiff** is a high-performance diff checking ecosystem. Built with cutting-edge algorithms and optimized for speed, BlazeDiff provides tools for comparing content, visualizing differences, and integrating diff functionality into your applications.
+Image and object diffing. Rust native binary with SIMD, pure JS core, perceptual metrics (SSIM, GMSD), structured interpret mode, and test framework matchers for Jest/Vitest/Bun.
 
 ## Quickstart
 
@@ -155,7 +155,7 @@ npm i @blazediff/core-native
       </Link>
     </div>
     <div className="text-gray-600 dark:text-gray-400 text-sm">
-      Pure JavaScript image comparison — ~1.5x faster than pixelmatch with identical accuracy. Runs anywhere JS runs: browsers, Node.js, Deno, Bun.
+      Pure JS, ~1.5x faster than pixelmatch. Runs in browsers, Node, Deno, Bun.
     </div>
   </div>
 
@@ -167,7 +167,7 @@ npm i @blazediff/core-native
       </Link>
     </div>
     <div className="text-gray-600 dark:text-gray-400 text-sm">
-      Native Rust + SIMD binary via N-API — the fastest single-threaded image diff. ~3-4x faster than odiff on large images.
+      Rust + SIMD via N-API. 3-4x faster than odiff, 3x smaller binaries.
     </div>
   </div>
 </div>
@@ -186,12 +186,12 @@ npm i @blazediff/core-native
   <div className="p-5 rounded-lg border border-gray-200 dark:border-gray-700">
     <div className="flex items-center gap-3 mb-3">
       <IconLanguage size={32} className="text-emerald-700" />
-      <Link href="/docs/interpret-native" className="font-semibold text-lg text-blue-500 dark:text-blue-400">
+      <Link href="/docs/core-native" className="font-semibold text-lg text-blue-500 dark:text-blue-400">
         Interpret (via @blazediff/core-native)
       </Link>
     </div>
     <div className="text-gray-600 dark:text-gray-400 text-sm">
-      Structured diff analysis — region detection, content-aware classification, severity scoring, and human-readable descriptions. Same Rust + SIMD engine, with a content analysis layer on top.
+      Region detection, content-aware classification (addition/deletion/shift), severity scoring, and human-readable summaries.
     </div>
   </div>
 </div>
@@ -224,11 +224,11 @@ npm i @blazediff/core-native
   </div>
 </div>
 
-### Find Object Inequalities
+### Object Diff
 
 <div className="mb-8">
   <div className="text-gray-600 dark:text-gray-400 mb-3 text-md">
-    Lightning-fast structural object comparison with detailed change tracking.
+    Structural object comparison with path tracking, cycle detection, and CREATE/REMOVE/CHANGE types.
   </div>
   
   <Link href="/docs/object" className="flex items-center font-semibold gap-2 text-blue-500 dark:text-blue-400">
@@ -236,11 +236,11 @@ npm i @blazediff/core-native
   </Link>
 </div>
 
-### Integrate in Your Tests
+### Test Matchers
 
 <div className="mb-8">
   <div className="text-gray-600 dark:text-gray-400 mb-3">
-    Drop-in image snapshot matchers for your test framework of choice.
+    <code>toMatchImageSnapshot()</code> for visual regression testing.
   </div>
 
   <div className="flex gap-4 flex-wrap">
@@ -256,11 +256,11 @@ npm i @blazediff/core-native
   </div>
 </div>
 
-### Visualize Differences
+### UI Components
 
 <div className="mb-8">
   <div className="text-gray-600 dark:text-gray-400 mb-3">
-    Build image comparison interfaces with Web or React Components.
+    Swipe, two-up, onion skin, and diff visualization. Web Components + React wrappers.
   </div>
 
   <div className="flex gap-4">

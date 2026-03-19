@@ -12,22 +12,10 @@ npm install @blazediff/gmsd
 
 ## Features
 
-- **Perceptual metric** - Measures gradient similarity, not just pixel differences
-- **Similarity score** - Returns 0-1 value (1 = identical, 0 = completely different)
-- **Compression tolerant** - Detects structural changes even with JPEG artifacts
-- **Fast computation** - Optimized single-threaded implementation for CI environments
+- **Gradient-based** - Measures structural similarity via gradient magnitudes, tolerant to compression artifacts
 - **GMS map output** - Optional grayscale visualization of gradient similarity
-- **TypeScript support** out of the box
 
-## What is GMSD?
-
-GMSD (Gradient Magnitude Similarity Deviation) is a perceptual image quality metric that:
-- Measures how similar gradient structures are between images
-- Returns a score from 0 to 1 (higher = more similar)
-- Is more tolerant to compression artifacts than pixel-by-pixel comparison
-- Detects structural and edge changes that are perceptually significant
-
-For detailed mathematical explanation, see the [GMSD package FORMULA.md](https://github.com/teimurjan/blazediff/blob/main/packages/gmsd/FORMULA.md).
+[Mathematical details (FORMULA.md)](https://github.com/teimurjan/blazediff/blob/main/packages/gmsd/FORMULA.md)
 
 ## API Reference
 
