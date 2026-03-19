@@ -8,6 +8,7 @@ Monorepo for image and object diffing libraries. Uses pnpm workspaces.
 - `pnpm test` - Run all tests
 - `pnpm typecheck` - Typecheck all packages
 - `pnpm check:write` - Lint + format (biome)
+- `npx @j178/prek run --all-files` - Run pre-commit hooks (biome + cargo fmt)
 
 ## Benchmarks
 
@@ -79,3 +80,12 @@ cd crates && cargo test -p blazediff
 cargo check -p blazediff --features napi  # verify N-API compiles
 cargo run -p blazediff -- ../fixtures/blazediff/3a.png ../fixtures/blazediff/3b.png --interpret
 ```
+
+## Pre-commit
+
+Uses [prek](https://github.com/j178/prek) (`.pre-commit-config.yaml`). Hooks run automatically on `git commit`:
+
+- **biome check** — `biome check --write` on JS/TS/JSON
+- **cargo fmt** — `cargo fmt` on Rust
+
+Run `npx @j178/prek install` after cloning to set up git hooks.
