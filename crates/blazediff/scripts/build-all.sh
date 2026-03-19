@@ -112,7 +112,7 @@ build_target() {
             RUSTFLAGS="$flags" cargo xwin build --release --target "$target"
         fi
     elif [[ "$use_cross" == "true" ]]; then
-        RUSTFLAGS="$flags" cross build --release --target "$target"
+        RUSTFLAGS="$flags" cross build --release --target "$target" --manifest-path "$WORKSPACE_DIR/Cargo.toml" -p blazediff
     else
         RUSTFLAGS="$flags" cargo build --release --target "$target"
     fi
@@ -238,7 +238,7 @@ build_napi_target() {
             RUSTFLAGS="$flags" cargo xwin build --release --target "$target" --features napi --lib
         fi
     elif [[ "$use_cross" == "true" ]]; then
-        RUSTFLAGS="$flags" cross build --release --target "$target" --features napi --lib
+        RUSTFLAGS="$flags" cross build --release --target "$target" --manifest-path "$WORKSPACE_DIR/Cargo.toml" -p blazediff --features napi --lib
     else
         RUSTFLAGS="$flags" cargo build --release --target "$target" --features napi --lib
     fi
@@ -445,27 +445,39 @@ case "$MODE" in
         for target in $ALL_TARGETS; do
             # Native target or same-OS target on macOS
             if [[ "$target" == "$current_target" ]]; then
-                build_target "$target" false || echo "  Skipped $target"
-                if [[ "$BUILD_NAPI" == "true" ]]; then
-                    build_napi_target "$target" false || echo "  Skipped N-API for $target"
+                if build_target "$target" false; then
+                    if [[ "$BUILD_NAPI" == "true" ]]; then
+                        build_napi_target "$target" false || echo "  Skipped N-API for $target"
+                    fi
+                else
+                    echo "  Skipped $target"
                 fi
             elif [[ "$(uname -s)" == "Darwin" && "$target" == *"apple-darwin"* ]]; then
                 rustup target add "$target" 2>/dev/null || true
-                build_target "$target" false || echo "  Skipped $target"
-                if [[ "$BUILD_NAPI" == "true" ]]; then
-                    build_napi_target "$target" false || echo "  Skipped N-API for $target"
+                if build_target "$target" false; then
+                    if [[ "$BUILD_NAPI" == "true" ]]; then
+                        build_napi_target "$target" false || echo "  Skipped N-API for $target"
+                    fi
+                else
+                    echo "  Skipped $target"
                 fi
             elif [[ "$target" == "aarch64-pc-windows-msvc" ]]; then
                 # Windows ARM64 uses cargo-xwin, not cross
                 rustup target add "$target" 2>/dev/null || true
-                build_target "$target" false || echo "  Skipped $target (cargo-xwin failed)"
-                if [[ "$BUILD_NAPI" == "true" ]]; then
-                    build_napi_target "$target" false || echo "  Skipped N-API for $target"
+                if build_target "$target" false; then
+                    if [[ "$BUILD_NAPI" == "true" ]]; then
+                        build_napi_target "$target" false || echo "  Skipped N-API for $target"
+                    fi
+                else
+                    echo "  Skipped $target (cargo-xwin failed)"
                 fi
             elif [[ "$has_cross" == "true" ]]; then
-                build_target "$target" true || echo "  Skipped $target (cross-compilation failed)"
-                if [[ "$BUILD_NAPI" == "true" ]]; then
-                    build_napi_target "$target" true || echo "  Skipped N-API for $target"
+                if build_target "$target" true; then
+                    if [[ "$BUILD_NAPI" == "true" ]]; then
+                        build_napi_target "$target" true || echo "  Skipped N-API for $target"
+                    fi
+                else
+                    echo "  Skipped $target (cross-compilation failed)"
                 fi
             else
                 echo "Skipping $target (requires cross)"

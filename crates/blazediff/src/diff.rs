@@ -1737,6 +1737,7 @@ unsafe fn yiq_delta_4_sse_signed(
 }
 
 /// Scalar hot block processing (fallback for non-SIMD architectures or x86_64 without SSE4.1)
+#[cfg(not(target_arch = "aarch64"))]
 fn process_hot_block_scalar(
     a32: &[u32],
     b32: &[u32],

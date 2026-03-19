@@ -2,12 +2,10 @@
 title: BlazeDiff - High-Performance Diff Checking
 ---
 
-import { IconBolt, IconBox, IconFeather, IconBrandJavascript, IconBrandRust, IconLanguage } from "@tabler/icons-react";
+import { IconBolt, IconBox, IconFeather } from "@tabler/icons-react";
 import Link from "next/link";
-import DiffImageComparison from "../components/diff-image-comparison";
-import SsimImageComparison from "../components/ssim-image-comparison";
-import GmsdImageComparison from "../components/gmsd-image-comparison";
-import InterpretComparison from "../components/interpret-comparison";
+import HeroDiff from "../components/hero-diff";
+import HeroInterpretCycling from "../components/hero-interpret-cycling";
 import diffData from "../data/interpret/blazediff-3-diff.json";
 
 <h1 className="text-5xl font-bold mt-8 mb-16 text-center">BlazeDiff</h1>
@@ -40,12 +38,27 @@ import diffData from "../data/interpret/blazediff-3-diff.json";
 
 Image and object diffing. Rust native binary with SIMD, pure JS core, perceptual metrics (SSIM, GMSD), structured interpret mode, and test framework matchers for Jest/Vitest/Bun.
 
-## Quickstart
 
-```sh npm2yarn
-npm i @blazediff/core-native
-```
+## Usage
 
+### Detect Differences
+
+<div className="mt-4 mb-12">
+  <HeroDiff
+    fixtureA="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3a.png"
+    fixtureB="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3b.png"
+  />
+</div>
+
+### Highlight and Explain
+
+<div className="mt-4 mb-12">
+  <HeroInterpretCycling
+    fixtureA="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3a.png"
+    fixtureB="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3b.png"
+    interpretResult={diffData}
+  />
+</div>
 
 ## Powering
 
@@ -135,141 +148,143 @@ npm i @blazediff/core-native
   </a>
 </div>
 
-## Usage
 
-### Detect Different Pixels
-
-<div className="mt-4 mb-6">
-  <DiffImageComparison
-    fixtureA="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3a.png"
-    fixtureB="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3b.png"
-  />
-</div>
-
-<div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6 mb-8">
-  <div className="p-5 rounded-lg border border-gray-200 dark:border-gray-700">
-    <div className="flex items-center gap-3 mb-3">
-      <IconBrandJavascript size={32} className="text-yellow-500" />
-      <Link href="/docs/core" className="font-semibold text-lg text-blue-500 dark:text-blue-400">
-        @blazediff/core
-      </Link>
-    </div>
-    <div className="text-gray-600 dark:text-gray-400 text-sm">
-      Pure JS, ~1.5x faster than pixelmatch. Runs in browsers, Node, Deno, Bun.
-    </div>
-  </div>
-
-  <div className="p-5 rounded-lg border border-gray-200 dark:border-gray-700">
-    <div className="flex items-center gap-3 mb-3">
-      <IconBrandRust size={32} className="text-orange-500" />
-      <Link href="/docs/core-native" className="font-semibold text-lg text-blue-500 dark:text-blue-400">
-        @blazediff/core-native
-      </Link>
-    </div>
-    <div className="text-gray-600 dark:text-gray-400 text-sm">
-      Rust + SIMD via N-API. 3-4x faster than odiff, 3x smaller binaries.
-    </div>
-  </div>
-</div>
-
-### Interpret Differences
-
-<div className="mt-4 mb-6">
-  <InterpretComparison
-    fixtureA="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3a.png"
-    fixtureB="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3b.png"
-    fullResult={diffData}
-  />
-</div>
-
-<div className="mb-8">
-  <div className="p-5 rounded-lg border border-gray-200 dark:border-gray-700">
-    <div className="flex items-center gap-3 mb-3">
-      <IconLanguage size={32} className="text-emerald-700" />
-      <Link href="/docs/core-native" className="font-semibold text-lg text-blue-500 dark:text-blue-400">
-        Interpret (via @blazediff/core-native)
-      </Link>
-    </div>
-    <div className="text-gray-600 dark:text-gray-400 text-sm">
-      Region detection, content-aware classification (addition/deletion/shift), severity scoring, and human-readable summaries.
-    </div>
-  </div>
-</div>
-
-### Compare Perceptual Quality
+## Packages
 
 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4 mb-8">
-  <div>
-    <div className="mb-3">
-      <SsimImageComparison
-        fixtureA="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3a.png"
-        fixtureB="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3b.png"
-        variant="ssim"
-      />
+  <div className="p-5 rounded-lg border border-gray-200 dark:border-gray-700">
+    <Link href="/docs/core" className="font-semibold text-lg text-blue-500 dark:text-blue-400">
+      @blazediff/core
+    </Link>
+    <div className="text-gray-600 dark:text-gray-400 text-sm mt-2">
+      Blazing-fast pixel-by-pixel image comparison with block-based optimization. 1.5x faster than pixelmatch.
     </div>
-
-
-    <Link href="/docs/ssim" className="text-blue-500 dark:text-blue-400">@blazediff/ssim</Link>
   </div>
 
-  <div>
-    <div className="mb-3">
-      <GmsdImageComparison
-        fixtureA="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3a.png"
-        fixtureB="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3b.png"
-      />
+  <div className="p-5 rounded-lg border border-gray-200 dark:border-gray-700">
+    <Link href="/docs/core-native" className="font-semibold text-lg text-blue-500 dark:text-blue-400">
+      @blazediff/core-native
+    </Link>
+    <div className="text-gray-600 dark:text-gray-400 text-sm mt-2">
+      Native Rust binaries with SIMD. The fastest image diff in the world.
     </div>
-
-    <Link href="/docs/ssim" className="text-blue-500 dark:text-blue-400">@blazediff/gmsd</Link>
-  </div>
-</div>
-
-### Object Diff
-
-<div className="mb-8">
-  <div className="text-gray-600 dark:text-gray-400 mb-3 text-md">
-    Structural object comparison with path tracking, cycle detection, and CREATE/REMOVE/CHANGE types.
-  </div>
-  
-  <Link href="/docs/object" className="flex items-center font-semibold gap-2 text-blue-500 dark:text-blue-400">
-    <span>@blazediff/object</span>
-  </Link>
-</div>
-
-### Test Matchers
-
-<div className="mb-8">
-  <div className="text-gray-600 dark:text-gray-400 mb-3">
-    <code>toMatchImageSnapshot()</code> for visual regression testing.
   </div>
 
-  <div className="flex gap-4 flex-wrap">
-    <Link href="/docs/jest" className="flex items-center font-semibold gap-2 text-blue-500 dark:text-blue-400">
+  <div className="p-5 rounded-lg border border-gray-200 dark:border-gray-700">
+    <Link href="/docs/ssim" className="font-semibold text-lg text-blue-500 dark:text-blue-400">
+      @blazediff/ssim
+    </Link>
+    <div className="text-gray-600 dark:text-gray-400 text-sm mt-2">
+      Fast single-threaded SSIM (Structural Similarity Index) metric for CI visual testing.
+    </div>
+  </div>
+
+  <div className="p-5 rounded-lg border border-gray-200 dark:border-gray-700">
+    <Link href="/docs/gmsd" className="font-semibold text-lg text-blue-500 dark:text-blue-400">
+      @blazediff/gmsd
+    </Link>
+    <div className="text-gray-600 dark:text-gray-400 text-sm mt-2">
+      Fast single-threaded GMSD (Gradient Magnitude Similarity Deviation) metric for CI visual testing.
+    </div>
+  </div>
+
+  <div className="p-5 rounded-lg border border-gray-200 dark:border-gray-700">
+    <Link href="/docs/object" className="font-semibold text-lg text-blue-500 dark:text-blue-400">
+      @blazediff/object
+    </Link>
+    <div className="text-gray-600 dark:text-gray-400 text-sm mt-2">
+      Blazing-fast object comparison with path tracking, cycle detection, and CREATE/REMOVE/CHANGE types.
+    </div>
+  </div>
+
+  <div className="p-5 rounded-lg border border-gray-200 dark:border-gray-700">
+    <Link href="/docs/cli" className="font-semibold text-lg text-blue-500 dark:text-blue-400">
+      @blazediff/cli
+    </Link>
+    <div className="text-gray-600 dark:text-gray-400 text-sm mt-2">
+      Command-line interface for image comparison.
+    </div>
+  </div>
+
+  <div className="p-5 rounded-lg border border-gray-200 dark:border-gray-700">
+    <Link href="/docs/jest" className="font-semibold text-lg text-blue-500 dark:text-blue-400">
       @blazediff/jest
     </Link>
-    <Link href="/docs/vitest" className="flex items-center font-semibold gap-2 text-blue-500 dark:text-blue-400">
+    <div className="text-gray-600 dark:text-gray-400 text-sm mt-2">
+      Jest matcher for visual regression testing.
+    </div>
+  </div>
+
+  <div className="p-5 rounded-lg border border-gray-200 dark:border-gray-700">
+    <Link href="/docs/vitest" className="font-semibold text-lg text-blue-500 dark:text-blue-400">
       @blazediff/vitest
     </Link>
-    <Link href="/docs/bun" className="flex items-center font-semibold gap-2 text-blue-500 dark:text-blue-400">
+    <div className="text-gray-600 dark:text-gray-400 text-sm mt-2">
+      Vitest matcher for visual regression testing.
+    </div>
+  </div>
+
+  <div className="p-5 rounded-lg border border-gray-200 dark:border-gray-700">
+    <Link href="/docs/bun" className="font-semibold text-lg text-blue-500 dark:text-blue-400">
       @blazediff/bun
     </Link>
-  </div>
-</div>
-
-### UI Components
-
-<div className="mb-8">
-  <div className="text-gray-600 dark:text-gray-400 mb-3">
-    Swipe, two-up, onion skin, and diff visualization. Web Components + React wrappers.
+    <div className="text-gray-600 dark:text-gray-400 text-sm mt-2">
+      Bun test matcher for visual regression testing.
+    </div>
   </div>
 
-  <div className="flex gap-4">
-    <Link href="/docs/ui" className="flex items-center font-semibold gap-2 text-blue-500 dark:text-blue-400">
+  <div className="p-5 rounded-lg border border-gray-200 dark:border-gray-700">
+    <Link href="/docs/matcher" className="font-semibold text-lg text-blue-500 dark:text-blue-400">
+      @blazediff/matcher
+    </Link>
+    <div className="text-gray-600 dark:text-gray-400 text-sm mt-2">
+      Core matcher logic for visual regression testing.
+    </div>
+  </div>
+
+  <div className="p-5 rounded-lg border border-gray-200 dark:border-gray-700">
+    <Link href="/docs/ui" className="font-semibold text-lg text-blue-500 dark:text-blue-400">
       @blazediff/ui
     </Link>
-    <Link href="/docs/react" className="flex items-center font-semibold gap-2 text-blue-500 dark:text-blue-400">
+    <div className="text-gray-600 dark:text-gray-400 text-sm mt-2">
+      Unstyled web components for displaying image differences.
+    </div>
+  </div>
+
+  <div className="p-5 rounded-lg border border-gray-200 dark:border-gray-700">
+    <Link href="/docs/react" className="font-semibold text-lg text-blue-500 dark:text-blue-400">
       @blazediff/react
     </Link>
+    <div className="text-gray-600 dark:text-gray-400 text-sm mt-2">
+      React components for image comparison.
+    </div>
+  </div>
+
+  <div className="p-5 rounded-lg border border-gray-200 dark:border-gray-700">
+    <Link href="/docs/core-native" className="font-semibold text-lg text-blue-500 dark:text-blue-400">
+      @blazediff/codec-sharp
+    </Link>
+    <div className="text-gray-600 dark:text-gray-400 text-sm mt-2">
+      Image codec using Sharp.
+    </div>
+  </div>
+
+  <div className="p-5 rounded-lg border border-gray-200 dark:border-gray-700">
+    <Link href="/docs/core-native" className="font-semibold text-lg text-blue-500 dark:text-blue-400">
+      @blazediff/codec-pngjs
+    </Link>
+    <div className="text-gray-600 dark:text-gray-400 text-sm mt-2">
+      PNG image codec using pngjs.
+    </div>
+  </div>
+
+  <div className="p-5 rounded-lg border border-gray-200 dark:border-gray-700">
+    <Link href="/docs/core-native" className="font-semibold text-lg text-blue-500 dark:text-blue-400">
+      @blazediff/codec-jsquash-png
+    </Link>
+    <div className="text-gray-600 dark:text-gray-400 text-sm mt-2">
+      WASM-based PNG image codec using @jsquash/png.
+    </div>
   </div>
 </div>
 

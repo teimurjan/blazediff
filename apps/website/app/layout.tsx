@@ -118,7 +118,7 @@ export default async function RootLayout({
 					docsRepositoryBase="https://github.com/teimurjan/blazediff/tree/main/apps/website"
 					footer={footer}
 				>
-					{children}
+					<div className="max-w-7xl m-auto">{children}</div>
 				</Layout>
 			</body>
 		</html>
