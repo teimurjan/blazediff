@@ -1,5 +1,16 @@
 # @blazediff/matcher
 
+## 1.4.0
+
+### Minor Changes
+
+- a77d845: Add interpret option to inspect and report visual changes using heuristic
+
+### Patch Changes
+
+- Updated dependencies [a77d845]
+  - @blazediff/core-native@4.1.0
+
 ## 1.3.1
 
 ### Patch Changes

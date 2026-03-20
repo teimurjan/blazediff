@@ -1,6 +1,6 @@
 {
 	"name": "@blazediff/core-native",
-	"version": "4.0.0",
+	"version": "4.1.0",
 	"description": "Native Rust binaries for blazediff - the fastest image diff in the world",
 	"private": false,
 	"publishConfig": {
@@ -27,12 +27,12 @@
 		"test:watch": "vitest"
 	},
 	"optionalDependencies": {
-		"@blazediff/core-native-darwin-arm64": "4.0.0",
-		"@blazediff/core-native-darwin-x64": "4.0.0",
-		"@blazediff/core-native-linux-arm64": "4.0.0",
-		"@blazediff/core-native-linux-x64": "4.0.0",
-		"@blazediff/core-native-win32-arm64": "4.0.0",
-		"@blazediff/core-native-win32-x64": "4.0.0"
+		"@blazediff/core-native-darwin-arm64": "4.1.0",
+		"@blazediff/core-native-darwin-x64": "4.1.0",
+		"@blazediff/core-native-linux-arm64": "4.1.0",
+		"@blazediff/core-native-linux-x64": "4.1.0",
+		"@blazediff/core-native-win32-arm64": "4.1.0",
+		"@blazediff/core-native-win32-x64": "4.1.0"
 	},
 	"keywords": [
 		"image",

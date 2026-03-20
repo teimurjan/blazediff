@@ -1,5 +1,16 @@
 # @blazediff/cli
 
+## 3.1.0
+
+### Minor Changes
+
+- a77d845: Add interpret option to inspect and report visual changes using heuristic
+
+### Patch Changes
+
+- Updated dependencies [a77d845]
+  - @blazediff/core-native@4.1.0
+
 ## 3.0.0
 
 ### Major Changes

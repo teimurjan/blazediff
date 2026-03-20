@@ -1,5 +1,16 @@
 # @blazediff/bun
 
+## 1.2.0
+
+### Minor Changes
+
+- a77d845: Add interpret option to inspect and report visual changes using heuristic
+
+### Patch Changes
+
+- Updated dependencies [a77d845]
+  - @blazediff/matcher@1.4.0
+
 ## 1.1.9
 
 ### Patch Changes
