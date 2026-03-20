@@ -1,5 +1,11 @@
 # @blazediff/core-native-darwin-x64
 
+## 4.1.0
+
+### Minor Changes
+
+- a77d845: Add interpret option to inspect and report visual changes using heuristic
+
 ## 4.0.0
 
 ### Major Changes
