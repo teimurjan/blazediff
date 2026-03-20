@@ -1,6 +1,6 @@
 {
 	"name": "@blazediff/core-native-linux-arm64",
-	"version": "4.0.0",
+	"version": "4.1.0",
 	"description": "blazediff binary for Linux ARM64",
 	"main": "blazediff.node",
 	"os": [
