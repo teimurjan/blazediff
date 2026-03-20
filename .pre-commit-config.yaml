@@ -1,0 +1,13 @@
+repos:
+  - repo: local
+    hooks:
+      - id: biome
+        name: biome check
+        entry: pnpm exec biome check --write
+        language: system
+        types_or: [javascript, jsx, ts, tsx, json]
+      - id: cargo-fmt
+        name: cargo fmt
+        entry: cargo fmt --manifest-path crates/Cargo.toml --
+        language: system
+        types: [rust]

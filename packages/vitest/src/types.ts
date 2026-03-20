@@ -1,6 +1,7 @@
 import type { MatcherOptions } from "@blazediff/matcher";
 
 declare module "vitest" {
+	// biome-ignore lint/suspicious/noExplicitAny: TODO: make this more specific
 	interface Matchers<T = any> {
 		/**
 		 * Compare an image against a stored snapshot.

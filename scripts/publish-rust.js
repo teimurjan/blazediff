@@ -5,14 +5,21 @@ const path = require("node:path");
 const os = require("node:os");
 
 const ROOT = path.resolve(__dirname, "..");
-const BIN_PKG_PATH = path.join(ROOT, "packages", "core-native", "package.json");
-const CARGO_TOML_PATH = path.join(ROOT, "rust", "Cargo.toml");
-const RUST_DIR = path.join(ROOT, "rust");
-const CRATE_NAME = "blazediff";
+const CRATES_DIR = path.join(ROOT, "crates");
 
-function getVersions() {
-	const binPkg = JSON.parse(fs.readFileSync(BIN_PKG_PATH, "utf8"));
-	const cargoToml = fs.readFileSync(CARGO_TOML_PATH, "utf8");
+const CRATES = [
+	{
+		name: "blazediff",
+		npmPkgPath: path.join(ROOT, "packages", "core-native", "package.json"),
+		cargoTomlPath: path.join(ROOT, "crates", "blazediff", "Cargo.toml"),
+		dockerfile: "blazediff/Dockerfile.publish",
+		dockerTag: "blazediff-publish",
+	},
+];
+
+function getVersions(npmPkgPath, cargoTomlPath) {
+	const binPkg = JSON.parse(fs.readFileSync(npmPkgPath, "utf8"));
+	const cargoToml = fs.readFileSync(cargoTomlPath, "utf8");
 	const match = cargoToml.match(/^version\s*=\s*"([^"]+)"/m);
 	return {
 		bin: binPkg.version,
@@ -20,10 +27,10 @@ function getVersions() {
 	};
 }
 
-async function versionExistsOnCratesIo(version) {
+async function versionExistsOnCratesIo(crateName, version) {
 	try {
 		const res = await fetch(
-			`https://crates.io/api/v1/crates/${CRATE_NAME}/${version}`,
+			`https://crates.io/api/v1/crates/${crateName}/${version}`,
 			{
 				headers: {
 					"User-Agent":
@@ -32,11 +39,11 @@ async function versionExistsOnCratesIo(version) {
 			},
 		);
 		if (res.ok) {
-			console.log(`Found ${CRATE_NAME}@${version} on crates.io`);
+			console.log(`Found ${crateName}@${version} on crates.io`);
 			return true;
 		}
 		console.log(
-			`${CRATE_NAME}@${version} not found on crates.io (status: ${res.status})`,
+			`${crateName}@${version} not found on crates.io (status: ${res.status})`,
 		);
 		return false;
 	} catch (err) {
@@ -45,14 +52,54 @@ async function versionExistsOnCratesIo(version) {
 	}
 }
 
-function syncVersion(targetVersion) {
-	const cargoToml = fs.readFileSync(CARGO_TOML_PATH, "utf8");
+function syncVersion(cargoTomlPath, targetVersion) {
+	const cargoToml = fs.readFileSync(cargoTomlPath, "utf8");
 	const newCargoToml = cargoToml.replace(
 		/^version\s*=\s*"[^"]+"/m,
 		`version = "${targetVersion}"`,
 	);
-	fs.writeFileSync(CARGO_TOML_PATH, newCargoToml);
-	console.log(`Synced Cargo.toml to version ${targetVersion}`);
+	fs.writeFileSync(cargoTomlPath, newCargoToml);
+	console.log(`Synced ${cargoTomlPath} to version ${targetVersion}`);
+}
+
+async function publishCrate(crate, token) {
+	console.log(`\n--- Publishing ${crate.name} ---`);
+
+	const versions = getVersions(crate.npmPkgPath, crate.cargoTomlPath);
+	console.log(`NPM package version: ${versions.bin}`);
+	console.log(`Cargo.toml version: ${versions.rust}`);
+
+	if (versions.bin !== versions.rust) {
+		syncVersion(crate.cargoTomlPath, versions.bin);
+	}
+
+	if (await versionExistsOnCratesIo(crate.name, versions.bin)) {
+		console.log(
+			`Version ${versions.bin} already exists on crates.io, skipping`,
+		);
+		return;
+	}
+
+	console.log(`Publishing ${crate.name} to crates.io via Docker...`);
+
+	const tokenFile = path.join(os.tmpdir(), "crates_token");
+	fs.writeFileSync(tokenFile, token, { mode: 0o600 });
+
+	try {
+		execSync(`docker build -f ${crate.dockerfile} -t ${crate.dockerTag} .`, {
+			cwd: CRATES_DIR,
+			stdio: "inherit",
+		});
+
+		execSync(
+			`docker run --rm -v ${tokenFile}:/run/secrets/crates_token:ro ${crate.dockerTag}`,
+			{ cwd: CRATES_DIR, stdio: "inherit" },
+		);
+
+		console.log(`Published ${crate.name} to crates.io`);
+	} finally {
+		fs.unlinkSync(tokenFile);
+	}
 }
 
 async function main() {
@@ -62,40 +109,8 @@ async function main() {
 		return;
 	}
 
-	const versions = getVersions();
-	console.log(`@blazediff/core-native version: ${versions.bin}`);
-	console.log(`Cargo.toml version: ${versions.rust}`);
-
-	if (versions.bin !== versions.rust) {
-		syncVersion(versions.bin);
-	}
-
-	if (await versionExistsOnCratesIo(versions.bin)) {
-		console.log(
-			`Version ${versions.bin} already exists on crates.io, skipping`,
-		);
-		return;
-	}
-
-	console.log("Publishing to crates.io via Docker...");
-
-	const tokenFile = path.join(os.tmpdir(), "crates_token");
-	fs.writeFileSync(tokenFile, token, { mode: 0o600 });
-
-	try {
-		execSync(`docker build -f Dockerfile.publish -t blazediff-publish .`, {
-			cwd: RUST_DIR,
-			stdio: "inherit",
-		});
-
-		execSync(
-			`docker run --rm -v ${tokenFile}:/run/secrets/crates_token:ro blazediff-publish`,
-			{ cwd: RUST_DIR, stdio: "inherit" },
-		);
-
-		console.log("Published to crates.io");
-	} finally {
-		fs.unlinkSync(tokenFile);
+	for (const crate of CRATES) {
+		await publishCrate(crate, token);
 	}
 }
 

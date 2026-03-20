@@ -1,0 +1,18 @@
+[target.x86_64-unknown-linux-gnu]
+pre-build = ["apt-get update && apt-get install -y zlib1g-dev"]
+
+[target.aarch64-unknown-linux-gnu]
+pre-build = [
+    "dpkg --add-architecture arm64",
+    "apt-get update",
+    "apt-get install -y zlib1g-dev:arm64"
+]
+
+[target.x86_64-pc-windows-gnu]
+pre-build = [
+    "apt-get update && apt-get install -y zlib1g-dev curl mingw-w64-tools",
+    "curl -fsSL https://nodejs.org/dist/v22.22.1/win-x64/node.exe -o /tmp/node.exe && gendef /tmp/node.exe && x86_64-w64-mingw32-dlltool -D node.exe -d node.def -l /usr/local/lib/libnode.dll && rm /tmp/node.exe node.def",
+]
+
+[target.x86_64-pc-windows-gnu.env]
+passthrough = ["LIBNODE_PATH=/usr/local/lib"]

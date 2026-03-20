@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main
 
 concurrency: ${{ github.workflow }}-${{ github.ref }}
 
@@ -14,6 +17,8 @@ jobs:
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v5
+        with:
+          submodules: true
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -26,6 +31,12 @@ jobs:
 
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cargo Test
+        run: cargo test --manifest-path crates/blazediff/Cargo.toml
 
       - name: Build
         run: pnpm build

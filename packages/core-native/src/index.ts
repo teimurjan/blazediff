@@ -19,16 +19,21 @@ export interface BlazeDiffOptions {
 	compression?: number;
 	/** JPEG quality (1-100). Default: 90 */
 	quality?: number;
+	/** Run structured interpretation after raw pixel diff */
+	interpret?: boolean;
+	/** Output format for diff: "png" (default) or "html" (interpret report) */
+	outputFormat?: "png" | "html";
 }
 
 export type BlazeDiffResult =
-	| { match: true }
+	| { match: true; interpretation?: InterpretResult }
 	| { match: false; reason: "layout-diff" }
 	| {
 			match: false;
 			reason: "pixel-diff";
 			diffCount: number;
 			diffPercentage: number;
+			interpretation?: InterpretResult;
 	  }
 	| { match: false; reason: "file-not-exists"; file: string };
 
@@ -45,6 +50,7 @@ interface NapiDiffResult {
 	reason: string | null;
 	diffCount: number | null;
 	diffPercentage: number | null;
+	interpretation: InterpretResult | null;
 }
 
 /** N-API binding options structure */
@@ -54,6 +60,77 @@ interface NapiDiffOptions {
 	diffMask?: boolean;
 	compression?: number;
 	quality?: number;
+	interpret?: boolean;
+	outputFormat?: string;
+}
+
+// ─── Interpret types ─────────────────────────────────────────────────────────
+
+export interface BoundingBox {
+	x: number;
+	y: number;
+	width: number;
+	height: number;
+}
+
+export interface ShapeStats {
+	fillRatio: number;
+	borderRatio: number;
+	innerFillRatio: number;
+	centerDensity: number;
+	rowOccupancy: number;
+	colOccupancy: number;
+}
+
+export interface ColorDeltaStats {
+	meanDelta: number;
+	maxDelta: number;
+}
+
+export interface GradientStats {
+	edgeScore: number;
+}
+
+export interface ClassificationSignals {
+	blendsWithBgInImg1: boolean;
+	blendsWithBgInImg2: boolean;
+	lowColorDelta: boolean;
+	lowEdgeChange: boolean;
+	denseFill: boolean;
+	sparseFill: boolean;
+	tinyRegion: boolean;
+	confidence: number;
+}
+
+export interface ChangeRegion {
+	bbox: BoundingBox;
+	pixelCount: number;
+	percentage: number;
+	position: string;
+	shape: string;
+	shapeStats: ShapeStats;
+	changeType: string;
+	signals: ClassificationSignals;
+	confidence: number;
+	colorDelta: ColorDeltaStats;
+	gradient: GradientStats;
+}
+
+export interface InterpretResult {
+	summary: string;
+	diffCount: number;
+	totalRegions: number;
+	regions: ChangeRegion[];
+	severity: string;
+	diffPercentage: number;
+	width: number;
+	height: number;
+}
+
+/** N-API binding interfaces for interpret */
+interface NapiInterpretOptions {
+	threshold?: number;
+	antialiasing?: boolean;
 }
 
 /** Native binding interface */
@@ -64,6 +141,11 @@ interface NativeBinding {
 		diffOutput: string | null,
 		options: NapiDiffOptions | null,
 	): NapiDiffResult;
+	interpretImages(
+		image1Path: string,
+		image2Path: string,
+		options: NapiInterpretOptions | null,
+	): InterpretResult;
 }
 
 const PLATFORM_PACKAGES: Record<
@@ -159,29 +241,22 @@ function tryLoadNativeBinding(): NativeBinding | null {
  * Convert N-API result to BlazeDiffResult
  */
 function convertNapiResult(result: NapiDiffResult): BlazeDiffResult {
+	const interpretation = result.interpretation ?? undefined;
+
 	if (result.matchResult) {
-		return { match: true };
+		return { match: true, interpretation };
 	}
 
 	if (result.reason === "layout-diff") {
 		return { match: false, reason: "layout-diff" };
 	}
 
-	if (result.reason === "pixel-diff") {
-		return {
-			match: false,
-			reason: "pixel-diff",
-			diffCount: result.diffCount ?? 0,
-			diffPercentage: result.diffPercentage ?? 0,
-		};
-	}
-
-	// Fallback (shouldn't happen)
 	return {
 		match: false,
 		reason: "pixel-diff",
 		diffCount: result.diffCount ?? 0,
 		diffPercentage: result.diffPercentage ?? 0,
+		interpretation,
 	};
 }
 
@@ -195,6 +270,8 @@ function convertToNapiOptions(options?: BlazeDiffOptions): NapiDiffOptions {
 		diffMask: options?.diffMask,
 		compression: options?.compression,
 		quality: options?.quality,
+		interpret: options?.interpret,
+		outputFormat: options?.outputFormat,
 	};
 }
 
@@ -258,7 +335,10 @@ function getBinaryPathInternal(): string {
 
 function buildArgs(diffOutput?: string, options?: BlazeDiffOptions): string[] {
 	const args: string[] = [];
+	const useInterpret = options?.interpret || options?.outputFormat === "html";
+
 	if (diffOutput) args.push(diffOutput);
+	if (useInterpret) args.push("--interpret");
 	args.push("--output-format=json");
 
 	if (!options) return args;
@@ -266,10 +346,13 @@ function buildArgs(diffOutput?: string, options?: BlazeDiffOptions): string[] {
 	if (options.threshold !== undefined)
 		args.push(`--threshold=${options.threshold}`);
 	if (options.antialiasing) args.push("--antialiasing");
-	if (options.diffMask) args.push("--diff-mask");
-	if (options.compression !== undefined)
-		args.push(`--compression=${options.compression}`);
-	if (options.quality !== undefined) args.push(`--quality=${options.quality}`);
+	if (!useInterpret) {
+		if (options.diffMask) args.push("--diff-mask");
+		if (options.compression !== undefined)
+			args.push(`--compression=${options.compression}`);
+		if (options.quality !== undefined)
+			args.push(`--quality=${options.quality}`);
+	}
 
 	return args;
 }
@@ -306,6 +389,10 @@ async function execFileCompare(
 ): Promise<BlazeDiffResult> {
 	const binaryPath = getBinaryPathInternal();
 	const args = [basePath, comparePath, ...buildArgs(diffOutput, options)];
+
+	if (options?.interpret || options?.outputFormat === "html") {
+		return execFileInterpretCompare(binaryPath, args, basePath, comparePath);
+	}
 
 	try {
 		await execFileAsync(binaryPath, args);
@@ -347,6 +434,49 @@ async function execFileCompare(
 		}
 
 		throw new Error(output || `blazediff exited with code ${code}`);
+	}
+}
+
+async function execFileInterpretCompare(
+	binaryPath: string,
+	args: string[],
+	basePath: string,
+	comparePath: string,
+): Promise<BlazeDiffResult> {
+	try {
+		const { stdout } = await execFileAsync(binaryPath, args);
+		const interpretation = JSON.parse(stdout) as InterpretResult;
+		return { match: true, interpretation };
+	} catch (err) {
+		const { code, stdout, stderr } = err as {
+			code?: number;
+			stdout?: string;
+			stderr?: string;
+		};
+
+		if (code === 1 && stdout) {
+			const interpretation = JSON.parse(stdout) as InterpretResult;
+			return {
+				match: false,
+				reason: "pixel-diff",
+				diffCount: interpretation.diffCount,
+				diffPercentage: interpretation.diffPercentage,
+				interpretation,
+			};
+		}
+
+		const errorOutput = stderr || stdout || "";
+
+		if (code === 2) {
+			const missingFile = detectMissingFile(errorOutput, basePath, comparePath);
+			if (missingFile) {
+				return { match: false, reason: "file-not-exists", file: missingFile };
+			}
+		}
+
+		throw new Error(
+			errorOutput || `blazediff --interpret exited with code ${code}`,
+		);
 	}
 }
 
@@ -416,4 +546,46 @@ export function getBinaryPath(): string {
  */
 export function hasNativeBinding(): boolean {
 	return tryLoadNativeBinding() !== null;
+}
+
+// ─── Interpret ───────────────────────────────────────────────────────────────
+
+/**
+ * Interpret the diff between two images, returning structured analysis results.
+ *
+ * Uses native N-API bindings when available for better performance.
+ * Falls back to execFile if native bindings are unavailable.
+ *
+ * @example
+ * ```ts
+ * const result = await interpret('expected.png', 'actual.png');
+ * console.log(result.summary);
+ * for (const region of result.regions) {
+ *   console.log(`${region.position}: ${region.changeType} (${region.percentage.toFixed(2)}%)`);
+ * }
+ * ```
+ */
+export async function interpret(
+	image1Path: string,
+	image2Path: string,
+	options?: Pick<BlazeDiffOptions, "threshold" | "antialiasing">,
+): Promise<InterpretResult> {
+	const binding = tryLoadNativeBinding();
+	if (binding) {
+		return binding.interpretImages(image1Path, image2Path, {
+			threshold: options?.threshold,
+			antialiasing: options?.antialiasing,
+		});
+	}
+
+	const result = await compare(image1Path, image2Path, undefined, {
+		...options,
+		interpret: true,
+	});
+
+	if ("interpretation" in result && result.interpretation) {
+		return result.interpretation;
+	}
+
+	throw new Error("Interpretation result missing from compare");
 }

@@ -1,7 +1,8 @@
 import { IconBrandGithub } from "@tabler/icons-react";
 import { Roboto_Mono } from "next/font/google";
 import Image from "next/image";
-import { Head } from "nextra/components";
+import Link from "next/link";
+import { Banner, Head } from "nextra/components";
 import { getPageMap } from "nextra/page-map";
 import { Footer, Layout, Navbar } from "nextra-theme-docs";
 import "./global.css";
@@ -78,6 +79,15 @@ export const metadata = {
 	manifest: "/site.webmanifest",
 };
 
+const banner = (
+	<Banner storageKey="interpret-launch">
+		<Link href="/docs/core-native">
+			New: <b className="text-blue-400">@blazediff/core-native</b> now includes
+			interpret — structured diff analysis to understand what changed. Read more
+			→
+		</Link>
+	</Banner>
+);
 const navbar = (
 	<Navbar
 		logo={<Image src="/logo.png" alt="BlazeDiff" width={48} height={48} />}
@@ -102,12 +112,13 @@ export default async function RootLayout({
 			<Head />
 			<body>
 				<Layout
+					banner={banner}
 					navbar={navbar}
 					pageMap={await getPageMap()}
 					docsRepositoryBase="https://github.com/teimurjan/blazediff/tree/main/apps/website"
 					footer={footer}
 				>
-					{children}
+					<div className="max-w-7xl m-auto">{children}</div>
 				</Layout>
 			</body>
 		</html>

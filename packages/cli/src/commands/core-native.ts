@@ -1,27 +1,34 @@
 #!/usr/bin/env node
 
-import { type BlazeDiffOptions, compare } from "@blazediff/core-native";
+import {
+	type BlazeDiffOptions,
+	compare,
+	interpret,
+} from "@blazediff/core-native";
 
 function printUsage(): void {
 	console.log(`
-Usage: blazediff-cli core-native <image1> <image2> <output> [options]
+Usage: blazediff-cli core-native <image1> <image2> [output] [options]
 
 Arguments:
   image1    Path to the first image
   image2    Path to the second image
-  output    Path for the diff image output
+  output    Path for the diff output (optional)
 
 Options:
   -t, --threshold <num>     Color difference threshold (0 to 1, default: 0.1)
   -a, --antialiasing        Enable anti-aliasing detection
   --diff-mask               Output only differences (transparent background)
   -c, --compression <num>   PNG compression level (0-9, default: 0)
+  --interpret               Run structured interpretation (region detection + classification)
+  --output-format <fmt>     Output format: png (default) or html (interpret report)
   -h, --help                Show this help message
 
 Examples:
   blazediff-cli core-native image1.png image2.png diff.png
   blazediff-cli core-native image1.png image2.png diff.png -t 0.05 -a
-  blazediff-cli core-native image1.png image2.png diff.png --threshold 0.2 --antialiasing
+  blazediff-cli core-native image1.png image2.png --interpret
+  blazediff-cli core-native image1.png image2.png report.html --output-format html
 `);
 }
 
@@ -34,18 +41,25 @@ export default async function main(): Promise<void> {
 			process.exit(0);
 		}
 
-		if (args.length < 3) {
-			console.error("Error: Two image paths and an output path are required");
+		if (args.length < 2) {
+			console.error("Error: Two image paths are required");
 			printUsage();
 			process.exit(1);
 		}
 
 		const image1 = args[0];
 		const image2 = args[1];
-		const output = args[2];
 		const options: BlazeDiffOptions = {};
+		let output: string | undefined;
 
-		for (let i = 3; i < args.length; i++) {
+		// Third positional arg is output path (if not a flag)
+		let optStart = 2;
+		if (args.length > 2 && !args[2].startsWith("-")) {
+			output = args[2];
+			optStart = 3;
+		}
+
+		for (let i = optStart; i < args.length; i++) {
 			const arg = args[i];
 			const nextArg = args[i + 1];
 
@@ -87,6 +101,19 @@ export default async function main(): Promise<void> {
 						i++;
 					}
 					break;
+				case "--interpret":
+					options.interpret = true;
+					break;
+				case "--output-format":
+					if (nextArg === "png" || nextArg === "html") {
+						options.outputFormat = nextArg;
+						i++;
+					} else {
+						throw new Error(
+							`Invalid output format: ${nextArg}. Must be "png" or "html"`,
+						);
+					}
+					break;
 				default:
 					console.error(`Unknown option: ${arg}`);
 					printUsage();
@@ -95,6 +122,22 @@ export default async function main(): Promise<void> {
 		}
 
 		const startTime = performance.now();
+
+		// Standalone interpret mode (no output path, just analysis)
+		if (options.interpret && !output) {
+			const result = await interpret(image1, image2, {
+				threshold: options.threshold,
+				antialiasing: options.antialiasing,
+			});
+			const duration = performance.now() - startTime;
+
+			console.log(`completed in: ${duration.toFixed(2)}ms`);
+			console.log(JSON.stringify(result, null, 2));
+
+			process.exit(result.diffPercentage === 0 ? 0 : 1);
+			return;
+		}
+
 		const result = await compare(image1, image2, output, options);
 		const duration = performance.now() - startTime;
 
@@ -118,7 +161,12 @@ export default async function main(): Promise<void> {
 		if (result.reason === "pixel-diff") {
 			console.log(`different pixels: ${result.diffCount}`);
 			console.log(`error: ${result.diffPercentage.toFixed(2)}%`);
-			console.log(`diff image: ${output}`);
+			if (output) {
+				console.log(`diff output: ${output}`);
+			}
+			if ("interpretation" in result && result.interpretation) {
+				console.log(JSON.stringify(result.interpretation, null, 2));
+			}
 			process.exit(1);
 		}
 	} catch (error) {

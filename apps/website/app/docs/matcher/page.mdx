@@ -2,22 +2,13 @@
 
 import { Callout } from 'nextra/components'
 
-Core matcher logic for visual regression testing. Provides snapshot comparison with multiple algorithms, framework-agnostic APIs, and snapshot state tracking for Jest, Vitest, and Bun integrations.
+Core snapshot comparison logic that powers [@blazediff/jest](/docs/jest), [@blazediff/vitest](/docs/vitest), and [@blazediff/bun](/docs/bun). Most users should use those framework packages directly.
 
 ## Installation
 
 ```sh npm2yarn
 npm install @blazediff/matcher
 ```
-
-## Features
-
-- **Multiple comparison methods**: Choose from `core`, `core-native`, `ssim`, `msssim`, `hitchhikers-ssim`, `gmsd`
-- **Flexible input types**: Accepts file paths or image buffers with dimensions
-- **Snapshot state tracking**: Reports `added`, `matched`, `updated`, `failed` status
-- **Configurable thresholds**: Set tolerance by pixel count or percentage
-- **Framework-agnostic**: Core logic powers Jest, Vitest, and Bun integrations
-- **Rich comparison results**: Get diff counts, percentages, and similarity scores
 
 ## Quick Start
 
@@ -43,10 +34,6 @@ if (result.pass) {
   console.log(`✗ ${result.diffPercentage}% different`);
 }
 ```
-
-<Callout type="info">
-  Most users should use framework-specific packages ([@blazediff/jest](/docs/jest), [@blazediff/vitest](/docs/vitest), [@blazediff/bun](/docs/bun)) instead of using this core package directly.
-</Callout>
 
 ## API Reference
 
@@ -118,175 +105,7 @@ type ImageInput =
 
 ## Comparison Methods
 
-### `core-native` - Rust Native (Fastest)
-
-Rust-native comparison via N-API bindings with native performance.
-
-- **Speed**: Fastest method, especially for large images
-- **Input**: File paths only
-- **Algorithm**: YIQ color space with block-based optimization
-- **Use case**: Production testing, CI/CD pipelines
-
-```typescript
-const result = await getOrCreateSnapshot(
-  '/path/to/image.png',
-  { method: 'core-native' },
-  testContext
-);
-```
-
-### `core` - Pure JavaScript
-
-Pixel-by-pixel comparison in pure JavaScript with zero native dependencies.
-
-- **Speed**: Fast, with block-based optimization
-- **Input**: File paths or buffers
-- **Algorithm**: YIQ color space with anti-aliasing detection
-- **Use case**: Cross-platform compatibility, when native binaries are unavailable
-
-```typescript
-const result = await getOrCreateSnapshot(
-  imageBuffer,
-  { method: 'core' },
-  testContext
-);
-```
-
-### `ssim` - Structural Similarity
-
-Standard SSIM algorithm for perceptual similarity measurement.
-
-- **Speed**: Moderate
-- **Input**: File paths or buffers
-- **Algorithm**: Structural Similarity Index
-- **Score**: 1 = identical, lower = more different
-- **Use case**: Perceptual quality assessment
-
-```typescript
-const result = await getOrCreateSnapshot(
-  imageBuffer,
-  { method: 'ssim', windowSize: 11 },
-  testContext
-);
-```
-
-### `msssim` - Multi-Scale SSIM
-
-Multi-scale SSIM for better handling of varying resolutions.
-
-- **Speed**: Slower than standard SSIM
-- **Input**: File paths or buffers
-- **Algorithm**: SSIM computed across multiple scales
-- **Use case**: Images with varying resolutions or scales
-
-### `hitchhikers-ssim` - Fast SSIM
-
-Optimized SSIM approximation from Hitchhiker's Guide.
-
-- **Speed**: Faster than standard SSIM
-- **Input**: File paths or buffers
-- **Algorithm**: Optimized SSIM calculation
-- **Use case**: Faster perceptual comparison with acceptable accuracy trade-off
-
-### `gmsd` - Gradient Magnitude
-
-Gradient Magnitude Similarity Deviation for structural change detection.
-
-- **Speed**: Moderate
-- **Input**: File paths or buffers
-- **Algorithm**: Gradient-based perceptual similarity
-- **Score**: 0 = identical, higher = more different
-- **Use case**: Detecting structural and edge changes
-
-```typescript
-const result = await getOrCreateSnapshot(
-  imageBuffer,
-  { method: 'gmsd', downsample: 0 },
-  testContext
-);
-```
-
-## Usage Examples
-
-### File Paths
-
-```typescript
-const result = await getOrCreateSnapshot(
-  '/path/to/screenshot.png',
-  { method: 'core-native' },
-  {
-    testPath: '/path/to/test.spec.ts',
-    testName: 'homepage renders',
-  }
-);
-```
-
-### Image Buffers
-
-```typescript
-const imageData = {
-  data: new Uint8Array([/* pixel data */]),
-  width: 800,
-  height: 600,
-};
-
-const result = await getOrCreateSnapshot(
-  imageData,
-  { method: 'core' },
-  {
-    testPath: '/path/to/test.spec.ts',
-    testName: 'renders correctly',
-  }
-);
-```
-
-### Custom Thresholds
-
-```typescript
-// Allow up to 0.1% difference
-const result = await getOrCreateSnapshot(
-  imagePath,
-  {
-    method: 'core',
-    failureThreshold: 0.1,
-    failureThresholdType: 'percent',
-  },
-  testContext
-);
-```
-
-### Snapshot State Tracking
-
-The `snapshotStatus` field indicates what happened to the snapshot:
-
-```typescript
-const result = await getOrCreateSnapshot(imagePath, options, testContext);
-
-switch (result.snapshotStatus) {
-  case 'added':
-    console.log('New snapshot created');
-    break;
-  case 'matched':
-    console.log('Snapshot matched existing baseline');
-    break;
-  case 'updated':
-    console.log('Snapshot updated (update mode)');
-    break;
-  case 'failed':
-    console.log(`Snapshot failed: ${result.diffPercentage}% different`);
-    break;
-}
-```
-
-## Framework Integrations
-
-For most users, framework-specific packages provide a better developer experience:
-
-- **[@blazediff/jest](/docs/jest)** - Jest matcher with `toMatchImageSnapshot()`
-- **[@blazediff/vitest](/docs/vitest)** - Vitest matcher with `toMatchImageSnapshot()`
-- **[@blazediff/bun](/docs/bun)** - Bun test matcher with `toMatchImageSnapshot()`
-
-These packages wrap `@blazediff/matcher` and integrate with framework snapshot state tracking.
+Available methods: `core`, `core-native`, `ssim`, `msssim`, `hitchhikers-ssim`, `gmsd`. See [@blazediff/core](/docs/core), [@blazediff/core-native](/docs/core-native), [@blazediff/ssim](/docs/ssim), and [@blazediff/gmsd](/docs/gmsd) for algorithm details.
 
 ## Links
 

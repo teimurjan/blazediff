@@ -4,8 +4,8 @@ import blazediff, { type Difference } from "@blazediff/object";
 import { useCallback, useEffect, useState } from "react";
 
 interface ImageComparisonProps {
-	newObject: any;
-	oldObject: any;
+	newObject: unknown;
+	oldObject: unknown;
 }
 
 export default function ImageComparison({

@@ -11,7 +11,7 @@ export interface BinComparisonResult {
  * Compare images using @blazediff/core-native (Rust N-API)
  * Only supports file paths - throws if buffer is provided
  */
-export async function compareBin(
+export async function compareCoreNative(
 	received: ImageInput,
 	baseline: ImageInput,
 	diffOutputPath: string | undefined,
@@ -34,6 +34,8 @@ export async function compareBin(
 	const result = await compare(received, baseline, diffOutputPath, {
 		threshold: options.threshold,
 		antialiasing: options.antialiasing,
+		interpret: options.outputFormat === "html",
+		outputFormat: options.outputFormat,
 	});
 
 	if (result.match) {

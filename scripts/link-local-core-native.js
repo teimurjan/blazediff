@@ -4,9 +4,9 @@
  * This is needed for local monorepo development since pnpm skips optional dependencies
  * that don't match the current platform.
  */
-const fs = require("fs");
-const os = require("os");
-const path = require("path");
+const fs = require("node:fs");
+const os = require("node:os");
+const path = require("node:path");
 
 const ROOT = path.resolve(__dirname, "..");
 const PACKAGES_DIR = path.join(ROOT, "packages");
