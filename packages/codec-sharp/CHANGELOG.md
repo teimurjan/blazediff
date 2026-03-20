@@ -1,5 +1,11 @@
 # @blazediff/codec-sharp
 
+## 4.0.0
+
+### Major Changes
+
+- ad45341: Changed named export from pngjsTransformer to codecPngjs, sharpTransformer to codecSharp
+
 ## 3.0.0
 
 ### Major Changes

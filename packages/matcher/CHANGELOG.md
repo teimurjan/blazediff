@@ -1,5 +1,14 @@
 # @blazediff/matcher
 
+## 1.4.1
+
+### Patch Changes
+
+- Updated dependencies [ad45341]
+  - @blazediff/codec-pngjs@4.0.0
+  - @blazediff/gmsd@1.7.1
+  - @blazediff/ssim@1.7.1
+
 ## 1.4.0
 
 ### Minor Changes

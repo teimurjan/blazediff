@@ -1,5 +1,15 @@
 # @blazediff/cli
 
+## 3.1.1
+
+### Patch Changes
+
+- Updated dependencies [ad45341]
+  - @blazediff/codec-pngjs@4.0.0
+  - @blazediff/codec-sharp@4.0.0
+  - @blazediff/gmsd@1.7.1
+  - @blazediff/ssim@1.7.1
+
 ## 3.1.0
 
 ### Minor Changes
