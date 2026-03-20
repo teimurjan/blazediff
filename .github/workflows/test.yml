@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main
 
 concurrency: ${{ github.workflow }}-${{ github.ref }}
 
@@ -26,6 +29,12 @@ jobs:
 
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cargo Test
+        run: cargo test --manifest-path crates/blazediff/Cargo.toml
 
       - name: Build
         run: pnpm build
