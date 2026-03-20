@@ -29,7 +29,6 @@ export default defineConfig([
 			"commands/ssim": "src/commands/ssim.ts",
 			"commands/msssim": "src/commands/msssim.ts",
 			"commands/hitchhikers-ssim": "src/commands/hitchhikers-ssim.ts",
-			"commands/interpret": "src/commands/interpret.ts",
 		},
 		format: "cjs",
 		dts: false,
