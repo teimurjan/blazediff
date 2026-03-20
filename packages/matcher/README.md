@@ -171,6 +171,12 @@ Main function for snapshot comparison.
     <td>true</td>
     <td>Run image I/O and comparison in a worker thread for better performance</td>
   </tr>
+  <tr>
+    <td><code>outputFormat</code></td>
+    <td>'png' | 'html'</td>
+    <td>'png'</td>
+    <td>Diff output format (<code>core-native</code> only). Use <code>'html'</code> for an interactive interpret report with detected change regions, classification, and severity</td>
+  </tr>
 </table>
 
 ### ComparisonResult
@@ -320,6 +326,26 @@ const result = await getOrCreateSnapshot(
   },
   { testPath: __filename, testName: 'test name' }
 );
+```
+
+### HTML Interpret Report
+
+When using `core-native`, set `outputFormat: 'html'` to generate an interactive HTML report on failure instead of a plain diff image. The report includes detected change regions with classification, severity, and spatial analysis.
+
+```typescript
+const result = await getOrCreateSnapshot(
+  imagePath,
+  {
+    method: 'core-native',
+    outputFormat: 'html',
+    failureThreshold: 0.01,
+    failureThresholdType: 'percent',
+  },
+  { testPath: __filename, testName: 'test name' }
+);
+
+// On failure, result.diffPath points to an .html file instead of .png
+console.log(result.diffPath); // __snapshots__/test-name.diff.html
 ```
 
 ### Different Comparison Methods

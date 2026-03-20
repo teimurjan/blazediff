@@ -118,6 +118,12 @@ Jest matcher for image snapshot comparison.
     <td>true</td>
     <td>Run comparison in worker thread for better performance</td>
   </tr>
+  <tr>
+    <td><code>outputFormat</code></td>
+    <td>'png' | 'html'</td>
+    <td>'png'</td>
+    <td>Diff output format (<code>core-native</code> only). Use <code>'html'</code> for an interactive interpret report with detected change regions, classification, and severity</td>
+  </tr>
 </table>
 
 See [@blazediff/matcher](https://www.npmjs.com/package/@blazediff/matcher) for full options documentation.
@@ -182,6 +188,20 @@ await expect(screenshot).toMatchImageSnapshot({
   method: 'core',
   updateSnapshots: true,
 });
+```
+
+### HTML Interpret Report
+
+When using `core-native`, set `outputFormat: 'html'` to generate an interactive HTML report on failure instead of a plain diff image. The report includes detected change regions with classification, severity, and spatial analysis.
+
+```typescript
+await expect('/path/to/image.png').toMatchImageSnapshot({
+  method: 'core-native',
+  outputFormat: 'html',
+});
+
+// On failure, the diff file will be .html instead of .png
+// e.g., __snapshots__/test-name.diff.html
 ```
 
 ### Custom Thresholds
