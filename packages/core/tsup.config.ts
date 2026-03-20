@@ -1,4 +1,3 @@
-import { unlinkSync } from "node:fs";
 import { defineConfig } from "tsup";
 
 export default defineConfig([

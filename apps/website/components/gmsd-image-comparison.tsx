@@ -1,6 +1,7 @@
 "use client";
 
 import gmsd, { type GmsdOptions } from "@blazediff/gmsd";
+import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
 import { imageToCanvas, loadImage } from "../utils/image";
 
@@ -83,19 +84,33 @@ export default function GmsdImageComparison({
 		<div className="space-y-4">
 			<div className="grid grid-cols-3 gap-4">
 				<div>
-					<img src={fixtureA} alt="Fixture A" className="w-full rounded-lg" />
+					<Image
+						src={fixtureA}
+						alt="Fixture A"
+						className="w-full rounded-lg"
+						width={100}
+						height={100}
+					/>
 					<p className="text-sm text-gray-600 mt-2 text-center">Image 1</p>
 				</div>
 				<div>
-					<img src={fixtureB} alt="Fixture B" className="w-full rounded-lg" />
+					<Image
+						src={fixtureB}
+						alt="Fixture B"
+						className="w-full rounded-lg"
+						width={100}
+						height={100}
+					/>
 					<p className="text-sm text-gray-600 mt-2 text-center">Image 2</p>
 				</div>
 				<div className="flex flex-col">
 					{diffImageUrl ? (
-						<img
+						<Image
 							src={diffImageUrl}
 							alt="Difference visualization"
 							className="w-full rounded-lg"
+							width={100}
+							height={100}
 						/>
 					) : (
 						<div className="w-full rounded-lg bg-gray-100 dark:bg-gray-800 flex-1" />
@@ -113,7 +128,8 @@ export default function GmsdImageComparison({
 						) : (
 							<div className="space-y-2">
 								<p className="text-sm">
-									Difference score: {result.score?.toFixed(4)}
+									GMSD (Gradient Magnitude Similarity Deviation) score:{" "}
+									{result.score?.toFixed(4)}
 								</p>
 								<p className="text-sm text-gray-500">
 									(0.0 = identical, 1.0 = completely different)

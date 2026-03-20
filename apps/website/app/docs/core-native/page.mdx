@@ -26,12 +26,10 @@ Pre-built binaries are included for all major platforms - no compilation require
 ## Features
 
 - **PNG, JPEG & QOI support** - auto-detected by file extension
-- **3-4x faster** than odiff on large images
-- **3x smaller** binaries (~700KB-900KB vs ~2-3MB)
+- **3-4x faster** than odiff, **3x smaller** binaries (~700KB-900KB vs ~2-3MB)
 - **SIMD-accelerated** - NEON on ARM, SSE4.1 on x86
 - **Block-based optimization** - skips unchanged regions
-- **Zero compilation** - pre-built binaries for all platforms
-- **TypeScript support** out of the box
+- **Interpret mode** - region detection, classification, severity scoring, human-readable summaries
 
 ### Vendored Libraries
 
@@ -61,16 +59,20 @@ Compares two images (PNG, JPEG, or QOI) and generates a diff image. Format is au
 | `threshold`        | `number`  | `0.1`   | Color difference threshold (0.0-1.0). Lower = more strict |
 | `antialiasing`     | `boolean` | `false` | Enable anti-aliasing detection                           |
 | `diffMask`         | `boolean` | `false` | Output only differences with transparent background      |
+| `interpret`        | `boolean` | `false` | Run structured interpretation (region detection + classification) |
+| `outputFormat`     | `"png" \| "html"` | `"png"` | Output format — `"html"` generates an interactive interpret report |
 
 #### Return Types
 
 ```typescript
 type BlazeDiffResult =
-  | { match: true }
+  | { match: true; interpretation?: InterpretResult }
   | { match: false; reason: "layout-diff" }
-  | { match: false; reason: "pixel-diff"; diffCount: number; diffPercentage: number }
+  | { match: false; reason: "pixel-diff"; diffCount: number; diffPercentage: number; interpretation?: InterpretResult }
   | { match: false; reason: "file-not-exists"; file: string };
 ```
+
+When `interpret: true` or `outputFormat: "html"`, the result includes an `interpretation` field with structured analysis.
 
 <Callout type="info">
   **Threshold Guidelines:**
@@ -145,6 +147,7 @@ Options:
       --diff-mask              Output only differences (transparent background)
   -c, --compression <LEVEL>    PNG compression level (0-9, 0=fastest, 9=smallest) [default: 0]
   -q, --quality <QUALITY>      JPEG quality (1-100) [default: 90]
+      --interpret              Run structured interpretation after diff
       --output-format <FORMAT> Output format (json or text) [default: json]
   -h, --help                   Print help
   -V, --version                Print version
@@ -169,6 +172,40 @@ Input images can be mixed formats (e.g., compare PNG to JPEG). Output format is 
 - `0` - Images are identical
 - `1` - Images differ (includes layout/size mismatch)
 - `2` - Error (file not found, invalid format, etc.)
+
+### Interpret
+
+Pass `interpret: true` to `compare()` or use the standalone `interpret()` function to get structured diff analysis — region detection, content-aware classification, severity scoring, and human-readable summaries.
+
+```typescript
+import { compare, interpret } from '@blazediff/core-native';
+
+// Standalone
+const result = await interpret('expected.png', 'actual.png');
+console.log(result.summary);
+// "Moderate visual change detected (1.87% of image, 10 regions). ..."
+
+// Via compare()
+const diff = await compare('expected.png', 'actual.png', 'diff.png', {
+  interpret: true,
+});
+if (!diff.match && diff.reason === 'pixel-diff') {
+  console.log(diff.interpretation?.summary);
+}
+
+// HTML report
+await compare('expected.png', 'actual.png', 'report.html', {
+  outputFormat: 'html',
+});
+```
+
+```bash
+# CLI
+npx blazediff expected.png actual.png --interpret
+npx blazediff expected.png actual.png report.html --output-format html
+```
+
+Change types: `Addition`, `Deletion`, `Shift`, `ContentChange`, `ColorChange`, `RenderingNoise`. Severity: Low (&lt;1%), Medium (1-10%), High (&gt;10%).
 
 ## Performance
 

@@ -126,6 +126,14 @@ export interface MatcherOptions {
 	 * @default true
 	 */
 	runInWorker?: boolean;
+
+	/**
+	 * Output format for diff visualization (core-native method only)
+	 * - "png": standard diff image (default)
+	 * - "html": interactive HTML interpret report
+	 * @default 'png'
+	 */
+	outputFormat?: "png" | "html";
 }
 
 /**

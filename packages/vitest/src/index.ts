@@ -35,17 +35,18 @@ export function setupBlazediffMatchers(): void {
 			options?: Partial<MatcherOptions>,
 		) {
 			// Get test context from Vitest
-			const testPath = (this as any).testPath || "";
-			const currentTestName = (this as any).currentTestName || "unknown";
+			const testPath = this.testPath || "";
+			const currentTestName = this.currentTestName || "unknown";
 
 			// Get Vitest's snapshot state to determine update mode
 			// snapshotState._updateSnapshot can be:
 			// - 'new': default mode (create new snapshots only)
 			// - 'all': update mode (vitest -u)
 			// - 'none': no updates
-			const snapshotState = (this as any).snapshotState;
+			const snapshotState = this.snapshotState;
 			const updateSnapshots =
 				options?.updateSnapshots ??
+				// @ts-expect-error TODO: fix once it's publicly available
 				snapshotState?._updateSnapshot ??
 				(process.env.VITEST_UPDATE_SNAPSHOTS === "true" || "new");
 
@@ -68,11 +69,13 @@ export function setupBlazediffMatchers(): void {
 				switch (result.snapshotStatus) {
 					case "added":
 						snapshotState.added.increment(currentTestName);
-						(snapshotState as any)._dirty = true;
+						// @ts-expect-error TODO: fix once it's publicly modifiable
+						snapshotState._dirty = true;
 						break;
 					case "updated":
 						snapshotState.updated.increment(currentTestName);
-						(snapshotState as any)._dirty = true;
+						// @ts-expect-error TODO: fix once it's publicly modifiable
+						snapshotState._dirty = true;
 						break;
 					case "matched":
 						snapshotState.matched.increment(currentTestName);

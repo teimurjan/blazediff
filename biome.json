@@ -6,7 +6,7 @@
 		"useIgnoreFile": true
 	},
 	"files": {
-		"includes": ["**/*.{js,ts,jsx,tsx}", "!rust"],
+		"includes": ["**/*.{js,ts,jsx,tsx}", "!crates"],
 		"ignoreUnknown": false
 	},
 	"formatter": {

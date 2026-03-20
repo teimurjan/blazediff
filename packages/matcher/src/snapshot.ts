@@ -63,11 +63,16 @@ function getSnapshotPaths(
 	const identifier =
 		options.snapshotIdentifier ?? generateSnapshotIdentifier(testContext);
 
+	const diffExt =
+		options.method === "core-native" && options.outputFormat === "html"
+			? "html"
+			: "png";
+
 	return {
 		snapshotDir,
 		baselinePath: join(snapshotDir, `${identifier}.png`),
 		receivedPath: join(snapshotDir, `${identifier}.received.png`),
-		diffPath: join(snapshotDir, `${identifier}.diff.png`),
+		diffPath: join(snapshotDir, `${identifier}.diff.${diffExt}`),
 	};
 }
 

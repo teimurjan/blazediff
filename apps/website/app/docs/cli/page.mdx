@@ -2,7 +2,7 @@
 
 import { Callout, Tabs } from 'nextra/components'
 
-Command-line tool for high-performance image comparison. Supports multiple algorithms including the native Rust binary (fastest), JavaScript pixel diff, GMSD, SSIM, MS-SSIM, and Hitchhiker's SSIM.
+CLI for image comparison. Wraps the native Rust binary (fastest), JS pixel diff, GMSD, SSIM, MS-SSIM, and Hitchhiker's SSIM.
 
 [View Detailed Benchmarks](https://github.com/teimurjan/blazediff/blob/main/BENCHMARKS.md)
 
@@ -25,16 +25,6 @@ npm install --save-dev @blazediff/cli
 ```sh npm2yarn
 npx blazediff-cli image1.png image2.png diff.png
 ```
-
-## Features
-
-- **Native Binary**: Rust + SIMD for maximum performance (3-4x faster than odiff)
-- **Multiple Algorithms**: Pixel diff, GMSD, SSIM, MS-SSIM, Hitchhiker's SSIM
-- **Multiple Formats**: PNG, JPEG, WebP support
-- **High Performance**: Optimized implementations for all algorithms
-- **Flexible Output**: Save diff/similarity maps or get exit codes
-- **CI/CD Ready**: Perfect for automated visual testing
-- **Cross-Platform**: Works on Windows, macOS, and Linux
 
 ## Available Commands
 
@@ -64,14 +54,16 @@ blazediff-cli image1.png image2.png diff.png --threshold 0.05 --antialiasing
 #### Options
 
 ```bash
-blazediff-cli core-native <image1> <image2> <output> [options]
+blazediff-cli core-native <image1> <image2> [output] [options]
 
 Options:
-  -t, --threshold <n>      Color difference threshold (0-1, default: 0.1)
-  -a, --antialiasing       Enable anti-aliasing detection
-  --diff-mask              Output only differences (transparent background)
-  -c, --compression <n>    PNG compression level (0-9, default: 0)
-  -h, --help               Display help
+  -t, --threshold <n>        Color difference threshold (0-1, default: 0.1)
+  -a, --antialiasing         Enable anti-aliasing detection
+  --diff-mask                Output only differences (transparent background)
+  -c, --compression <n>      PNG compression level (0-9, default: 0)
+  --interpret                Run structured interpretation (region detection + classification)
+  --output-format <fmt>      Output format: png (default) or html (interpret report)
+  -h, --help                 Display help
 ```
 
 #### Exit Codes
@@ -92,6 +84,36 @@ fi
 <Callout type="info">
   **Why so fast?** Uses a two-pass block-based algorithm with SIMD acceleration (NEON on ARM, SSE4.1 on x86). The cold pass quickly identifies unchanged blocks, then the hot pass only processes changed regions.
 </Callout>
+
+#### Interpret Mode
+
+Add `--interpret` to get structured diff analysis — region detection, content-aware classification (Addition, Deletion, Shift, ContentChange, ColorChange, RenderingNoise), severity scoring, and human-readable summaries.
+
+```bash
+# JSON output to stdout
+blazediff-cli image1.png image2.png --interpret
+
+# With diff image + interpretation
+blazediff-cli image1.png image2.png diff.png --interpret
+
+# HTML report
+blazediff-cli image1.png image2.png report.html --output-format html
+```
+
+##### Example
+
+```bash
+$ blazediff-cli image1.png image2.png --interpret
+{
+  "summary": "Moderate visual change detected (1.87% of image, 10 regions).\n...",
+  "severity": "Medium",
+  "diffPercentage": 1.87,
+  "regions": [...]
+}
+
+$ blazediff-cli image1.png image2.png report.html --output-format html
+# writes report.html with side-by-side images and clickable region rows
+```
 
   </Tabs.Tab>
 
@@ -282,24 +304,11 @@ Options:
   -h, --help              Display help
 ```
 
-#### Output
-
-Prints the MS-SSIM score (higher = more similar):
-- `1.0` - Identical images
-- `0.99+` - Excellent similarity
-- `0.95-0.99` - Very good similarity
-- `0.90-0.95` - Good similarity
-- `0.80-0.90` - Fair similarity
-- `<0.80` - Poor similarity
-
-#### Example
+Prints the MS-SSIM score (higher = more similar, same scale as SSIM).
 
 ```bash
 $ blazediff-cli msssim reference.png test.png
 MS-SSIM: 0.9912
-
-$ blazediff-cli msssim reference.png test.png --scales 3 --method sum
-MS-SSIM: 0.9876
 ```
 
   </Tabs.Tab>
@@ -337,71 +346,26 @@ Options:
   -h, --help              Display help
 ```
 
-#### Output
-
-Prints the SSIM score (higher = more similar):
-- `1.0` - Identical images
-- `0.99+` - Excellent similarity
-- `0.95-0.99` - Very good similarity
-- `0.90-0.95` - Good similarity
-- `0.80-0.90` - Fair similarity
-- `<0.80` - Poor similarity
-
-#### Example
+Prints the SSIM score (higher = more similar, same scale as SSIM). CoV pooling is enabled by default.
 
 ```bash
 $ blazediff-cli hitchhikers-ssim reference.png test.png
 SSIM: 0.9597
-
-$ blazediff-cli hitchhikers-ssim reference.png test.png --window-size 16 --window-stride 8
-SSIM: 0.9612
-SSIM map saved to: ssim-map.png
 ```
-
-<Callout type="info">
-  **CoV Pooling**: Coefficient of Variation pooling is enabled by default and provides better perceptual correlation than mean pooling. Use `--no-cov-pooling` to disable.
-</Callout>
 
   </Tabs.Tab>
 </Tabs>
 
 ## When to Use Each Algorithm
 
-**Use `core-native` (default) when:**
-- You need maximum performance
-- You're running in CI/CD pipelines
-- You're comparing large images (4K+)
-- You want the smallest binary footprint
-
-**Use `core` when:**
-- You need custom diff colors
-- You want to customize the color space
-- You need fine-grained control over output appearance
-- You're already using pngjs/sharp in your pipeline
-
-**Use `gmsd` when:**
-- You need a similarity score for CI/CD
-- You're comparing images with compression artifacts
-- You want gradient-based perceptual quality
-- You need fast single-threaded computation
-
-**Use `ssim` when:**
-- You need MATLAB-compatible results
-- You want high accuracy with Gaussian weighting
-- You need automatic downsampling for large images
-- Research or comparison requires standard SSIM
-
-**Use `msssim` when:**
-- You need multi-scale analysis
-- You're working with images at different resolutions
-- You want better correlation with human perception
-- You can afford ~2-3x computation cost vs SSIM
-
-**Use `hitchhikers-ssim` when:**
-- You need maximum performance (~4x faster than SSIM)
-- You're processing large images or many images
-- You want O(1) window computation
-- You need flexible window stride for overlapping/non-overlapping windows
+| Algorithm | Best for |
+|-----------|----------|
+| `core-native` (default) | Maximum speed, CI/CD, large images, `--interpret` analysis |
+| `core` | Custom diff colors, color space control, no native deps |
+| `gmsd` | Similarity score, compression-tolerant |
+| `ssim` | MATLAB-compatible, research |
+| `msssim` | Multi-scale, varying resolutions |
+| `hitchhikers-ssim` | Fast SSIM (~4x), large batches |
 
 ## Links
 

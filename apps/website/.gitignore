@@ -42,3 +42,6 @@ coverage/
 
 # Pagefind
 _pagefind/
+
+# Generated data
+data/

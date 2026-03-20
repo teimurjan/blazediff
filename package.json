@@ -6,7 +6,7 @@
   "scripts": {
     "postinstall": "node ./scripts/link-local-platform-core-native.js && node ./scripts/link-local-core-native.js",
     "build": "pnpm -r --filter=!@blazediff/website build",
-    "build:rust": "cd rust && ./scripts/build-all.sh --all",
+    "build:rust": "cd crates/blazediff && ./scripts/build-all.sh --all --napi",
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck",
     "changeset": "changeset",
@@ -44,7 +44,8 @@
   "devDependencies": {
     "@biomejs/biome": "2.2.4",
     "@changesets/changelog-git": "^0.2.1",
-    "@changesets/cli": "^2.29.6"
+    "@changesets/cli": "^2.29.6",
+    "@j178/prek": "^0.3.6"
   },
   "workspaces": [
     "packages/*",

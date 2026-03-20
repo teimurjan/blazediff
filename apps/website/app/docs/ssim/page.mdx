@@ -12,29 +12,9 @@ npm install @blazediff/ssim
 
 ## Features
 
-- **Three SSIM Variants** - Standard SSIM, MS-SSIM, and Hitchhiker's SSIM
-- **Perceptual metric** - Measures structural similarity, not just pixel differences
-- **MATLAB-compatible** - Matches reference implementation with \<0.01% error
-- **High performance** - Optimized implementations with ~4x faster Hitchhiker's SSIM
+- **Three variants** - Standard SSIM, MS-SSIM, and Hitchhiker's SSIM (~4x faster)
+- **MATLAB-compatible** - Standard SSIM matches reference implementation with \<0.01% error
 - **SSIM map output** - Optional grayscale visualization of similarity
-- **TypeScript support** out of the box
-
-## What is SSIM?
-
-SSIM (Structural Similarity Index) is a perceptual image quality metric that:
-
-- Measures structural similarity between images (luminance, contrast, structure)
-- Returns a score from 0 to 1 (1 = identical, 0 = completely different)
-- Correlates better with human perception than MSE or PSNR
-- Is widely used in image/video quality assessment
-
-### Variants
-
-- **SSIM** - Standard Gaussian-based implementation, MATLAB-compatible
-- **MS-SSIM** - Multi-scale version for better perceptual correlation
-- **Hitchhiker's SSIM** - Fast rectangular-window version using integral images (~4x faster)
-
-For detailed mathematical explanation, see the [package documentation](https://github.com/teimurjan/blazediff/tree/main/packages/ssim).
 
 ## API Reference
 
@@ -227,30 +207,6 @@ const score = hitchhikersSSIM(img1.data, img2.data, undefined, width, height, {
 
   </Tabs.Tab>
 </Tabs>
-
-## When to Use Each Variant
-
-**Use SSIM when:**
-
-- You need **MATLAB-compatible results** for research or comparison
-- You want **high accuracy** with Gaussian weighting
-- You need **automatic downsampling** for large images
-- Performance is not critical
-
-**Use MS-SSIM when:**
-
-- You need **multi-scale analysis** for better perceptual correlation
-- You're working with images at **different resolutions**
-- You want **better correlation with human perception**
-- You can afford the ~2-3x computation cost
-
-**Use Hitchhiker's SSIM when:**
-
-- You need **maximum performance** (~4x faster than standard SSIM)
-- You're processing **large images** or **many images**
-- You want **O(1) window computation** regardless of window size
-- You need **flexible window stride** for overlapping/non-overlapping windows
-- CoV pooling provides better perceptual correlation than mean
 
 ## CLI Usage
 

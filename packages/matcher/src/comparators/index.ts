@@ -6,7 +6,7 @@ import type {
 	MatcherOptions,
 } from "../types";
 import { compareCore } from "./core";
-import { compareBin } from "./core-native";
+import { compareCoreNative } from "./core-native";
 import { compareGmsd } from "./gmsd";
 import { compareSsim, isSsimMethod } from "./ssim";
 
@@ -55,7 +55,7 @@ export async function runComparison(
 
 	// Handle core-native method separately (file paths only)
 	if (method === "core-native") {
-		const result = await compareBin(
+		const result = await compareCoreNative(
 			received,
 			baseline,
 			diffOutputPath,
@@ -115,6 +115,6 @@ export async function runComparison(
 }
 
 export { compareCore } from "./core";
-export { compareBin } from "./core-native";
+export { compareCoreNative } from "./core-native";
 export { compareGmsd } from "./gmsd";
 export { compareSsim, isSsimMethod } from "./ssim";

@@ -5,6 +5,7 @@
 	"scripts": {
 		"typecheck": "tsc --noEmit",
 		"dev": "next dev --turbopack",
+		"prebuild": "node scripts/generate-interpret-data.mjs",
 		"build": "next build && pnpm postbuild",
 		"start": "next start",
 		"postbuild": "pagefind --site .next/server/app --output-path public/_pagefind && cp -r ./public/_pagefind ./out"
@@ -13,6 +14,7 @@
 		"@blazediff/core": "workspace:*",
 		"@blazediff/gmsd": "workspace:*",
 		"@blazediff/object": "workspace:*",
+		"@blazediff/core-native": "workspace:*",
 		"@blazediff/ssim": "workspace:*",
 		"@tabler/icons-react": "^3.35.0",
 		"next": "^16.0.10",

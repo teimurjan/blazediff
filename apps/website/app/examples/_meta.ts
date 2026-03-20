@@ -11,4 +11,7 @@ export default {
 	react: {
 		title: "React Components",
 	},
+	interpret: {
+		title: "Interpret Differences",
+	},
 };
