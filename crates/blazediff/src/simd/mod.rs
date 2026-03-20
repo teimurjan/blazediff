@@ -67,21 +67,51 @@ pub fn compare_pixels(a: &[u32], b: &[u32]) -> bool {
     #[cfg(target_arch = "x86_64")]
     {
         let backend = detect_backend();
+        let mut offset = 0;
         match backend {
-            SimdBackend::Avx512 if a.len() >= 16 => {
-                // Safety: We checked for AVX-512 support
-                return unsafe { x86::compare_16_avx512(a.as_ptr(), b.as_ptr()) };
+            SimdBackend::Avx512 => {
+                while offset + 16 <= a.len() {
+                    // Safety: We checked for AVX-512 support and bounds
+                    if unsafe {
+                        x86::compare_16_avx512(a.as_ptr().add(offset), b.as_ptr().add(offset))
+                    } {
+                        return true;
+                    }
+                    offset += 16;
+                }
             }
-            SimdBackend::Avx2 | SimdBackend::Avx512 if a.len() >= 8 => {
-                // Safety: We checked for AVX2 support
-                return unsafe { x86::compare_8_avx2(a.as_ptr(), b.as_ptr()) };
+            SimdBackend::Avx2 => {
+                while offset + 8 <= a.len() {
+                    // Safety: We checked for AVX2 support and bounds
+                    if unsafe {
+                        x86::compare_8_avx2(a.as_ptr().add(offset), b.as_ptr().add(offset))
+                    } {
+                        return true;
+                    }
+                    offset += 8;
+                }
             }
-            SimdBackend::Sse41 | SimdBackend::Avx2 | SimdBackend::Avx512 if a.len() >= 4 => {
-                // Safety: We checked for SSE4.1 support
-                return unsafe { x86::compare_4_sse41(a.as_ptr(), b.as_ptr()) };
+            SimdBackend::Sse41 => {
+                while offset + 4 <= a.len() {
+                    // Safety: We checked for SSE4.1 support and bounds
+                    if unsafe {
+                        x86::compare_4_sse41(a.as_ptr().add(offset), b.as_ptr().add(offset))
+                    } {
+                        return true;
+                    }
+                    offset += 4;
+                }
             }
             _ => {}
         }
+        // Handle remaining pixels with scalar
+        while offset < a.len() {
+            if a[offset] != b[offset] {
+                return true;
+            }
+            offset += 1;
+        }
+        return false;
     }
 
     #[cfg(target_arch = "aarch64")]
