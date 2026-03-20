@@ -102,16 +102,82 @@ Compare two images (PNG or JPEG) and generate a diff image. Format is auto-detec
     <td>false</td>
     <td>Output only differences with transparent background</td>
   </tr>
+  <tr>
+    <td><code>interpret</code></td>
+    <td>boolean</td>
+    <td>false</td>
+    <td>Run structured interpretation after diff — adds <code>interpretation</code> to the result with detected change regions, classification, and a human-readable summary</td>
+  </tr>
+  <tr>
+    <td><code>outputFormat</code></td>
+    <td>"png" | "html"</td>
+    <td>"png"</td>
+    <td>Output format for diff. Use <code>"html"</code> to generate an interpret report (implies <code>interpret: true</code>)</td>
+  </tr>
 </table>
+
+### interpret(image1Path, image2Path, options?)
+
+Convenience wrapper that calls `compare` with `interpret: true` and returns the `InterpretResult` directly. No diff image output — purely analytical.
+
+<table>
+  <tr>
+    <th width="500">Parameter</th>
+    <th width="500">Type</th>
+    <th width="500">Description</th>
+  </tr>
+  <tr>
+    <td><code>image1Path</code></td>
+    <td>string</td>
+    <td>Path to the first image</td>
+  </tr>
+  <tr>
+    <td><code>image2Path</code></td>
+    <td>string</td>
+    <td>Path to the second image</td>
+  </tr>
+  <tr>
+    <td><code>options</code></td>
+    <td>Pick&lt;BlazeDiffOptions, "threshold" | "antialiasing"&gt;</td>
+    <td>Comparison options (optional)</td>
+  </tr>
+</table>
+
+<strong>Returns:</strong> `Promise<InterpretResult>`
 
 ### Result Types
 
 ```typescript
 type BlazeDiffResult =
-  | { match: true }
+  | { match: true; interpretation?: InterpretResult }
   | { match: false; reason: "layout-diff" }
-  | { match: false; reason: "pixel-diff"; diffCount: number; diffPercentage: number }
+  | { match: false; reason: "pixel-diff"; diffCount: number; diffPercentage: number; interpretation?: InterpretResult }
   | { match: false; reason: "file-not-exists"; file: string };
+
+interface InterpretResult {
+  summary: string;          // Human-readable summary of the diff
+  diffCount: number;        // Total number of differing pixels
+  totalRegions: number;     // Number of detected change regions
+  regions: ChangeRegion[];  // Detailed per-region analysis
+  severity: string;         // Overall severity level
+  diffPercentage: number;   // Percentage of pixels that differ
+  width: number;            // Image width
+  height: number;           // Image height
+}
+
+interface ChangeRegion {
+  bbox: BoundingBox;               // Bounding box of the region
+  pixelCount: number;              // Number of changed pixels in this region
+  percentage: number;              // Percentage of image this region covers
+  position: string;                // Spatial position descriptor
+  shape: string;                   // Shape classification
+  shapeStats: ShapeStats;          // Shape statistical analysis
+  changeType: string;              // Type of change detected
+  signals: ClassificationSignals;  // Classification signal details
+  confidence: number;              // Confidence level of classification
+  colorDelta: ColorDeltaStats;     // Color difference statistics
+  gradient: GradientStats;         // Gradient analysis statistics
+}
 ```
 
 ## Usage
@@ -133,6 +199,35 @@ if (result.match) {
 } else if (result.reason === 'layout-diff') {
   console.log('Images have different dimensions');
 }
+```
+
+### Compare with Interpretation
+
+```typescript
+import { compare } from '@blazediff/core-native';
+
+const result = await compare('expected.png', 'actual.png', 'diff.png', {
+  threshold: 0.1,
+  interpret: true,
+});
+
+if (!result.match && result.reason === 'pixel-diff') {
+  const { interpretation } = result;
+  console.log(interpretation.summary);
+  for (const region of interpretation.regions) {
+    console.log(`${region.position}: ${region.changeType} (${region.percentage.toFixed(2)}%)`);
+  }
+}
+```
+
+### Interpret Only (no diff image)
+
+```typescript
+import { interpret } from '@blazediff/core-native';
+
+const result = await interpret('expected.png', 'actual.png');
+console.log(result.summary);
+console.log(`Severity: ${result.severity}, ${result.diffPercentage.toFixed(2)}% changed`);
 ```
 
 ### CLI Usage
