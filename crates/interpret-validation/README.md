@@ -4,7 +4,7 @@ Validates the blazediff interpret module against real image datasets.
 
 ## Dataset Setup
 
-Prep scripts download datasets from HuggingFace and produce `manifest.json` files.
+Prep scripts download datasets from HuggingFace and produce `manifest.json` files. Run from the repo root.
 
 ### InpaintCOCO (~1GB, 1,260 pairs)
 
@@ -14,9 +14,17 @@ Real COCO images with inpainted objects. Tests ContentChange and ColorChange.
 uv run --with datasets --with Pillow scripts/prepare_inpaintcoco.py
 ```
 
+### Addition/Deletion (~1GB, 904 pairs)
+
+Real COCO photographs with objects filled by local background color. Each "object" sample produces two cases: clean→original (Addition) and original→clean (Deletion).
+
+```sh
+uv run --with datasets --with Pillow --with numpy scripts/prepare_addition_deletion.py
+```
+
 ### MagicBrush (~6.5GB, ~8,800 pairs)
 
-Real COCO images edited via DALL-E 2. Tests Addition, Deletion, ColorChange, ContentChange.
+Real COCO images edited via DALL-E 2. Tests Addition, Deletion, ColorChange, ContentChange. Note: DALL-E regeneration changes pixels globally, so this is a stress test — expect lower scores.
 
 ```sh
 uv run --with datasets --with Pillow scripts/prepare_magicbrush.py          # all
@@ -26,20 +34,13 @@ uv run --with datasets --with Pillow scripts/prepare_magicbrush.py --limit 1000 
 ## Usage
 
 ```sh
-# Basic
-cargo run --release -p interpret-validation -- --manifest data/inpaintcoco/manifest.json
-
-# With filters
-cargo run --release -p interpret-validation -- \
-  --manifest data/magicbrush/manifest.json \
-  --min-pixels 50 \
-  --iou-threshold 0.05 \
-  --limit 200
+# From crates/ directory
+cargo run --release -p interpret-validation -- --manifest ../data/inpaintcoco/manifest.json --min-pixels 500
+cargo run --release -p interpret-validation -- --manifest ../data/addition_deletion/manifest.json --min-pixels 50
+cargo run --release -p interpret-validation -- --manifest ../data/magicbrush/manifest.json --min-pixels 50 --iou-threshold 0.05
 
 # JSON output
-cargo run --release -p interpret-validation -- \
-  --manifest data/inpaintcoco/manifest.json \
-  --output-format json
+cargo run --release -p interpret-validation -- --manifest ../data/inpaintcoco/manifest.json --output-format json
 ```
 
 ### CLI Flags
