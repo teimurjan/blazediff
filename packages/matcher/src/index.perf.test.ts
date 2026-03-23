@@ -108,7 +108,7 @@ describe("Performance", () => {
 
 			expect(result.pass).toBe(true);
 			expect(result.snapshotStatus).toBe("matched");
-			expect(elapsed).toBeCloseTo(150);
+			expect(elapsed).toBeLessThan(150);
 		});
 	});
 
