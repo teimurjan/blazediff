@@ -1,5 +1,5 @@
 [workspace]
-members = ["blazediff"]
+members = ["blazediff", "interpret-validation"]
 resolver = "2"
 
 # =============================================================================

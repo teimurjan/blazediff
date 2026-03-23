@@ -79,7 +79,7 @@ pub fn interpret(
             let position = classify_position(&c.bbox, width, height);
 
             let color_delta = compute_color_delta(img1, img2, &mask, &c.bbox, width);
-            let gradient_stats = compute_gradient_stats(img1, &mask, &c.bbox, width, height);
+            let gradient_stats = compute_gradient_stats(img1, img2, &mask, &c.bbox, width, height);
             let content = analyze_content(img1, img2, &mask, &c.bbox, width, height);
             let (change_type, signals) = classify_change_type(
                 &content,

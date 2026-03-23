@@ -5,17 +5,21 @@ import InterpretComparison from "../../../components/interpret-comparison";
 import diffData from "../../../data/interpret/blazediff-3-diff.json";
 import identicalData from "../../../data/interpret/blazediff-3-identical.json";
 
-Structured image diff analysis powered by a native Rust binary. Unlike pixel-level or perceptual comparison methods, `interpret` identifies **change regions** and classifies them semantically — telling you _what_ changed and _where_.
+Takes a raw pixel diff and tells you _what_ changed, _where_, and _how much_. No ML models — a deterministic pipeline that runs in the same binary as the diff itself.
 
-## Installation
+## How it works
 
-```bash npm2yarn
-npm install @blazediff/core-native
-```
+1. Pixel diff → binary change mask
+2. Morphological close → bridge small gaps
+3. Connected components → isolate regions
+4. Per-region evidence extraction:
+   - **Dual-image gradients** — edges in both images + spatial correlation to detect structural preservation
+   - **Color delta distribution** — mean, max, and stddev of YIQ distance to separate uniform recolors from patchy texture changes
+   - **Background distance** — how much changed pixels blend with local unchanged pixels in each image
+5. Six-label decision tree classifies each region
+6. Post-hoc shift detection matches Addition+Deletion pairs
 
-## Overview
-
-The interpret function analyzes two images and returns structured results including severity, diff percentage, and detailed region analysis with content-aware change types (Addition, Deletion, Shift, ContentChange, ColorChange, RenderingNoise).
+## Demo
 
 <Tabs items={['Different Images', 'Identical Images']}>
   <Tabs.Tab>
@@ -30,9 +34,6 @@ The interpret function analyzes two images and returns structured results includ
 import { interpret } from "@blazediff/core-native";
 
 const result = await interpret("fixtures/3a.png", "fixtures/3b.png");
-console.log(result.summary);
-console.log(`Severity: ${result.severity}`);
-console.log(`Changed: ${result.diffPercentage.toFixed(2)}%`);
 
 for (const region of result.regions) {
   console.log(`${region.position}: ${region.changeType} (${region.percentage.toFixed(2)}%)`);
@@ -52,7 +53,6 @@ for (const region of result.regions) {
 ```ts
 import { interpret } from "@blazediff/core-native";
 
-// Comparing identical images
 const result = await interpret("fixtures/3a.png", "fixtures/3a.png");
 console.log(result.summary); // "Images are identical"
 console.log(result.regions.length); // 0
@@ -60,3 +60,14 @@ console.log(result.regions.length); // 0
 
   </Tabs.Tab>
 </Tabs>
+
+## Change types
+
+| Type | Meaning |
+|---|---|
+| `Addition` | Content appeared — blends with background in before image, distinct in after |
+| `Deletion` | Content removed — distinct in before, blends with background in after |
+| `Shift` | Content moved — matched Addition+Deletion pair with similar luminance |
+| `ColorChange` | Recolor — edge structure preserved across both images, uniform color shift |
+| `ContentChange` | Structural change — edges differ between images |
+| `RenderingNoise` | Sub-pixel artifacts — filtered from output |

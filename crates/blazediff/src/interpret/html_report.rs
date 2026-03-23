@@ -80,8 +80,8 @@ where
   </style>
 </head>
 <body class="bg-black text-zinc-100">
-  <main class="mx-auto flex min-h-screen max-w-7xl flex-col gap-3 p-4">
-    <header class="space-y-4">
+  <main class="mx-auto flex h-screen max-w-7xl flex-col gap-3 overflow-hidden p-4">
+    <header class="shrink-0 space-y-4">
       <div class="grid gap-3 text-sm text-zinc-400 md:grid-cols-3">
         <div class="rounded border border-zinc-800 bg-zinc-950/70 p-2">
           <div class="text-zinc-500">Diff</div>
@@ -102,29 +102,33 @@ where
       </div>
     </header>
 
-    <section class="grid gap-3 lg:grid-cols-2">
-      <figure class="rounded border border-zinc-800 bg-zinc-950/70 p-2">
-        <figcaption class="mb-3 text-sm text-zinc-400">Before</figcaption>
-        <div class="relative overflow-hidden rounded border border-zinc-800 bg-zinc-900">
-          <img id="img1" src="{img1_uri}" alt="{img1_label}" class="block h-auto w-full">
-          <div id="overlay1" class="region-overlay"></div>
+    <section class="grid shrink gap-3 lg:grid-cols-2" style="max-height: 60vh">
+      <figure class="flex min-h-0 flex-col rounded border border-zinc-800 bg-zinc-950/70 p-2">
+        <figcaption class="mb-3 shrink-0 text-sm text-zinc-400">Before</figcaption>
+        <div class="relative min-h-0 flex-1 overflow-hidden rounded border border-zinc-800 bg-zinc-900">
+          <div class="h-full overflow-auto">
+            <img id="img1" src="{img1_uri}" alt="{img1_label}" class="block h-auto w-full">
+            <div id="overlay1" class="region-overlay"></div>
+          </div>
         </div>
       </figure>
-      <figure class="rounded border border-zinc-800 bg-zinc-950/70 p-2">
-        <figcaption class="mb-3 text-sm text-zinc-400">After</figcaption>
-        <div class="relative overflow-hidden rounded border border-zinc-800 bg-zinc-900">
-          <img id="img2" src="{img2_uri}" alt="{img2_label}" class="block h-auto w-full">
-          <div id="overlay2" class="region-overlay"></div>
+      <figure class="flex min-h-0 flex-col rounded border border-zinc-800 bg-zinc-950/70 p-2">
+        <figcaption class="mb-3 shrink-0 text-sm text-zinc-400">After</figcaption>
+        <div class="relative min-h-0 flex-1 overflow-hidden rounded border border-zinc-800 bg-zinc-900">
+          <div class="h-full overflow-auto">
+            <img id="img2" src="{img2_uri}" alt="{img2_label}" class="block h-auto w-full">
+            <div id="overlay2" class="region-overlay"></div>
+          </div>
         </div>
       </figure>
     </section>
 
-    <section class="space-y-3">
-      <div class="flex items-center justify-between gap-3">
+    <section class="flex min-h-0 flex-1 flex-col gap-3">
+      <div class="flex shrink-0 items-center justify-between gap-3">
         <h2 class="text-sm tracking-[0.2em] text-zinc-500">Regions</h2>
         <div class="text-xs text-zinc-600">Arrow Up/Down to navigate. Escape to clear.</div>
       </div>
-      <div id="region-list" class="grid gap-2"></div>
+      <div id="region-list" class="grid gap-2 overflow-y-auto p-[2px]"></div>
     </section>
   </main>
 
@@ -213,11 +217,35 @@ where
 
     function positionOverlay(img, overlay, bbox) {{
       const scale = img.clientWidth / data.width;
+      const imgH = img.clientHeight;
+      const border = 2;
+
+      let left = bbox.x * scale - border;
+      let top = bbox.y * scale - border;
+      let width = Math.max(bbox.width * scale, 2) + border * 2;
+      let height = Math.max(bbox.height * scale, 2) + border * 2;
+
+      // Clamp to image bounds so the overlay never extends past the rendered image
+      if (left + width > img.clientWidth) {{
+        width = img.clientWidth - left;
+      }}
+      if (top + height > imgH) {{
+        height = imgH - top;
+      }}
+
       overlay.style.display = "block";
-      overlay.style.left = `${{bbox.x * scale}}px`;
-      overlay.style.top = `${{bbox.y * scale}}px`;
-      overlay.style.width = `${{Math.max(bbox.width * scale, 2)}}px`;
-      overlay.style.height = `${{Math.max(bbox.height * scale, 2)}}px`;
+      overlay.style.left = `${{left}}px`;
+      overlay.style.top = `${{top}}px`;
+      overlay.style.width = `${{Math.max(width, 0)}}px`;
+      overlay.style.height = `${{Math.max(height, 0)}}px`;
+
+      // The scrollable element is the img's direct parent (inner wrapper div)
+      const scrollable = img.parentElement;
+      if (top < scrollable.scrollTop) {{
+        scrollable.scrollTop = top;
+      }} else if (top + height > scrollable.scrollTop + scrollable.clientHeight) {{
+        scrollable.scrollTop = top + height - scrollable.clientHeight;
+      }}
     }}
 
     function selectRegion(index) {{

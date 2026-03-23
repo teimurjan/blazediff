@@ -14,6 +14,7 @@ pub fn compute_color_delta(
     let pixels2 = img2.as_u32();
 
     let mut sum: f64 = 0.0;
+    let mut sum_sq: f64 = 0.0;
     let mut max: f32 = 0.0;
     let mut count: u32 = 0;
 
@@ -27,7 +28,9 @@ pub fn compute_color_delta(
             }
 
             let delta = color_delta_f32(pixels1[idx], pixels2[idx]).abs();
-            sum += delta as f64;
+            let normalized = delta as f64 / MAX_YIQ_DELTA_F32 as f64;
+            sum += normalized;
+            sum_sq += normalized * normalized;
             if delta > max {
                 max = delta;
             }
@@ -39,12 +42,17 @@ pub fn compute_color_delta(
         return ColorDeltaStats {
             mean_delta: 0.0,
             max_delta: 0.0,
+            delta_stddev: 0.0,
         };
     }
 
+    let mean = sum / count as f64;
+    let variance = (sum_sq / count as f64 - mean * mean).max(0.0);
+
     ColorDeltaStats {
-        mean_delta: (sum / count as f64 / MAX_YIQ_DELTA_F32 as f64) as f32,
+        mean_delta: mean as f32,
         max_delta: max / MAX_YIQ_DELTA_F32,
+        delta_stddev: variance.sqrt() as f32,
     }
 }
 
@@ -77,6 +85,8 @@ mod tests {
 
         assert!(stats.mean_delta > 0.5);
         assert!(stats.max_delta > 0.5);
+        // Uniform change → low stddev
+        assert!(stats.delta_stddev < 0.01);
     }
 
     #[test]
@@ -96,6 +106,7 @@ mod tests {
 
         assert!((stats.mean_delta).abs() < f32::EPSILON);
         assert!((stats.max_delta).abs() < f32::EPSILON);
+        assert!((stats.delta_stddev).abs() < f32::EPSILON);
     }
 
     #[test]
@@ -116,5 +127,33 @@ mod tests {
 
         assert!(stats.mean_delta > 0.0);
         assert!(stats.mean_delta < 0.05);
+        // Uniform subtle change → low stddev
+        assert!(stats.delta_stddev < 0.01);
+    }
+
+    #[test]
+    fn test_patchy_change_high_stddev() {
+        let width = 10;
+        let img1 = make_solid_image(width, 10, 128, 128, 128);
+        let mut img2 = make_solid_image(width, 10, 128, 128, 128);
+        // Half the region changes a lot, half stays similar
+        fill_block(&mut img2, 0, 0, 5, 10, 255, 0, 0);
+        fill_block(&mut img2, 5, 0, 5, 10, 130, 130, 130);
+
+        let mask = vec![true; 100];
+        let bbox = BoundingBox {
+            x: 0,
+            y: 0,
+            width: 10,
+            height: 10,
+        };
+        let stats = compute_color_delta(&img1, &img2, &mask, &bbox, width);
+
+        // Patchy → high stddev
+        assert!(
+            stats.delta_stddev > 0.1,
+            "Expected high stddev for patchy change, got {}",
+            stats.delta_stddev
+        );
     }
 }

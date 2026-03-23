@@ -39,7 +39,7 @@ Only pixels from the original mask (pre-morphology) are counted toward each regi
 
 ## 4. Per-Region Analysis
 
-Each region's bounding box is analyzed across four dimensions:
+Each region's bounding box is analyzed across five dimensions:
 
 ### Shape Statistics
 
@@ -67,11 +67,14 @@ otherwise                                                        → mixed-regio
 Per-pixel YIQ color distance, normalized to [0, 1]:
 
 ```
-mean_delta = mean(yiq_distance(img1[p], img2[p])) / MAX_YIQ_DELTA
-max_delta  = max(yiq_distance(img1[p], img2[p]))  / MAX_YIQ_DELTA
+mean_delta  = mean(|yiq_distance(img1[p], img2[p])|) / MAX_YIQ_DELTA
+max_delta   = max(|yiq_distance(img1[p], img2[p])|)  / MAX_YIQ_DELTA
+delta_stddev = stddev(|yiq_distance(img1[p], img2[p])| / MAX_YIQ_DELTA)
 ```
 
-### Gradient / Edge Score
+`delta_stddev` distinguishes uniform color shifts (low stddev → ColorChange) from patchy texture changes (high stddev → ContentChange).
+
+### Dual-Image Gradient / Edge Score
 
 Luminance via standard BT.601 coefficients:
 
@@ -79,18 +82,23 @@ Luminance via standard BT.601 coefficients:
 L = 0.299·R + 0.587·G + 0.114·B
 ```
 
-Central-difference gradients:
+Central-difference gradients computed on **both** images independently:
 
 ```
 gx = (L[x+1] − L[x−1]) · 0.5
 gy = (L[y+1] − L[y−1]) · 0.5
+is_edge(p) = gx² + gy² ≥ 900
 ```
 
-Edge score is the fraction of changed pixels with strong gradients:
+Three metrics:
 
-```
-edge_score = count(gx² + gy² ≥ 900) / total_changed_pixels
-```
+| Metric | Formula | Purpose |
+|---|---|---|
+| `edge_score` | `edges_img1 / total` | Edge density in before image |
+| `edge_score_img2` | `edges_img2 / total` | Edge density in after image |
+| `edge_correlation` | `agree(is_edge₁ = is_edge₂) / total` | Spatial alignment of edges between images |
+
+High `edge_correlation` → structure preserved (ColorChange). Low → structure changed (ContentChange) or appeared/disappeared (Addition/Deletion). Edge asymmetry (`edge_score` vs `edge_score_img2`) provides secondary confidence for Addition/Deletion.
 
 ### Background Distance
 
@@ -106,18 +114,32 @@ Six-label decision tree evaluated in order. First matching rule wins:
 
 | # | Rule | Conditions | Confidence |
 |---|---|---|---|
-| 1 | rendering-noise | `bbox_area ≤ 9 ∧ mean_delta < 0.05` | 1.0 |
+| 1 | rendering-noise | `bbox_area ≤ 25 ∧ mean_delta < 0.05` | 1.0 |
 | 2 | rendering-noise | `fill < 0.35 ∧ mean_delta < 0.05 ∧ edge_score < 0.05` | matched / 3 |
-| 3 | addition | `blends_bg1 ∧ ¬blends_bg2` | 1.0 |
-| 4 | deletion | `¬blends_bg1 ∧ blends_bg2` | 1.0 |
-| 5 | color-change | `edge_score < 0.05` | 0.75 or 1.0 |
+| 3 | addition | `blends_bg1 ∧ ¬blends_bg2` | 0.9 (1.0 with edge boost) |
+| 4 | deletion | `¬blends_bg1 ∧ blends_bg2` | 0.9 (1.0 with edge boost) |
+| 5 | color-change | `edges_correlated ∧ ¬low_color_delta ∧ uniform_delta` | `min(mean_delta·5, 1)` |
 | 6 | content-change | fallback | 0.5 |
+
+**Derived signals:**
+
+```
+low_color_delta    = mean_delta < 0.05
+low_edge_change    = edge_score < 0.05       (img1)
+low_edge_img2      = edge_score_img2 < 0.05  (img2)
+edges_correlated   = (low_edge_change ∧ low_edge_img2) ∨ edge_correlation > 0.85
+uniform_delta      = delta_stddev < mean_delta · 0.8 + 0.02
+```
 
 **Background blending signals:**
 
 ```
 blends_bg(img) = bg_distance < 0.08 ∨ (bg_distance_other > 0.08 ∧ bg_distance < bg_distance_other · 0.5)
 ```
+
+**Edge boost (Rules 3–4):**
+
+Addition confidence is 1.0 when img2 gained edges img1 didn't have (`low_edge_change ∧ ¬low_edge_img2`). Deletion confidence is 1.0 when img1 had edges img2 lost (`¬low_edge_change ∧ low_edge_img2`).
 
 ## 6. Shift Detection (Post-Classification)
 
@@ -162,3 +184,7 @@ Content changed: 4 regions (bottom, center).
 Content added: 3 regions (right, bottom, bottom-left).
 Content removed: 3 regions (bottom, top-left, center).
 ```
+
+## Validation
+
+Classification accuracy is verified against real image datasets using the [interpret-validation](../interpret-validation/README.md) tool.
