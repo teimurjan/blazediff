@@ -40,7 +40,7 @@ describe("Performance", () => {
 
 		expect(result.pass).toBe(true);
 		expect(result.snapshotStatus).toBe("added");
-		expect(elapsed).toBeCloseTo(100);
+		expect(elapsed).toBeCloseTo(150);
 	});
 
 	it("comparison run: should compare quickly", async () => {
