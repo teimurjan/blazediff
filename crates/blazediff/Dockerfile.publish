@@ -11,6 +11,7 @@ RUN apt-get update && apt-get install -y \
 COPY Cargo.toml .
 COPY Cargo.lock .
 COPY blazediff/ blazediff/
+COPY blazediff-interpret-verify/ blazediff-interpret-verify/
 
 WORKDIR /app/blazediff
 
