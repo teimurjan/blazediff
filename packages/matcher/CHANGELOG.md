@@ -1,5 +1,12 @@
 # @blazediff/matcher
 
+## 1.4.2
+
+### Patch Changes
+
+- Updated dependencies [81086bd]
+  - @blazediff/core-native@4.2.0
+
 ## 1.4.1
 
 ### Patch Changes
