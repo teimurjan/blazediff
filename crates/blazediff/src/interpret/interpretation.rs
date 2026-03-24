@@ -11,9 +11,12 @@ pub fn classify_change_type(
     bbox: &BoundingBox,
 ) -> (ChangeType, ClassificationSignals) {
     let bbox_area = bbox.width as u64 * bbox.height as u64;
-    let tiny_region = bbox_area <= 9;
+    let tiny_region = bbox_area <= 25;
     let low_color_delta = color_delta.mean_delta < 0.05;
     let low_edge_change = gradient.edge_score < 0.05;
+    let low_edge_img2 = gradient.edge_score_img2 < 0.05;
+    let both_low_edges = low_edge_change && low_edge_img2;
+    let edges_correlated = both_low_edges || gradient.edge_correlation > 0.85;
     let dense_fill = shape_stats.fill_ratio > 0.6;
     let sparse_fill = shape_stats.fill_ratio < 0.35;
     let blends_bg1 = content.bg_distance_img1 < BG_BLEND_THRESHOLD
@@ -31,6 +34,7 @@ pub fn classify_change_type(
         dense_fill,
         sparse_fill,
         tiny_region,
+        edges_correlated,
         confidence: 0.0,
     };
 
@@ -48,20 +52,26 @@ pub fn classify_change_type(
 
     // Rule 3: Addition — blends with background in img1, distinct in img2
     if blends_bg1 && !blends_bg2 {
-        signals.confidence = 1.0;
+        // Boost: img2 gained edges that img1 didn't have
+        let edge_boost = low_edge_change && !low_edge_img2;
+        signals.confidence = if edge_boost { 1.0 } else { 0.9 };
         return (ChangeType::Addition, signals);
     }
 
     // Rule 4: Deletion — distinct in img1, blends with background in img2
     if !blends_bg1 && blends_bg2 {
-        signals.confidence = 1.0;
+        // Boost: img1 had edges that img2 lost
+        let edge_boost = !low_edge_change && low_edge_img2;
+        signals.confidence = if edge_boost { 1.0 } else { 0.9 };
         return (ChangeType::Deletion, signals);
     }
 
-    // Rule 5: ColorChange — structure preserved (low edge change), regardless of color magnitude.
-    // Sparse+subtle cases are already caught as RenderingNoise by Rule 2.
-    if low_edge_change {
-        signals.confidence = if low_color_delta { 0.75 } else { 1.0 };
+    // Rule 5: ColorChange — edges in both images agree spatially (structure preserved),
+    // with meaningful and uniform color delta.
+    // Low stddev = uniform shift (true recolor). High stddev = patchy (texture/content change).
+    let uniform_delta = color_delta.delta_stddev < color_delta.mean_delta * 0.8 + 0.02;
+    if edges_correlated && !low_color_delta && uniform_delta {
+        signals.confidence = (color_delta.mean_delta * 5.0).min(1.0);
         return (ChangeType::ColorChange, signals);
     }
 
@@ -113,6 +123,51 @@ mod tests {
         }
     }
 
+    /// Gradient stats where both images have no edges (flat regions, high correlation).
+    fn flat_gradient() -> GradientStats {
+        GradientStats {
+            edge_score: 0.01,
+            edge_score_img2: 0.01,
+            edge_correlation: 0.99,
+        }
+    }
+
+    /// Gradient stats where both images have similar edge structure.
+    fn correlated_edges() -> GradientStats {
+        GradientStats {
+            edge_score: 0.20,
+            edge_score_img2: 0.18,
+            edge_correlation: 0.92,
+        }
+    }
+
+    /// Gradient stats where img1 has edges but img2 doesn't (content removed).
+    fn img1_only_edges() -> GradientStats {
+        GradientStats {
+            edge_score: 0.30,
+            edge_score_img2: 0.02,
+            edge_correlation: 0.40,
+        }
+    }
+
+    /// Gradient stats where img2 has edges but img1 doesn't (content added).
+    fn img2_only_edges() -> GradientStats {
+        GradientStats {
+            edge_score: 0.02,
+            edge_score_img2: 0.30,
+            edge_correlation: 0.40,
+        }
+    }
+
+    /// Gradient stats with high edges in both but low correlation (structural change).
+    fn uncorrelated_edges() -> GradientStats {
+        GradientStats {
+            edge_score: 0.30,
+            edge_score_img2: 0.25,
+            edge_correlation: 0.40,
+        }
+    }
+
     #[test]
     fn test_rendering_noise_tiny() {
         let (ct, signals) = classify_change_type(
@@ -120,8 +175,9 @@ mod tests {
             &ColorDeltaStats {
                 mean_delta: 0.01,
                 max_delta: 0.02,
+                delta_stddev: 0.005,
             },
-            &GradientStats { edge_score: 1.0 },
+            &flat_gradient(),
             &default_shape_stats(),
             &BoundingBox {
                 x: 50,
@@ -146,8 +202,9 @@ mod tests {
             &ColorDeltaStats {
                 mean_delta: 0.02,
                 max_delta: 0.04,
+                delta_stddev: 0.01,
             },
-            &GradientStats { edge_score: 0.01 },
+            &flat_gradient(),
             &stats,
             &square_bbox(),
         );
@@ -159,7 +216,6 @@ mod tests {
 
     #[test]
     fn test_addition() {
-        // Blends with bg in img1 (was background), distinct in img2 (content appeared)
         let content = ContentEvidence {
             bg_distance_img1: 0.02,
             bg_distance_img2: 0.40,
@@ -169,19 +225,21 @@ mod tests {
             &ColorDeltaStats {
                 mean_delta: 0.30,
                 max_delta: 0.50,
+                delta_stddev: 0.05,
             },
-            &GradientStats { edge_score: 0.10 },
+            &img2_only_edges(),
             &default_shape_stats(),
             &square_bbox(),
         );
         assert_eq!(ct, ChangeType::Addition);
         assert!(signals.blends_with_bg_in_img1);
         assert!(!signals.blends_with_bg_in_img2);
+        // Edge boost: img1 has no edges, img2 does
+        assert_eq!(signals.confidence, 1.0);
     }
 
     #[test]
     fn test_deletion() {
-        // Distinct in img1 (had content), blends with bg in img2 (content removed)
         let content = ContentEvidence {
             bg_distance_img1: 0.40,
             bg_distance_img2: 0.02,
@@ -191,36 +249,58 @@ mod tests {
             &ColorDeltaStats {
                 mean_delta: 0.30,
                 max_delta: 0.50,
+                delta_stddev: 0.05,
             },
-            &GradientStats { edge_score: 0.10 },
+            &img1_only_edges(),
             &default_shape_stats(),
             &square_bbox(),
         );
         assert_eq!(ct, ChangeType::Deletion);
         assert!(!signals.blends_with_bg_in_img1);
         assert!(signals.blends_with_bg_in_img2);
+        // Edge boost: img1 has edges, img2 lost them
+        assert_eq!(signals.confidence, 1.0);
     }
 
     #[test]
-    fn test_color_change() {
-        // Both have content, low edge (no structural change), moderate color delta
+    fn test_color_change_correlated_edges() {
+        // Both images have similar edge structure, moderate color delta → ColorChange
         let (ct, signals) = classify_change_type(
             &no_blends(),
             &ColorDeltaStats {
                 mean_delta: 0.20,
                 max_delta: 0.30,
+                delta_stddev: 0.03,
             },
-            &GradientStats { edge_score: 0.01 },
+            &correlated_edges(),
             &default_shape_stats(),
             &square_bbox(),
         );
         assert_eq!(ct, ChangeType::ColorChange);
-        assert_eq!(signals.confidence, 1.0);
+        assert!(signals.edges_correlated);
+        assert!(signals.confidence > 0.5);
     }
 
     #[test]
-    fn test_color_change_subtle() {
-        // Dense region with low edge AND low color delta → still ColorChange (not ContentChange)
+    fn test_color_change_flat_both() {
+        // Both images are flat (no edges), high correlation, meaningful color delta → ColorChange
+        let (ct, _) = classify_change_type(
+            &no_blends(),
+            &ColorDeltaStats {
+                mean_delta: 0.20,
+                max_delta: 0.30,
+                delta_stddev: 0.03,
+            },
+            &flat_gradient(),
+            &default_shape_stats(),
+            &square_bbox(),
+        );
+        assert_eq!(ct, ChangeType::ColorChange);
+    }
+
+    #[test]
+    fn test_low_edge_low_color_is_content_change() {
+        // Both flat, low color delta → falls through to ContentChange
         let stats = ShapeStats {
             fill_ratio: 0.95,
             ..default_shape_stats()
@@ -230,26 +310,10 @@ mod tests {
             &ColorDeltaStats {
                 mean_delta: 0.02,
                 max_delta: 0.04,
+                delta_stddev: 0.01,
             },
-            &GradientStats { edge_score: 0.03 },
+            &flat_gradient(),
             &stats,
-            &square_bbox(),
-        );
-        assert_eq!(ct, ChangeType::ColorChange);
-        assert_eq!(signals.confidence, 0.75);
-    }
-
-    #[test]
-    fn test_content_change_fallback() {
-        // Both have content, high edge + high color → ContentChange
-        let (ct, signals) = classify_change_type(
-            &no_blends(),
-            &ColorDeltaStats {
-                mean_delta: 0.50,
-                max_delta: 0.80,
-            },
-            &GradientStats { edge_score: 0.30 },
-            &default_shape_stats(),
             &square_bbox(),
         );
         assert_eq!(ct, ChangeType::ContentChange);
@@ -257,8 +321,26 @@ mod tests {
     }
 
     #[test]
+    fn test_content_change_uncorrelated_edges() {
+        // Both have edges but in different places → ContentChange
+        let (ct, signals) = classify_change_type(
+            &no_blends(),
+            &ColorDeltaStats {
+                mean_delta: 0.50,
+                max_delta: 0.80,
+                delta_stddev: 0.25,
+            },
+            &uncorrelated_edges(),
+            &default_shape_stats(),
+            &square_bbox(),
+        );
+        assert_eq!(ct, ChangeType::ContentChange);
+        assert!(!signals.edges_correlated);
+        assert_eq!(signals.confidence, 0.5);
+    }
+
+    #[test]
     fn test_tiny_region_high_color_not_noise() {
-        // Tiny but high color delta — skips noise rule, classifies by content
         let content = ContentEvidence {
             bg_distance_img1: 0.01,
             bg_distance_img2: 0.40,
@@ -268,8 +350,9 @@ mod tests {
             &ColorDeltaStats {
                 mean_delta: 0.50,
                 max_delta: 0.50,
+                delta_stddev: 0.02,
             },
-            &GradientStats { edge_score: 1.0 },
+            &img2_only_edges(),
             &default_shape_stats(),
             &BoundingBox {
                 x: 50,

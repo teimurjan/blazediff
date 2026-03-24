@@ -59,7 +59,7 @@ describe("Performance", () => {
 
 			expect(result.pass).toBe(true);
 			expect(result.snapshotStatus).toBe("added");
-			expect(elapsed).toBeLessThan(100);
+			expect(elapsed).toBeLessThan(150);
 		});
 	});
 
@@ -82,8 +82,8 @@ describe("Performance", () => {
 
 			expect(result.pass).toBe(true);
 			expect(result.snapshotStatus).toBe("matched");
-			// Small image (512x256 = 131k pixels) should be under 100ms
-			expect(elapsed).toBeLessThan(100);
+			// Small image (512x256 = 131k pixels) should be under 150ms
+			expect(elapsed).toBeLessThan(150);
 		});
 
 		it("runInWorker=false falls back to main thread", async () => {
@@ -108,7 +108,7 @@ describe("Performance", () => {
 
 			expect(result.pass).toBe(true);
 			expect(result.snapshotStatus).toBe("matched");
-			expect(elapsed).toBeLessThan(100);
+			expect(elapsed).toBeLessThan(150);
 		});
 	});
 

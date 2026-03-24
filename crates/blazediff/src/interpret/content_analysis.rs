@@ -139,37 +139,183 @@ fn changed_pixel_distance(
         return 0.0;
     }
 
-    // max possible distance = sqrt(3) * 255 ≈ 441.67
-    total / count as f64 / 441.67
+    // max possible distance = sqrt(3) * 255
+    let max_dist = 3.0_f64.sqrt() * 255.0;
+    (total / count as f64 / max_dist).min(1.0)
 }
 
-/// Compute luminance stats of changed pixels in an image region.
-/// Returns (mean_luminance, stddev_luminance).
-pub fn luminance_stats(img: &Image, mask: &[bool], bbox: &BoundingBox, width: u32) -> (f64, f64) {
-    let mut sum = 0.0f64;
-    let mut sum_sq = 0.0f64;
-    let mut count = 0u64;
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::interpret::test_helpers::*;
 
-    for y in bbox.y..bbox.y + bbox.height {
-        for x in bbox.x..bbox.x + bbox.width {
-            let idx = (y * width + x) as usize;
-            if mask[idx] {
-                let pos = idx * 4;
-                let lum = 0.299 * img.data[pos] as f64
-                    + 0.587 * img.data[pos + 1] as f64
-                    + 0.114 * img.data[pos + 2] as f64;
-                sum += lum;
-                sum_sq += lum * lum;
-                count += 1;
+    #[test]
+    fn test_bg_estimated_from_surrounding_unchanged_pixels() {
+        // White background with a red block in the center.
+        // Background means should be ~(255, 255, 255).
+        let w = 20u32;
+        let h = 20u32;
+        let mut img1 = make_solid_image(w, h, 255, 255, 255);
+        fill_block(&mut img1, 8, 8, 4, 4, 255, 0, 0);
+        let img2 = make_solid_image(w, h, 255, 255, 255);
+
+        let mut mask = vec![false; (w * h) as usize];
+        for y in 8..12 {
+            for x in 8..12 {
+                mask[(y * w + x) as usize] = true;
             }
         }
+
+        let bbox = BoundingBox {
+            x: 8,
+            y: 8,
+            width: 4,
+            height: 4,
+        };
+        let ev = analyze_content(&img1, &img2, &mask, &bbox, w, h);
+
+        // img1 has red block far from white bg → high distance
+        assert!(
+            ev.bg_distance_img1 > 0.3,
+            "Red block should be far from white bg, got {}",
+            ev.bg_distance_img1
+        );
+        // img2 is all white, changed pixels are white → low distance
+        assert!(
+            ev.bg_distance_img2 < 0.01,
+            "White-on-white should blend, got {}",
+            ev.bg_distance_img2
+        );
     }
 
-    if count == 0 {
-        return (0.0, 0.0);
+    #[test]
+    fn test_fallback_to_border_when_bbox_fully_masked() {
+        // Entire bbox is masked (all pixels changed). Must fallback to 1px border.
+        let w = 10u32;
+        let h = 10u32;
+        let img1 = make_solid_image(w, h, 100, 100, 100);
+        let mut img2 = make_solid_image(w, h, 100, 100, 100);
+        fill_block(&mut img2, 3, 3, 4, 4, 200, 200, 200);
+
+        // Mark entire bbox as changed
+        let mut mask = vec![false; (w * h) as usize];
+        for y in 3..7 {
+            for x in 3..7 {
+                mask[(y * w + x) as usize] = true;
+            }
+        }
+
+        let bbox = BoundingBox {
+            x: 3,
+            y: 3,
+            width: 4,
+            height: 4,
+        };
+        let ev = analyze_content(&img1, &img2, &mask, &bbox, w, h);
+
+        // Should still produce valid results via border fallback
+        assert!(ev.bg_distance_img1 < 0.01, "Grey on grey bg should blend");
+        assert!(
+            ev.bg_distance_img2 > 0.1,
+            "Bright block should be far from grey border bg"
+        );
     }
 
-    let mean = sum / count as f64;
-    let variance = (sum_sq / count as f64 - mean * mean).max(0.0);
-    (mean, variance.sqrt())
+    #[test]
+    fn test_distance_always_normalized_0_to_1() {
+        // Maximum possible distance: black vs white
+        let w = 10u32;
+        let h = 10u32;
+        let img1 = make_solid_image(w, h, 0, 0, 0); // all black
+        let mut img2 = make_solid_image(w, h, 0, 0, 0);
+        fill_block(&mut img2, 2, 2, 6, 6, 255, 255, 255);
+
+        let mut mask = vec![false; (w * h) as usize];
+        for y in 2..8 {
+            for x in 2..8 {
+                mask[(y * w + x) as usize] = true;
+            }
+        }
+
+        let bbox = BoundingBox {
+            x: 2,
+            y: 2,
+            width: 6,
+            height: 6,
+        };
+        let ev = analyze_content(&img1, &img2, &mask, &bbox, w, h);
+
+        assert!(
+            ev.bg_distance_img1 >= 0.0 && ev.bg_distance_img1 <= 1.0,
+            "bg_distance_img1 out of bounds: {}",
+            ev.bg_distance_img1
+        );
+        assert!(
+            ev.bg_distance_img2 >= 0.0 && ev.bg_distance_img2 <= 1.0,
+            "bg_distance_img2 out of bounds: {}",
+            ev.bg_distance_img2
+        );
+    }
+
+    #[test]
+    fn test_swapping_images_swaps_distances() {
+        // Asymmetric case: img1 has object, img2 doesn't
+        let w = 20u32;
+        let h = 20u32;
+        let mut img1 = make_solid_image(w, h, 128, 128, 128);
+        fill_block(&mut img1, 6, 6, 8, 8, 255, 0, 0);
+        let img2 = make_solid_image(w, h, 128, 128, 128);
+
+        let mut mask = vec![false; (w * h) as usize];
+        for y in 6..14 {
+            for x in 6..14 {
+                mask[(y * w + x) as usize] = true;
+            }
+        }
+
+        let bbox = BoundingBox {
+            x: 6,
+            y: 6,
+            width: 8,
+            height: 8,
+        };
+        let ev_forward = analyze_content(&img1, &img2, &mask, &bbox, w, h);
+        let ev_reverse = analyze_content(&img2, &img1, &mask, &bbox, w, h);
+
+        // Swapping images should swap the distances
+        assert!(
+            (ev_forward.bg_distance_img1 - ev_reverse.bg_distance_img2).abs() < 0.01,
+            "Swap should mirror: fwd.img1={} rev.img2={}",
+            ev_forward.bg_distance_img1,
+            ev_reverse.bg_distance_img2
+        );
+        assert!(
+            (ev_forward.bg_distance_img2 - ev_reverse.bg_distance_img1).abs() < 0.01,
+            "Swap should mirror: fwd.img2={} rev.img1={}",
+            ev_forward.bg_distance_img2,
+            ev_reverse.bg_distance_img1
+        );
+    }
+
+    #[test]
+    fn test_no_bg_pixels_returns_max_distance() {
+        // 1x1 image where the only pixel is masked — no background available at all
+        let w = 1u32;
+        let h = 1u32;
+        let img1 = make_solid_image(w, h, 128, 128, 128);
+        let img2 = make_solid_image(w, h, 128, 128, 128);
+        let mask = vec![true];
+
+        let bbox = BoundingBox {
+            x: 0,
+            y: 0,
+            width: 1,
+            height: 1,
+        };
+        let ev = analyze_content(&img1, &img2, &mask, &bbox, w, h);
+
+        // Fallback: no bg pixels → returns (1.0, 1.0)
+        assert_eq!(ev.bg_distance_img1, 1.0);
+        assert_eq!(ev.bg_distance_img2, 1.0);
+    }
 }

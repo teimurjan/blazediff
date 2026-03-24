@@ -85,10 +85,13 @@ export interface ShapeStats {
 export interface ColorDeltaStats {
 	meanDelta: number;
 	maxDelta: number;
+	deltaStddev: number;
 }
 
 export interface GradientStats {
 	edgeScore: number;
+	edgeScoreImg2: number;
+	edgeCorrelation: number;
 }
 
 export interface ClassificationSignals {
@@ -99,6 +102,7 @@ export interface ClassificationSignals {
 	denseFill: boolean;
 	sparseFill: boolean;
 	tinyRegion: boolean;
+	edgesCorrelated: boolean;
 	confidence: number;
 }
 
