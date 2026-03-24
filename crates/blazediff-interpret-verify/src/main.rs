@@ -10,7 +10,7 @@ use types::OutputFormat;
 
 #[derive(Parser)]
 #[command(
-    name = "interpret-validation",
+    name = "blazediff-interpret-verify",
     about = "Validate blazediff interpret module against real datasets"
 )]
 struct Args {

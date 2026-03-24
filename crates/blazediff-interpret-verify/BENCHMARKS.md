@@ -13,7 +13,7 @@ Real COCO photographs. Object mask regions filled with local background color to
 | **Macro F1** | | | **0.854** | |
 
 ```sh
-cargo run --release -p interpret-validation -- --manifest ../data/addition_deletion/manifest.json --min-pixels 50
+cargo run --release -p blazediff-interpret-verify -- --manifest ../data/addition_deletion/manifest.json --min-pixels 50
 ```
 
 ## ContentChange/ColorChange (1,260 cases from InpaintCOCO)
@@ -29,7 +29,7 @@ Real COCO images with AI-inpainted objects. "object"/"size" concepts mapped to C
 Low precision is expected — AI inpainting creates artifact regions beyond the annotated mask, inflating false positives.
 
 ```sh
-cargo run --release -p interpret-validation -- --manifest ../data/inpaintcoco/manifest.json --min-pixels 500
+cargo run --release -p blazediff-interpret-verify -- --manifest ../data/inpaintcoco/manifest.json --min-pixels 500
 ```
 
 ## MagicBrush (495 cases, DALL-E 2 edits)
@@ -45,7 +45,7 @@ Stress test. DALL-E regeneration changes pixels globally — outside the module'
 | **Weighted F1** | | | **0.159** | |
 
 ```sh
-cargo run --release -p interpret-validation -- --manifest ../data/magicbrush/manifest.json --min-pixels 50 --iou-threshold 0.05
+cargo run --release -p blazediff-interpret-verify -- --manifest ../data/magicbrush/manifest.json --min-pixels 50 --iou-threshold 0.05
 ```
 
 ## Notes

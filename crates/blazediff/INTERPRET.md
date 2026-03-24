@@ -187,4 +187,4 @@ Content removed: 3 regions (bottom, top-left, center).
 
 ## Validation
 
-Classification accuracy is verified against real image datasets using the [interpret-validation](../interpret-validation/README.md) tool.
+Classification accuracy is verified against real image datasets using the [blazediff-interpret-verify](../blazediff-interpret-verify/README.md) tool.

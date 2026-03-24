@@ -1,4 +1,4 @@
-# interpret-validation
+# blazediff-interpret-verify
 
 Validates the blazediff interpret module against real image datasets.
 
@@ -35,12 +35,12 @@ uv run --with datasets --with Pillow scripts/prepare_magicbrush.py --limit 1000 
 
 ```sh
 # From crates/ directory
-cargo run --release -p interpret-validation -- --manifest ../data/inpaintcoco/manifest.json --min-pixels 500
-cargo run --release -p interpret-validation -- --manifest ../data/addition_deletion/manifest.json --min-pixels 50
-cargo run --release -p interpret-validation -- --manifest ../data/magicbrush/manifest.json --min-pixels 50 --iou-threshold 0.05
+cargo run --release -p blazediff-interpret-verify -- --manifest ../data/inpaintcoco/manifest.json --min-pixels 500
+cargo run --release -p blazediff-interpret-verify -- --manifest ../data/addition_deletion/manifest.json --min-pixels 50
+cargo run --release -p blazediff-interpret-verify -- --manifest ../data/magicbrush/manifest.json --min-pixels 50 --iou-threshold 0.05
 
 # JSON output
-cargo run --release -p interpret-validation -- --manifest ../data/inpaintcoco/manifest.json --output-format json
+cargo run --release -p blazediff-interpret-verify -- --manifest ../data/inpaintcoco/manifest.json --output-format json
 ```
 
 ### CLI Flags
