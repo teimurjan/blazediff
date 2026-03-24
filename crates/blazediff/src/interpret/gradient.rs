@@ -260,6 +260,126 @@ mod tests {
     }
 
     #[test]
+    fn test_identical_images_correlation_is_one() {
+        let width = 20;
+        let height = 20;
+        let mut img = make_solid_image(width, height, 0, 0, 0);
+        for y in 0..height {
+            for x in 10..width {
+                let pos = ((y * width + x) * 4) as usize;
+                img.data[pos] = 255;
+                img.data[pos + 1] = 255;
+                img.data[pos + 2] = 255;
+            }
+        }
+        // Same image for both → perfect correlation
+        let mask = vec![true; (width * height) as usize];
+        let bbox = BoundingBox {
+            x: 0,
+            y: 0,
+            width,
+            height,
+        };
+        let stats = compute_gradient_stats(&img, &img, &mask, &bbox, width, height);
+
+        assert!(
+            (stats.edge_correlation - 1.0).abs() < 0.001,
+            "Identical images → correlation=1.0, got {}",
+            stats.edge_correlation
+        );
+        assert!(
+            (stats.edge_score - stats.edge_score_img2).abs() < 0.001,
+            "Same image → same edge scores"
+        );
+    }
+
+    #[test]
+    fn test_correlation_bounds() {
+        // Verify edge_correlation is always in [0, 1] regardless of input
+        let width = 20;
+        let height = 20;
+        let mut img1 = make_solid_image(width, height, 0, 0, 0);
+        let mut img2 = make_solid_image(width, height, 255, 255, 255);
+        // img1: left half black, right half white
+        for y in 0..height {
+            for x in 10..width {
+                let pos = ((y * width + x) * 4) as usize;
+                img1.data[pos] = 255;
+                img1.data[pos + 1] = 255;
+                img1.data[pos + 2] = 255;
+            }
+        }
+        // img2: top half black, bottom half white (orthogonal edges)
+        for y in 10..height {
+            for x in 0..width {
+                let pos = ((y * width + x) * 4) as usize;
+                img2.data[pos] = 255;
+                img2.data[pos + 1] = 255;
+                img2.data[pos + 2] = 255;
+            }
+        }
+
+        let mask = vec![true; (width * height) as usize];
+        let bbox = BoundingBox {
+            x: 0,
+            y: 0,
+            width,
+            height,
+        };
+        let stats = compute_gradient_stats(&img1, &img2, &mask, &bbox, width, height);
+
+        assert!(
+            stats.edge_correlation >= 0.0 && stats.edge_correlation <= 1.0,
+            "Correlation out of bounds: {}",
+            stats.edge_correlation
+        );
+        assert!(stats.edge_score >= 0.0 && stats.edge_score <= 1.0);
+        assert!(stats.edge_score_img2 >= 0.0 && stats.edge_score_img2 <= 1.0);
+    }
+
+    #[test]
+    fn test_single_pixel_region_no_panic() {
+        let width = 10;
+        let height = 10;
+        let img1 = make_solid_image(width, height, 128, 128, 128);
+        let img2 = make_solid_image(width, height, 200, 200, 200);
+        let mut mask = vec![false; (width * height) as usize];
+        mask[55] = true; // single pixel at (5, 5)
+
+        let bbox = BoundingBox {
+            x: 5,
+            y: 5,
+            width: 1,
+            height: 1,
+        };
+        let stats = compute_gradient_stats(&img1, &img2, &mask, &bbox, width, height);
+
+        // Should not panic, should return valid values
+        assert!(stats.edge_correlation >= 0.0 && stats.edge_correlation <= 1.0);
+    }
+
+    #[test]
+    fn test_empty_mask_returns_defaults() {
+        let width = 10;
+        let height = 10;
+        let img1 = make_solid_image(width, height, 128, 128, 128);
+        let img2 = make_solid_image(width, height, 200, 200, 200);
+        let mask = vec![false; (width * height) as usize]; // nothing masked
+
+        let bbox = BoundingBox {
+            x: 0,
+            y: 0,
+            width,
+            height,
+        };
+        let stats = compute_gradient_stats(&img1, &img2, &mask, &bbox, width, height);
+
+        assert_eq!(stats.edge_score, 0.0);
+        assert_eq!(stats.edge_score_img2, 0.0);
+        assert_eq!(stats.edge_correlation, 1.0); // default for empty
+    }
+
+    #[test]
     fn test_boundary_pixels() {
         let width = 5;
         let height = 5;

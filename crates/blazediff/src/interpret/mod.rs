@@ -540,4 +540,91 @@ mod tests {
         assert_eq!(result.total_regions, 1);
         assert_eq!(result.regions[0].change_type, ChangeType::Addition);
     }
+
+    // --- Shift detection algorithm tests ---
+
+    #[test]
+    fn test_shift_not_detected_for_different_sizes() {
+        // Two blocks of very different sizes → should NOT match as shift
+        let mut img1 = make_solid_image(200, 100, 255, 255, 255);
+        fill_block(&mut img1, 10, 10, 40, 40, 40, 40, 40); // large block
+
+        let mut img2 = make_solid_image(200, 100, 255, 255, 255);
+        fill_block(&mut img2, 140, 10, 10, 10, 40, 40, 40); // small block
+
+        let result = interpret(&img1, &img2, &DiffOptions::default()).unwrap();
+
+        // Size ratio 40/10 = 4.0, well outside 0.6-1.67 → no shift
+        let shift_count = result
+            .regions
+            .iter()
+            .filter(|r| r.change_type == ChangeType::Shift)
+            .count();
+        assert_eq!(
+            shift_count, 0,
+            "Different-sized blocks should not be detected as shift"
+        );
+    }
+
+    #[test]
+    fn test_shift_not_detected_for_different_luminance() {
+        // Same-sized blocks but very different content → no shift
+        let mut img1 = make_solid_image(200, 100, 200, 200, 200);
+        fill_block(&mut img1, 10, 10, 30, 30, 20, 20, 20); // very dark
+
+        let mut img2 = make_solid_image(200, 100, 200, 200, 200);
+        fill_block(&mut img2, 140, 10, 30, 30, 200, 50, 50); // red, much brighter
+
+        let result = interpret(&img1, &img2, &DiffOptions::default()).unwrap();
+
+        let shift_count = result
+            .regions
+            .iter()
+            .filter(|r| r.change_type == ChangeType::Shift)
+            .count();
+        assert_eq!(
+            shift_count, 0,
+            "Blocks with different luminance should not be shift"
+        );
+    }
+
+    #[test]
+    fn test_no_shift_when_only_additions() {
+        // Two additions, no deletions → no shift possible
+        let img1 = make_solid_image(200, 100, 200, 200, 200);
+        let mut img2 = make_solid_image(200, 100, 200, 200, 200);
+        fill_block(&mut img2, 10, 10, 30, 30, 40, 40, 40);
+        fill_block(&mut img2, 140, 10, 30, 30, 40, 40, 40);
+
+        let result = interpret(&img1, &img2, &DiffOptions::default()).unwrap();
+
+        let shift_count = result
+            .regions
+            .iter()
+            .filter(|r| r.change_type == ChangeType::Shift)
+            .count();
+        assert_eq!(
+            shift_count, 0,
+            "Two additions with no deletion cannot form a shift"
+        );
+    }
+
+    #[test]
+    fn test_object_on_both_images_is_not_addition_or_deletion() {
+        // Same object location in both images but different color → should be ColorChange or ContentChange, not Add/Del
+        let mut img1 = make_solid_image(100, 100, 200, 200, 200);
+        fill_block(&mut img1, 30, 30, 40, 40, 255, 0, 0);
+        let mut img2 = make_solid_image(100, 100, 200, 200, 200);
+        fill_block(&mut img2, 30, 30, 40, 40, 0, 0, 255);
+
+        let result = interpret(&img1, &img2, &DiffOptions::default()).unwrap();
+
+        for r in &result.regions {
+            assert!(
+                r.change_type != ChangeType::Addition && r.change_type != ChangeType::Deletion,
+                "Object present in both images should not be Addition or Deletion, got {:?}",
+                r.change_type
+            );
+        }
+    }
 }

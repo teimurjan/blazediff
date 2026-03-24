@@ -132,6 +132,65 @@ mod tests {
     }
 
     #[test]
+    fn test_single_pixel_stddev_is_zero() {
+        let width = 10;
+        let img1 = make_solid_image(width, 10, 0, 0, 0);
+        let mut img2 = make_solid_image(width, 10, 0, 0, 0);
+        set_pixel(&mut img2, 5, 5, 255, 255, 255);
+
+        let mut mask = vec![false; 100];
+        mask[55] = true;
+
+        let bbox = BoundingBox {
+            x: 5,
+            y: 5,
+            width: 1,
+            height: 1,
+        };
+        let stats = compute_color_delta(&img1, &img2, &mask, &bbox, width);
+
+        // Single pixel → variance = 0 → stddev = 0
+        assert!(
+            (stats.delta_stddev).abs() < f32::EPSILON,
+            "Single pixel stddev should be 0, got {}",
+            stats.delta_stddev
+        );
+        assert!(stats.mean_delta > 0.0, "Should have nonzero delta");
+    }
+
+    #[test]
+    fn test_stddev_never_negative() {
+        // Multiple changed pixels with varying deltas
+        let width = 10;
+        let img1 = make_solid_image(width, 10, 100, 100, 100);
+        let mut img2 = make_solid_image(width, 10, 100, 100, 100);
+        set_pixel(&mut img2, 0, 0, 200, 100, 100);
+        set_pixel(&mut img2, 1, 0, 100, 200, 100);
+        set_pixel(&mut img2, 2, 0, 100, 100, 200);
+
+        let mut mask = vec![false; 100];
+        mask[0] = true;
+        mask[1] = true;
+        mask[2] = true;
+
+        let bbox = BoundingBox {
+            x: 0,
+            y: 0,
+            width: 3,
+            height: 1,
+        };
+        let stats = compute_color_delta(&img1, &img2, &mask, &bbox, width);
+
+        assert!(
+            stats.delta_stddev >= 0.0,
+            "Stddev must be non-negative, got {}",
+            stats.delta_stddev
+        );
+        assert!(stats.mean_delta >= 0.0, "Mean delta must be non-negative");
+        assert!(stats.max_delta >= stats.mean_delta, "Max must be >= mean");
+    }
+
+    #[test]
     fn test_patchy_change_high_stddev() {
         let width = 10;
         let img1 = make_solid_image(width, 10, 128, 128, 128);
