@@ -249,6 +249,8 @@ fn build_script(result_json: &str) -> String {
       let top = bbox.y * scale - border;
       let width = Math.max(bbox.width * scale, 2) + border * 2;
       let height = Math.max(bbox.height * scale, 2) + border * 2;
+      if (left < 0) {{ width += left; left = 0; }}
+      if (top < 0) {{ height += top; top = 0; }}
       if (left + width > img.clientWidth) width = img.clientWidth - left;
       if (top + height > imgH) height = imgH - top;
       overlay.style.display = "block";

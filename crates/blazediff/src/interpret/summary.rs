@@ -23,7 +23,7 @@ pub fn build_summary(
         count = regions.len(),
     )];
 
-    // Group by change type, preserving order of first occurrence via BTreeMap on discriminant
+    // Group by change type, emitting groups in the fixed order defined by `type_order`
     let mut groups: BTreeMap<u8, (ChangeType, usize, Vec<SpatialPosition>)> = BTreeMap::new();
     let type_order = |ct: &ChangeType| -> u8 {
         match ct {

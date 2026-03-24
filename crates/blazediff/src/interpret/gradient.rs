@@ -24,6 +24,16 @@ pub fn compute_gradient_stats(
     width: u32,
     height: u32,
 ) -> GradientStats {
+    // Guard: Sobel gradients need at least 2px in each dimension for neighbor lookups.
+    // Degenerate regions return safe defaults (no edges, perfect correlation).
+    if width < 2 || height < 2 || bbox.width < 1 || bbox.height < 1 {
+        return GradientStats {
+            edge_score: 0.0,
+            edge_score_img2: 0.0,
+            edge_correlation: 1.0,
+        };
+    }
+
     let pixels1 = img1.as_u32();
     let pixels2 = img2.as_u32();
     let bw = bbox.width as usize;
