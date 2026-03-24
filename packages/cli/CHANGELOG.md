@@ -1,5 +1,12 @@
 # @blazediff/cli
 
+## 3.1.2
+
+### Patch Changes
+
+- Updated dependencies [81086bd]
+  - @blazediff/core-native@4.2.0
+
 ## 3.1.1
 
 ### Patch Changes
