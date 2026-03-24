@@ -319,34 +319,3 @@ mod tests {
         assert_eq!(ev.bg_distance_img2, 1.0);
     }
 }
-
-/// Compute luminance stats of changed pixels in an image region.
-/// Returns (mean_luminance, stddev_luminance).
-pub fn luminance_stats(img: &Image, mask: &[bool], bbox: &BoundingBox, width: u32) -> (f64, f64) {
-    let mut sum = 0.0f64;
-    let mut sum_sq = 0.0f64;
-    let mut count = 0u64;
-
-    for y in bbox.y..bbox.y + bbox.height {
-        for x in bbox.x..bbox.x + bbox.width {
-            let idx = (y * width + x) as usize;
-            if mask[idx] {
-                let pos = idx * 4;
-                let lum = 0.299 * img.data[pos] as f64
-                    + 0.587 * img.data[pos + 1] as f64
-                    + 0.114 * img.data[pos + 2] as f64;
-                sum += lum;
-                sum_sq += lum * lum;
-                count += 1;
-            }
-        }
-    }
-
-    if count == 0 {
-        return (0.0, 0.0);
-    }
-
-    let mean = sum / count as f64;
-    let variance = (sum_sq / count as f64 - mean * mean).max(0.0);
-    (mean, variance.sqrt())
-}

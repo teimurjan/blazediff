@@ -12,7 +12,9 @@ mod interpretation;
 mod region;
 mod severity;
 mod shape;
+mod shifts;
 mod spatial;
+mod summary;
 #[cfg(test)]
 pub(crate) mod test_helpers;
 pub mod types;
@@ -20,13 +22,15 @@ pub mod types;
 use crate::diff::diff;
 use crate::types::{DiffError, DiffOptions, Image};
 use color_delta::compute_color_delta;
-use content_analysis::{analyze_content, luminance_stats};
+use content_analysis::analyze_content;
 use gradient::compute_gradient_stats;
 use interpretation::classify_change_type;
 use region::{detect_regions, extract_change_mask};
 use severity::classify_severity;
 use shape::{classify_shape, compute_shape_stats};
+use shifts::detect_shifts;
 use spatial::classify_position;
+use summary::build_summary;
 use types::{ChangeRegion, ChangeType, InterpretResult};
 
 /// Run a diff and interpret the results into structured regions with spatial positions,
@@ -125,133 +129,6 @@ pub fn interpret(
     })
 }
 
-/// Post-classification pass: match Addition+Deletion pairs with similar
-/// content to reclassify as Shift.
-fn detect_shifts(
-    regions: &mut [ChangeRegion],
-    img1: &Image,
-    img2: &Image,
-    mask: &[bool],
-    width: u32,
-) {
-    let deletions: Vec<usize> = regions
-        .iter()
-        .enumerate()
-        .filter(|(_, r)| r.change_type == ChangeType::Deletion)
-        .map(|(i, _)| i)
-        .collect();
-    let additions: Vec<usize> = regions
-        .iter()
-        .enumerate()
-        .filter(|(_, r)| r.change_type == ChangeType::Addition)
-        .map(|(i, _)| i)
-        .collect();
-
-    let mut matched = std::collections::HashSet::new();
-
-    for &d in &deletions {
-        for &a in &additions {
-            if matched.contains(&d) || matched.contains(&a) {
-                continue;
-            }
-
-            // Size similarity within 40%
-            let w_ratio = regions[d].bbox.width as f64 / regions[a].bbox.width.max(1) as f64;
-            let h_ratio = regions[d].bbox.height as f64 / regions[a].bbox.height.max(1) as f64;
-            if !(0.6..=1.67).contains(&w_ratio) || !(0.6..=1.67).contains(&h_ratio) {
-                continue;
-            }
-
-            // Pixel count similarity within 50%
-            let px_ratio = regions[d].pixel_count as f64 / regions[a].pixel_count.max(1) as f64;
-            if !(0.67..=1.5).contains(&px_ratio) {
-                continue;
-            }
-
-            // Content similarity: compare img1[deletion] with img2[addition]
-            let (mean_d, std_d) = luminance_stats(img1, mask, &regions[d].bbox, width);
-            let (mean_a, std_a) = luminance_stats(img2, mask, &regions[a].bbox, width);
-
-            let mean_diff = (mean_d - mean_a).abs() / 255.0;
-            let std_diff = (std_d - std_a).abs() / 255.0;
-
-            if mean_diff < 0.15 && std_diff < 0.10 {
-                matched.insert(d);
-                matched.insert(a);
-            }
-        }
-    }
-
-    for &idx in &matched {
-        regions[idx].change_type = ChangeType::Shift;
-    }
-}
-
-fn build_summary(
-    regions: &[ChangeRegion],
-    severity: &types::ChangeSeverity,
-    diff_percentage: f64,
-) -> String {
-    use std::collections::BTreeMap;
-    use types::SpatialPosition;
-
-    let region_word = if regions.len() == 1 {
-        "region"
-    } else {
-        "regions"
-    };
-    let severity_label = match severity {
-        types::ChangeSeverity::Low => "Low-impact",
-        types::ChangeSeverity::Medium => "Moderate",
-        types::ChangeSeverity::High => "Significant",
-    };
-
-    let mut lines = vec![format!(
-        "{severity_label} visual change detected ({diff_percentage:.2}% of image, {count} {region_word}).",
-        count = regions.len(),
-    )];
-
-    // Group by change type, preserving order of first occurrence via BTreeMap on discriminant
-    let mut groups: BTreeMap<u8, (ChangeType, usize, Vec<SpatialPosition>)> = BTreeMap::new();
-    let type_order = |ct: &ChangeType| -> u8 {
-        match ct {
-            ChangeType::ContentChange => 0,
-            ChangeType::Addition => 1,
-            ChangeType::Deletion => 2,
-            ChangeType::Shift => 3,
-            ChangeType::ColorChange => 4,
-            ChangeType::RenderingNoise => 5,
-        }
-    };
-
-    for r in regions {
-        let key = type_order(&r.change_type);
-        let entry = groups
-            .entry(key)
-            .or_insert_with(|| (r.change_type, 0, Vec::new()));
-        entry.1 += 1;
-        if !entry.2.contains(&r.position) {
-            entry.2.push(r.position);
-        }
-    }
-
-    for (_, (change_type, count, positions)) in &groups {
-        let label = match change_type {
-            ChangeType::ContentChange => "Content changed",
-            ChangeType::Addition => "Content added",
-            ChangeType::Deletion => "Content removed",
-            ChangeType::Shift => "Content shifted",
-            ChangeType::ColorChange => "Colors changed",
-            ChangeType::RenderingNoise => "Rendering noise",
-        };
-        let rw = if *count == 1 { "region" } else { "regions" };
-        let pos_str: Vec<String> = positions.iter().map(|p| p.to_string()).collect();
-        lines.push(format!("{label}: {count} {rw} ({}).", pos_str.join(", ")));
-    }
-
-    lines.join("\n")
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -273,7 +150,6 @@ mod tests {
 
     #[test]
     fn test_single_pixel_addition() {
-        // Red pixel on grey background → changed pixel blends with bg in img1, stands out in img2
         let img1 = make_solid_image(100, 100, 128, 128, 128);
         let mut img2 = make_solid_image(100, 100, 128, 128, 128);
         set_pixel(&mut img2, 50, 50, 255, 0, 0);
@@ -288,7 +164,6 @@ mod tests {
 
     #[test]
     fn test_block_addition() {
-        // Red block added on grey background
         let img1 = make_solid_image(100, 100, 128, 128, 128);
         let mut img2 = make_solid_image(100, 100, 128, 128, 128);
         fill_block(&mut img2, 0, 0, 40, 40, 255, 0, 0);
@@ -304,7 +179,6 @@ mod tests {
 
     #[test]
     fn test_block_deletion() {
-        // Red block removed (present in img1, background in img2)
         let mut img1 = make_solid_image(100, 100, 128, 128, 128);
         fill_block(&mut img1, 0, 0, 40, 40, 255, 0, 0);
         let img2 = make_solid_image(100, 100, 128, 128, 128);
@@ -329,7 +203,6 @@ mod tests {
         let positions: Vec<SpatialPosition> = result.regions.iter().map(|r| r.position).collect();
         assert!(positions.contains(&SpatialPosition::TopLeft));
         assert!(positions.contains(&SpatialPosition::BottomRight));
-        // Both should be additions (new content on uniform background)
         assert!(result
             .regions
             .iter()
@@ -338,7 +211,6 @@ mod tests {
 
     #[test]
     fn test_full_image_color_change() {
-        // Full image black→white: no background reference, low edge → ColorChange
         let img1 = make_solid_image(100, 100, 0, 0, 0);
         let img2 = make_solid_image(100, 100, 255, 255, 255);
 
@@ -395,7 +267,6 @@ mod tests {
 
     #[test]
     fn test_hollow_frame_is_addition() {
-        // Hollow rectangle drawn on uniform background → Addition
         let img1 = make_solid_image(100, 100, 128, 128, 128);
         let mut img2 = make_solid_image(100, 100, 128, 128, 128);
 
@@ -420,7 +291,6 @@ mod tests {
 
     #[test]
     fn test_sparse_noise() {
-        // Sparse subtle grid pattern — very low color delta
         let img1 = make_solid_image(100, 100, 128, 128, 128);
         let mut img2 = make_solid_image(100, 100, 128, 128, 128);
 
@@ -440,7 +310,6 @@ mod tests {
 
         let result = interpret(&img1, &img2, &DiffOptions::default()).unwrap();
 
-        // RenderingNoise is filtered out; remaining regions (if any) should be Addition
         for r in &result.regions {
             assert_eq!(
                 r.change_type,
@@ -453,7 +322,6 @@ mod tests {
 
     #[test]
     fn test_shift_detection() {
-        // Dark rectangle moves from one position to another (non-overlapping)
         let mut img1 = make_solid_image(100, 100, 255, 255, 255);
         fill_block(&mut img1, 10, 10, 20, 20, 40, 40, 40);
 
@@ -463,7 +331,6 @@ mod tests {
         let result = interpret(&img1, &img2, &DiffOptions::default()).unwrap();
 
         assert_eq!(result.total_regions, 2);
-        // Both regions should be reclassified as Shift
         assert!(
             result
                 .regions
@@ -524,13 +391,11 @@ mod tests {
         assert_eq!(result.total_regions, 1);
         let region = &result.regions[0];
         assert!(region.confidence > 0.0);
-        // Block on uniform bg → blends with bg in img1
         assert!(region.signals.blends_with_bg_in_img1);
     }
 
     #[test]
     fn test_grey_shift_is_addition() {
-        // Grey 128→220 on uniform grey: pixel was background, now stands out → Addition
         let img1 = make_solid_image(100, 100, 128, 128, 128);
         let mut img2 = make_solid_image(100, 100, 128, 128, 128);
         fill_block(&mut img2, 0, 0, 40, 40, 220, 220, 220);
@@ -541,20 +406,16 @@ mod tests {
         assert_eq!(result.regions[0].change_type, ChangeType::Addition);
     }
 
-    // --- Shift detection algorithm tests ---
-
     #[test]
     fn test_shift_not_detected_for_different_sizes() {
-        // Two blocks of very different sizes → should NOT match as shift
         let mut img1 = make_solid_image(200, 100, 255, 255, 255);
-        fill_block(&mut img1, 10, 10, 40, 40, 40, 40, 40); // large block
+        fill_block(&mut img1, 10, 10, 40, 40, 40, 40, 40);
 
         let mut img2 = make_solid_image(200, 100, 255, 255, 255);
-        fill_block(&mut img2, 140, 10, 10, 10, 40, 40, 40); // small block
+        fill_block(&mut img2, 140, 10, 10, 10, 40, 40, 40);
 
         let result = interpret(&img1, &img2, &DiffOptions::default()).unwrap();
 
-        // Size ratio 40/10 = 4.0, well outside 0.6-1.67 → no shift
         let shift_count = result
             .regions
             .iter()
@@ -568,12 +429,11 @@ mod tests {
 
     #[test]
     fn test_shift_not_detected_for_different_luminance() {
-        // Same-sized blocks but very different content → no shift
         let mut img1 = make_solid_image(200, 100, 200, 200, 200);
-        fill_block(&mut img1, 10, 10, 30, 30, 20, 20, 20); // very dark
+        fill_block(&mut img1, 10, 10, 30, 30, 20, 20, 20);
 
         let mut img2 = make_solid_image(200, 100, 200, 200, 200);
-        fill_block(&mut img2, 140, 10, 30, 30, 200, 50, 50); // red, much brighter
+        fill_block(&mut img2, 140, 10, 30, 30, 200, 50, 50);
 
         let result = interpret(&img1, &img2, &DiffOptions::default()).unwrap();
 
@@ -590,7 +450,6 @@ mod tests {
 
     #[test]
     fn test_no_shift_when_only_additions() {
-        // Two additions, no deletions → no shift possible
         let img1 = make_solid_image(200, 100, 200, 200, 200);
         let mut img2 = make_solid_image(200, 100, 200, 200, 200);
         fill_block(&mut img2, 10, 10, 30, 30, 40, 40, 40);
@@ -611,7 +470,6 @@ mod tests {
 
     #[test]
     fn test_object_on_both_images_is_not_addition_or_deletion() {
-        // Same object location in both images but different color → should be ColorChange or ContentChange, not Add/Del
         let mut img1 = make_solid_image(100, 100, 200, 200, 200);
         fill_block(&mut img1, 30, 30, 40, 40, 255, 0, 0);
         let mut img2 = make_solid_image(100, 100, 200, 200, 200);
