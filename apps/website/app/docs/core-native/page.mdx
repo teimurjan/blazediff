@@ -175,37 +175,53 @@ Input images can be mixed formats (e.g., compare PNG to JPEG). Output format is 
 
 ### Interpret
 
-Pass `interpret: true` to `compare()` or use the standalone `interpret()` function to get structured diff analysis — region detection, content-aware classification, severity scoring, and human-readable summaries.
+Structured diff analysis. Takes two images, returns classified change regions with human-readable summaries.
+
+**Pipeline:** change mask → morph close → connected components → per-region evidence extraction → classify → describe
+
+**Evidence per region:**
+- Dual-image gradient comparison (edges in both images + spatial correlation)
+- YIQ color delta with uniformity analysis (mean, max, stddev)
+- Background distance (changed pixels vs local unchanged pixels)
+- Shape statistics (fill ratio, border density, occupancy)
+
+**Six-label decision tree:**
+
+| Type | Signal |
+|---|---|
+| `RenderingNoise` | Tiny (≤25px) or sparse + low color delta |
+| `Addition` | Blends with background in img1, distinct in img2 |
+| `Deletion` | Distinct in img1, blends with background in img2 |
+| `ColorChange` | Edge structure preserved across both images + uniform color shift |
+| `ContentChange` | Fallback — structural change |
+| `Shift` | Post-hoc: matched Addition+Deletion pair with similar luminance |
 
 ```typescript
 import { compare, interpret } from '@blazediff/core-native';
 
-// Standalone
 const result = await interpret('expected.png', 'actual.png');
 console.log(result.summary);
-// "Moderate visual change detected (1.87% of image, 10 regions). ..."
+// "Moderate visual change detected (1.87% of image, 10 regions).
+//  Content changed: 4 regions (bottom, center).
+//  Content added: 3 regions (right, bottom, bottom-left)."
 
 // Via compare()
 const diff = await compare('expected.png', 'actual.png', 'diff.png', {
   interpret: true,
 });
-if (!diff.match && diff.reason === 'pixel-diff') {
-  console.log(diff.interpretation?.summary);
-}
 
-// HTML report
+// Interactive HTML report
 await compare('expected.png', 'actual.png', 'report.html', {
   outputFormat: 'html',
 });
 ```
 
 ```bash
-# CLI
 npx blazediff expected.png actual.png --interpret
 npx blazediff expected.png actual.png report.html --output-format html
 ```
 
-Change types: `Addition`, `Deletion`, `Shift`, `ContentChange`, `ColorChange`, `RenderingNoise`. Severity: Low (&lt;1%), Medium (1-10%), High (&gt;10%).
+Severity: Low (&lt;1%), Medium (1-10%), High (&gt;10%). See [Interpret example →](/examples/interpret) for interactive demo.
 
 ## Performance
 

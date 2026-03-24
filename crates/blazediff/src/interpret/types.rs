@@ -46,6 +46,7 @@ pub struct ClassificationSignals {
     pub dense_fill: bool,
     pub sparse_fill: bool,
     pub tiny_region: bool,
+    pub edges_correlated: bool,
     pub confidence: f32,
 }
 
@@ -53,11 +54,16 @@ pub struct ClassificationSignals {
 pub struct ColorDeltaStats {
     pub mean_delta: f32,
     pub max_delta: f32,
+    /// Standard deviation of per-pixel color deltas (normalized).
+    /// Low = uniform shift (ColorChange), high = patchy (ContentChange).
+    pub delta_stddev: f32,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
 pub struct GradientStats {
     pub edge_score: f32,
+    pub edge_score_img2: f32,
+    pub edge_correlation: f32,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]

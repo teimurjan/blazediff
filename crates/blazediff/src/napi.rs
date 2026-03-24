@@ -291,11 +291,14 @@ pub struct NapiShapeStats {
 pub struct NapiColorDeltaStats {
     pub mean_delta: f64,
     pub max_delta: f64,
+    pub delta_stddev: f64,
 }
 
 #[napi(object)]
 pub struct NapiGradientStats {
     pub edge_score: f64,
+    pub edge_score_img2: f64,
+    pub edge_correlation: f64,
 }
 
 #[napi(object)]
@@ -307,6 +310,7 @@ pub struct NapiClassificationSignals {
     pub dense_fill: bool,
     pub sparse_fill: bool,
     pub tiny_region: bool,
+    pub edges_correlated: bool,
     pub confidence: f64,
 }
 
@@ -366,15 +370,19 @@ fn convert_region(r: &itypes::ChangeRegion) -> NapiChangeRegion {
             dense_fill: r.signals.dense_fill,
             sparse_fill: r.signals.sparse_fill,
             tiny_region: r.signals.tiny_region,
+            edges_correlated: r.signals.edges_correlated,
             confidence: r.signals.confidence as f64,
         },
         confidence: r.confidence as f64,
         color_delta: NapiColorDeltaStats {
             mean_delta: r.color_delta.mean_delta as f64,
             max_delta: r.color_delta.max_delta as f64,
+            delta_stddev: r.color_delta.delta_stddev as f64,
         },
         gradient: NapiGradientStats {
             edge_score: r.gradient.edge_score as f64,
+            edge_score_img2: r.gradient.edge_score_img2 as f64,
+            edge_correlation: r.gradient.edge_correlation as f64,
         },
     }
 }

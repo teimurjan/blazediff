@@ -305,4 +305,54 @@ mod tests {
             "large gap should not be bridged"
         );
     }
+
+    #[test]
+    fn test_close_is_idempotent() {
+        // close(close(mask)) == close(mask)
+        let w = 30u32;
+        let h = 30u32;
+        let mut mask = vec![false; (w * h) as usize];
+        // Two blobs with a small gap
+        for y in 5..15 {
+            for x in 5..10 {
+                mask[(y * w + x) as usize] = true;
+            }
+        }
+        for y in 5..15 {
+            for x in 13..20 {
+                mask[(y * w + x) as usize] = true;
+            }
+        }
+
+        let closed_once = morph_close(&mask, w, h);
+        let closed_twice = morph_close(&closed_once, w, h);
+
+        assert_eq!(
+            closed_once, closed_twice,
+            "Morphological close should be idempotent"
+        );
+    }
+
+    #[test]
+    fn test_close_never_removes_foreground() {
+        // Monotonicity: every original foreground pixel must survive closing
+        let w = 50u32;
+        let h = 50u32;
+        let mut mask = vec![false; (w * h) as usize];
+        // Scattered pixels
+        for i in (0..(w * h) as usize).step_by(7) {
+            mask[i] = true;
+        }
+
+        let closed = morph_close(&mask, w, h);
+
+        for i in 0..mask.len() {
+            if mask[i] {
+                assert!(
+                    closed[i],
+                    "Closing removed original foreground pixel at index {i}"
+                );
+            }
+        }
+    }
 }

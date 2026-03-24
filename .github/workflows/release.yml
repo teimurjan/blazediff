@@ -14,7 +14,9 @@ on:
       - ".changeset/**"
       - ".github/workflows/release.yml"
 
-concurrency: ${{ github.workflow }}-${{ github.ref }}
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   release:
