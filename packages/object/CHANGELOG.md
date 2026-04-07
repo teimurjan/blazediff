@@ -1,5 +1,11 @@
 # @blazediff/object
 
+## 1.8.0
+
+### Minor Changes
+
+- 91427b5: Added rich typed values comparison
+
 ## 1.7.1
 
 ### Patch Changes
