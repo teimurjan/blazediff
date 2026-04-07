@@ -51,6 +51,22 @@ function isRichType(obj: any): boolean {
 	);
 }
 
+function areRichValuesEqual(a: any, b: any): boolean {
+	if (a.constructor !== b.constructor) return false;
+	const ctor = a.constructor;
+	if (ctor === DateConstructor) {
+		const ta = (a as Date).getTime();
+		const tb = (b as Date).getTime();
+		return ta === tb || (Number.isNaN(ta) && Number.isNaN(tb));
+	}
+	if (ctor === RegExpConstructor)
+		return (
+			(a as RegExp).source === (b as RegExp).source &&
+			(a as RegExp).flags === (b as RegExp).flags
+		);
+	return a.valueOf() === b.valueOf();
+}
+
 // Optimized difference creation with consistent shapes using numeric enum
 function createDifference(
 	type: DifferenceType.CREATE,
@@ -290,6 +306,9 @@ function compareAndAddDifferences(
 
 	// Handle type mismatches
 	if (oldIsArray !== newIsArray || oldIsRich || newIsRich) {
+		if (oldIsRich && newIsRich && areRichValuesEqual(oldVal, newVal)) {
+			return;
+		}
 		basePath[basePathLen] = pathElement;
 		basePath.length = basePathLen + 1;
 		diffs[diffs.length] = createDifference(
@@ -382,6 +401,13 @@ export function diff(
 
 	// Handle rich types
 	if (isRichType(obj) || isRichType(newObj)) {
+		if (
+			isRichType(obj) &&
+			isRichType(newObj) &&
+			areRichValuesEqual(obj, newObj)
+		) {
+			return [];
+		}
 		return [createDifference(DifferenceType.CHANGE, [], newObj, obj)];
 	}
 
