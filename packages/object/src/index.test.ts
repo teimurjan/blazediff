@@ -479,6 +479,31 @@ describe("diff", () => {
 			expect(diff(date, date)).toEqual([]);
 		});
 
+		it("should return no diff for equal Date instances", () => {
+			const a = new Date("1998-07-10T00:00:00.000Z");
+			const b = new Date("1998-07-10T00:00:00.000Z");
+			expect(diff(a, b)).toEqual([]);
+		});
+
+		it("should return no diff for equal nested Date fields", () => {
+			const a = { user: { profile: { birthdate: new Date("1998-07-10") } } };
+			const b = { user: { profile: { birthdate: new Date("1998-07-10") } } };
+			expect(diff(a, b)).toEqual([]);
+		});
+
+		it("should detect diff for non-equal Date instances", () => {
+			const a = new Date("1998-07-10");
+			const b = new Date("2000-01-01");
+			expect(diff(a, b)).toEqual([
+				{
+					type: DifferenceType.CHANGE,
+					path: [],
+					value: b,
+					oldValue: a,
+				},
+			]);
+		});
+
 		it("should detect changes in RegExp objects", () => {
 			const regex1 = /test/g;
 			const regex2 = /test/i;
