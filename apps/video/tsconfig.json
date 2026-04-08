@@ -1,0 +1,11 @@
+{
+	"extends": "../../tsconfig.bundler.json",
+	"compilerOptions": {
+		"lib": ["dom", "dom.iterable", "esnext"],
+		"jsx": "react-jsx",
+		"noEmit": true,
+		"outDir": "./dist",
+		"rootDir": "."
+	},
+	"include": ["src/**/*"]
+}

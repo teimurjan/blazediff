@@ -1,0 +1,28 @@
+1
+00:00:00,119 --> 00:00:04,739
+BlazeDiff, a high-performance diff
+ecosystem for JavaScript. Pixel-perfect
+
+2
+00:00:04,739 --> 00:00:09,260
+comparison handles thirty thousand pixels
+in milliseconds. Block-based algorithm
+
+3
+00:00:09,260 --> 00:00:13,979
+outperforms every existing tool. Drop it
+into CI and replace expensive visual
+
+4
+00:00:13,979 --> 00:00:14,819
+testing setups.
+
+5
+00:00:15,500 --> 00:00:21,180
+Beyond raw diffs, BlazeDiff classifies and
+explains changed regions. No AI, no ML,
+
+6
+00:00:21,180 --> 00:00:24,919
+lightweight, deterministic, and fast
+enough for every CI run.
