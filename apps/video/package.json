@@ -1,0 +1,26 @@
+{
+	"name": "@blazediff/video",
+	"version": "0.0.1",
+	"description": "BlazeDiff product demo video",
+	"private": true,
+	"scripts": {
+		"prestudio": "mkdir -p public && cp ../../apps/website/public/logo.png public/ && cp ../../fixtures/blazediff/3a.png public/ && cp ../../fixtures/blazediff/3b.png public/ && cp ../../apps/website/data/interpret/blazediff-3-diff.json public/interpret-data.json && cp ./assets/wallpaper.jpg public/ && cp ./assets/audio.mp3 public/ && cp ./assets/porsche.png public/ && cp ./assets/audi.png public/ && cp ./assets/aston-martin.png public/ && cp ./assets/subtitiles.srt public/",
+		"studio": "remotion studio src/index.ts --no-open",
+		"prerender": "pnpm prestudio",
+		"render": "remotion render src/index.ts BlazeDiffDemo out/video.mp4 --gl=angle --crf=18",
+		"typecheck": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@blazediff/core": "workspace:*",
+		"@remotion/captions": "^4.0.446",
+		"@remotion/cli": "4.0.291",
+		"ogl": "^1.0.11",
+		"react": "^19.1.1",
+		"react-dom": "^19.1.1",
+		"remotion": "4.0.291"
+	},
+	"devDependencies": {
+		"@types/react": "^19.1.8",
+		"typescript": "^5.9.2"
+	}
+}

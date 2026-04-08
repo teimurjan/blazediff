@@ -33,7 +33,9 @@
     "check:write": "pnpm exec biome check --write",
     "lint": "pnpm exec biome lint",
     "lint:write": "pnpm exec biome lint --write",
-    "lint:unsafewrite": "pnpm exec biome lint --unsafe  --write"
+    "lint:unsafewrite": "pnpm exec biome lint --unsafe  --write",
+    "video:render": "pnpm --filter @blazediff/video render",
+    "video:studio": "pnpm --filter @blazediff/video studio"
   },
   "keywords": [],
   "author": "Teimur Gasanov <me@teimurjan.dev> (https://github.com/teimurjan)",

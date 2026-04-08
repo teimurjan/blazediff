@@ -21,6 +21,7 @@
 		"@blazediff/image-benchmark",
 		"@blazediff/object-benchmark",
 		"@blazediff/matcher-examples",
-		"@blazediff/website"
+		"@blazediff/website",
+		"@blazediff/video"
 	]
 }
