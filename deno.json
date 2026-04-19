@@ -1,0 +1,18 @@
+{
+	"workspace": [
+		"./packages/core",
+		"./packages/object",
+		"./packages/ssim",
+		"./packages/gmsd",
+		"./packages/codec-pngjs",
+		"./packages/codec-sharp",
+		"./packages/codec-jsquash-png",
+		"./packages/ui",
+		"./packages/react",
+		"./packages/core-native",
+		"./packages/matcher",
+		"./packages/cli",
+		"./packages/vitest",
+		"./packages/jest"
+	]
+}

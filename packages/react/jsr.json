@@ -1,0 +1,19 @@
+{
+	"name": "@blazediff/react",
+	"version": "1.6.4",
+	"exports": "./src/index.ts",
+	"imports": {
+		"@blazediff/ui": "jsr:@blazediff/ui@^1.6.4",
+		"react": "npm:react@^19.0.0"
+	},
+	"publish": {
+		"include": [
+			"src/**/*.ts",
+			"src/**/*.tsx",
+			"src/**/*.d.ts",
+			"README.md",
+			"LICENSE"
+		],
+		"exclude": ["src/**/*.test.ts", "src/**/*.test.tsx", "src/**/*.spec.ts"]
+	}
+}

@@ -11,6 +11,7 @@
 		"typecheck": "pnpm -r typecheck",
 		"changeset": "changeset",
 		"release": "changeset publish && node scripts/publish-rust.js",
+		"release:jsr": "node scripts/sync-jsr-versions.js && npx jsr publish",
 		"benchmark:core": "pnpm --filter @blazediff/image-benchmark core",
 		"benchmark:core-native": "pnpm --filter @blazediff/image-benchmark core-native",
 		"benchmark:odiff": "pnpm --filter @blazediff/image-benchmark odiff",

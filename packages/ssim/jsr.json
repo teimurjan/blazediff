@@ -1,0 +1,14 @@
+{
+	"name": "@blazediff/ssim",
+	"version": "1.7.1",
+	"exports": {
+		".": "./src/ssim.ts",
+		"./ssim": "./src/ssim.ts",
+		"./msssim": "./src/msssim.ts",
+		"./hitchhikers-ssim": "./src/hitchhikers-ssim.ts"
+	},
+	"publish": {
+		"include": ["src/**/*.ts", "README.md", "LICENSE"],
+		"exclude": ["src/**/*.test.ts", "src/**/*.spec.ts"]
+	}
+}

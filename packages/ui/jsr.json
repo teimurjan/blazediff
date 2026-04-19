@@ -1,0 +1,19 @@
+{
+	"name": "@blazediff/ui",
+	"version": "1.6.4",
+	"exports": {
+		".": "./src/index.ts",
+		"./difference-mode": "./src/difference-mode.ts",
+		"./swipe-mode": "./src/swipe-mode.ts",
+		"./two-up-mode": "./src/two-up-mode.ts",
+		"./onion-skin-mode": "./src/onion-skin-mode.ts",
+		"./base-element": "./src/base-element.ts"
+	},
+	"imports": {
+		"@blazediff/core": "jsr:@blazediff/core@^1.9.1"
+	},
+	"publish": {
+		"include": ["src/**/*.ts", "README.md", "LICENSE"],
+		"exclude": ["src/**/*.test.ts", "src/**/*.spec.ts"]
+	}
+}

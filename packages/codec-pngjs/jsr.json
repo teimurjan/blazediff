@@ -1,0 +1,12 @@
+{
+	"name": "@blazediff/codec-pngjs",
+	"version": "4.0.0",
+	"exports": "./src/index.ts",
+	"imports": {
+		"pngjs": "npm:pngjs@^7.0.0"
+	},
+	"publish": {
+		"include": ["src/**/*.ts", "README.md", "LICENSE"],
+		"exclude": ["src/**/*.test.ts", "src/**/*.spec.ts"]
+	}
+}

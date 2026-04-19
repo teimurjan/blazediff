@@ -1,0 +1,12 @@
+{
+	"name": "@blazediff/codec-sharp",
+	"version": "4.0.0",
+	"exports": "./src/index.ts",
+	"imports": {
+		"sharp": "npm:sharp@^0.34.3"
+	},
+	"publish": {
+		"include": ["src/**/*.ts", "README.md", "LICENSE"],
+		"exclude": ["src/**/*.test.ts", "src/**/*.spec.ts"]
+	}
+}

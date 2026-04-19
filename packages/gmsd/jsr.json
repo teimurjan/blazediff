@@ -1,0 +1,9 @@
+{
+	"name": "@blazediff/gmsd",
+	"version": "1.7.1",
+	"exports": "./src/index.ts",
+	"publish": {
+		"include": ["src/**/*.ts", "README.md", "LICENSE"],
+		"exclude": ["src/**/*.test.ts", "src/**/*.spec.ts"]
+	}
+}

@@ -1,0 +1,23 @@
+{
+	"name": "@blazediff/cli",
+	"version": "3.1.2",
+	"exports": {
+		".": "./src/index.ts",
+		"./cli": "./src/cli.ts"
+	},
+	"imports": {
+		"@blazediff/core": "jsr:@blazediff/core@^1.9.1",
+		"@blazediff/gmsd": "jsr:@blazediff/gmsd@^1.7.1",
+		"@blazediff/ssim/ssim": "jsr:@blazediff/ssim@^1.7.1/ssim",
+		"@blazediff/ssim/msssim": "jsr:@blazediff/ssim@^1.7.1/msssim",
+		"@blazediff/ssim/hitchhikers-ssim": "jsr:@blazediff/ssim@^1.7.1/hitchhikers-ssim",
+		"@blazediff/codec-pngjs": "jsr:@blazediff/codec-pngjs@^4.0.0",
+		"@blazediff/codec-sharp": "jsr:@blazediff/codec-sharp@^4.0.0",
+		"@blazediff/codec-jsquash-png": "jsr:@blazediff/codec-jsquash-png@^0.0.1",
+		"@blazediff/core-native": "jsr:@blazediff/core-native@^4.2.0"
+	},
+	"publish": {
+		"include": ["src/**/*.ts", "README.md", "LICENSE"],
+		"exclude": ["src/**/*.test.ts", "src/**/*.spec.ts"]
+	}
+}

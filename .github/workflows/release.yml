@@ -22,6 +22,10 @@ jobs:
   release:
     name: Release
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+      pull-requests: write
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v5
@@ -52,3 +56,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           CRATES_IO_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
+
+      - name: Publish to JSR
+        if: steps.changesets.outputs.published == 'true'
+        run: pnpm run release:jsr
