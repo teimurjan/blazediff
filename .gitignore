@@ -3,3 +3,4 @@ node_modules
 .claude
 dist
 data
+.lethe
