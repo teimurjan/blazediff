@@ -2,8 +2,8 @@
 
 <div align="center">
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![NPM Version](https://img.shields.io/npm/v/%40blazediff%2Fcore)](https://www.npmjs.com/org/blazediff)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
+[![NPM Version](https://img.shields.io/npm/v/%40blazediff%2Fcore?style=flat-square)](https://www.npmjs.com/org/blazediff)
 [![JSR](https://jsr.io/badges/@blazediff/core)](https://jsr.io/@blazediff)
 [![Test](https://github.com/teimurjan/blazediff/actions/workflows/test.yml/badge.svg)](https://github.com/teimurjan/blazediff/actions/workflows/test.yml)
 [![Release](https://github.com/teimurjan/blazediff/actions/workflows/release.yml/badge.svg)](https://github.com/teimurjan/blazediff/actions/workflows/release.yml)

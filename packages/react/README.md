@@ -4,8 +4,8 @@ React components for blazediff image comparison.
 
 <div align="center">
 
-[![npm bundle size](https://img.shields.io/bundlephobia/min/%40blazediff%2Freact)](https://www.npmjs.com/package/@blazediff/react)
-[![NPM Downloads](https://img.shields.io/npm/dy/%40blazediff%2Freact)](https://www.npmjs.com/package/@blazediff/react)
+[![npm bundle size](https://img.shields.io/npm/unpacked-size/%40blazediff%2Freact?style=flat-square)](https://www.npmjs.com/package/@blazediff/react)
+[![NPM Downloads](https://img.shields.io/npm/dy/%40blazediff%2Freact?style=flat-square)](https://www.npmjs.com/package/@blazediff/react)
 
 </div>
 
