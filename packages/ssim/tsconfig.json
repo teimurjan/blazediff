@@ -4,5 +4,6 @@
 		"outDir": "./dist",
 		"rootDir": "."
 	},
-	"include": ["src/**/*", "scripts/**/*"]
+	"include": ["src/**/*", "scripts/**/*"],
+	"exclude": ["**/*.deno.test.ts"]
 }
