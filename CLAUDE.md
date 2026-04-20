@@ -94,6 +94,14 @@ Every TypeScript package publishes to both NPM (via Changesets) and JSR (via `de
 
 JSR slow-types verification: `cd packages/<x> && npx jsr publish --dry-run` — a flat workspace-root `deno check` can't satisfy the different type contexts at once (Node `Buffer` in ssim, `dom` in ui, JSX augmentation in react, jest globals in jest), so check per package.
 
+### JSR-only source patches
+
+Packages that need a Node-only import for JSR's publish-time `deno check` but must NOT ship that import in the NPM/Vite bundle (e.g. `import { Buffer } from "node:buffer"` in `@blazediff/core`) use a `jsr.patch` file at the package root. It's a plain `patch -p1`-compatible unified diff.
+
+- `scripts/publish-jsr.ts` applies every `packages/*/jsr.patch` before publishing and reverts them in a `finally` — all at once, because JSR's type-check follows workspace imports into upstream sources during a downstream publish.
+- `scripts/check-jsr-patches-clean.sh` runs as a pre-commit hook and aborts the commit if any patch is currently applied, so committed source always matches NPM's Vite-safe state.
+- To regenerate a patch: apply your change locally, `git diff -- packages/<pkg>/src > packages/<pkg>/jsr.patch` (strip the `a/packages/<pkg>` prefix so paths are pkg-relative), then `patch -p1 -R -i jsr.patch` to restore source.
+
 NPM-only (not on JSR):
 - `@blazediff/bun` — imports `bun:test`, which JSR's publish-time `deno check` doesn't resolve.
 - `@blazediff/vitest` / `@blazediff/jest` — their purpose is to augment each runner's `Matchers` interface (`declare module "vitest"`, `declare global { namespace jest }`). JSR forbids module/global type augmentation, so these stay NPM-only.

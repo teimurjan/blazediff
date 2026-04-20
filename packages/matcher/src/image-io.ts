@@ -1,4 +1,3 @@
-import { Buffer } from "node:buffer";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { codecPngjs } from "@blazediff/codec-pngjs";

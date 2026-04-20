@@ -1,4 +1,3 @@
-import { Buffer } from "node:buffer";
 import { readFileSync, writeFileSync } from "node:fs";
 import { PNG } from "pngjs";
 

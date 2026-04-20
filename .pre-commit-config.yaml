@@ -1,6 +1,12 @@
 repos:
   - repo: local
     hooks:
+      - id: jsr-patches-clean
+        name: jsr patches not applied
+        entry: scripts/check-jsr-patches-clean.sh
+        language: system
+        pass_filenames: false
+        always_run: true
       - id: biome
         name: biome check
         entry: pnpm exec biome check --write
