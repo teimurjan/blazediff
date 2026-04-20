@@ -1,3 +1,4 @@
+import type { Buffer } from "node:buffer";
 /**
  * SSIM (Structural Similarity Index) with automatic downsampling
  *
