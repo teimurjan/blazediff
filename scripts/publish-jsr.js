@@ -1,18 +1,20 @@
 #!/usr/bin/env node
+const { execSync } = require("node:child_process");
 const fs = require("node:fs");
 const path = require("node:path");
 
 const ROOT = path.resolve(__dirname, "..");
 
-// Single source of truth: the `workspace` list in the root deno.json. Every
-// workspace member that has a deno.json is a JSR-published package; its
-// version must mirror package.json so Changesets bumps propagate.
+// Sync every workspace member's deno.json version from its package.json
+// (Changesets bumps package.json only), then publish — but only if at
+// least one version actually moved, so the script is a no-op on releases
+// that didn't touch any JSR-published package.
 const rootDeno = JSON.parse(
 	fs.readFileSync(path.join(ROOT, "deno.json"), "utf8"),
 );
 const members = rootDeno.workspace ?? [];
 
-let changed = 0;
+let bumped = 0;
 
 for (const member of members) {
 	const pkgDir = path.resolve(ROOT, member);
@@ -29,14 +31,18 @@ for (const member of members) {
 	const pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath, "utf8"));
 	const denoJson = JSON.parse(fs.readFileSync(denoJsonPath, "utf8"));
 
-	if (denoJson.version === pkgJson.version) {
-		continue;
-	}
+	if (denoJson.version === pkgJson.version) continue;
 
 	denoJson.version = pkgJson.version;
 	fs.writeFileSync(denoJsonPath, `${JSON.stringify(denoJson, null, "\t")}\n`);
-	console.log(`synced ${member}: deno.json -> ${pkgJson.version}`);
-	changed++;
+	console.log(`bumped ${member}: deno.json -> ${pkgJson.version}`);
+	bumped++;
 }
 
-console.log(`sync-jsr-versions: ${changed} file(s) updated`);
+if (bumped === 0) {
+	console.log("publish-jsr: no version bumps to publish");
+	process.exit(0);
+}
+
+console.log(`publish-jsr: ${bumped} package(s) bumped — running jsr publish`);
+execSync("npx jsr publish", { cwd: ROOT, stdio: "inherit" });
