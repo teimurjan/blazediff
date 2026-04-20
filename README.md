@@ -51,7 +51,7 @@ deno add jsr:@blazediff/core
 bunx jsr add @blazediff/core
 ```
 
-The same applies to every package listed above. Native-binary sub-packages under `@blazediff/core-native-*` stay on npm only; Deno consumers resolve them transparently via `npm:` specifiers declared inside `@blazediff/core-native`.
+Every package above is available on both registries **except** `@blazediff/ui` and `@blazediff/react`, which remain NPM-only (their web-component APIs don't yet satisfy JSR's slow-types rules). Native-binary sub-packages under `@blazediff/core-native-*` are also NPM-only — Deno consumers resolve them transparently via `npm:` specifiers declared inside `@blazediff/core-native`.
 
 ## Performance
 

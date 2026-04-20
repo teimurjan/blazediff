@@ -8,8 +8,6 @@
 		"./packages/codec-pngjs/src/index.deno.test.ts",
 		"./packages/codec-sharp/src/index.deno.test.ts",
 		"./packages/codec-jsquash-png/src/index.deno.test.ts",
-		"./packages/ui/src/index.deno.test.ts",
-		"./packages/react/src/index.deno.test.ts",
 		"./packages/core-native/src/index.deno.test.ts",
 		"./packages/matcher/src/index.deno.test.ts",
 		"./packages/cli/src/index.deno.test.ts",

@@ -7,8 +7,6 @@
 		"./packages/codec-pngjs",
 		"./packages/codec-sharp",
 		"./packages/codec-jsquash-png",
-		"./packages/ui",
-		"./packages/react",
 		"./packages/core-native",
 		"./packages/matcher",
 		"./packages/cli",
@@ -16,7 +14,7 @@
 		"./packages/jest"
 	],
 	"test": {
-		"include": ["packages/*/src/**/*.deno.test.ts", "./scripts/publish-jsr.ts"]
+		"include": ["packages/*/src/**/*.deno.test.ts"]
 	},
 	"nodeModulesDir": "manual",
 	"unstable": ["sloppy-imports"],

@@ -270,10 +270,6 @@
         }
       },
       "packages/react": {
-        "dependencies": [
-          "jsr:@blazediff/ui@^1.6.4",
-          "npm:react@19"
-        ],
         "packageJson": {
           "dependencies": [
             "npm:@storybook/addon-essentials@^8.4.7",
@@ -310,9 +306,6 @@
         }
       },
       "packages/ui": {
-        "dependencies": [
-          "jsr:@blazediff/core@^1.9.1"
-        ],
         "packageJson": {
           "dependencies": [
             "npm:@storybook/addon-essentials@9.0.0-alpha.12",
