@@ -35,8 +35,8 @@ function loadCodec() {
 		await Promise.all([decodeModule.init(wasmBuf), encodeModule.init(wasmBuf)]);
 
 		return {
-			decode: decodeModule.default as DecodeFn,
-			encode: encodeModule.default as EncodeFn,
+			decode: decodeModule.default as unknown as DecodeFn,
+			encode: encodeModule.default as unknown as EncodeFn,
 		};
 	})();
 

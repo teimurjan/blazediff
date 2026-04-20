@@ -10,9 +10,6 @@
 		"@blazediff/core-native-win32-arm64": "npm:@blazediff/core-native-win32-arm64@4.2.0",
 		"@blazediff/core-native-win32-x64": "npm:@blazediff/core-native-win32-x64@4.2.0"
 	},
-	"compilerOptions": {
-		"lib": ["deno.ns", "deno.window", "esnext"]
-	},
 	"publish": {
 		"include": ["src/**/*.ts", "README.md"],
 		"exclude": ["src/**/*.test.ts", "src/**/*.spec.ts", "src/**/*.deno.test.ts"]

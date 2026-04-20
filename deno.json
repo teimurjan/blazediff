@@ -20,5 +20,8 @@
 	"unstable": ["sloppy-imports"],
 	"imports": {
 		"@types/node": "npm:@types/node@^24"
+	},
+	"compilerOptions": {
+		"lib": ["deno.ns", "deno.window", "esnext"]
 	}
 }
