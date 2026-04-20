@@ -5,8 +5,9 @@ Monorepo for image and object diffing libraries. Uses pnpm workspaces.
 ## Commands
 
 - `pnpm build` - Build all packages (excludes website)
-- `pnpm test` - Run all tests
+- `pnpm test` - Run all tests (vitest + jest)
 - `pnpm typecheck` - Typecheck all packages
+- `pnpm deno:test` - Run Deno smoke tests (`.deno.test.ts` per JSR package)
 - `pnpm check:write` - Lint + format (biome)
 - `npx @j178/prek run --all-files` - Run pre-commit hooks (biome + cargo fmt)
 
@@ -80,6 +81,20 @@ cd crates && cargo test -p blazediff
 cargo check -p blazediff --features napi  # verify N-API compiles
 cargo run -p blazediff -- ../fixtures/blazediff/3a.png ../fixtures/blazediff/3b.png --interpret
 ```
+
+## Dual distribution (NPM + JSR)
+
+Every TypeScript package publishes to both NPM (via Changesets) and JSR (via `deno publish`). The native-binary sub-packages `@blazediff/core-native-*` stay NPM-only; Deno consumers resolve them through `npm:` specifiers declared in `@blazediff/core-native`'s `deno.json`.
+
+- Per-package config lives in `packages/*/deno.json` (workspace members listed in root `deno.json`).
+- `pnpm run release` chains `changeset publish` (NPM) → `publish-rust.js` (crates.io) → `publish-jsr.ts` (JSR). The JSR step is a no-op when no `deno.json` version moved.
+- `scripts/publish-jsr.ts` is a Deno script (requires `deno` on PATH) — syncs `deno.json#version` from `package.json#version`, then runs `deno publish --allow-dirty`. CI authenticates via GitHub OIDC (`id-token: write`); locally it falls through to browser OAuth on first run.
+- Per-package Deno smoke tests live at `packages/*/src/*.deno.test.ts`. Node's vitest/jest runners exclude them (see `configDefaults.exclude` in each vitest config and `testPathIgnorePatterns` in `packages/jest/jest.config.js`); Node's `tsc` excludes them via each package's `tsconfig.json#exclude`.
+- `.vscode/settings.json` points Deno's LSP at those test files via `deno.enablePaths`, so the editor understands `jsr:` specifiers and `Deno` globals there while Node's TS LSP stays in charge everywhere else.
+
+JSR slow-types verification: `cd packages/<x> && npx jsr publish --dry-run` — a flat workspace-root `deno check` can't satisfy the different type contexts at once (Node `Buffer` in ssim, `dom` in ui, JSX augmentation in react, jest globals in jest), so check per package.
+
+`@blazediff/bun` is deferred from JSR — it imports `bun:test`, which JSR's publish-time `deno check` doesn't resolve.
 
 ## Pre-commit
 
