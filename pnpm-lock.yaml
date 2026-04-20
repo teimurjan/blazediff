@@ -20,6 +20,9 @@ importers:
       '@j178/prek':
         specifier: ^0.3.6
         version: 0.3.6
+      '@types/node':
+        specifier: ^24.3.0
+        version: 24.3.0
 
   apps/image-benchmark:
     devDependencies:

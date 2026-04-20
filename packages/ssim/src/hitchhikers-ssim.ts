@@ -1,3 +1,4 @@
+import type { Buffer } from "node:buffer";
 /**
  * Hitchhiker's SSIM (Structural Similarity Index)
  *

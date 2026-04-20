@@ -1,3 +1,4 @@
+import type { Buffer } from "node:buffer";
 export interface Image {
 	data: Buffer | Uint8Array | Uint8ClampedArray;
 	width: number;

@@ -1,3 +1,4 @@
+import type { Buffer } from "node:buffer";
 /**
  * MS-SSIM (Multi-Scale Structural Similarity Index)
  *

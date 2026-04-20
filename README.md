@@ -2,8 +2,9 @@
 
 <div align="center">
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![NPM Version](https://img.shields.io/npm/v/%40blazediff%2Fcore)](https://www.npmjs.com/org/blazediff)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
+[![NPM Version](https://img.shields.io/npm/v/%40blazediff%2Fcore?style=flat-square)](https://www.npmjs.com/org/blazediff)
+[![JSR](https://jsr.io/badges/@blazediff/core)](https://jsr.io/@blazediff)
 [![Test](https://github.com/teimurjan/blazediff/actions/workflows/test.yml/badge.svg)](https://github.com/teimurjan/blazediff/actions/workflows/test.yml)
 [![Release](https://github.com/teimurjan/blazediff/actions/workflows/release.yml/badge.svg)](https://github.com/teimurjan/blazediff/actions/workflows/release.yml)
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/teimurjan/blazediff)
@@ -35,6 +36,22 @@
 - **[Documentation](https://blazediff.dev/docs)** - Complete API reference and guides
 - **[Examples](https://blazediff.dev/examples)** - Interactive demos and code samples
 - **[Benchmarks](./BENCHMARKS.md)** - Performance comparisons and metrics
+
+## Installation
+
+BlazeDiff packages are dual-published. Install from whichever registry fits your runtime.
+
+```sh
+# Node / Bun via npm
+npm install @blazediff/core
+bun i @blazediff/core
+
+# Deno / Bun via JSR
+deno add jsr:@blazediff/core
+bunx jsr add @blazediff/core
+```
+
+Every package above is available on both registries **except** the test-runner adapters (`@blazediff/vitest`, `@blazediff/jest`, `@blazediff/bun`) and the UI libraries (`@blazediff/ui`, `@blazediff/react`), which remain NPM-only — the adapters augment each runner's `Matchers` types and the UI packages have web-component return-type requirements that JSR's publish-time check doesn't allow. Native-binary sub-packages under `@blazediff/core-native-*` are also NPM-only; Deno consumers resolve them transparently via `npm:` specifiers declared inside `@blazediff/core-native`.
 
 ## Performance
 
