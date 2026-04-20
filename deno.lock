@@ -1,0 +1,338 @@
+{
+  "version": "5",
+  "specifiers": {
+    "jsr:@std/assert@*": "1.0.19",
+    "jsr:@std/internal@^1.0.12": "1.0.12"
+  },
+  "jsr": {
+    "@std/assert@1.0.19": {
+      "integrity": "eaada96ee120cb980bc47e040f82814d786fe8162ecc53c91d8df60b8755991e",
+      "dependencies": [
+        "jsr:@std/internal"
+      ]
+    },
+    "@std/internal@1.0.12": {
+      "integrity": "972a634fd5bc34b242024402972cd5143eac68d8dffaca5eaa4dba30ce17b027"
+    }
+  },
+  "workspace": {
+    "packageJson": {
+      "dependencies": [
+        "npm:@biomejs/biome@2.2.4",
+        "npm:@changesets/changelog-git@~0.2.1",
+        "npm:@changesets/cli@^2.29.6",
+        "npm:@j178/prek@~0.3.6"
+      ]
+    },
+    "members": {
+      "apps/image-benchmark": {
+        "packageJson": {
+          "dependencies": [
+            "npm:@types/node@^24.3.0",
+            "npm:odiff-bin@^4.3.8",
+            "npm:pixelmatch@^7.1.0",
+            "npm:pngjs@7",
+            "npm:ssim.js@^3.5.0",
+            "npm:tinybench@^5.0.1",
+            "npm:tsup@8.5.0",
+            "npm:typescript@^5.9.2"
+          ]
+        }
+      },
+      "apps/matcher-examples": {
+        "packageJson": {
+          "dependencies": [
+            "npm:@types/bun@^1.2.10",
+            "npm:@types/jest@^29.5.14",
+            "npm:@types/node@^24.3.0",
+            "npm:jest@^29.7.0",
+            "npm:ts-jest@^29.2.6",
+            "npm:tsx@^4.19.2",
+            "npm:typescript@5.9.2",
+            "npm:vitest@^3.2.4"
+          ]
+        }
+      },
+      "apps/object-benchmark": {
+        "packageJson": {
+          "dependencies": [
+            "npm:@opentf/obj-diff@0.12",
+            "npm:@types/node@^24.3.0",
+            "npm:microdiff@^1.5.0",
+            "npm:tinybench@^5.0.1",
+            "npm:tsup@8.5.0",
+            "npm:typescript@^5.9.2"
+          ]
+        }
+      },
+      "apps/video": {
+        "packageJson": {
+          "dependencies": [
+            "npm:@remotion/captions@^4.0.446",
+            "npm:@remotion/cli@4.0.291",
+            "npm:@types/react@^19.1.8",
+            "npm:ogl@^1.0.11",
+            "npm:react-dom@^19.1.1",
+            "npm:react@^19.1.1",
+            "npm:remotion@4.0.291",
+            "npm:typescript@^5.9.2"
+          ]
+        }
+      },
+      "apps/website": {
+        "packageJson": {
+          "dependencies": [
+            "npm:@tabler/icons-react@^3.35.0",
+            "npm:@tailwindcss/postcss@^4.1.13",
+            "npm:@types/node@20",
+            "npm:@types/react-dom@19",
+            "npm:@types/react@19",
+            "npm:next@^16.0.10",
+            "npm:nextra-theme-docs@^4.6.1",
+            "npm:nextra@^4.6.1",
+            "npm:pagefind@^1.4.0",
+            "npm:postcss@^8.5.6",
+            "npm:react-dom@^19.1.1",
+            "npm:react@^19.1.1",
+            "npm:tailwindcss@^4.1.13",
+            "npm:typescript@^5.9.2"
+          ]
+        }
+      },
+      "packages/bun": {
+        "packageJson": {
+          "dependencies": [
+            "npm:@types/bun@^1.2.10",
+            "npm:@types/node@^24.3.0",
+            "npm:tsup@8.5.0",
+            "npm:typescript@5.9.2"
+          ]
+        }
+      },
+      "packages/cli": {
+        "dependencies": [
+          "jsr:@blazediff/codec-jsquash-png@^0.0.1",
+          "jsr:@blazediff/codec-pngjs@4",
+          "jsr:@blazediff/codec-sharp@4",
+          "jsr:@blazediff/core-native@^4.2.0",
+          "jsr:@blazediff/core@^1.9.1",
+          "jsr:@blazediff/gmsd@^1.7.1",
+          "jsr:@blazediff/ssim@^1.7.1"
+        ],
+        "packageJson": {
+          "dependencies": [
+            "npm:@types/node@^24.3.0",
+            "npm:tsup@8.5.0",
+            "npm:typescript@5.9.2"
+          ]
+        }
+      },
+      "packages/codec-jsquash-png": {
+        "dependencies": [
+          "npm:@jsquash/png@3.1.1"
+        ],
+        "packageJson": {
+          "dependencies": [
+            "npm:@jsquash/png@3.1.1",
+            "npm:@types/node@^24.3.0",
+            "npm:tsup@8.5.0",
+            "npm:typescript@5.9.2"
+          ]
+        }
+      },
+      "packages/codec-pngjs": {
+        "dependencies": [
+          "npm:pngjs@7"
+        ],
+        "packageJson": {
+          "dependencies": [
+            "npm:@types/pngjs@6.0.5",
+            "npm:pngjs@7.0.0",
+            "npm:tsup@8.5.0",
+            "npm:typescript@5.9.2"
+          ]
+        }
+      },
+      "packages/codec-sharp": {
+        "dependencies": [
+          "npm:sharp@~0.34.3"
+        ],
+        "packageJson": {
+          "dependencies": [
+            "npm:@types/sharp@0.32",
+            "npm:sharp@~0.34.3",
+            "npm:tsup@8.5.0",
+            "npm:typescript@5.9.2"
+          ]
+        }
+      },
+      "packages/core": {
+        "packageJson": {
+          "dependencies": [
+            "npm:@types/node@^24.3.0",
+            "npm:@types/pngjs@^6.0.5",
+            "npm:@vitest/coverage-v8@^3.2.4",
+            "npm:pngjs@7",
+            "npm:tsup@8.5.0",
+            "npm:typescript@5.9.2",
+            "npm:vitest@^3.2.4"
+          ]
+        }
+      },
+      "packages/core-native": {
+        "dependencies": [
+          "npm:@blazediff/core-native-darwin-arm64@4.2.0",
+          "npm:@blazediff/core-native-darwin-x64@4.2.0",
+          "npm:@blazediff/core-native-linux-arm64@4.2.0",
+          "npm:@blazediff/core-native-linux-x64@4.2.0",
+          "npm:@blazediff/core-native-win32-arm64@4.2.0",
+          "npm:@blazediff/core-native-win32-x64@4.2.0"
+        ],
+        "packageJson": {
+          "dependencies": [
+            "npm:@types/node@^24.3.0",
+            "npm:tsup@8.5.0",
+            "npm:typescript@5.9.2",
+            "npm:vitest@^3.2.4"
+          ]
+        }
+      },
+      "packages/gmsd": {
+        "packageJson": {
+          "dependencies": [
+            "npm:@types/node@^24.3.0",
+            "npm:@vitest/ui@^3.2.4",
+            "npm:pngjs@7",
+            "npm:tsup@8.5.0",
+            "npm:typescript@5.9.2",
+            "npm:vitest@^3.2.4"
+          ]
+        }
+      },
+      "packages/jest": {
+        "dependencies": [
+          "jsr:@blazediff/matcher@^1.4.2"
+        ],
+        "packageJson": {
+          "dependencies": [
+            "npm:@types/jest@^29.5.14",
+            "npm:@types/node@^24.3.0",
+            "npm:jest@^29.7.0",
+            "npm:ts-jest@^29.2.6",
+            "npm:tsup@8.5.0",
+            "npm:typescript@5.9.2"
+          ]
+        }
+      },
+      "packages/matcher": {
+        "dependencies": [
+          "jsr:@blazediff/codec-pngjs@4",
+          "jsr:@blazediff/core-native@^4.2.0",
+          "jsr:@blazediff/core@^1.9.1",
+          "jsr:@blazediff/gmsd@^1.7.1",
+          "jsr:@blazediff/ssim@^1.7.1",
+          "npm:picocolors@^1.1.1"
+        ],
+        "packageJson": {
+          "dependencies": [
+            "npm:@types/node@^24.3.0",
+            "npm:@types/pngjs@^6.0.5",
+            "npm:@vitest/coverage-v8@^3.2.4",
+            "npm:picocolors@^1.1.1",
+            "npm:tsup@8.5.0",
+            "npm:typescript@5.9.2",
+            "npm:vitest@^3.2.4"
+          ]
+        }
+      },
+      "packages/object": {
+        "packageJson": {
+          "dependencies": [
+            "npm:@types/node@^24.3.0",
+            "npm:@vitest/coverage-v8@^3.2.4",
+            "npm:@vitest/ui@^3.2.4",
+            "npm:happy-dom@^18.0.1",
+            "npm:tsup@8.5.0",
+            "npm:typescript@5.9.2",
+            "npm:vitest@^3.2.4"
+          ]
+        }
+      },
+      "packages/react": {
+        "dependencies": [
+          "jsr:@blazediff/ui@^1.6.4",
+          "npm:react@19"
+        ],
+        "packageJson": {
+          "dependencies": [
+            "npm:@storybook/addon-essentials@^8.4.7",
+            "npm:@storybook/addon-interactions@^8.4.7",
+            "npm:@storybook/addon-links@^8.4.7",
+            "npm:@storybook/blocks@^8.4.7",
+            "npm:@storybook/react-vite@^8.4.7",
+            "npm:@storybook/react@^8.4.7",
+            "npm:@tailwindcss/vite@^4.1.13",
+            "npm:@types/react-dom@^19.1.9",
+            "npm:@types/react@^19.1.13",
+            "npm:react-dom@^19.1.1",
+            "npm:react@^19.1.1",
+            "npm:storybook@^8.4.7",
+            "npm:tailwindcss@^4.1.13",
+            "npm:tsup@^8.0.1",
+            "npm:typescript@5",
+            "npm:vite@5"
+          ]
+        }
+      },
+      "packages/ssim": {
+        "packageJson": {
+          "dependencies": [
+            "npm:@types/node@^24.3.0",
+            "npm:@vitest/ui@^3.2.4",
+            "npm:pngjs@7",
+            "npm:ssim.js@^3.5.0",
+            "npm:tsup@8.5.0",
+            "npm:tsx@^4.20.6",
+            "npm:typescript@5.9.2",
+            "npm:vitest@^3.2.4"
+          ]
+        }
+      },
+      "packages/ui": {
+        "dependencies": [
+          "jsr:@blazediff/core@^1.9.1"
+        ],
+        "packageJson": {
+          "dependencies": [
+            "npm:@storybook/addon-essentials@9.0.0-alpha.12",
+            "npm:@storybook/addon-links@^9.1.8",
+            "npm:@storybook/web-components-vite@^9.1.8",
+            "npm:@storybook/web-components@^9.1.8",
+            "npm:@tailwindcss/vite@^4.1.13",
+            "npm:@types/node@^24.3.0",
+            "npm:storybook@^9.1.8",
+            "npm:tailwindcss@^4.1.13",
+            "npm:tsup@8.5.0",
+            "npm:typescript@5.9.2",
+            "npm:vite@^7.1.7"
+          ]
+        }
+      },
+      "packages/vitest": {
+        "dependencies": [
+          "jsr:@blazediff/matcher@^1.4.2",
+          "npm:vitest@3"
+        ],
+        "packageJson": {
+          "dependencies": [
+            "npm:@types/node@^24.3.0",
+            "npm:@vitest/coverage-v8@^3.2.4",
+            "npm:tsup@8.5.0",
+            "npm:typescript@5.9.2",
+            "npm:vitest@^3.2.4"
+          ]
+        }
+      }
+    }
+  }
+}

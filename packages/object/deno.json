@@ -1,9 +1,12 @@
 {
-	"name": "@blazediff/core",
-	"version": "1.9.1",
+	"name": "@blazediff/object",
+	"version": "1.8.0",
 	"exports": "./src/index.ts",
 	"publish": {
 		"include": ["src/**/*.ts", "README.md", "LICENSE"],
 		"exclude": ["src/**/*.test.ts", "src/**/*.spec.ts"]
+	},
+	"test": {
+		"include": ["src/**/*.deno.test.ts"]
 	}
 }

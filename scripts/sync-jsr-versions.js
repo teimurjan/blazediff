@@ -26,10 +26,10 @@ let changed = 0;
 for (const pkg of JSR_PACKAGES) {
 	const pkgDir = path.join(ROOT, "packages", pkg);
 	const pkgJsonPath = path.join(pkgDir, "package.json");
-	const jsrJsonPath = path.join(pkgDir, "jsr.json");
+	const jsrJsonPath = path.join(pkgDir, "deno.json");
 
 	if (!fs.existsSync(jsrJsonPath)) {
-		throw new Error(`Missing jsr.json for ${pkg}`);
+		throw new Error(`Missing deno.json for ${pkg}`);
 	}
 
 	const pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath, "utf8"));
@@ -41,7 +41,7 @@ for (const pkg of JSR_PACKAGES) {
 
 	jsrJson.version = pkgJson.version;
 	fs.writeFileSync(jsrJsonPath, `${JSON.stringify(jsrJson, null, "\t")}\n`);
-	console.log(`synced ${pkg}: jsr.json -> ${pkgJson.version}`);
+	console.log(`synced ${pkg}: deno.json -> ${pkgJson.version}`);
 	changed++;
 }
 

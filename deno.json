@@ -14,5 +14,10 @@
 		"./packages/cli",
 		"./packages/vitest",
 		"./packages/jest"
-	]
+	],
+	"test": {
+		"include": ["packages/*/src/**/*.deno.test.ts"]
+	},
+	"nodeModulesDir": "manual",
+	"unstable": ["sloppy-imports"]
 }

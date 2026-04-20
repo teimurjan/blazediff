@@ -15,5 +15,8 @@
 			"LICENSE"
 		],
 		"exclude": ["src/**/*.test.ts", "src/**/*.test.tsx", "src/**/*.spec.ts"]
+	},
+	"test": {
+		"include": ["src/**/*.deno.test.ts"]
 	}
 }

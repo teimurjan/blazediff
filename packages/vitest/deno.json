@@ -4,10 +4,13 @@
 	"exports": "./src/index.ts",
 	"imports": {
 		"@blazediff/matcher": "jsr:@blazediff/matcher@^1.4.2",
-		"vitest": "npm:vitest@>=1.0.0"
+		"vitest": "npm:vitest@^3.0.0"
 	},
 	"publish": {
 		"include": ["src/**/*.ts", "README.md", "LICENSE"],
 		"exclude": ["src/**/*.test.ts", "src/**/*.spec.ts"]
+	},
+	"test": {
+		"include": ["src/**/*.deno.test.ts"]
 	}
 }

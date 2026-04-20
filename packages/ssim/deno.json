@@ -10,5 +10,8 @@
 	"publish": {
 		"include": ["src/**/*.ts", "README.md", "LICENSE"],
 		"exclude": ["src/**/*.test.ts", "src/**/*.spec.ts"]
+	},
+	"test": {
+		"include": ["src/**/*.deno.test.ts"]
 	}
 }

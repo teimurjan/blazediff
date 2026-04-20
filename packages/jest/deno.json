@@ -8,5 +8,8 @@
 	"publish": {
 		"include": ["src/**/*.ts", "README.md", "LICENSE"],
 		"exclude": ["src/**/*.test.ts", "src/**/*.spec.ts", "src/**/*.perf.test.ts"]
+	},
+	"test": {
+		"include": ["src/**/*.deno.test.ts"]
 	}
 }
