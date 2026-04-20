@@ -16,7 +16,7 @@
 		"./packages/jest"
 	],
 	"test": {
-		"include": ["packages/*/src/**/*.deno.test.ts"]
+		"include": ["packages/*/src/**/*.deno.test.ts", "./scripts/publish-jsr.ts"]
 	},
 	"nodeModulesDir": "manual",
 	"unstable": ["sloppy-imports"],
