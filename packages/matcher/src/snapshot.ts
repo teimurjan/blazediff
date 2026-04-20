@@ -1,3 +1,4 @@
+import type { Buffer } from "node:buffer";
 import { existsSync, unlinkSync } from "node:fs";
 import { dirname, isAbsolute, join } from "node:path";
 import { type RunComparisonResult, runComparison } from "./comparators";

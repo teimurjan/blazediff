@@ -1,3 +1,4 @@
+import type { Buffer } from "node:buffer";
 /**
  * Comparison methods available in blazediff
  */

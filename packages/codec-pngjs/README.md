@@ -2,8 +2,8 @@
 
 <div align="center">
 
-[![npm bundle size](https://img.shields.io/bundlephobia/min/%40blazediff%2Fcodec-pngjs)](https://www.npmjs.com/package/@blazediff/codec-pngjs)
-[![NPM Downloads](https://img.shields.io/npm/dy/%40blazediff%2Fcodec-pngjs)](https://www.npmjs.com/package/@blazediff/codec-pngjs)
+[![npm bundle size](https://img.shields.io/npm/unpacked-size/%40blazediff%2Fcodec-pngjs?style=flat-square)](https://www.npmjs.com/package/@blazediff/codec-pngjs)
+[![NPM Downloads](https://img.shields.io/npm/dy/%40blazediff%2Fcodec-pngjs?style=flat-square)](https://www.npmjs.com/package/@blazediff/codec-pngjs)
 
 </div>
 

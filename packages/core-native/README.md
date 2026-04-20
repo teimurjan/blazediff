@@ -2,9 +2,9 @@
 
 <div align="center">
 
-[![npm bundle size](https://img.shields.io/bundlephobia/min/%40blazediff%2Fbin)](https://www.npmjs.com/package/@blazediff/core-native)
-[![NPM Downloads](https://img.shields.io/npm/dy/%40blazediff%2Fbin)](https://www.npmjs.com/package/@blazediff/core-native)
-[![Crates.io](https://img.shields.io/crates/v/blazediff.svg)](https://crates.io/crates/blazediff)
+[![npm bundle size](https://img.shields.io/npm/unpacked-size/%40blazediff%2Fcore-native?style=flat-square)](https://www.npmjs.com/package/@blazediff/core-native)
+[![NPM Downloads](https://img.shields.io/npm/dy/%40blazediff%2Fcore-native?style=flat-square)](https://www.npmjs.com/package/@blazediff/core-native)
+[![Crates.io](https://img.shields.io/crates/v/blazediff.svg?style=flat-square)](https://crates.io/crates/blazediff)
 
 </div>
 

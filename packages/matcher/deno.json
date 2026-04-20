@@ -1,0 +1,27 @@
+{
+	"name": "@blazediff/matcher",
+	"version": "1.4.2",
+	"exports": "./src/index.ts",
+	"imports": {
+		"@blazediff/core": "jsr:@blazediff/core@^1.9.1",
+		"@blazediff/gmsd": "jsr:@blazediff/gmsd@^1.7.1",
+		"@blazediff/ssim": "jsr:@blazediff/ssim@^1.7.1",
+		"@blazediff/ssim/hitchhikers-ssim": "jsr:@blazediff/ssim@^1.7.1/hitchhikers-ssim",
+		"@blazediff/ssim/msssim": "jsr:@blazediff/ssim@^1.7.1/msssim",
+		"@blazediff/codec-pngjs": "jsr:@blazediff/codec-pngjs@^4.0.0",
+		"@blazediff/core-native": "jsr:@blazediff/core-native@^4.2.0",
+		"picocolors": "npm:picocolors@^1.1.1"
+	},
+	"publish": {
+		"include": ["src/**/*.ts", "README.md"],
+		"exclude": [
+			"src/**/*.test.ts",
+			"src/**/*.spec.ts",
+			"src/**/*.perf.test.ts",
+			"src/**/*.deno.test.ts"
+		]
+	},
+	"test": {
+		"include": ["src/**/*.deno.test.ts"]
+	}
+}

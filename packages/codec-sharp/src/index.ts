@@ -1,3 +1,4 @@
+import type { Buffer } from "node:buffer";
 import sharp from "sharp";
 
 export interface Image {

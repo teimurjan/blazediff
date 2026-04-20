@@ -2,7 +2,7 @@
 
 <div align="center">
 
-[![NPM Downloads](https://img.shields.io/npm/dy/%40blazediff%2Fcodec-jsquash-png)](https://www.npmjs.com/package/@blazediff/codec-jsquash-png)
+[![NPM Downloads](https://img.shields.io/npm/dy/%40blazediff%2Fcodec-jsquash-png?style=flat-square)](https://www.npmjs.com/package/@blazediff/codec-jsquash-png)
 
 </div>
 
