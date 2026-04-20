@@ -7,14 +7,13 @@
 		"react": "npm:react@^19.0.0"
 	},
 	"publish": {
-		"include": [
-			"src/**/*.ts",
-			"src/**/*.tsx",
-			"src/**/*.d.ts",
-			"README.md",
-			"LICENSE"
-		],
-		"exclude": ["src/**/*.test.ts", "src/**/*.test.tsx", "src/**/*.spec.ts"]
+		"include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.d.ts", "README.md"],
+		"exclude": [
+			"src/**/*.test.ts",
+			"src/**/*.test.tsx",
+			"src/**/*.spec.ts",
+			"src/**/*.deno.test.ts"
+		]
 	},
 	"test": {
 		"include": ["src/**/*.deno.test.ts"]

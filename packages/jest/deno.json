@@ -6,8 +6,13 @@
 		"@blazediff/matcher": "jsr:@blazediff/matcher@^1.4.2"
 	},
 	"publish": {
-		"include": ["src/**/*.ts", "README.md", "LICENSE"],
-		"exclude": ["src/**/*.test.ts", "src/**/*.spec.ts", "src/**/*.perf.test.ts"]
+		"include": ["src/**/*.ts", "README.md"],
+		"exclude": [
+			"src/**/*.test.ts",
+			"src/**/*.spec.ts",
+			"src/**/*.perf.test.ts",
+			"src/**/*.deno.test.ts"
+		]
 	},
 	"test": {
 		"include": ["src/**/*.deno.test.ts"]

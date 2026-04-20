@@ -1,17 +1,28 @@
 import { assertEquals } from "jsr:@std/assert";
 
-// Minimal DOM polyfill — @blazediff/ui modules (imported transitively by
-// @blazediff/react components) extend HTMLElement at load time.
 class FakeHTMLElement {}
-Object.assign(globalThis, {
-	HTMLElement: FakeHTMLElement,
-	customElements: { define: () => {}, get: () => undefined },
-});
 
-Deno.test("react: component exports are functions", async () => {
-	const mod = await import("./index.ts");
-	assertEquals(typeof mod.DifferenceMode, "function");
-	assertEquals(typeof mod.SwipeMode, "function");
-	assertEquals(typeof mod.TwoUpMode, "function");
-	assertEquals(typeof mod.OnionSkinMode, "function");
-});
+async function withDomPolyfill<T>(fn: () => Promise<T>): Promise<T> {
+	const g = globalThis as Record<string, unknown>;
+	const prev = {
+		HTMLElement: g.HTMLElement,
+		customElements: g.customElements,
+	};
+	g.HTMLElement = FakeHTMLElement;
+	g.customElements = { define: () => {}, get: () => undefined };
+	try {
+		return await fn();
+	} finally {
+		g.HTMLElement = prev.HTMLElement;
+		g.customElements = prev.customElements;
+	}
+}
+
+Deno.test("react: component exports are functions", () =>
+	withDomPolyfill(async () => {
+		const mod = await import("./index.ts");
+		assertEquals(typeof mod.DifferenceMode, "function");
+		assertEquals(typeof mod.SwipeMode, "function");
+		assertEquals(typeof mod.TwoUpMode, "function");
+		assertEquals(typeof mod.OnionSkinMode, "function");
+	}));

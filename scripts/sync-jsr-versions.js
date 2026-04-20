@@ -4,44 +4,38 @@ const path = require("node:path");
 
 const ROOT = path.resolve(__dirname, "..");
 
-const JSR_PACKAGES = [
-	"core",
-	"object",
-	"ssim",
-	"gmsd",
-	"codec-pngjs",
-	"codec-sharp",
-	"codec-jsquash-png",
-	"ui",
-	"react",
-	"core-native",
-	"matcher",
-	"cli",
-	"vitest",
-	"jest",
-];
+// Single source of truth: the `workspace` list in the root deno.json. Every
+// workspace member that has a deno.json is a JSR-published package; its
+// version must mirror package.json so Changesets bumps propagate.
+const rootDeno = JSON.parse(
+	fs.readFileSync(path.join(ROOT, "deno.json"), "utf8"),
+);
+const members = rootDeno.workspace ?? [];
 
 let changed = 0;
 
-for (const pkg of JSR_PACKAGES) {
-	const pkgDir = path.join(ROOT, "packages", pkg);
+for (const member of members) {
+	const pkgDir = path.resolve(ROOT, member);
 	const pkgJsonPath = path.join(pkgDir, "package.json");
-	const jsrJsonPath = path.join(pkgDir, "deno.json");
+	const denoJsonPath = path.join(pkgDir, "deno.json");
 
-	if (!fs.existsSync(jsrJsonPath)) {
-		throw new Error(`Missing deno.json for ${pkg}`);
+	if (!fs.existsSync(denoJsonPath)) {
+		throw new Error(`Missing deno.json for workspace member ${member}`);
+	}
+	if (!fs.existsSync(pkgJsonPath)) {
+		throw new Error(`Missing package.json for workspace member ${member}`);
 	}
 
 	const pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath, "utf8"));
-	const jsrJson = JSON.parse(fs.readFileSync(jsrJsonPath, "utf8"));
+	const denoJson = JSON.parse(fs.readFileSync(denoJsonPath, "utf8"));
 
-	if (jsrJson.version === pkgJson.version) {
+	if (denoJson.version === pkgJson.version) {
 		continue;
 	}
 
-	jsrJson.version = pkgJson.version;
-	fs.writeFileSync(jsrJsonPath, `${JSON.stringify(jsrJson, null, "\t")}\n`);
-	console.log(`synced ${pkg}: deno.json -> ${pkgJson.version}`);
+	denoJson.version = pkgJson.version;
+	fs.writeFileSync(denoJsonPath, `${JSON.stringify(denoJson, null, "\t")}\n`);
+	console.log(`synced ${member}: deno.json -> ${pkgJson.version}`);
 	changed++;
 }
 

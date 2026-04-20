@@ -1,8 +1,6 @@
 import { assertEquals } from "jsr:@std/assert";
 
-// Minimal DOM polyfill so ui modules — which extend HTMLElement at the top
-// level — can be evaluated under Deno. In the browser these globals come
-// from the runtime; here we stub only what the module body touches at load.
+// ui modules extend HTMLElement at the top level; under Deno we need a stub.
 class FakeHTMLElement {
 	className = "";
 	getAttribute(_: string): string | null {
@@ -11,14 +9,27 @@ class FakeHTMLElement {
 	addEventListener(): void {}
 	removeEventListener(): void {}
 }
-Object.assign(globalThis, {
-	HTMLElement: FakeHTMLElement,
-	customElements: { define: () => {}, get: () => undefined },
-});
 
-Deno.test("ui: BaseElement extends the HTMLElement polyfill", async () => {
-	const { BaseElement } = await import("./base-element.ts");
-	assertEquals(typeof BaseElement, "function");
-	const Derived = class extends BaseElement {};
-	assertEquals(new Derived() instanceof FakeHTMLElement, true);
-});
+async function withDomPolyfill<T>(fn: () => Promise<T>): Promise<T> {
+	const g = globalThis as Record<string, unknown>;
+	const prev = {
+		HTMLElement: g.HTMLElement,
+		customElements: g.customElements,
+	};
+	g.HTMLElement = FakeHTMLElement;
+	g.customElements = { define: () => {}, get: () => undefined };
+	try {
+		return await fn();
+	} finally {
+		g.HTMLElement = prev.HTMLElement;
+		g.customElements = prev.customElements;
+	}
+}
+
+Deno.test("ui: BaseElement extends the HTMLElement polyfill", () =>
+	withDomPolyfill(async () => {
+		const { BaseElement } = await import("./base-element.ts");
+		assertEquals(typeof BaseElement, "function");
+		const Derived = class extends BaseElement {};
+		assertEquals(new Derived() instanceof FakeHTMLElement, true);
+	}));

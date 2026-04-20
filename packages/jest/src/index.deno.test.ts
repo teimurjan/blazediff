@@ -1,13 +1,21 @@
 import { assertEquals } from "jsr:@std/assert";
 
-// Stub the global `expect` so importing @blazediff/jest (which calls
-// expect.extend at module top — normally supplied by Jest's runtime) doesn't
-// crash under Deno.
-(globalThis as unknown as { expect: { extend: (m: unknown) => void } }).expect =
-	{ extend: () => {} };
-
+// @blazediff/jest calls expect.extend() at module top — normally Jest's
+// runtime supplies `expect` as a global. Stub it only for the duration of
+// the import, then restore whatever was there.
 Deno.test("jest plugin: setupBlazediffMatchers is exported", async () => {
-	const mod = await import("./index.ts");
-	assertEquals(typeof mod.setupBlazediffMatchers, "function");
-	assertEquals(typeof mod.default, "function");
+	const g = globalThis as Record<string, unknown>;
+	const prev = g.expect;
+	g.expect = { extend: () => {} };
+	try {
+		const mod = await import("./index.ts");
+		assertEquals(typeof mod.setupBlazediffMatchers, "function");
+		assertEquals(typeof mod.default, "function");
+	} finally {
+		if (prev === undefined) {
+			delete g.expect;
+		} else {
+			g.expect = prev;
+		}
+	}
 });
