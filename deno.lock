@@ -16,12 +16,16 @@
     }
   },
   "workspace": {
+    "dependencies": [
+      "npm:@types/node@24"
+    ],
     "packageJson": {
       "dependencies": [
         "npm:@biomejs/biome@2.2.4",
         "npm:@changesets/changelog-git@~0.2.1",
         "npm:@changesets/cli@^2.29.6",
-        "npm:@j178/prek@~0.3.6"
+        "npm:@j178/prek@~0.3.6",
+        "npm:@types/node@^24.3.0"
       ]
     },
     "members": {

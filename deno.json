@@ -19,5 +19,8 @@
 		"include": ["packages/*/src/**/*.deno.test.ts"]
 	},
 	"nodeModulesDir": "manual",
-	"unstable": ["sloppy-imports"]
+	"unstable": ["sloppy-imports"],
+	"imports": {
+		"@types/node": "npm:@types/node@^24"
+	}
 }
