@@ -9,9 +9,7 @@
 		"./packages/codec-jsquash-png",
 		"./packages/core-native",
 		"./packages/matcher",
-		"./packages/cli",
-		"./packages/vitest",
-		"./packages/jest"
+		"./packages/cli"
 	],
 	"test": {
 		"include": ["packages/*/src/**/*.deno.test.ts"]

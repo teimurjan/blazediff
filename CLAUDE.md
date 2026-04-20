@@ -94,8 +94,9 @@ Every TypeScript package publishes to both NPM (via Changesets) and JSR (via `de
 
 JSR slow-types verification: `cd packages/<x> && npx jsr publish --dry-run` — a flat workspace-root `deno check` can't satisfy the different type contexts at once (Node `Buffer` in ssim, `dom` in ui, JSX augmentation in react, jest globals in jest), so check per package.
 
-Deferred from JSR:
+NPM-only (not on JSR):
 - `@blazediff/bun` — imports `bun:test`, which JSR's publish-time `deno check` doesn't resolve.
+- `@blazediff/vitest` / `@blazediff/jest` — their purpose is to augment each runner's `Matchers` interface (`declare module "vitest"`, `declare global { namespace jest }`). JSR forbids module/global type augmentation, so these stay NPM-only.
 - `@blazediff/ui` — web components have slow-types violations (implicit return type on every `static get observedAttributes`). Stay NPM-only until the components get explicit annotations.
 - `@blazediff/react` — depends on `@blazediff/ui`; follows the same deferral.
 

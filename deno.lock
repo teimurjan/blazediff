@@ -221,9 +221,6 @@
         }
       },
       "packages/jest": {
-        "dependencies": [
-          "jsr:@blazediff/matcher@^1.4.2"
-        ],
         "packageJson": {
           "dependencies": [
             "npm:@types/jest@^29.5.14",
@@ -323,10 +320,6 @@
         }
       },
       "packages/vitest": {
-        "dependencies": [
-          "jsr:@blazediff/matcher@^1.4.2",
-          "npm:vitest@3"
-        ],
         "packageJson": {
           "dependencies": [
             "npm:@types/node@^24.3.0",

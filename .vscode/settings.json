@@ -11,7 +11,6 @@
 		"./packages/core-native/src/index.deno.test.ts",
 		"./packages/matcher/src/index.deno.test.ts",
 		"./packages/cli/src/index.deno.test.ts",
-		"./packages/jest/src/index.deno.test.ts",
 		"./scripts/publish-jsr.ts"
 	],
 	"[jsonc]": {

@@ -51,7 +51,7 @@ deno add jsr:@blazediff/core
 bunx jsr add @blazediff/core
 ```
 
-Every package above is available on both registries **except** `@blazediff/ui` and `@blazediff/react`, which remain NPM-only (their web-component APIs don't yet satisfy JSR's slow-types rules). Native-binary sub-packages under `@blazediff/core-native-*` are also NPM-only — Deno consumers resolve them transparently via `npm:` specifiers declared inside `@blazediff/core-native`.
+Every package above is available on both registries **except** the test-runner adapters (`@blazediff/vitest`, `@blazediff/jest`, `@blazediff/bun`) and the UI libraries (`@blazediff/ui`, `@blazediff/react`), which remain NPM-only — the adapters augment each runner's `Matchers` types and the UI packages have web-component return-type requirements that JSR's publish-time check doesn't allow. Native-binary sub-packages under `@blazediff/core-native-*` are also NPM-only; Deno consumers resolve them transparently via `npm:` specifiers declared inside `@blazediff/core-native`.
 
 ## Performance
 
