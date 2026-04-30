@@ -20,6 +20,6 @@ export default {
 	contact: {
 		title: "LLMs",
 		type: "page",
-		href: "/llms-full.txt",
+		href: "/llms.txt",
 	},
 };
