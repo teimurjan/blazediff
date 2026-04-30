@@ -5,7 +5,7 @@
 	"scripts": {
 		"typecheck": "tsc --noEmit",
 		"dev": "next dev --turbopack",
-		"prebuild": "node scripts/generate-interpret-data.mjs",
+		"prebuild": "node scripts/generate-interpret-data.mjs && node scripts/generate-llms-txt.mjs",
 		"build": "next build && pnpm postbuild",
 		"start": "next start",
 		"postbuild": "pagefind --site .next/server/app --output-path public/_pagefind && cp -r ./public/_pagefind ./out"
