@@ -17,4 +17,9 @@ export default {
 		title: "Examples",
 		type: "page",
 	},
+	contact: {
+		title: "LLMs",
+		type: "page",
+		href: "/llms-full.txt",
+	},
 };
