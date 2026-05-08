@@ -1,0 +1,32 @@
+[build-system]
+requires = ["maturin>=1.7,<2"]
+build-backend = "maturin"
+
+[project]
+name = "blazediff"
+description = "High-performance image diffing with block-based optimization and SIMD"
+license = { text = "MIT" }
+authors = [{ name = "Teimur Gasanov" }]
+readme = "README.md"
+keywords = ["image", "diff", "simd", "visual-regression", "screenshot"]
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Rust",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Topic :: Multimedia :: Graphics",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS",
+    "Operating System :: Microsoft :: Windows",
+]
+requires-python = ">=3.8"
+dynamic = ["version"]
+
+[project.urls]
+Repository = "https://github.com/teimurjan/blazediff"
+Homepage = "https://blazediff.dev"
+
+[tool.maturin]
+module-name = "blazediff"
+features = ["pyo3/extension-module", "python"]
+bindings = "pyo3"
+strip = true

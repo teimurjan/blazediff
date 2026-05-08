@@ -41,6 +41,21 @@ pnpm benchmark:opentf-obj-diff  # @opentf/obj-diff comparison
 
 Object fixture names: `simple`, `nested`, `large`, `deep`, `complex`
 
+### Python benchmarks
+
+Compare the PyO3-backed `blazediff` PyPI package against pypi `pixelmatch` and OpenCV `cv2.absdiff` on the same `/fixtures/` PNG pairs.
+
+```sh
+# One-time setup (creates venv, installs deps, builds + installs local blazediff wheel)
+bash apps/python-benchmark/scripts/setup.sh
+
+pnpm benchmark:python-blazediff   # blazediff (PyO3) compare()
+pnpm benchmark:python-pixelmatch  # pixelmatch (PIL) comparison
+pnpm benchmark:python-opencv      # cv2.absdiff baseline (grayscale)
+```
+
+`blazediff.compare` is path-based, so all three Python timings include PNG decode. Comparison is meaningful **across the three Python targets**, not against the JS image-benchmark numbers.
+
 ### Filtering fixtures
 
 Use `--fixtures` to run only specific fixtures for faster iteration:
@@ -78,9 +93,59 @@ change mask → morph close → connected components → per-region analysis →
 
 ```sh
 cd crates && cargo test -p blazediff
-cargo check -p blazediff --features napi  # verify N-API compiles
+cargo check -p blazediff --features napi    # verify N-API compiles
+cargo check -p blazediff --features python  # verify PyO3 compiles
 cargo run -p blazediff -- ../fixtures/blazediff/3a.png ../fixtures/blazediff/3b.png --interpret
 ```
+
+## Python distribution (PyPI)
+
+The `blazediff` PyPI package ships PyO3 bindings to the same Rust core, mirroring NAPI:
+
+- Bindings live in `crates/blazediff/src/python.rs` behind the `python` Cargo feature (mirrors the `napi` feature). Public surface: `compare(base_path, compare_path, diff_output=None, *, threshold, antialiasing, diff_mask, compression, quality, interpret, output_format)` and `interpret_images(image1_path, image2_path, *, threshold, antialiasing)`.
+- Build (native only): `pnpm build:python` → wheel in `crates/blazediff/dist/wheels/`.
+- Build (all 6 platforms, local cross-compile): `pnpm build:python:all`. Requires `zig` (`brew install zig`) for Linux manylinux wheels and `cargo-xwin` for Windows MSVC.
+- Maturin config at `crates/blazediff/pyproject.toml` uses `abi3-py38` so a single wheel per platform serves all CPython ≥3.8.
+- Wheels are platform-tagged; pip auto-selects the right one — no per-platform wrapper package needed (unlike NAPI's `core-native-{platform}` sub-packages).
+
+### Release flow (wheels-in-repo, idempotent, mirrors `publish-rust.js`)
+
+Wheels are cross-built locally and **committed to `crates/blazediff/wheels/`** as the source of truth. CI checks them out and uploads to PyPI via Trusted Publishing (OIDC, no PyPI token).
+
+```sh
+git pull origin main          # version-bumped Cargo.toml
+pnpm build:python:all         # cross-build into dist/wheels/, sync to crates/blazediff/wheels/
+git add crates/blazediff/wheels && git commit -m "chore(release): wheels v{version}" && git push
+pnpm release:pypi             # check + dispatch the workflow
+```
+
+`scripts/publish-pypi.js` reads the Cargo.toml version, then:
+
+1. Asks PyPI if `blazediff@{version}` already exists → if yes, skip.
+2. Looks for wheels matching `{version}` in `crates/blazediff/wheels/` → if none, skip with hint.
+3. Checks git status — if wheels uncommitted, refuses with a hint to commit + push.
+4. Otherwise: triggers `publish-pypi.yml` via `gh workflow run`.
+
+The workflow checks out main, sanity-checks that the committed wheels match the input version + Cargo.toml, then runs `maturin upload --skip-existing crates/blazediff/wheels/*.whl` (idempotent — already-uploaded wheels are skipped).
+
+`build-maturin.sh` syncs wheels by deleting `crates/blazediff/wheels/*.whl` first, then copying — so the committed dir always reflects the latest build (no stale wheels accumulate).
+
+The script is also wired into `pnpm run release`. A Changesets-driven release picks it up when wheels are present + committed for the new version; otherwise it skips with a friendly message.
+
+One-time setup before first publish:
+- PyPI Trusted Publisher: https://pypi.org/manage/account/publishing/ → pending publisher (project=`blazediff`, owner=`teimurjan`, repo=`blazediff`, workflow=`publish-pypi.yml`, environment=`pypi`).
+- GitHub repo settings → Environments → New environment named `pypi` (optionally add review gates).
+
+## Build scripts
+
+`crates/blazediff/scripts/` is split by output type, all sharing helpers via `_targets.sh`:
+
+- `build-all.sh` — CLI binary builder + orchestrator. `--napi` and `--maturin` flags forward the same target scope (`--native`/`--macos`/`--all`/`--target X`) to the sibling scripts.
+- `build-napi.sh` — N-API `.node` files. Syncs into `packages/core-native-{platform}/` after build.
+- `build-maturin.sh` — Python wheels via maturin. Outputs into `dist/wheels/`. No package sync (PyPI uses platform tags).
+- `_targets.sh` — sourced helpers: target table, RUSTFLAGS profiles, host detection, `cross`/`cargo-xwin` checks. Not directly executable.
+
+Common invocations: `pnpm build:rust` → `build-all.sh --all --napi`; `pnpm build:python` → `build-maturin.sh` (native). For everything in one shot: `bash crates/blazediff/scripts/build-all.sh --all --napi --maturin`.
 
 ## Dual distribution (NPM + JSR)
 

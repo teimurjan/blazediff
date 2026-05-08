@@ -11,9 +11,19 @@ fn main() {
 
     let libspng_dir = "vendor/libspng/spng";
     let target_os = env::var("CARGO_CFG_TARGET_OS").unwrap();
+    let host = env::var("HOST").unwrap_or_default();
 
-    // Build miniz on Windows (no system zlib)
-    let miniz_include = if target_os == "windows" {
+    // Use the vendored miniz instead of system zlib whenever zlib headers
+    // are not reliably available:
+    //   - Windows targets (no system zlib)
+    //   - Cross-compiling to Linux from a non-Linux host (e.g. maturin --zig
+    //     from macOS — zig ships glibc but not zlib headers)
+    //   - Explicit override via BLAZEDIFF_FORCE_MINIZ=1
+    let cross_to_linux = target_os == "linux" && !host.contains("linux");
+    let force_miniz = env::var("BLAZEDIFF_FORCE_MINIZ").is_ok();
+    let use_miniz = target_os == "windows" || cross_to_linux || force_miniz;
+
+    let miniz_include = if use_miniz {
         Some(build_miniz())
     } else {
         println!("cargo:rustc-link-lib=z");
@@ -21,7 +31,7 @@ fn main() {
     };
 
     // Build libspng
-    build_libspng(libspng_dir, &target_os, miniz_include.as_ref());
+    build_libspng(libspng_dir, &target_os, miniz_include.as_ref(), use_miniz);
 
     // Build libjpeg-turbo from vendored source
     build_libjpeg_turbo();
@@ -47,7 +57,12 @@ fn build_miniz() -> PathBuf {
     dst.join("include").join("miniz")
 }
 
-fn build_libspng(libspng_dir: &str, target_os: &str, miniz_include: Option<&PathBuf>) {
+fn build_libspng(
+    libspng_dir: &str,
+    _target_os: &str,
+    miniz_include: Option<&PathBuf>,
+    use_miniz: bool,
+) {
     let mut build = cc::Build::new();
     build
         .file(format!("{}/spng.c", libspng_dir))
@@ -55,8 +70,7 @@ fn build_libspng(libspng_dir: &str, target_os: &str, miniz_include: Option<&Path
         .define("SPNG_STATIC", None)
         .opt_level(3);
 
-    // Use miniz on Windows
-    if target_os == "windows" {
+    if use_miniz {
         if let Some(include_dir) = miniz_include {
             build.include(include_dir);
         }
@@ -73,8 +87,8 @@ fn build_libspng(libspng_dir: &str, target_os: &str, miniz_include: Option<&Path
     // libspng auto-detects SIMD (ARM NEON, x86 SSE) based on target architecture
     build.compile("spng");
 
-    // Link miniz AFTER spng on Windows (spng depends on miniz, linker needs correct order)
-    if target_os == "windows" {
+    // Link miniz AFTER spng (spng depends on miniz, linker needs correct order)
+    if use_miniz {
         println!("cargo:rustc-link-lib=static=miniz");
     }
 
