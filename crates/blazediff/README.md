@@ -3,6 +3,8 @@
 High-performance image diffing with block-based optimization and SIMD acceleration.
 
 [![Crates.io](https://img.shields.io/crates/v/blazediff.svg)](https://crates.io/crates/blazediff)
+[![npm](https://img.shields.io/npm/v/@blazediff/core-native.svg)](https://www.npmjs.com/package/@blazediff/core-native)
+[![PyPI](https://img.shields.io/pypi/v/blazediff.svg)](https://pypi.org/project/blazediff/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ## Features
@@ -12,11 +14,48 @@ High-performance image diffing with block-based optimization and SIMD accelerati
 - **Multiple formats** - PNG, JPEG, and QOI support
 - **Perceptual diffing** - YIQ-based color difference with antialiasing detection
 - **Cross-platform** - Linux, macOS, and Windows support
+- **Multi-language** - Native Rust crate, Node.js (N-API), and Python (PyO3) bindings - all sharing the same core
 
 ## Installation
 
+### Rust (CLI + library)
+
 ```bash
 cargo install blazediff
+```
+
+### Node.js - `@blazediff/core-native`
+
+```bash
+npm install @blazediff/core-native
+```
+
+N-API bindings shipped as pre-built `.node` binaries for macOS, Linux, and Windows (arm64 + x64). Built from this crate's `napi` Cargo feature.
+
+```ts
+import { compare } from "@blazediff/core-native";
+
+const result = await compare("expected.png", "actual.png", "diff.png", {
+  threshold: 0.1,
+});
+```
+
+### Python - `blazediff`
+
+```bash
+pip install blazediff
+```
+
+PyO3 bindings shipped as `abi3-py38` wheels for CPython ≥ 3.8 (macOS, Linux manylinux, Windows; arm64 + x86_64). Built from this crate's `python` Cargo feature.
+
+```python
+from blazediff import compare
+
+result = compare("expected.png", "actual.png", "diff.png", threshold=0.1)
+if result.match:
+    print("identical")
+else:
+    print(f"{result.diff_count} pixels differ ({result.diff_percentage:.2f}%)")
 ```
 
 ## CLI Usage
@@ -51,7 +90,7 @@ println!("Different pixels: {}", result.diff_count);
 
 Structured region analysis that takes a raw pixel diff and produces human-readable change descriptions. Available via `--interpret` in the CLI or `interpret()` in the library.
 
-See [INTERPRET.md](./INTERPRET.md) for the full algorithm documentation — pipeline stages, formulas, classification rules, and output format.
+See [INTERPRET.md](./INTERPRET.md) for the full algorithm documentation - pipeline stages, formulas, classification rules, and output format.
 
 ## Performance
 

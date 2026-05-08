@@ -6,7 +6,7 @@
 
 </div>
 
-WASM-based PNG image codec using [@jsquash/png](https://www.npmjs.com/package/@jsquash/png) for the BlazeDiff library. Zero native dependencies — uses WebAssembly for PNG encoding/decoding.
+WASM-based PNG image codec using [@jsquash/png](https://www.npmjs.com/package/@jsquash/png) for the BlazeDiff library. Zero native dependencies - uses WebAssembly for PNG encoding/decoding.
 
 ## Installation
 

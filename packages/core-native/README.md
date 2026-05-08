@@ -106,7 +106,7 @@ Compare two images (PNG or JPEG) and generate a diff image. Format is auto-detec
     <td><code>interpret</code></td>
     <td>boolean</td>
     <td>false</td>
-    <td>Run structured interpretation after diff — adds <code>interpretation</code> to the result with detected change regions, classification, and a human-readable summary</td>
+    <td>Run structured interpretation after diff - adds <code>interpretation</code> to the result with detected change regions, classification, and a human-readable summary</td>
   </tr>
   <tr>
     <td><code>outputFormat</code></td>
@@ -118,7 +118,7 @@ Compare two images (PNG or JPEG) and generate a diff image. Format is auto-detec
 
 ### interpret(image1Path, image2Path, options?)
 
-Convenience wrapper that calls `compare` with `interpret: true` and returns the `InterpretResult` directly. No diff image output — purely analytical.
+Convenience wrapper that calls `compare` with `interpret: true` and returns the `InterpretResult` directly. No diff image output - purely analytical.
 
 <table>
   <tr>

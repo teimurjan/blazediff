@@ -5,7 +5,7 @@ import InterpretComparison from "../../../components/interpret-comparison";
 import diffData from "../../../data/interpret/blazediff-3-diff.json";
 import identicalData from "../../../data/interpret/blazediff-3-identical.json";
 
-Takes a raw pixel diff and tells you _what_ changed, _where_, and _how much_. No ML models — a deterministic pipeline that runs in the same binary as the diff itself.
+Takes a raw pixel diff and tells you _what_ changed, _where_, and _how much_. No ML models - a deterministic pipeline that runs in the same binary as the diff itself.
 
 ## How it works
 
@@ -13,9 +13,9 @@ Takes a raw pixel diff and tells you _what_ changed, _where_, and _how much_. No
 2. Morphological close → bridge small gaps
 3. Connected components → isolate regions
 4. Per-region evidence extraction:
-   - **Dual-image gradients** — edges in both images + spatial correlation to detect structural preservation
-   - **Color delta distribution** — mean, max, and stddev of YIQ distance to separate uniform recolors from patchy texture changes
-   - **Background distance** — how much changed pixels blend with local unchanged pixels in each image
+   - **Dual-image gradients** - edges in both images + spatial correlation to detect structural preservation
+   - **Color delta distribution** - mean, max, and stddev of YIQ distance to separate uniform recolors from patchy texture changes
+   - **Background distance** - how much changed pixels blend with local unchanged pixels in each image
 5. Six-label decision tree classifies each region
 6. Post-hoc shift detection matches Addition+Deletion pairs
 
@@ -65,9 +65,9 @@ console.log(result.regions.length); // 0
 
 | Type | Meaning |
 |---|---|
-| `Addition` | Content appeared — blends with background in before image, distinct in after |
-| `Deletion` | Content removed — distinct in before, blends with background in after |
-| `Shift` | Content moved — matched Addition+Deletion pair with similar luminance |
-| `ColorChange` | Recolor — edge structure preserved across both images, uniform color shift |
-| `ContentChange` | Structural change — edges differ between images |
-| `RenderingNoise` | Sub-pixel artifacts — filtered from output |
+| `Addition` | Content appeared - blends with background in before image, distinct in after |
+| `Deletion` | Content removed - distinct in before, blends with background in after |
+| `Shift` | Content moved - matched Addition+Deletion pair with similar luminance |
+| `ColorChange` | Recolor - edge structure preserved across both images, uniform color shift |
+| `ContentChange` | Structural change - edges differ between images |
+| `RenderingNoise` | Sub-pixel artifacts - filtered from output |
