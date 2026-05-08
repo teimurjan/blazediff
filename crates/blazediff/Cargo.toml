@@ -31,6 +31,7 @@ crate-type = ["lib", "cdylib"]
 [features]
 default = []
 napi = ["dep:napi", "dep:napi-derive"]
+python = ["dep:pyo3"]
 
 [dependencies]
 clap = { version = "4", features = ["derive"] }
@@ -43,6 +44,7 @@ qoi = "0.4"
 base64 = "0.22"
 napi = { version = "2", features = ["napi4", "serde-json"], optional = true }
 napi-derive = { version = "2", optional = true }
+pyo3 = { version = "0.22", features = ["extension-module", "abi3-py38", "generate-import-lib"], optional = true }
 
 [build-dependencies]
 cc = "1.2"

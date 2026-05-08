@@ -25,6 +25,8 @@ pub mod jpeg_io;
 #[cfg(feature = "napi")]
 mod napi;
 pub mod output;
+#[cfg(feature = "python")]
+mod python;
 pub mod qoi_io;
 pub mod simd;
 #[allow(

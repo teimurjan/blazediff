@@ -1,0 +1,75 @@
+name: Publish to PyPI
+
+# Manually triggered after wheels for a new version are committed to
+# crates/blazediff/wheels/. The committed wheels are the source of truth —
+# the workflow checks them out and uploads to PyPI via Trusted Publishing
+# (OIDC, no PyPI token needed).
+#
+# Trigger via: `pnpm release:pypi`  (which calls `gh workflow run publish-pypi.yml -f version=...`)
+# Or directly: `gh workflow run publish-pypi.yml -f version=3.1.2`
+#
+# Set up Trusted Publishing first:
+#   https://pypi.org/manage/account/publishing/
+#     Project:     blazediff
+#     Owner:       teimurjan
+#     Repository:  blazediff
+#     Workflow:    publish-pypi.yml
+#     Environment: pypi
+# Then create a `pypi` environment in repo settings (optionally with reviewers).
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to publish (must match crates/blazediff/Cargo.toml)"
+        required: true
+
+concurrency:
+  group: publish-pypi-${{ inputs.version }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Publish wheels to PyPI
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Sanity-check committed wheels
+        run: |
+          set -e
+          shopt -s nullglob
+          wheels=(crates/blazediff/wheels/*.whl)
+          if [[ ${#wheels[@]} -eq 0 ]]; then
+            echo "::error::No wheels in crates/blazediff/wheels/"
+            exit 1
+          fi
+
+          # All wheels must share the input version.
+          versions=$(printf '%s\n' "${wheels[@]}" | sed -E 's|.*/blazediff-([^-]+)-.*|\1|' | sort -u)
+          if [[ "$versions" != "${{ inputs.version }}" ]]; then
+            echo "::error::Wheel versions ($versions) don't match input version (${{ inputs.version }})"
+            exit 1
+          fi
+
+          # Wheel version must match Cargo.toml.
+          cargo_version=$(grep -m1 '^version' crates/blazediff/Cargo.toml | sed -E 's/version *= *"([^"]+)"/\1/')
+          if [[ "$cargo_version" != "${{ inputs.version }}" ]]; then
+            echo "::error::Cargo.toml version ($cargo_version) doesn't match input (${{ inputs.version }})"
+            exit 1
+          fi
+
+          echo "Publishing ${#wheels[@]} wheel(s) for v${{ inputs.version }}:"
+          printf '  %s\n' "${wheels[@]}"
+
+      - name: Publish to PyPI
+        uses: PyO3/maturin-action@v1
+        with:
+          command: upload
+          # --skip-existing makes re-runs safe; if a wheel was already uploaded
+          # for this version (e.g. partial earlier run), it's silently skipped.
+          args: --skip-existing crates/blazediff/wheels/*.whl
