@@ -124,6 +124,14 @@ done
 
 cd "$PROJECT_DIR"
 
+# Wipe stale wheels from prior runs so $WHEELS_DIR only contains wheels from
+# this build — otherwise older versions linger and get synced into the committed
+# dir alongside the current version, breaking CI's single-version invariant.
+if [[ "$MODE" != "develop" ]]; then
+    mkdir -p "$WHEELS_DIR"
+    find "$WHEELS_DIR" -maxdepth 1 -name '*.whl' -delete
+fi
+
 case "$MODE" in
     develop)
         if [[ -z "${VIRTUAL_ENV:-}" ]]; then
