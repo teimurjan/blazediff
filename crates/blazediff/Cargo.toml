@@ -1,6 +1,6 @@
 [package]
 name = "blazediff"
-version = "3.1.1"
+version = "4.2.0"
 edition = "2021"
 authors = ["Teimur Gasanov"]
 description = "High-performance image diffing with block-based optimization and SIMD"

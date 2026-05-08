@@ -13,6 +13,7 @@
 		"test": "pnpm -r test",
 		"typecheck": "pnpm -r typecheck",
 		"changeset": "changeset",
+		"version": "changeset version && node scripts/sync-cargo-version.js",
 		"release": "changeset publish && node scripts/publish-rust.js && deno run -A scripts/publish-jsr.ts && node scripts/publish-pypi.js",
 		"deno:test": "deno test --allow-all --no-check",
 		"benchmark:core": "pnpm --filter @blazediff/image-benchmark core",
