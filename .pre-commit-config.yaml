@@ -14,6 +14,7 @@ repos:
         types_or: [javascript, jsx, ts, tsx, json]
       - id: cargo-fmt
         name: cargo fmt
-        entry: cargo fmt --manifest-path crates/Cargo.toml --
+        entry: cargo fmt --manifest-path crates/Cargo.toml --all
         language: system
         types: [rust]
+        pass_filenames: false
