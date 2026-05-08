@@ -60,7 +60,7 @@ Compares two images (PNG, JPEG, or QOI) and generates a diff image. Format is au
 | `antialiasing`     | `boolean` | `false` | Enable anti-aliasing detection                           |
 | `diffMask`         | `boolean` | `false` | Output only differences with transparent background      |
 | `interpret`        | `boolean` | `false` | Run structured interpretation (region detection + classification) |
-| `outputFormat`     | `"png" \| "html"` | `"png"` | Output format — `"html"` generates an interactive interpret report |
+| `outputFormat`     | `"png" \| "html"` | `"png"` | Output format - `"html"` generates an interactive interpret report |
 
 #### Return Types
 
@@ -193,7 +193,7 @@ Structured diff analysis. Takes two images, returns classified change regions wi
 | `Addition` | Blends with background in img1, distinct in img2 |
 | `Deletion` | Distinct in img1, blends with background in img2 |
 | `ColorChange` | Edge structure preserved across both images + uniform color shift |
-| `ContentChange` | Fallback — structural change |
+| `ContentChange` | Fallback - structural change |
 | `Shift` | Post-hoc: matched Addition+Deletion pair with similar luminance |
 
 ```typescript

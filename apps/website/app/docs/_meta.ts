@@ -2,6 +2,10 @@ export default {
 	index: {
 		display: "hidden",
 	},
+	"-- npm": {
+		type: "separator",
+		title: "NPM",
+	},
 	core: {
 		title: "@blazediff/core",
 	},
@@ -37,5 +41,19 @@ export default {
 	},
 	react: {
 		title: "@blazediff/react",
+	},
+	"-- python": {
+		type: "separator",
+		title: "Python",
+	},
+	python: {
+		title: "blazediff",
+	},
+	"-- rust": {
+		type: "separator",
+		title: "Rust",
+	},
+	rust: {
+		title: "blazediff",
 	},
 };

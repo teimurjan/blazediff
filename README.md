@@ -13,7 +13,7 @@
 
 <div align="center"><img src="./apps/website/public/android-chrome-512x512.png" /></div>
 
-**BlazeDiff** — a high-performance diff ecosystem for JavaScript applications. Originally built as a pixel-perfect image comparison library that's 1.5x faster than [pixelmatch](https://github.com/mapbox/pixelmatch), BlazeDiff has evolved into a comprehensive suite of blazing-fast diff tools including image comparison, object diffing, perceptual quality metrics, web components, and React components for visualizing differences.
+**BlazeDiff** - a high-performance diff ecosystem for JavaScript applications. Originally built as a pixel-perfect image comparison library that's 1.5x faster than [pixelmatch](https://github.com/mapbox/pixelmatch), BlazeDiff has evolved into a comprehensive suite of blazing-fast diff tools including image comparison, object diffing, perceptual quality metrics, web components, and React components for visualizing differences.
 
 ## Available Packages
 
@@ -51,7 +51,7 @@ deno add jsr:@blazediff/core
 bunx jsr add @blazediff/core
 ```
 
-Every package above is available on both registries **except** the test-runner adapters (`@blazediff/vitest`, `@blazediff/jest`, `@blazediff/bun`) and the UI libraries (`@blazediff/ui`, `@blazediff/react`), which remain NPM-only — the adapters augment each runner's `Matchers` types and the UI packages have web-component return-type requirements that JSR's publish-time check doesn't allow. Native-binary sub-packages under `@blazediff/core-native-*` are also NPM-only; Deno consumers resolve them transparently via `npm:` specifiers declared inside `@blazediff/core-native`.
+Every package above is available on both registries **except** the test-runner adapters (`@blazediff/vitest`, `@blazediff/jest`, `@blazediff/bun`) and the UI libraries (`@blazediff/ui`, `@blazediff/react`), which remain NPM-only - the adapters augment each runner's `Matchers` types and the UI packages have web-component return-type requirements that JSR's publish-time check doesn't allow. Native-binary sub-packages under `@blazediff/core-native-*` are also NPM-only; Deno consumers resolve them transparently via `npm:` specifiers declared inside `@blazediff/core-native`.
 
 ## Performance
 

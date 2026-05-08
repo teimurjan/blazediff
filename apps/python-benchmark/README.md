@@ -2,7 +2,7 @@
 
 Python image-diff benchmarks comparing the new `blazediff` PyPI package (PyO3 bindings to the Rust core) against [`pixelmatch`](https://pypi.org/project/pixelmatch/) and an OpenCV `cv2.absdiff` baseline.
 
-All three benchmarks run on the same `/fixtures/` PNG pairs and produce the same JSON shape as `apps/image-benchmark`. Timings include PNG decode, since `blazediff.compare` is path-based — the comparison is meaningful **across the three Python targets**, not against the JS image-benchmark numbers.
+All three benchmarks run on the same `/fixtures/` PNG pairs and produce the same JSON shape as `apps/image-benchmark`. Timings include PNG decode, since `blazediff.compare` is path-based - the comparison is meaningful **across the three Python targets**, not against the JS image-benchmark numbers.
 
 ## Setup
 
@@ -26,7 +26,7 @@ pnpm benchmark:python-opencv      --fixtures=pixelmatch --iterations=10
 
 CLI flags (same as `apps/image-benchmark`):
 
-- `--iterations=N` — number of timed iterations per pair (default: 25)
-- `--fixtures=A,B,C` — comma-separated fixture subdirs (default: all)
-- `--format=markdown|json` — output format (default: markdown to stdout)
-- `--output=FILE` — JSON output path (used with `--format=json`)
+- `--iterations=N` - number of timed iterations per pair (default: 25)
+- `--fixtures=A,B,C` - comma-separated fixture subdirs (default: all)
+- `--format=markdown|json` - output format (default: markdown to stdout)
+- `--output=FILE` - JSON output path (used with `--format=json`)

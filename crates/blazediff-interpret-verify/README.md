@@ -24,7 +24,7 @@ uv run --with datasets --with Pillow --with numpy scripts/prepare_addition_delet
 
 ### MagicBrush (~6.5GB, ~8,800 pairs)
 
-Real COCO images edited via DALL-E 2. Tests Addition, Deletion, ColorChange, ContentChange. Note: DALL-E regeneration changes pixels globally, so this is a stress test — expect lower scores.
+Real COCO images edited via DALL-E 2. Tests Addition, Deletion, ColorChange, ContentChange. Note: DALL-E regeneration changes pixels globally, so this is a stress test - expect lower scores.
 
 ```sh
 uv run --with datasets --with Pillow scripts/prepare_magicbrush.py          # all
