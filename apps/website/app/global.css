@@ -1,2 +1,10 @@
 @import "tailwindcss";
 @import "nextra-theme-docs/style.css";
+
+html {
+	--nextra-content-width: 80rem;
+}
+
+.nextra-navbar > nav {
+	max-width: 80rem;
+}

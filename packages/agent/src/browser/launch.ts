@@ -1,0 +1,165 @@
+import {
+	type Browser,
+	type BrowserContext,
+	chromium,
+	type Page,
+} from "playwright";
+import type { Viewport, WaitFor } from "../types";
+
+const FROZEN_NOW = Date.UTC(2025, 0, 1, 0, 0, 0);
+
+const STABILITY_CSS = `
+*,*::before,*::after{
+	animation-delay:-0.0001s !important;
+	animation-duration:0s !important;
+	animation-iteration-count:1 !important;
+	transition-delay:0s !important;
+	transition-duration:0s !important;
+	caret-color:transparent !important;
+}
+html{scroll-behavior:auto !important}
+`;
+
+const CHROMIUM_FLAGS = [
+	"--font-render-hinting=none",
+	"--disable-skia-runtime-opts",
+	"--force-color-profile=srgb",
+	"--disable-lcd-text",
+	"--disable-background-timer-throttling",
+	"--disable-renderer-backgrounding",
+	"--disable-backgrounding-occluded-windows",
+	"--hide-scrollbars",
+];
+
+let cachedBrowser: Browser | null = null;
+
+export async function getBrowser(): Promise<Browser> {
+	if (cachedBrowser?.isConnected()) return cachedBrowser;
+	cachedBrowser = await chromium.launch({
+		headless: true,
+		args: CHROMIUM_FLAGS,
+	});
+	return cachedBrowser;
+}
+
+export async function closeBrowser(): Promise<void> {
+	if (!cachedBrowser) return;
+	await cachedBrowser.close().catch(() => {});
+	cachedBrowser = null;
+}
+
+export interface StablePageOptions {
+	viewport: Viewport;
+	masks?: string[];
+}
+
+export async function openStableContext(
+	opts: StablePageOptions,
+): Promise<{ context: BrowserContext; page: Page }> {
+	const browser = await getBrowser();
+	const context = await browser.newContext({
+		viewport: opts.viewport,
+		deviceScaleFactor: 1,
+		reducedMotion: "reduce",
+		forcedColors: "none",
+		colorScheme: "light",
+		bypassCSP: true,
+	});
+
+	await context.addInitScript(
+		({ frozenNow }) => {
+			Object.defineProperty(Date, "now", {
+				value: () => frozenNow,
+				writable: true,
+				configurable: true,
+			});
+			let perfTick = 0;
+			Object.defineProperty(performance, "now", {
+				value: () => {
+					perfTick += 16.6667;
+					return perfTick;
+				},
+				writable: true,
+				configurable: true,
+			});
+			let seed = 0x9e3779b9 | 0;
+			Math.random = () => {
+				seed = (seed + 0x6d2b79f5) | 0;
+				let t = seed;
+				t = Math.imul(t ^ (t >>> 15), t | 1);
+				t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+				return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+			};
+			if (typeof crypto !== "undefined") {
+				let uuidCounter = 0;
+				Object.defineProperty(crypto, "randomUUID", {
+					value: () => {
+						uuidCounter += 1;
+						return `00000000-0000-4000-8000-${uuidCounter.toString(16).padStart(12, "0")}`;
+					},
+					writable: true,
+					configurable: true,
+				});
+			}
+		},
+		{ frozenNow: FROZEN_NOW },
+	);
+
+	const page = await context.newPage();
+	// Re-inject stability CSS on every load — addStyleTag requires a loaded page.
+	const injectStability = () =>
+		page.addStyleTag({ content: STABILITY_CSS }).catch(() => {});
+	await injectStability();
+	page.on("load", injectStability);
+	return { context, page };
+}
+
+export async function waitForStability(
+	page: Page,
+	waitFor: WaitFor[],
+): Promise<void> {
+	for (const w of waitFor) {
+		if (w === "networkidle") {
+			await page.waitForLoadState("networkidle").catch(() => {});
+		} else if (w === "fonts") {
+			await page
+				.evaluate(() =>
+					document.fonts && "ready" in document.fonts
+						? document.fonts.ready.then(() => undefined)
+						: undefined,
+				)
+				.catch(() => {});
+		} else {
+			await page
+				.waitForSelector(w.selector, { timeout: w.timeoutMs ?? 5_000 })
+				.catch(() => {});
+		}
+	}
+}
+
+export async function applyMaskOverlays(
+	page: Page,
+	masks: string[],
+): Promise<void> {
+	if (!masks.length) return;
+	await page.evaluate((selectors) => {
+		for (const sel of selectors) {
+			for (const el of Array.from(
+				document.querySelectorAll<HTMLElement>(sel),
+			)) {
+				const rect = el.getBoundingClientRect();
+				const overlay = document.createElement("div");
+				overlay.style.position = "absolute";
+				overlay.style.left = `${rect.left + window.scrollX}px`;
+				overlay.style.top = `${rect.top + window.scrollY}px`;
+				overlay.style.width = `${rect.width}px`;
+				overlay.style.height = `${rect.height}px`;
+				overlay.style.background = "#ff00ff";
+				overlay.style.zIndex = "2147483647";
+				overlay.style.pointerEvents = "none";
+				overlay.setAttribute("data-blazediff-mask", "1");
+				document.body.appendChild(overlay);
+			}
+		}
+	}, masks);
+}
