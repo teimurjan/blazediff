@@ -97,7 +97,7 @@ export async function startServer(opts: StartOptions): Promise<ServerHandle> {
 	await mkdir(path.dirname(logPath), { recursive: true });
 
 	if (await isPortOpen(opts.port)) {
-		// Existing server is up — attach. Try to discover its PID so a later --kill works.
+		// Existing server is up - attach. Try to discover its PID so a later --kill works.
 		const discoveredPid = await findPidByPort(opts.port);
 		if (discoveredPid) {
 			await writeFile(pidPath, String(discoveredPid), "utf8").catch(() => {});

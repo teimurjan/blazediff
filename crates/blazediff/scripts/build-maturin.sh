@@ -8,8 +8,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=_targets.sh
 source "$SCRIPT_DIR/_targets.sh"
 
-# dist/wheels/ — transient build output (gitignored).
-# crates/blazediff/wheels/ — committed source of truth that CI publishes from.
+# dist/wheels/ - transient build output (gitignored).
+# crates/blazediff/wheels/ - committed source of truth that CI publishes from.
 WHEELS_DIR="$DIST_DIR/wheels"
 COMMITTED_WHEELS_DIR="$PROJECT_DIR/wheels"
 
@@ -84,7 +84,7 @@ run_maturin_target() {
                 has_zig="true"
             fi
             if [[ "$has_zig" == "false" ]]; then
-                echo "  Warning: zig not found — install with: brew install zig (or pip install ziglang)"
+                echo "  Warning: zig not found - install with: brew install zig (or pip install ziglang)"
                 echo "  Falling back to plain maturin build (wheel will be tagged linux_*, not manylinux)."
                 RUSTFLAGS="$flags" \
                     maturin build --release --features python --target "$target" --out "$WHEELS_DIR"
@@ -125,7 +125,7 @@ done
 cd "$PROJECT_DIR"
 
 # Wipe stale wheels from prior runs so $WHEELS_DIR only contains wheels from
-# this build — otherwise older versions linger and get synced into the committed
+# this build - otherwise older versions linger and get synced into the committed
 # dir alongside the current version, breaking CI's single-version invariant.
 if [[ "$MODE" != "develop" ]]; then
     mkdir -p "$WHEELS_DIR"

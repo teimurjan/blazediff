@@ -14,7 +14,7 @@ dependencies = [
 package = false
 
 [tool.uv.sources]
-# blazediff is not on PyPI yet — install the locally built wheel via:
+# blazediff is not on PyPI yet - install the locally built wheel via:
 #   pnpm build:python && uv pip install ../../crates/blazediff/dist/wheels/blazediff-*.whl
 # Or use `maturin develop` from inside this venv:
 #   source .venv/bin/activate && cd ../../crates/blazediff && maturin develop --release --features python

@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 
-// Idempotent PyPI publish step — mirrors scripts/publish-rust.js for crates.io.
+// Idempotent PyPI publish step - mirrors scripts/publish-rust.js for crates.io.
 //
 // Source of truth: wheels committed at crates/blazediff/wheels/. After building
 // locally with `pnpm build:python:all`, those wheels live in the repo and CI
 // reads them directly when publish-pypi.yml runs. There's no GH-Release-as-
-// transport step anymore — the repo *is* the artifact store.
+// transport step anymore - the repo *is* the artifact store.
 //
 // Logic:
 //   - Read version from crates/blazediff/Cargo.toml

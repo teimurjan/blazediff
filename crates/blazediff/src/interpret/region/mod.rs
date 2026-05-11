@@ -277,7 +277,7 @@ mod tests {
 
     #[test]
     fn test_detect_regions_two_separate_blobs() {
-        // Two blobs far apart — should stay separate
+        // Two blobs far apart - should stay separate
         let mut mask = vec![false; 10000]; // 100x100
         for y in 5..15 {
             for x in 5..15 {
@@ -295,7 +295,7 @@ mod tests {
 
     #[test]
     fn test_detect_regions_nearby_blobs_bridged() {
-        // Two blobs with small gap — morph close should bridge
+        // Two blobs with small gap - morph close should bridge
         let mut mask = vec![false; 10000]; // 100x100
                                            // Blob 1
         for y in 40..50 {
@@ -303,7 +303,7 @@ mod tests {
                 mask[y * 100 + x] = true;
             }
         }
-        // Blob 2 — gap of 3px
+        // Blob 2 - gap of 3px
         for y in 40..50 {
             for x in 51..60 {
                 mask[y * 100 + x] = true;
@@ -320,7 +320,7 @@ mod tests {
 
     #[test]
     fn test_detect_regions_connected_bridge() {
-        // Two blobs connected by a 1px bridge — single connected component
+        // Two blobs connected by a 1px bridge - single connected component
         let mut mask = vec![false; 50 * 20]; // 50x20
         for y in 6..14 {
             for x in 2..10 {

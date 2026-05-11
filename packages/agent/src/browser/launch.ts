@@ -106,7 +106,7 @@ export async function openStableContext(
 	);
 
 	const page = await context.newPage();
-	// Re-inject stability CSS on every load — addStyleTag requires a loaded page.
+	// Re-inject stability CSS on every load - addStyleTag requires a loaded page.
 	const injectStability = () =>
 		page.addStyleTag({ content: STABILITY_CSS }).catch(() => {});
 	await injectStability();

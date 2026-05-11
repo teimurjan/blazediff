@@ -83,14 +83,14 @@ pub fn match_case(
                 .iter()
                 .any(|p| iou(&gt.bbox, &p.bbox) >= iou_threshold);
             if !overlaps {
-                // Correctly filtered — TP for RenderingNoise
+                // Correctly filtered - TP for RenderingNoise
                 noise_matches.push(RegionMatch {
                     ground_truth_type: ChangeType::RenderingNoise,
                     predicted_type: ChangeType::RenderingNoise,
                     iou: 1.0,
                 });
             } else {
-                // Noise leaked through — will be picked up in normal matching
+                // Noise leaked through - will be picked up in normal matching
                 non_noise_gt.push(gt);
             }
         } else {

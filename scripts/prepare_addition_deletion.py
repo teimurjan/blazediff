@@ -103,7 +103,7 @@ def main():
         sample = ds[i]
         concept = sample.get("concept", "object")
 
-        # Only use "object" concept — these have clear foreground objects
+        # Only use "object" concept - these have clear foreground objects
         if concept != "object":
             continue
 
@@ -118,7 +118,7 @@ def main():
             skipped += 1
             continue
 
-        # Skip tiny masks (< 100px) — too small for meaningful classification
+        # Skip tiny masks (< 100px) - too small for meaningful classification
         if bbox["width"] * bbox["height"] < 100:
             skipped += 1
             continue

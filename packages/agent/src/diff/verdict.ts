@@ -82,7 +82,7 @@ function buildHeadline(input: DeriveVerdictInput): string {
 
 	if (!interpretation || interpretation.regions.length === 0) {
 		const px = diffCount?.toLocaleString() ?? "?";
-		return `${px} px (${pctText(diffPercentage)}) — no region analysis`;
+		return `${px} px (${pctText(diffPercentage)}) - no region analysis`;
 	}
 
 	const regions = interpretation.regions;
@@ -160,7 +160,7 @@ export function deriveVerdict(input: DeriveVerdictInput): Verdict {
 			headline,
 			rationale: [
 				`delta < ${SUB_PERCEPTUAL_PCT}% (got ${pctText(pct)}) at "low" severity`,
-				"sub-perceptual change — review optional",
+				"sub-perceptual change - review optional",
 			],
 			action: "ignore-or-rewrite",
 		};
@@ -188,7 +188,7 @@ export function deriveVerdict(input: DeriveVerdictInput): Verdict {
 			headline,
 			rationale: [
 				`${regions.length} color-change region${regions.length === 1 ? "" : "s"} with mean confidence > 0.7`,
-				"edge structure preserved — looks like a theming / palette change",
+				"edge structure preserved - looks like a theming / palette change",
 			],
 			action: "rewrite-if-intended",
 		};
@@ -199,7 +199,7 @@ export function deriveVerdict(input: DeriveVerdictInput): Verdict {
 			label: "intentional-likely",
 			headline,
 			rationale: [
-				"all regions are shift/color-change — content moved or restyled, structure preserved",
+				"all regions are shift/color-change - content moved or restyled, structure preserved",
 			],
 			action: "rewrite-if-intended",
 		};

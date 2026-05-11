@@ -34,7 +34,7 @@ function extractInternalLinks(
 			if (path.startsWith("/api/")) continue;
 			out.push(path);
 		} catch {
-			// malformed href — skip
+			// malformed href - skip
 		}
 	}
 	return out;
@@ -81,7 +81,7 @@ export async function crawlRoutes(
 					queue.push({ url: path, depth: depth + 1 });
 				}
 			} catch {
-				// page-level error — skip and continue crawl
+				// page-level error - skip and continue crawl
 			} finally {
 				await page.close().catch(() => {});
 			}

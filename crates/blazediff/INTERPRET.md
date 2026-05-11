@@ -32,8 +32,8 @@ Both operations use a sliding-window max/min with running counts for O(n) per sc
 
 Two-pass union-find with path compression and 4-connectivity (no diagonals):
 
-1. **Pass 1** — Label each foreground pixel; union with left (x−1) and top (y−width) neighbors.
-2. **Pass 2** — Flatten roots to sequential labels 1..N.
+1. **Pass 1** - Label each foreground pixel; union with left (x−1) and top (y−width) neighbors.
+2. **Pass 2** - Flatten roots to sequential labels 1..N.
 
 Only pixels from the original mask (pre-morphology) are counted toward each region's pixel count.
 

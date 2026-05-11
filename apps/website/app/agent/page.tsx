@@ -8,23 +8,23 @@ import interpretData from "../../data/interpret/blazediff-3-diff.json";
 export const metadata = {
 	title: "Agent",
 	description:
-		"BlazeDiff Agent — autonomous visual regression testing for your coding agent. Pixel-level deviation detection wired into CI/CD.",
+		"BlazeDiff Agent - autonomous visual regression testing for your coding agent. Pixel-level deviation detection wired into CI/CD.",
 };
 
 const PROTOCOL = [
 	{
 		num: "01",
-		title: "LOCAL — RUN /BLAZEDIFF IN YOUR CODING AGENT",
+		title: "LOCAL - RUN /BLAZEDIFF IN YOUR CODING AGENT",
 		command: "/blazediff",
 		blurb:
 			"One slash command in Claude Code, Cursor, or any agent loading the BlazeDiff skill. The skill installs the CLI, reads your router, boots the dev server, and writes deterministic baselines + a manifest to .blazediff/. Commit the folder.",
 	},
 	{
 		num: "02",
-		title: "CI — RUN CHECK ON EVERY PR",
+		title: "CI - RUN CHECK ON EVERY PR",
 		command: "blazediff-agent check",
 		blurb:
-			"Drop one step into your CI workflow. Each PR re-renders every route, pixel-compares against the committed baselines, and fails the build on regressions — with structured interpret output (change type, position, severity, bbox) attached to the report.",
+			"Drop one step into your CI workflow. Each PR re-renders every route, pixel-compares against the committed baselines, and fails the build on regressions - with structured interpret output (change type, position, severity, bbox) attached to the report.",
 	},
 ];
 
@@ -80,7 +80,7 @@ export default function AgentPage() {
 						<div className="bg-[#1c1c26] border border-[#2a2a38] p-2 flex flex-col gap-2 relative">
 							<div className="flex items-center justify-between border-b border-[#2a2a38] pb-2 px-2">
 								<span className="font-[var(--font-jetbrains-mono)] text-[14px] text-[#ff7a1a]">
-									~/Projects/blazediff — claude
+									~/Projects/blazediff - claude
 								</span>
 								<div className="flex gap-2 shrink-0">
 									<div className="w-2 h-2 bg-[#7a7585]" />
@@ -128,7 +128,7 @@ export default function AgentPage() {
 								{"\n\n"}
 								<span className="text-[#ff7a1a]">⏺</span>
 								<span className="text-[#f0ece8]">
-									{" Check mode — running blazediff-agent."}
+									{" Check mode - running blazediff-agent."}
 								</span>
 								{"\n\n"}
 								<span className="text-[#ff7a1a]">⏺</span>
@@ -228,7 +228,7 @@ export default function AgentPage() {
 					</h2>
 					<p className="font-[var(--font-jetbrains-mono)] text-[14px] text-[#7a7585] mb-12 max-w-2xl uppercase">
 						EVERY CHECK WRITES A STRUCTURED REPORT. PER-ROUTE STATUS, FAILING
-						REGIONS WITH INTERPRET FIELDS — CHANGETYPE, POSITION, SEVERITY,
+						REGIONS WITH INTERPRET FIELDS - CHANGETYPE, POSITION, SEVERITY,
 						BBOX. SAMPLE BELOW IS FROM A REAL RUN ON THIS WEBSITE.
 					</p>
 

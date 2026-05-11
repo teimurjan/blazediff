@@ -190,7 +190,7 @@ mod tests {
     fn test_sharp_edge_high_score() {
         let width = 20;
         let height = 20;
-        // Left half black, right half white — sharp vertical edge at x=10
+        // Left half black, right half white - sharp vertical edge at x=10
         let mut img = make_solid_image(width, height, 0, 0, 0);
         for y in 0..height {
             for x in 10..width {

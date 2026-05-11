@@ -30,7 +30,7 @@ export function applyCwdFromArgv(): void {
 	if (doubled) {
 		throw new Error(
 			`--cwd "${value}" resolves to ${resolved} which does not exist. ` +
-				"Looks like you may already be inside that directory — re-run with --cwd as an absolute path, or from the parent.",
+				"Looks like you may already be inside that directory - re-run with --cwd as an absolute path, or from the parent.",
 		);
 	}
 	throw new Error(`--cwd path does not exist: ${resolved}`);

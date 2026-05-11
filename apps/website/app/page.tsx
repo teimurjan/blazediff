@@ -193,7 +193,7 @@ export default function Home() {
 						</h1>
 						<p className="font-[var(--font-jetbrains-mono)] text-[14px] text-[#7a7585] max-w-lg uppercase">
 							HIGH-PERFORMANCE IMAGE COMPARISON BUILT FOR CI. PIXEL-BY-PIXEL,
-							SSIM, GMSD, AND STRUCTURED INTERPRET — ALL FROM ONE TOOLKIT.
+							SSIM, GMSD, AND STRUCTURED INTERPRET - ALL FROM ONE TOOLKIT.
 						</p>
 						<InstallSnippet command="npm install @blazediff/core" />
 					</div>

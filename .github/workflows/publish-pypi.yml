@@ -1,7 +1,7 @@
 name: Publish to PyPI
 
 # Manually triggered after wheels for a new version are committed to
-# crates/blazediff/wheels/. The committed wheels are the source of truth —
+# crates/blazediff/wheels/. The committed wheels are the source of truth -
 # the workflow checks them out and uploads to PyPI via Trusted Publishing
 # (OIDC, no PyPI token needed).
 #

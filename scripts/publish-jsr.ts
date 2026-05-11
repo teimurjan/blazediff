@@ -10,7 +10,7 @@ const ROOT = resolve(fromFileUrl(import.meta.url), "..", "..");
 //    imports the NPM/Vite bundle doesn't need but JSR's publish-time
 //    `deno check` does. We apply *all* patches before publishing any
 //    package because JSR's type-check follows imports into workspace
-//    source — matcher publishing still type-checks core/codec-pngjs.
+//    source - matcher publishing still type-checks core/codec-pngjs.
 // 3. For each member: skip if its version is already on JSR; otherwise
 //    run `deno publish --allow-dirty` from its own directory with
 //    stdio inherited so the first-run browser OAuth flow works.
@@ -106,7 +106,7 @@ try {
 
 		if (await isVersionOnJsr(denoJson.name, denoJson.version)) {
 			console.log(
-				`${denoJson.name}@${denoJson.version} already on JSR — skipping`,
+				`${denoJson.name}@${denoJson.version} already on JSR - skipping`,
 			);
 			skipped.push(member);
 			continue;
