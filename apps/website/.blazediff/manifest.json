@@ -15,7 +15,7 @@
 			"mask": [],
 			"fullPage": true,
 			"baselinePath": ".blazediff/baselines/agent.png",
-			"captureHash": "sha256:edfcb19c774709bf3494bb8e42359b9519b31d35d15fade0c8291a4dd6c54948",
+			"captureHash": "sha256:bc4ba75dbc100d4f6c355ad0417421afc85995988ee16ae1407b72cb1fa67176",
 			"createdBy": "agent",
 			"createdAt": "2026-05-12"
 		},
