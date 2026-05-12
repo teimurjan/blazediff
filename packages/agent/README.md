@@ -13,6 +13,7 @@ Agentic visual regression for BlazeDiff. Discovers routes, screenshots them with
 - Deterministic CLI — no embedded LLM, no API key required
 - Source-walking route discovery for Next.js / Vite / Remix (BFS fallback)
 - Heuristic verdict: `regression-likely | intentional-likely | noise-likely | ambiguous`
+- LangGraph pipeline with per-entry subgraphs, suspendable via `interrupt()` and resumable from an on-disk checkpoint
 - Region-tile handoff to host agents (10–100× smaller than full PNGs)
 - Auto-masking via `data-blazediff-agent-mask` attribute
 
@@ -45,9 +46,8 @@ Commit `.blazediff/` (config + manifest + baselines). All commands accept `--jso
   <tr><td><code>init</code></td><td>Detect framework, write <code>.blazediff/config.json</code></td></tr>
   <tr><td><code>discover</code></td><td>BFS-crawl routes from <code>baseUrl</code></td></tr>
   <tr><td><code>capture --stdin</code></td><td>Screenshot routes from stdin JSON, write baselines/actuals</td></tr>
-  <tr><td><code>check</code></td><td>Re-capture, diff against baseline, emit <code>CheckReport</code></td></tr>
-  <tr><td><code>run</code></td><td>Same as <code>check</code>, pipelined via LangGraph for parallelism</td></tr>
-  <tr><td><code>rewrite &lt;id...&gt;</code></td><td>Re-baseline existing entries</td></tr>
+  <tr><td><code>check</code></td><td>Re-capture, diff against baseline, emit <code>CheckReport</code>. <code>--judge host</code> suspends on the first ambiguous entry; <code>--apply-judgments</code> resumes from <code>.blazediff/checkpoints/</code> once verdicts are written.</td></tr>
+  <tr><td><code>rewrite &lt;id...&gt;</code></td><td>Re-baseline existing entries (also <code>--failed</code> / <code>--all</code>). Cleans stale <code>actual/</code>, <code>judgments/</code>, <code>summary.md</code>, <code>checkpoints/</code> for the rewritten ids.</td></tr>
   <tr><td><code>diff &lt;id&gt;</code></td><td>Re-diff one entry without re-screenshotting</td></tr>
   <tr><td><code>manifest</code></td><td>Inspect / list manifest entries</td></tr>
   <tr><td><code>serve-status</code></td><td>Start / stop / probe the dev server</td></tr>
@@ -67,7 +67,7 @@ blazediff-agent onboard --harness all
 
 Writes:
 - Claude Code → `<project>/.claude/skills/blazediff/SKILL.md`
-- Codex → `~/.codex/prompts/blazediff.md`
+- Codex → `~/.codex/skills/blazediff/SKILL.md`
 - Cursor → `<project>/.cursor/rules/blazediff.mdc`
 
 ## Masking
@@ -83,7 +83,7 @@ For third-party embeds you can't annotate, use a per-entry `manifest.entries[].m
 
 ## Judging
 
-The diff heuristic emits a verdict per entry. For `ambiguous` results, `--judge host` writes a `JudgmentRequest` (region tiles + locator thumbnail) to `.blazediff/judgments/<id>/` and exits non-zero. The host agent reads the tiles, writes `verdict.json`, and re-runs `check --apply-judgments`.
+Every non-match routes through the configured judge. With `--judge host` the judge node `interrupt()`s the LangGraph pipeline, writes a `JudgmentRequest` (region tiles + locator thumbnail) to `.blazediff/judgments/<id>/`, and the suspended graph is checkpointed to `.blazediff/checkpoints/`. The host agent reads the tiles, writes `verdict.json`, and `check --apply-judgments` resumes the same graph with the verdicts — no re-capture, no re-diff.
 
 ## Configuration
 
@@ -102,7 +102,7 @@ The diff heuristic emits a verdict per entry. For `ambiguous` results, `--judge 
 
 ## CI
 
-Only `check` / `run` are allowed under `CI=1`. Exit codes:
+Only `check` is allowed under `CI=1`. Exit codes:
 
 - `0` — all passed
 - `1` — regression, intentional, or pending judgment
