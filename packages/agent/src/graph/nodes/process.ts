@@ -177,7 +177,7 @@ export function makeProcessNode(semaphore: Semaphore) {
 				result = {
 					...result,
 					status: "needs-judgment",
-					message: `awaiting judgment at ${output.requestPath}`,
+					message: `awaiting judgment in ${output.requestPath}`,
 				};
 			}
 		}

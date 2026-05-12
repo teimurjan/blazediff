@@ -4,8 +4,35 @@ import { loadConfig, resolveBaseUrl } from "../../config";
 import { DEFAULT_THRESHOLD } from "../../defaults";
 import { applyJudgments, type JudgeBackend } from "../../judge";
 import { paths } from "../../paths";
-import type { CheckResult } from "../../types";
+import type { CheckReport, CheckResult } from "../../types";
 import type { Output } from "../output";
+
+function slimResult(r: CheckResult) {
+	return {
+		id: r.id,
+		url: r.url,
+		status: r.status,
+		verdict: r.verdict
+			? {
+					label: r.verdict.label,
+					headline: r.verdict.headline,
+					action: r.verdict.action,
+				}
+			: undefined,
+	};
+}
+
+function slimReport(report: CheckReport, summaryPath: string) {
+	return {
+		summaryPath,
+		createdAt: report.createdAt,
+		totalEntries: report.totalEntries,
+		passed: report.passed,
+		failed: report.failed,
+		pendingJudgments: report.pendingJudgments,
+		results: report.results.filter((r) => r.status !== "pass").map(slimResult),
+	};
+}
 
 interface Opts {
 	baseUrl?: string;
@@ -71,14 +98,15 @@ export function registerCheck(program: Command, out: Output): void {
 		)
 		.option(
 			"--apply-judgments",
-			"merge .blazediff/judgments/*.json into the last report, skip checking",
+			"regenerate summary.md from .blazediff/judgments/<id>/verdict.json files (no re-check)",
 		)
 		.action(async (opts: Opts) => {
 			if (opts.applyJudgments) {
 				const { report, applied, missing, invalid } = await applyJudgments();
+				const summaryPath = paths().summary;
 				const human =
 					applied.length === 0 && missing.length === 0 && invalid.length === 0
-						? "no judgments to apply"
+						? `no judgments to apply\n  summary: ${summaryPath}`
 						: [
 								`applied ${applied.length} judgment(s)`,
 								missing.length
@@ -88,10 +116,20 @@ export function registerCheck(program: Command, out: Output): void {
 									? `  ${invalid.length} invalid judgment file(s): ${invalid.join(", ")}`
 									: undefined,
 								`  ${report.passed}/${report.totalEntries} passed (${report.failed} failed, ${report.pendingJudgments} pending)`,
+								`  summary: ${summaryPath}`,
 							]
 								.filter(Boolean)
 								.join("\n");
-				out.emit({ ok: true, applied, missing, invalid, report }, human);
+				out.emit(
+					{
+						ok: true,
+						applied,
+						missing,
+						invalid,
+						...slimReport(report, summaryPath),
+					},
+					human,
+				);
 				if (report.failed > 0) process.exitCode = 1;
 				return;
 			}
@@ -106,6 +144,7 @@ export function registerCheck(program: Command, out: Output): void {
 				judge: parseJudge(opts.judge),
 			});
 
+			const summaryPath = paths().summary;
 			const summary =
 				report.pendingJudgments > 0
 					? `${report.passed}/${report.totalEntries} passed (${report.failed} failed, ${report.pendingJudgments} pending judgment)`
@@ -115,19 +154,19 @@ export function registerCheck(program: Command, out: Output): void {
 
 			const human =
 				report.failed === 0 && report.pendingJudgments === 0
-					? summary
+					? `${summary}\n  summary: ${summaryPath}`
 					: [
 							`${summary}:`,
 							...failureLines(report.results),
-							`  report: ${paths().report}`,
+							`  summary: ${summaryPath}`,
 							report.pendingJudgments > 0
-								? `  pending: ${paths().pendingJudgments}/ — host harness writes verdicts to ${paths().judgments}/, then re-run with --apply-judgments`
+								? `  pending: ${paths().judgments}/ - host writes <id>/verdict.json, then re-run check --apply-judgments`
 								: undefined,
 						]
 							.filter(Boolean)
 							.join("\n");
 
-			out.emit(report, human);
+			out.emit(slimReport(report, summaryPath), human);
 			if (report.failed > 0) process.exitCode = 1;
 		});
 }

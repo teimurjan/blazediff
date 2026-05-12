@@ -1,4 +1,6 @@
-import { writeJsonReport } from "../../report/json";
+import { ensureGitignore } from "../../cli/gitignore";
+import { writeJudgments } from "../../judge/persist";
+import { writeSummaryMarkdown } from "../../report/markdown";
 import type { CheckReport } from "../../types";
 import type { GraphStateType } from "../state";
 
@@ -7,6 +9,8 @@ export async function aggregateNode(
 ): Promise<Partial<GraphStateType>> {
 	const options = state.options;
 	if (!options) throw new Error("aggregateNode: options missing");
+	const manifest = state.manifest;
+	if (!manifest) throw new Error("aggregateNode: manifest missing");
 
 	const results = state.results;
 	const passed = results.filter((r) => r.status === "pass").length;
@@ -21,6 +25,8 @@ export async function aggregateNode(
 		pendingJudgments,
 		results,
 	};
-	const reportPath = await writeJsonReport(report, options.cwd);
-	return { report, reportPath };
+	await writeJudgments({ report, manifest, cwd: options.cwd });
+	await writeSummaryMarkdown(report, options.cwd);
+	await ensureGitignore(options.cwd);
+	return { report };
 }

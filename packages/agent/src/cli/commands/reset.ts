@@ -31,7 +31,7 @@ export function registerReset(program: Command, out: Output): void {
 	program
 		.command("reset")
 		.description(
-			"wipe .blazediff/ entirely (stops the dev server first if one is tracked). Re-run /blazediff or `init` afterward to start from scratch.",
+			"wipe .blazediff/ entirely - config, manifest, baselines, actual, judgments, summary, pid/log (stops the dev server first if one is tracked). Re-run /blazediff or `init` afterward to start from scratch.",
 		)
 		.option("--yes", "do not prompt; required when stdin is a TTY")
 		.action(async (opts: Opts) => {

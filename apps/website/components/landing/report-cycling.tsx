@@ -104,7 +104,10 @@ export default function ReportCycling({
 	);
 
 	return (
-		<div className="border border-[#ff2e8b]/40 bg-[#15151c] p-4 flex flex-col gap-4">
+		<div
+			data-blazediff-mask="report-cycling"
+			className="border border-[#ff2e8b]/40 bg-[#15151c] p-4 flex flex-col gap-4"
+		>
 			<div className="flex flex-wrap items-center gap-3">
 				<span className="font-[var(--font-jetbrains-mono)] text-[13px] text-[#f0ece8]">
 					{id}

@@ -26,6 +26,7 @@
 
 ### Command Line Tools
 - **[@blazediff/cli](./packages/cli#readme)** - JS CLI with multiple algorithms (diff, GMSD, SSIM, MS-SSIM, Hitchhiker's SSIM)
+- **[@blazediff/agent](./packages/agent#readme)** - Agentic visual regression. Auto-discovers routes, captures deterministic screenshots, and hands ambiguous diffs back to your coding agent (Claude Code, Cursor, Codex) to judge.
 
 ### UI Components
 - **[@blazediff/react](./packages/react#readme)** - React components for diff visualization

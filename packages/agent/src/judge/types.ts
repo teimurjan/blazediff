@@ -32,3 +32,10 @@ export interface Judge {
 }
 
 export type JudgeBackend = "none" | "host";
+
+export interface VerdictFile {
+	id: string;
+	verdict: Verdict;
+	rationale?: string;
+	confidence?: number;
+}

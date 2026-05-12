@@ -4,8 +4,35 @@ import { DEFAULT_THRESHOLD } from "../../defaults";
 import { runGraph } from "../../graph";
 import type { JudgeBackend } from "../../judge";
 import { paths } from "../../paths";
-import type { CheckResult } from "../../types";
+import type { CheckReport, CheckResult } from "../../types";
 import type { Output } from "../output";
+
+function slimResult(r: CheckResult) {
+	return {
+		id: r.id,
+		url: r.url,
+		status: r.status,
+		verdict: r.verdict
+			? {
+					label: r.verdict.label,
+					headline: r.verdict.headline,
+					action: r.verdict.action,
+				}
+			: undefined,
+	};
+}
+
+function slimReport(report: CheckReport, summaryPath: string) {
+	return {
+		summaryPath,
+		createdAt: report.createdAt,
+		totalEntries: report.totalEntries,
+		passed: report.passed,
+		failed: report.failed,
+		pendingJudgments: report.pendingJudgments,
+		results: report.results.filter((r) => r.status !== "pass").map(slimResult),
+	};
+}
 
 interface Opts {
 	baseUrl?: string;
@@ -94,6 +121,7 @@ export function registerRun(program: Command, out: Output): void {
 				judge: parseJudge(opts.judge),
 			});
 
+			const summaryPath = paths().summary;
 			const summary =
 				report.pendingJudgments > 0
 					? `${report.passed}/${report.totalEntries} passed (${report.failed} failed, ${report.pendingJudgments} pending judgment)`
@@ -103,19 +131,19 @@ export function registerRun(program: Command, out: Output): void {
 
 			const human =
 				report.failed === 0 && report.pendingJudgments === 0
-					? summary
+					? `${summary}\n  summary: ${summaryPath}`
 					: [
 							`${summary}:`,
 							...failureLines(report.results),
-							`  report: ${paths().report}`,
+							`  summary: ${summaryPath}`,
 							report.pendingJudgments > 0
-								? `  pending: ${paths().pendingJudgments}/ — host harness writes verdicts to ${paths().judgments}/, then re-run \`check --apply-judgments\``
+								? `  pending: ${paths().judgments}/ - host writes <id>/verdict.json, then re-run check --apply-judgments`
 								: undefined,
 						]
 							.filter(Boolean)
 							.join("\n");
 
-			out.emit(report, human);
+			out.emit(slimReport(report, summaryPath), human);
 			if (report.failed > 0) process.exitCode = 1;
 		});
 }

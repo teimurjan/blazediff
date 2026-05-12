@@ -14,5 +14,5 @@ export async function loadNode(
 			`no manifest found at ${paths(state.options.cwd).manifest}. Run \`blazediff init\` then \`/blazediff\` (or capture manually) first.`,
 		);
 	}
-	return { entries: manifest.entries };
+	return { entries: manifest.entries, manifest };
 }

@@ -1,5 +1,6 @@
-import { existsSync } from "node:fs";
-import { readFile } from "node:fs/promises";
+import { existsSync, statSync } from "node:fs";
+import { readdir } from "node:fs/promises";
+import path from "node:path";
 import type { Command } from "commander";
 import { type CaptureRouteInput, runCaptures } from "../../captures";
 import { loadConfig, resolveBaseUrl } from "../../config";
@@ -12,10 +13,6 @@ interface Opts {
 	failed?: boolean;
 	all?: boolean;
 	baseUrl?: string;
-}
-
-interface ReportShape {
-	results: Array<{ id: string; status: string }>;
 }
 
 async function resolveTargets(
@@ -35,18 +32,19 @@ async function resolveTargets(
 	if (opts.all) return new Set(manifest.entries.map((e) => e.id));
 
 	if (opts.failed) {
-		const reportPath = paths().report;
-		if (!existsSync(reportPath)) {
+		const judgmentsDir = paths().judgments;
+		if (!existsSync(judgmentsDir)) {
 			throw new Error(
-				`no report at ${reportPath}. Run \`blazediff-agent check\` first.`,
+				`no judgments at ${judgmentsDir}. Run \`blazediff-agent check\` first.`,
 			);
 		}
-		const report = JSON.parse(
-			await readFile(reportPath, "utf8"),
-		) as ReportShape;
-		return new Set(
-			report.results.filter((r) => r.status !== "pass").map((r) => r.id),
-		);
+		const names = await readdir(judgmentsDir);
+		const failed = new Set<string>();
+		for (const name of names) {
+			const full = path.join(judgmentsDir, name);
+			if (statSync(full).isDirectory()) failed.add(name);
+		}
+		return failed;
 	}
 
 	const targets = new Set(ids);
@@ -61,7 +59,7 @@ export function registerRewrite(program: Command, out: Output): void {
 	program
 		.command("rewrite [ids...]")
 		.description(
-			"rewrite baselines for existing manifest entries, preserving mask/viewport/etc. Pick targets via positional ids, --failed (from last report.json), or --all.",
+			"rewrite baselines for existing manifest entries, preserving mask/viewport/etc. Pick targets via positional ids, --failed (uses .blazediff/judgments/ from last check), or --all.",
 		)
 		.option("--failed", "rewrite entries that failed the most recent check")
 		.option("--all", "rewrite every manifest entry")

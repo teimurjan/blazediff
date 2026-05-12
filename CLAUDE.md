@@ -173,6 +173,57 @@ NPM-only (not on JSR):
 - `@blazediff/ui` — web components have slow-types violations (implicit return type on every `static get observedAttributes`). Stay NPM-only until the components get explicit annotations.
 - `@blazediff/react` — depends on `@blazediff/ui`; follows the same deferral.
 
+## Agent (`@blazediff/agent`)
+
+Agentic visual regression layer. Lives at `packages/agent/`. Ships a deterministic CLI (`blazediff-agent`) plus a portable playbook (`skill/blazediff/SKILL.md`) that any coding agent (Claude Code, Cursor, Codex) drives. **No embedded LLM call** in the default flow — the host coding agent supplies the loop, vision, and context. An optional `--judge host` backend defers ambiguous diffs to the host via filesystem handoff (region tiles + locator thumbnail; the agent writes `verdict.json` back).
+
+Roadmap and design intent: `packages/agent/ROADMAP.md`. End-user docs: `apps/website/app/docs/agent/page.mdx`.
+
+### Critical files
+
+- `packages/agent/src/cli.ts` — Commander entry point
+- `packages/agent/src/check.ts` — single-pool `runCheck` with `pool()` concurrency
+- `packages/agent/src/graph/` — LangGraph-pipelined runner (`run` command); per-route stages overlap
+- `packages/agent/src/judge/` — pluggable `Judge` interface (`host` / `none`), region-tile generator (`sharp`), verdict applier
+- `packages/agent/src/diff/verdict.ts` — heuristic verdict pipeline (`regression-likely | intentional-likely | noise-likely | ambiguous`)
+- `packages/agent/src/browser/launch.ts` — Chromium serialization (prevents the launch race) + `applyMaskOverlays()` (paints `document.querySelectorAll(selector)` matches with magenta rects before screenshot)
+- `packages/agent/src/report/markdown.ts` — `summary.md` generator (5-column `id | baseline | actual | diff | verdict` with inline image previews)
+- `packages/agent/src/discover/` — Next.js / Vite / Remix source-walking, BFS `discover` command as fallback
+
+### Commands the agent exposes
+
+`init`, `discover`, `capture --stdin`, `check`, `run`, `rewrite`, `diff`, `manifest`, `serve-status`, `browsers install`, `reset --yes`. All accept `--json`. `--cwd <abs-path>` operates on a sub-directory.
+
+`check` is the single-pool CI verb; `run` is the LangGraph-pipelined equivalent (≥10 routes, want LangSmith traces, want wall-time speedup). Both share report shape.
+
+### Skill / playbook
+
+`skill/blazediff/SKILL.md` is the authoritative playbook the host coding agent reads. Covers: target-dir resolution, authoring vs check mode selection, the judge handoff (with token-discipline guidance — `regions.png` first, full-page PNGs only as fallback), the mask flow (when to mask vs rewrite, how to pick a stable selector like `data-blazediff-mask="<reason>"`), `accept regression (rebaseline)`, `reset`, and hard rules (no manifest-direct edits, mandatory dev-server teardown, CI-only commands).
+
+When editing the skill, mirror substantive changes into `apps/website/app/docs/agent/page.mdx` and `packages/agent/README.md` so the three stay in sync.
+
+### `.blazediff/` on-disk shape
+
+```
+.blazediff/
+├── config.json           # devServer / framework / baseUrl  (committed)
+├── manifest.json         # { entries: [{ id, url, mask[], viewport, waitFor, fullPage }] }  (committed; never edit by hand)
+├── baselines/<id>.png    # committed
+├── actual/<id>.png       # per-run; gitignored
+├── actual/<id>.diff.png  # per-run; gitignored
+├── judgments/<id>/
+│   ├── request.json      # JudgmentRequest written by host judge backend
+│   ├── regions.png       # tight crop of all change regions at native res
+│   ├── locator.png       # ~400px page thumbnail with bboxes drawn
+│   └── verdict.json      # written by the host coding agent
+├── summary.md            # 5-column markdown report (regenerated per check)
+└── pid / log             # tracked dev-server state
+```
+
+### Mask semantics
+
+`mask: string[]` per entry. Each string is a CSS selector. At screenshot time, `applyMaskOverlays()` queries `document.querySelectorAll(sel)` and paints a magenta rectangle over each match's bounding rect. Applied in both baseline and actual, so diff is zeroed inside the masked region. Mask whenever the region is inherently non-deterministic (auto-cycling animations, third-party iframes, time-derived content, randomized avatars); don't mask real content that just happens to be changing.
+
 ## Pre-commit
 
 Uses [prek](https://github.com/j178/prek) (`.pre-commit-config.yaml`). Hooks run automatically on `git commit`:

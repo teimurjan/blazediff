@@ -1,9 +1,13 @@
-import { readdir, readFile, rm } from "node:fs/promises";
+import { existsSync } from "node:fs";
+import { readdir, readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import type { Verdict, VerdictAction, VerdictLabel } from "../diff/verdict";
+import { loadManifest } from "../manifest";
 import { paths } from "../paths";
-import { writeJsonReport } from "../report/json";
-import type { CheckReport, CheckResult } from "../types";
+import { writeSummaryMarkdown } from "../report/markdown";
+import type { CheckReport, CheckResult, ManifestEntry } from "../types";
+import type { JudgmentRequest } from "./persist";
+import type { VerdictFile } from "./types";
 
 const VALID_LABELS: VerdictLabel[] = [
 	"regression-likely",
@@ -18,13 +22,6 @@ const VALID_ACTIONS: VerdictAction[] = [
 	"ignore-or-rewrite",
 ];
 
-interface JudgmentFile {
-	id: string;
-	verdict: Verdict;
-	rationale?: string;
-	confidence?: number;
-}
-
 export interface ApplyJudgmentsResult {
 	report: CheckReport;
 	applied: string[];
@@ -32,7 +29,7 @@ export interface ApplyJudgmentsResult {
 	invalid: string[];
 }
 
-function parseJudgment(raw: unknown): JudgmentFile | null {
+function parseVerdict(raw: unknown): VerdictFile | null {
 	if (!raw || typeof raw !== "object") return null;
 	const r = raw as Record<string, unknown>;
 	if (typeof r.id !== "string") return null;
@@ -65,47 +62,101 @@ function parseJudgment(raw: unknown): JudgmentFile | null {
 	};
 }
 
-async function readJudgments(dir: string): Promise<{
-	parsed: JudgmentFile[];
-	invalid: string[];
-}> {
-	const parsed: JudgmentFile[] = [];
-	const invalid: string[] = [];
-	let entries: string[];
+async function readJsonOrNull<T>(file: string): Promise<T | null> {
 	try {
-		entries = await readdir(dir);
+		return JSON.parse(await readFile(file, "utf8")) as T;
 	} catch {
-		return { parsed, invalid };
+		return null;
 	}
-	for (const name of entries) {
-		if (!name.endsWith(".json")) continue;
-		const file = path.join(dir, name);
-		try {
-			const raw = JSON.parse(await readFile(file, "utf8"));
-			const judgment = parseJudgment(raw);
-			if (judgment) parsed.push(judgment);
-			else invalid.push(file);
-		} catch {
-			invalid.push(file);
-		}
-	}
-	return { parsed, invalid };
 }
 
-function applyToResult(
-	result: CheckResult,
-	judgment: JudgmentFile,
+interface DirRead {
+	id: string;
+	request: JudgmentRequest | null;
+	verdict: VerdictFile | null;
+	verdictInvalid: boolean;
+}
+
+async function readJudgmentDirs(root: string): Promise<DirRead[]> {
+	let names: string[];
+	try {
+		names = await readdir(root);
+	} catch {
+		return [];
+	}
+	const out: DirRead[] = [];
+	for (const name of names) {
+		const dir = path.join(root, name);
+		let isDir = false;
+		try {
+			isDir = (await stat(dir)).isDirectory();
+		} catch {
+			isDir = false;
+		}
+		if (!isDir) continue;
+		const request = await readJsonOrNull<JudgmentRequest>(
+			path.join(dir, "request.json"),
+		);
+		const verdictFile = path.join(dir, "verdict.json");
+		let verdict: VerdictFile | null = null;
+		let verdictInvalid = false;
+		if (existsSync(verdictFile)) {
+			const raw = await readJsonOrNull<unknown>(verdictFile);
+			verdict = raw ? parseVerdict(raw) : null;
+			if (raw && !verdict) verdictInvalid = true;
+		}
+		out.push({ id: name, request, verdict, verdictInvalid });
+	}
+	return out;
+}
+
+function toAbs(cwd: string, rel?: string): string | undefined {
+	if (!rel) return undefined;
+	return path.isAbsolute(rel) ? rel : path.join(cwd, rel);
+}
+
+function buildResult(
+	cwd: string,
+	dir: DirRead,
+	entry: ManifestEntry | undefined,
 ): CheckResult {
+	const req = dir.request;
+	const finalVerdict: Verdict | undefined =
+		dir.verdict?.verdict ?? req?.heuristicVerdict;
+	const status: CheckResult["status"] = req
+		? dir.verdict
+			? "fail"
+			: req.status
+		: "fail";
 	const message =
-		judgment.rationale ??
-		(judgment.confidence !== undefined
-			? `judged (confidence ${judgment.confidence.toFixed(2)})`
-			: "judged");
+		dir.verdict?.rationale ??
+		(dir.verdict?.confidence !== undefined
+			? `judged (confidence ${dir.verdict.confidence.toFixed(2)})`
+			: req?.message);
 	return {
-		...result,
-		status: "fail",
-		verdict: judgment.verdict,
+		id: dir.id,
+		url: req?.url ?? entry?.url ?? "",
+		status,
+		diffPercentage: req?.diffPercentage,
+		severity: req?.severity,
+		regions: req?.regions,
+		verdict: finalVerdict,
+		diffPath: toAbs(cwd, req?.paths.diff),
+		actualPath: toAbs(cwd, req?.paths.actual),
+		baselinePath: toAbs(cwd, req?.paths.baseline),
 		message,
+	};
+}
+
+function passResult(entry: ManifestEntry, cwd: string): CheckResult {
+	const baselineAbs = path.join(paths(cwd).baselines, `${entry.id}.png`);
+	const actualAbs = path.join(paths(cwd).actual, `${entry.id}.png`);
+	return {
+		id: entry.id,
+		url: entry.url,
+		status: "pass",
+		baselinePath: baselineAbs,
+		actualPath: existsSync(actualAbs) ? actualAbs : undefined,
 	};
 }
 
@@ -113,50 +164,53 @@ export async function applyJudgments(
 	cwd: string = process.cwd(),
 ): Promise<ApplyJudgmentsResult> {
 	const p = paths(cwd);
-	let report: CheckReport;
-	try {
-		report = JSON.parse(await readFile(p.report, "utf8")) as CheckReport;
-	} catch {
+	const manifest = await loadManifest(cwd);
+	if (!manifest) {
 		throw new Error(
-			`no report found at ${p.report}. Run \`blazediff-agent check --judge host\` first.`,
+			`no manifest at ${p.manifest}. Run \`blazediff-agent init\` first.`,
 		);
 	}
 
-	const { parsed, invalid } = await readJudgments(p.judgments);
-	const byId = new Map(parsed.map((j) => [j.id, j]));
+	const dirs = await readJudgmentDirs(p.judgments);
+	const dirById = new Map(dirs.map((d) => [d.id, d]));
+
 	const applied: string[] = [];
 	const missing: string[] = [];
+	const invalid: string[] = [];
 
-	const updated = report.results.map((r) => {
-		if (r.status !== "needs-judgment") return r;
-		const judgment = byId.get(r.id);
-		if (!judgment) {
-			missing.push(r.id);
-			return r;
-		}
-		applied.push(r.id);
-		return applyToResult(r, judgment);
-	});
-
-	const passed = updated.filter((r) => r.status === "pass").length;
-	const pendingJudgments = updated.filter(
-		(r) => r.status === "needs-judgment",
-	).length;
-	const next: CheckReport = {
-		...report,
-		results: updated,
-		passed,
-		pendingJudgments,
-		failed: updated.length - passed - pendingJudgments,
-	};
-	await writeJsonReport(next, cwd);
-
-	for (const id of applied) {
-		await rm(path.join(p.pendingJudgments, id), {
-			recursive: true,
-			force: true,
-		});
+	for (const d of dirs) {
+		if (d.verdictInvalid) invalid.push(path.join(p.judgments, d.id));
+		else if (d.verdict) applied.push(d.id);
+		else missing.push(d.id);
 	}
 
-	return { report: next, applied, missing, invalid };
+	const nonPassResults: CheckResult[] = [];
+	for (const d of dirs) {
+		const entry = manifest.entries.find((e) => e.id === d.id);
+		nonPassResults.push(buildResult(cwd, d, entry));
+	}
+
+	const passResults: CheckResult[] = [];
+	for (const entry of manifest.entries) {
+		if (dirById.has(entry.id)) continue;
+		passResults.push(passResult(entry, cwd));
+	}
+
+	const results = [...passResults, ...nonPassResults];
+	const passed = results.filter((r) => r.status === "pass").length;
+	const pendingJudgments = results.filter(
+		(r) => r.status === "needs-judgment",
+	).length;
+	const report: CheckReport = {
+		createdAt: new Date().toISOString(),
+		totalEntries: results.length,
+		passed,
+		failed: results.length - passed - pendingJudgments,
+		pendingJudgments,
+		results,
+	};
+
+	await writeSummaryMarkdown(report, cwd);
+
+	return { report, applied, missing, invalid };
 }

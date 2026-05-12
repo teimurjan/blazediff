@@ -5,14 +5,13 @@ import { paths } from "../paths";
 
 const ENTRIES = [
 	"actual/",
-	"diffs/",
-	"pending-judgments/",
 	"judgments/",
-	"report.json",
+	"summary.md",
 	"dev-server.log",
 	"dev-server.pid",
 	"*.tmp",
 ];
+const STALE_ENTRIES = new Set(["diffs/", "pending-judgments/", "report.json"]);
 const HEADER =
 	"# blazediff: generated artifacts (committed: config.json, manifest.json, baselines/)\n";
 
@@ -21,8 +20,17 @@ export async function ensureGitignore(cwd: string): Promise<void> {
 	await mkdir(path.dirname(file), { recursive: true });
 	const existing = existsSync(file) ? await readFile(file, "utf8") : "";
 	const lines = existing.split("\n").map((l) => l.trim());
+	const hasStale = lines.some((l) => STALE_ENTRIES.has(l));
 	const missing = ENTRIES.filter((e) => !lines.includes(e));
-	if (!missing.length && existing) return;
+	if (!missing.length && !hasStale && existing) return;
+	if (hasStale) {
+		const kept = lines.filter(
+			(l) => !STALE_ENTRIES.has(l) && !ENTRIES.includes(l) && l !== "",
+		);
+		const body = `${kept.length ? `${kept.join("\n")}\n` : HEADER}${ENTRIES.join("\n")}\n`;
+		await writeFile(file, body, "utf8");
+		return;
+	}
 	const body = existing
 		? `${existing.replace(/\n+$/, "")}\n${missing.join("\n")}\n`
 		: `${HEADER}${ENTRIES.join("\n")}\n`;

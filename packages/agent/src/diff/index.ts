@@ -46,9 +46,9 @@ export async function diffEntry(
 
 	let diffPath: string | undefined;
 	if (opts.emitDiffPng) {
-		const diffDir = paths(cwd).diffs;
-		await mkdir(diffDir, { recursive: true });
-		diffPath = path.join(diffDir, `${id}.png`);
+		const actualDir = paths(cwd).actual;
+		await mkdir(actualDir, { recursive: true });
+		diffPath = path.join(actualDir, `${id}.diff.png`);
 	}
 
 	const threshold = opts.threshold ?? DEFAULT_THRESHOLD;

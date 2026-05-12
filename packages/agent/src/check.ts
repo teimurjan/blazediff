@@ -2,14 +2,16 @@ import path from "node:path";
 import type { ChangeRegion } from "@blazediff/core-native";
 import { captureScreenshot } from "./browser/capture";
 import { closeBrowser } from "./browser/launch";
+import { ensureGitignore } from "./cli/gitignore";
 import { DEFAULT_FULL_PAGE, defaultConcurrency } from "./defaults";
 import { type DiffOutcome, diffEntry } from "./diff";
 import { deriveVerdict, type Verdict } from "./diff/verdict";
 import { type Judge, type JudgeBackend, resolveJudge } from "./judge";
+import { writeJudgments } from "./judge/persist";
 import { isEntryStale, loadManifest } from "./manifest";
 import { paths } from "./paths";
-import { writeJsonReport } from "./report/json";
 import { writeJunit } from "./report/junit";
+import { writeSummaryMarkdown } from "./report/markdown";
 import type {
 	CheckReport,
 	CheckResult,
@@ -155,7 +157,7 @@ async function judgeAmbiguous(
 	return {
 		...result,
 		status: "needs-judgment",
-		message: `awaiting judgment at ${output.requestPath}`,
+		message: `awaiting judgment in ${output.requestPath}`,
 	};
 }
 
@@ -249,7 +251,9 @@ export async function runCheck(opts: CheckOptions): Promise<CheckReport> {
 		pendingJudgments,
 		results,
 	};
-	await writeJsonReport(report, cwd);
+	await writeJudgments({ report, manifest, cwd });
+	await writeSummaryMarkdown(report, cwd);
+	await ensureGitignore(cwd);
 	if (opts.junitPath) {
 		const target = path.isAbsolute(opts.junitPath)
 			? opts.junitPath

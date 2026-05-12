@@ -128,57 +128,80 @@ export default function AgentPage() {
 								{"\n\n"}
 								<span className="text-[#ff7a1a]">⏺</span>
 								<span className="text-[#f0ece8]">
-									{" Check mode - running blazediff-agent."}
+									{" Check mode - running blazediff-agent run --judge host."}
 								</span>
 								{"\n\n"}
 								<span className="text-[#ff7a1a]">⏺</span>
 								<span className="text-[#f0ece8]"> Bash(</span>
 								<span className="text-[#7a7585]">
-									blazediff-agent --cwd apps/website check --json
+									blazediff-agent --cwd apps/website run --judge host --json
 								</span>
 								<span className="text-[#f0ece8]">)</span>
 								{"\n"}
 								<span className="text-[#7a7585]"> ⎿ {"{"}</span>
 								{"\n"}
 								<span className="text-[#7a7585]"> "totalEntries": </span>
-								<span className="text-[#f0ece8]">22</span>
+								<span className="text-[#f0ece8]">23</span>
 								<span className="text-[#7a7585]">,</span>
 								{"\n"}
 								<span className="text-[#7a7585]"> "passed": </span>
-								<span className="text-[#ff7a1a]">20</span>
+								<span className="text-[#ff7a1a]">21</span>
 								<span className="text-[#7a7585]">,</span>
 								{"\n"}
-								<span className="text-[#7a7585]"> "failed": </span>
+								<span className="text-[#7a7585]"> "pendingJudgments": </span>
 								<span className="text-[#ff2e8b]">2</span>
 								<span className="text-[#7a7585]">,</span>
 								{"\n"}
 								<span className="text-[#7a7585]">
-									{"     … +84 lines (ctrl+o to expand)"}
+									{"     … +18 lines (ctrl+o to expand)"}
 								</span>
 								{"\n\n"}
 								<span className="text-[#ff7a1a]">⏺</span>
-								<span className="text-[#f0ece8]"> 20/22 passed (</span>
-								<span className="text-[#ff2e8b]">2 failed</span>
-								<span className="text-[#f0ece8]">):</span>
-								{"\n"}
-								<span className="text-[#7a7585]"> ⎿ </span>
-								<span className="text-[#ff2e8b]">✗ docs-react</span>
-								<span className="text-[#7a7585]">
-									{"      content-change · top-left · low"}
+								<span className="text-[#f0ece8]"> 21/23 passed, </span>
+								<span className="text-[#ff2e8b]">2 ambiguous</span>
+								<span className="text-[#f0ece8]">
+									{" - reading region tiles."}
 								</span>
-								{"\n"}
-								<span className="text-[#7a7585]"> ⎿ </span>
-								<span className="text-[#ff2e8b]">✗ examples-react</span>
+								{"\n\n"}
+								<span className="text-[#ff7a1a]">⏺</span>
+								<span className="text-[#f0ece8]"> Read(</span>
 								<span className="text-[#7a7585]">
-									{"  content-change · top-left · low"}
+									.blazediff/judgments/agent/regions.png
 								</span>
+								<span className="text-[#f0ece8]">)</span>
+								{"\n"}
+								<span className="text-[#ff7a1a]">⏺</span>
+								<span className="text-[#f0ece8]"> Read(</span>
+								<span className="text-[#7a7585]">
+									.blazediff/judgments/home/regions.png
+								</span>
+								<span className="text-[#f0ece8]">)</span>
+								{"\n\n"}
+								<span className="text-[#ff7a1a]">⏺</span>
+								<span className="text-[#f0ece8]">
+									{" Both: em-dash → hyphen. Intentional. Writing verdicts."}
+								</span>
+								{"\n\n"}
+								<span className="text-[#ff7a1a]">⏺</span>
+								<span className="text-[#f0ece8]"> Bash(</span>
+								<span className="text-[#7a7585]">
+									blazediff-agent check --apply-judgments --json
+								</span>
+								<span className="text-[#f0ece8]">)</span>
+								{"\n"}
+								<span className="text-[#7a7585]"> ⎿ 21/23 passed, </span>
+								<span className="text-[#ff7a1a]">2 intentional-likely</span>
 								{"\n\n"}
 								<span className="text-[#ff7a1a]">⏺</span>
 								<span className="text-[#f0ece8]">
 									{
-										" Report at apps/website/.blazediff/report.json. Fix or re-baseline?"
+										" Summary at apps/website/.blazediff/summary.md. Rewrite baselines for "
 									}
 								</span>
+								<span className="text-[#ff7a1a]">agent</span>
+								<span className="text-[#f0ece8]">{" + "}</span>
+								<span className="text-[#ff7a1a]">home</span>
+								<span className="text-[#f0ece8]">?</span>
 								{"\n\n"}
 								<span className="text-[#ff7a1a]">❯</span>
 								<span className="text-[#7a7585]"> </span>

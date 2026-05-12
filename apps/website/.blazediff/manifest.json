@@ -12,12 +12,12 @@
 			},
 			"auth": null,
 			"waitFor": ["networkidle", "fonts"],
-			"mask": [],
+			"mask": ["[data-blazediff-mask=\"report-cycling\"]"],
 			"fullPage": true,
 			"baselinePath": ".blazediff/baselines/agent.png",
-			"captureHash": "sha256:bc4ba75dbc100d4f6c355ad0417421afc85995988ee16ae1407b72cb1fa67176",
+			"captureHash": "sha256:edfcb19c774709bf3494bb8e42359b9519b31d35d15fade0c8291a4dd6c54948",
 			"createdBy": "agent",
-			"createdAt": "2026-05-11"
+			"createdAt": "2026-05-12"
 		},
 		{
 			"id": "docs",
@@ -332,12 +332,12 @@
 			},
 			"auth": null,
 			"waitFor": ["networkidle", "fonts"],
-			"mask": [],
+			"mask": ["iframe"],
 			"fullPage": true,
 			"baselinePath": ".blazediff/baselines/examples-react.png",
-			"captureHash": "sha256:aa8902bb6405ba6bae5701fe6e84c16d8500e38ba91ed354952bbcf668b4e81c",
+			"captureHash": "sha256:b0657c613a1d4a5dfdc2fa533d6d2c265c39ff97945550e67f623e0ca014e687",
 			"createdBy": "agent",
-			"createdAt": "2026-05-11"
+			"createdAt": "2026-05-12"
 		},
 		{
 			"id": "examples-web-components",
@@ -348,12 +348,12 @@
 			},
 			"auth": null,
 			"waitFor": ["networkidle", "fonts"],
-			"mask": [],
+			"mask": ["iframe"],
 			"fullPage": true,
 			"baselinePath": ".blazediff/baselines/examples-web-components.png",
-			"captureHash": "sha256:edba2271d2a633bc08a774d6b05c48bca0be94b51b3084265eb730d4aa66d8a2",
+			"captureHash": "sha256:84be8a2fe0acb8449ff3a7e6b1b7c93f31ee644afcc7e5d13683cbc8f09effdc",
 			"createdBy": "agent",
-			"createdAt": "2026-05-11"
+			"createdAt": "2026-05-12"
 		},
 		{
 			"id": "home",
@@ -369,7 +369,7 @@
 			"baselinePath": ".blazediff/baselines/home.png",
 			"captureHash": "sha256:0139db28f8e97643ea66c981d42b947ef2ce2f241732e1f64b31657bf376a871",
 			"createdBy": "agent",
-			"createdAt": "2026-05-11"
+			"createdAt": "2026-05-12"
 		}
 	]
 }

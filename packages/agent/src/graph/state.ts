@@ -1,6 +1,11 @@
 import { Annotation } from "@langchain/langgraph";
 import type { JudgeBackend } from "../judge";
-import type { CheckReport, CheckResult, ManifestEntry } from "../types";
+import type {
+	CheckReport,
+	CheckResult,
+	Manifest,
+	ManifestEntry,
+} from "../types";
 
 export interface GraphOptions {
 	baseUrl: string;
@@ -29,7 +34,7 @@ export const GraphState = Annotation.Root({
 		reducer: (acc, next) => [...acc, ...next],
 		default: () => [],
 	}),
-	reportPath: Annotation<string | undefined>({
+	manifest: Annotation<Manifest | undefined>({
 		reducer: (acc, next) => next ?? acc,
 		default: () => undefined,
 	}),
