@@ -38,19 +38,19 @@ pub fn classify_change_type(
         confidence: 0.0,
     };
 
-    // Rule 1: RenderingNoise — tiny regions with subtle color delta
+    // Rule 1: RenderingNoise - tiny regions with subtle color delta
     if tiny_region && low_color_delta {
         signals.confidence = 1.0;
         return (ChangeType::RenderingNoise, signals);
     }
 
-    // Rule 2: RenderingNoise — sparse, subtle noise
+    // Rule 2: RenderingNoise - sparse, subtle noise
     if sparse_fill && low_color_delta && low_edge_change {
         signals.confidence = matched_ratio(&[sparse_fill, low_color_delta, low_edge_change]);
         return (ChangeType::RenderingNoise, signals);
     }
 
-    // Rule 3: Addition — blends with background in img1, distinct in img2
+    // Rule 3: Addition - blends with background in img1, distinct in img2
     if blends_bg1 && !blends_bg2 {
         // Boost: img2 gained edges that img1 didn't have
         let edge_boost = low_edge_change && !low_edge_img2;
@@ -58,7 +58,7 @@ pub fn classify_change_type(
         return (ChangeType::Addition, signals);
     }
 
-    // Rule 4: Deletion — distinct in img1, blends with background in img2
+    // Rule 4: Deletion - distinct in img1, blends with background in img2
     if !blends_bg1 && blends_bg2 {
         // Boost: img1 had edges that img2 lost
         let edge_boost = !low_edge_change && low_edge_img2;
@@ -66,7 +66,7 @@ pub fn classify_change_type(
         return (ChangeType::Deletion, signals);
     }
 
-    // Rule 5: ColorChange — edges in both images agree spatially (structure preserved),
+    // Rule 5: ColorChange - edges in both images agree spatially (structure preserved),
     // with meaningful and uniform color delta.
     // Low stddev = uniform shift (true recolor). High stddev = patchy (texture/content change).
     let uniform_delta = color_delta.delta_stddev < color_delta.mean_delta * 0.8 + 0.02;
@@ -75,7 +75,7 @@ pub fn classify_change_type(
         return (ChangeType::ColorChange, signals);
     }
 
-    // Rule 6: ContentChange — fallback
+    // Rule 6: ContentChange - fallback
     signals.confidence = 0.5;
     (ChangeType::ContentChange, signals)
 }

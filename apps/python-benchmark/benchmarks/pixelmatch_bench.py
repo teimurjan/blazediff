@@ -1,4 +1,4 @@
-"""Benchmark pixelmatch (pypi) — PIL-based pixel-by-pixel diff."""
+"""Benchmark pixelmatch (pypi) - PIL-based pixel-by-pixel diff."""
 
 from __future__ import annotations
 

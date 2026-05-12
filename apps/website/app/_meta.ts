@@ -9,6 +9,16 @@ export default {
 			layout: "full",
 		},
 	},
+	agent: {
+		title: "Agent",
+		type: "page",
+		display: "hidden",
+		theme: {
+			toc: false,
+			copyPage: false,
+			layout: "full",
+		},
+	},
 	docs: {
 		title: "Documentation",
 		type: "page",

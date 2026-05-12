@@ -1,6 +1,6 @@
 //! PyO3 bindings for Python integration.
 //!
-//! Mirrors `napi.rs` — exposes a path-based `compare()` and `interpret_images()`
+//! Mirrors `napi.rs` - exposes a path-based `compare()` and `interpret_images()`
 //! to Python via maturin-built wheels.
 
 use crate::{
