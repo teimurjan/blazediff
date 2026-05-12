@@ -10,11 +10,13 @@ interface LandingNavProps {
 	ctaHref: string;
 }
 
-const TABS: { id: Tab; label: string; href: string; external?: boolean }[] = [
+const TABS: { id: Tab; label: string; href: string }[] = [
 	{ id: "home", label: "HOME", href: "/" },
 	{ id: "agent", label: "AGENT", href: "/agent" },
 	{ id: "docs", label: "DOCS", href: "/docs/core" },
 ];
+
+const GITHUB_URL = "https://github.com/teimurjan/blazediff";
 
 export default function LandingNav({
 	activeTab,
@@ -22,7 +24,7 @@ export default function LandingNav({
 	ctaHref,
 }: LandingNavProps) {
 	return (
-		<nav className="bg-[#15151c]/80 backdrop-blur-md font-[var(--font-jetbrains-mono)] text-[14px] uppercase tracking-wider sticky top-0 border-b border-[#2a2a38] z-40">
+		<nav className="bg-surface/80 backdrop-blur-md font-mono text-[14px] uppercase tracking-wider sticky top-0 border-b border-line z-40">
 			<div className="flex justify-between items-center gap-3 w-full px-4 md:px-10 py-2 max-w-screen-2xl mx-auto h-16">
 				<Link
 					href="/"
@@ -36,7 +38,7 @@ export default function LandingNav({
 						className="w-7 h-7 md:w-8 md:h-8 shrink-0"
 						style={{ imageRendering: "pixelated" }}
 					/>
-					<span className="font-[var(--font-space-grotesk)] text-[18px] md:text-[24px] font-black text-[#f0ece8] tracking-tighter truncate">
+					<span className="font-display text-[18px] md:text-[24px] font-black text-fg tracking-tighter truncate">
 						BLAZEDIFF
 					</span>
 				</Link>
@@ -50,8 +52,8 @@ export default function LandingNav({
 								href={tab.href}
 								className={`pb-1 border-b-2 transition-colors duration-300 ${
 									isActive
-										? "text-[#f0ece8] border-[#ff7a1a]"
-										: "text-[#7a7585] border-transparent hover:text-[#f0ece8]"
+										? "text-fg border-accent"
+										: "text-muted border-transparent hover:text-fg"
 								}`}
 							>
 								{tab.label}
@@ -59,10 +61,10 @@ export default function LandingNav({
 						);
 					})}
 					<a
-						href="https://github.com/teimurjan/blazediff"
+						href={GITHUB_URL}
 						target="_blank"
 						rel="noopener noreferrer"
-						className="pb-1 border-b-2 border-transparent text-[#7a7585] hover:text-[#f0ece8] transition-colors duration-300"
+						className="pb-1 border-b-2 border-transparent text-muted hover:text-fg transition-colors duration-300"
 					>
 						GITHUB
 					</a>
@@ -72,31 +74,31 @@ export default function LandingNav({
 					<Link
 						href="/docs/core"
 						aria-label="Docs"
-						className="md:hidden text-[#7a7585] hover:text-[#f0ece8] transition-colors"
+						className="md:hidden text-muted hover:text-fg transition-colors"
 					>
 						<IconBook size={20} />
 					</Link>
 					<a
-						href="https://github.com/teimurjan/blazediff"
+						href={GITHUB_URL}
 						target="_blank"
 						rel="noopener noreferrer"
 						aria-label="GitHub"
-						className="md:hidden text-[#7a7585] hover:text-[#f0ece8] transition-colors"
+						className="md:hidden text-muted hover:text-fg transition-colors"
 					>
 						<IconBrandGithub size={20} />
 					</a>
 					<a
-						href="https://github.com/teimurjan/blazediff"
+						href={GITHUB_URL}
 						target="_blank"
 						rel="noopener noreferrer"
-						className="hidden lg:flex items-center gap-2 px-3 py-1 bg-[#1c1c26] border border-[#2a2a38] text-[12px] tracking-wider hover:border-[#ff7a1a]/60 transition-colors"
+						className="hidden lg:flex items-center gap-2 px-3 py-1 bg-terminal border border-line text-[12px] tracking-wider hover:border-accent/60 transition-colors"
 					>
-						<IconBrandGithub size={14} className="text-[#ff7a1a]" />
-						<span className="text-[#f0ece8]">STAR</span>
+						<IconBrandGithub size={14} className="text-accent" />
+						<span className="text-fg">STAR</span>
 					</a>
 					<Link
 						href={ctaHref}
-						className="bg-[#ff7a1a] text-[#0a0a0f] font-[var(--font-jetbrains-mono)] px-3 py-1.5 text-[11px] md:px-6 md:py-2 md:text-[14px] whitespace-nowrap hover:bg-opacity-90 hover:shadow-[0_0_12px_rgba(255,122,26,0.4)] transition-all"
+						className="bg-accent text-canvas font-mono px-3 py-1.5 text-[11px] md:px-6 md:py-2 md:text-[14px] whitespace-nowrap hover:bg-opacity-90 hover:shadow-[0_0_12px_rgba(255,122,26,0.4)] transition-all"
 					>
 						{ctaLabel}
 					</Link>

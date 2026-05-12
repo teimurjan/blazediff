@@ -244,30 +244,31 @@ When a diff is `noise-likely` - or when a `regression-likely` / `intentional-lik
 
 **Don't mask** real content that just happens to be changing - that's the change you want the test to catch.
 
-### Picking a selector
+### Default attribute
 
-Masks are CSS selectors passed to `document.querySelectorAll`, then painted with a magenta rect over the bounding rect in both baseline and actual.
+The agent always masks any element matching `[data-blazediff-agent-mask]`. No manifest changes are needed. This is the preferred path whenever you can edit the source.
 
-- Prefer a stable, intent-revealing attribute. Add `data-blazediff-mask="<reason>"` to the component root in source and select on it:
+```tsx
+<div data-blazediff-agent-mask>...</div>
+// or with a reason inline:
+<div data-blazediff-agent-mask="report-carousel">...</div>
+```
 
-  ```tsx
-  <div data-blazediff-mask="report-carousel" className="...">
-    ...
-  </div>
-  ```
+The attribute value is ignored by the matcher (presence is enough); use it to document intent for future readers. Add the attribute to a shared component (layout, header, footer) and the mask applies on every route automatically.
 
-- For external/third-party embeds you can't annotate, target the element type: `iframe`, `video`, `[data-testid="storybook-preview"]`.
-- Avoid Tailwind class chains and `nth-child` selectors - they break on the next style tweak.
-- Scope matters: each manifest entry has its own `mask` array, so `iframe` on `/examples/web-components` won't affect `/home`.
+### Per-entry selector (fallback)
 
-### Applying a mask
+When you can't edit the source (third-party iframe, framework-owned element), fall back to a CSS selector on the manifest entry. Selectors are passed to `document.querySelectorAll`, then painted with a magenta rect over the bounding rect in both baseline and actual.
 
-Re-capture the affected entries with the new mask list. The mask list **replaces** the existing one - include every selector you want kept.
+- For external embeds, target the element type: `iframe`, `video`, `[data-testid="storybook-preview"]`.
+- Avoid Tailwind class chains and `nth-child` selectors. They break on the next style tweak.
+- Scope matters. Each manifest entry has its own `mask` array, so `iframe` on `/examples/web-components` won't affect `/home`.
+
+Re-capture the affected entries with the new mask list. The mask list **replaces** the existing one. Include every selector you want kept.
 
 ```sh
 cat <<'EOF' | blazediff-agent capture --stdin --mode baseline --json
 [
-  {"id": "agent", "url": "/agent", "mask": ["[data-blazediff-mask=\"report-carousel\"]"]},
   {"id": "examples-web-components", "url": "/examples/web-components", "mask": ["iframe"]}
 ]
 EOF

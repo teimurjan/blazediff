@@ -82,9 +82,17 @@ This handoff was designed for vision-token efficiency: the region tiles are 10â€
 
 ## Masking unstable regions
 
-Auto-cycling carousels, third-party iframes, clocks, randomized avatars and other non-deterministic content should be masked, not re-baselined. Masks are CSS selectors per manifest entry, painted with a magenta rectangle in both baseline and actual so the diff is zeroed.
+Auto-cycling carousels, third-party iframes, clocks, randomized avatars and other non-deterministic content should be masked, not re-baselined. The agent paints a magenta rectangle over each masked region in both baseline and actual, so the diff is zeroed.
 
-Prefer a stable attribute on the source element (`data-blazediff-mask="<reason>"`) and select on it; for external embeds you can't annotate, target the element type (`iframe`, `video`). Re-capture with the mask via `capture --stdin --mode baseline` - the mask list replaces the existing one. See the SKILL playbook for full guidance.
+The default and preferred path: add `data-blazediff-agent-mask` to the source element. The agent auto-masks anything matching `[data-blazediff-agent-mask]` on every route. No manifest changes needed.
+
+```tsx
+<div data-blazediff-agent-mask>...</div>
+// or with a reason inline:
+<div data-blazediff-agent-mask="report-carousel">...</div>
+```
+
+For external embeds you can't annotate (third-party iframes, framework-owned elements), fall back to a per-entry CSS selector in `manifest.entries[].mask` and re-capture via `capture --stdin --mode baseline`. The mask list replaces the existing one. See the SKILL playbook for full guidance.
 
 ## Configuration
 

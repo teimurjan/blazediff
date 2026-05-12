@@ -22,28 +22,34 @@ const inter = Inter({
 
 export const metadata = {
 	title: {
-		default: "BlazeDiff - High-Performance Image Comparison",
+		default: "BlazeDiff. Open-source image diff for CI, in Rust.",
 		template: "%s | BlazeDiff",
 	},
 	description:
-		"BlazeDiff is a high-performance image comparison ecosystem. Built with cutting-edge algorithms and optimized for speed, BlazeDiff provides tools for comparing content, visualizing differences, and integrating diff functionality into your applications.",
+		"Open-source image and object diffing. Rust core with SIMD. Up to 8x faster than pixelmatch on 4K, 3 to 4x faster than odiff. Ships matchers for Jest, Vitest, Bun, plus an agent that drives visual regression from Claude Code, Cursor, and Codex.",
 	keywords: [
 		"image comparison",
+		"visual regression",
 		"diff",
 		"pixelmatch",
-		"visual testing",
-		"image diff",
+		"odiff",
+		"ssim",
+		"playwright",
+		"rust",
+		"simd",
 		"blazediff",
 		"typescript",
-		"react",
+		"claude code",
+		"cursor",
+		"codex",
 	],
 	authors: [{ name: "Teimur Gasanov" }],
 	creator: "Teimur Gasanov",
 	publisher: "Teimur Gasanov",
 	openGraph: {
-		title: "BlazeDiff - High-Performance Image Comparison",
+		title: "BlazeDiff. Open-source image diff for CI, in Rust.",
 		description:
-			"High-performance image comparison library. 1.5x faster than pixelmatch while maintaining identical accuracy.",
+			"Open-source image and object diffing. Rust core with SIMD. Up to 8x faster than pixelmatch on 4K, 3 to 4x faster than odiff. Ships matchers for Jest, Vitest, Bun, plus an agent that drives visual regression from Claude Code, Cursor, and Codex.",
 		url: "https://blazediff.dev",
 		siteName: "BlazeDiff",
 		locale: "en_US",
@@ -51,9 +57,9 @@ export const metadata = {
 	},
 	twitter: {
 		card: "summary_large_image",
-		title: "BlazeDiff - High-Performance Image Comparison",
+		title: "BlazeDiff. Open-source image diff for CI, in Rust.",
 		description:
-			"High-performance image comparison library. 1.5x faster than pixelmatch while maintaining identical accuracy.",
+			"Open-source image and object diffing. Rust core with SIMD. Up to 8x faster than pixelmatch on 4K, 3 to 4x faster than odiff. Ships matchers for Jest, Vitest, Bun, plus an agent that drives visual regression from Claude Code, Cursor, and Codex.",
 	},
 	robots: {
 		index: true,

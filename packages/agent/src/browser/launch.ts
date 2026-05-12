@@ -147,11 +147,14 @@ export async function waitForStability(
 	}
 }
 
+export const DEFAULT_MASK_ATTR = "data-blazediff-agent-mask";
+const DEFAULT_MASK_SELECTOR = `[${DEFAULT_MASK_ATTR}]`;
+
 export async function applyMaskOverlays(
 	page: Page,
 	masks: string[],
 ): Promise<void> {
-	if (!masks.length) return;
+	const selectors = [DEFAULT_MASK_SELECTOR, ...masks];
 	await page.evaluate((selectors) => {
 		for (const sel of selectors) {
 			for (const el of Array.from(
@@ -171,5 +174,5 @@ export async function applyMaskOverlays(
 				document.body.appendChild(overlay);
 			}
 		}
-	}, masks);
+	}, selectors);
 }

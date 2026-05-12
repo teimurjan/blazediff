@@ -12,7 +12,7 @@
 			},
 			"auth": null,
 			"waitFor": ["networkidle", "fonts"],
-			"mask": ["[data-blazediff-mask=\"report-cycling\"]"],
+			"mask": [],
 			"fullPage": true,
 			"baselinePath": ".blazediff/baselines/agent.png",
 			"captureHash": "sha256:edfcb19c774709bf3494bb8e42359b9519b31d35d15fade0c8291a4dd6c54948",

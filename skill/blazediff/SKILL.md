@@ -81,7 +81,7 @@ When the user asks to wipe blazediff's state and start over (manifest stale beyo
    ```
    Entries: `{ id, url, mask?, viewport?, waitFor?, fullPage?, mode? }`. Only `id` and `url` required. Manifest entries are written automatically (pass `--no-manifest` to skip).
    - `id`: semantic kebab-case (`home`, `pricing`, `docs-getting-started`), not URL slug.
-   - `mask`: CSS selectors for unstable regions (timestamps, randomized IDs, avatars, "X ago" times, carousels, third-party iframes). Omit if none. See `MASKING.md` for selector-picking guidance.
+   - `mask`: CSS selectors for unstable regions (timestamps, randomized IDs, avatars, "X ago" times, carousels, third-party iframes). Omit if none. The agent always masks `[data-blazediff-agent-mask]` automatically, so prefer tagging the source element when you can edit it. See `MASKING.md` for full guidance.
 7. **Teardown — ALWAYS run, even on error.** If `config.devServer` is non-null, run `blazediff-agent --cwd "$TARGET" serve-status --kill --json` as the very last step regardless of capture success/failure. The CLI kills by tracked PID first, then falls back to whatever process is listening on the configured port — so it cleans up stale dev servers from prior crashed runs too. If the kill returns `stopped: false`, no server was running; that's fine. Wrap your capture call so this step runs even if capture failed mid-list (shell `trap`, try/finally in the host agent's flow, etc.).
 8. **Final summary line.** Suggest `git add .blazediff/ && git commit`.
 
