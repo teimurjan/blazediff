@@ -33,6 +33,7 @@ const CHROMIUM_FLAGS = [
 
 let cachedBrowser: Browser | null = null;
 let launchInFlight: Promise<Browser> | null = null;
+const contextPool = new Map<string, BrowserContext[]>();
 
 export async function getBrowser(): Promise<Browser> {
 	if (cachedBrowser?.isConnected()) return cachedBrowser;
@@ -53,22 +54,24 @@ export async function closeBrowser(): Promise<void> {
 	if (launchInFlight) {
 		await launchInFlight.catch(() => {});
 	}
+	const ctxs = Array.from(contextPool.values()).flat();
+	contextPool.clear();
+	await Promise.all(ctxs.map((c) => c.close().catch(() => {})));
 	if (!cachedBrowser) return;
 	await cachedBrowser.close().catch(() => {});
 	cachedBrowser = null;
 }
 
-export interface StablePageOptions {
-	viewport: Viewport;
-	masks?: string[];
+function viewportKey(v: Viewport): string {
+	return `${v.width}x${v.height}`;
 }
 
-export async function openStableContext(
-	opts: StablePageOptions,
-): Promise<{ context: BrowserContext; page: Page }> {
+async function createStableContext(
+	viewport: Viewport,
+): Promise<BrowserContext> {
 	const browser = await getBrowser();
 	const context = await browser.newContext({
-		viewport: opts.viewport,
+		viewport,
 		deviceScaleFactor: 1,
 		reducedMotion: "reduce",
 		forcedColors: "none",
@@ -115,13 +118,52 @@ export async function openStableContext(
 		{ frozenNow: FROZEN_NOW },
 	);
 
-	const page = await context.newPage();
-	// Re-inject stability CSS on every load - addStyleTag requires a loaded page.
+	return context;
+}
+
+export interface StableContextHandle {
+	context: BrowserContext;
+	viewport: Viewport;
+}
+
+export async function acquireStableContext(
+	viewport: Viewport,
+): Promise<StableContextHandle> {
+	const key = viewportKey(viewport);
+	const pool = contextPool.get(key);
+	if (pool && pool.length > 0) {
+		const context = pool.pop() as BrowserContext;
+		return { context, viewport };
+	}
+	const context = await createStableContext(viewport);
+	return { context, viewport };
+}
+
+export async function releaseStableContext(
+	handle: StableContextHandle,
+): Promise<void> {
+	const key = viewportKey(handle.viewport);
+	if (!cachedBrowser?.isConnected()) {
+		await handle.context.close().catch(() => {});
+		return;
+	}
+	const pool = contextPool.get(key);
+	if (pool) {
+		pool.push(handle.context);
+	} else {
+		contextPool.set(key, [handle.context]);
+	}
+}
+
+export async function openStablePage(
+	handle: StableContextHandle,
+): Promise<Page> {
+	const page = await handle.context.newPage();
 	const injectStability = () =>
 		page.addStyleTag({ content: STABILITY_CSS }).catch(() => {});
 	await injectStability();
 	page.on("load", injectStability);
-	return { context, page };
+	return page;
 }
 
 export async function waitForStability(

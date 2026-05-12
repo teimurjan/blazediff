@@ -7,6 +7,35 @@ export function parseViewport(value: string): Viewport {
 	return { width: w, height: h };
 }
 
+export function parsePositiveInteger(value: string, flagName: string): number {
+	const parsed = Number(value);
+	if (!Number.isInteger(parsed) || parsed < 1) {
+		throw new Error(`invalid ${flagName}: ${value} (expected integer >= 1)`);
+	}
+	return parsed;
+}
+
+export function parsePort(value: string, flagName = "--port"): number {
+	const parsed = parsePositiveInteger(value, flagName);
+	if (parsed > 65_535) {
+		throw new Error(
+			`invalid ${flagName}: ${value} (expected integer <= 65535)`,
+		);
+	}
+	return parsed;
+}
+
+export function parseThreshold(
+	value: string,
+	flagName = "--threshold",
+): number {
+	const parsed = Number(value);
+	if (!Number.isFinite(parsed) || parsed < 0 || parsed > 1) {
+		throw new Error(`invalid ${flagName}: ${value} (expected number 0-1)`);
+	}
+	return parsed;
+}
+
 export function parseMaskList(value: string): string[] {
 	return value
 		.split(",")

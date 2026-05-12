@@ -1,5 +1,5 @@
 import { existsSync, statSync } from "node:fs";
-import { readdir } from "node:fs/promises";
+import { readdir, rm } from "node:fs/promises";
 import path from "node:path";
 import type { Command } from "commander";
 import { type CaptureRouteInput, runCaptures } from "../../captures";
@@ -13,6 +13,36 @@ interface Opts {
 	failed?: boolean;
 	all?: boolean;
 	baseUrl?: string;
+}
+
+// Artifacts from the previous check (actual screenshots, diff PNGs, judgment
+// folders) describe a comparison against the OLD baseline. Once that baseline
+// is rewritten, those artifacts are stale; summary.md + the suspended graph
+// checkpoint are stale regardless of which ids were rewritten.
+async function cleanupAfterRewrite(
+	rewrittenIds: string[],
+	scopeAll: boolean,
+): Promise<void> {
+	const p = paths();
+	if (scopeAll) {
+		await Promise.all([
+			rm(p.actual, { recursive: true, force: true }),
+			rm(p.judgments, { recursive: true, force: true }),
+			rm(p.checkpoints, { recursive: true, force: true }),
+			rm(p.summary, { force: true }),
+		]);
+		return;
+	}
+	const perId = rewrittenIds.flatMap((id) => [
+		rm(path.join(p.actual, `${id}.png`), { force: true }),
+		rm(path.join(p.actual, `${id}.diff.png`), { force: true }),
+		rm(path.join(p.judgments, id), { recursive: true, force: true }),
+	]);
+	await Promise.all([
+		...perId,
+		rm(p.summary, { force: true }),
+		rm(p.checkpoints, { recursive: true, force: true }),
+	]);
 }
 
 async function resolveTargets(
@@ -92,6 +122,11 @@ export function registerRewrite(program: Command, out: Output): void {
 				mode: "baseline",
 				writeManifest: true,
 			});
+
+			const succeededIds = report.results.filter((r) => r.ok).map((r) => r.id);
+			if (succeededIds.length > 0) {
+				await cleanupAfterRewrite(succeededIds, Boolean(opts.all));
+			}
 
 			const failureLines = report.results
 				.filter((r) => !r.ok)

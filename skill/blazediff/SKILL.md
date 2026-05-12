@@ -13,7 +13,7 @@ Sibling files in this skill directory — read on demand:
 
 ## Be terse
 - Pass `--json` on every `blazediff-agent` call; parse fields. Do not echo CLI output.
-- `check`/`run --json` returns a **slim payload**: `{ summaryPath, createdAt, totalEntries, passed, failed, pendingJudgments, results }`. `results` lists non-pass entries only, each as `{ id, url, status, verdict?: { label, headline, action } }`. The full per-entry detail (regions, paths, rationale) lives in `<TARGET>/.blazediff/summary.md` and `<TARGET>/.blazediff/judgments/<id>/request.json`.
+- `check --json` returns a **slim payload**: `{ summaryPath, createdAt, totalEntries, passed, failed, pendingJudgments, results }`. `results` lists non-pass entries only, each as `{ id, url, status, verdict?: { label, headline, action } }`. The full per-entry detail (regions, paths, rationale) lives in `<TARGET>/.blazediff/summary.md` and `<TARGET>/.blazediff/judgments/<id>/request.json`.
 - Authoring uses ONE `capture --stdin` call piped a JSON list of routes — never a per-route loop.
 - No `ls`, `cat`, `find` for paths the CLI already returns.
 - One final summary line — for authoring: `N captured | M skipped (reasons) | K auth-gated`; for check: `P/T passed (F failed)` plus failure ids.
@@ -31,8 +31,7 @@ Sibling files in this skill directory — read on demand:
 - Else → **authoring**.
 
 ## check
-1. `blazediff-agent --cwd "$TARGET" check --judge host --json` (the CLI starts the dev server if `devServer` is configured; otherwise hits the configured baseUrl directly).
-   - Prefer `run` instead for large sites (≥10 routes): `blazediff-agent --cwd "$TARGET" run --judge host --json`. Same flags, same report shape — it just pipelines capture → diff → verdict → judge through a LangGraph state graph so per-entry stages overlap. Use `check` when you want the simpler, single-pool implementation; `run` when wall-time matters or you want LangSmith traces.
+1. `blazediff-agent --cwd "$TARGET" check --judge host --json` (the CLI starts the dev server if `devServer` is configured; otherwise hits the configured baseUrl directly). Capture, diff, verdict, and judge run through a LangGraph state graph so per-entry stages overlap.
    - **Cold Next.js / Vite servers** can take 5–30s to compile a route on first hit; under default 30s `page.goto` timeout the first route in a fresh dev session sometimes times out (`page.goto: Timeout 30000ms exceeded`). If that happens, **rerun the same `check` command** — the dev server is now warm and the next pass usually completes. Don't change `waitFor` or restart the dev server; the issue is one-time compilation, not a routing or wait-condition bug.
    - **Codex sandbox / restricted-bash environments** may block Playwright's chromium launch (`browserType.launch: Target page, context or browser has been closed`). Rerun with the sandbox/escape escalation the host agent provides (in Codex: approve the command for "always run outside sandbox"). Not a blazediff bug.
 2. Pass: report `P/T passed`. Stop.

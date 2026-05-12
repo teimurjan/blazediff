@@ -8,8 +8,10 @@ import {
 import { paths } from "../paths";
 import type { CaptureOptions } from "../types";
 import {
+	acquireStableContext,
 	applyMaskOverlays,
-	openStableContext,
+	openStablePage,
+	releaseStableContext,
 	waitForStability,
 } from "./launch";
 
@@ -30,7 +32,8 @@ export async function captureScreenshot(
 	const masks = opts.mask ?? [];
 	const fullPage = opts.fullPage ?? DEFAULT_FULL_PAGE;
 
-	const { context, page } = await openStableContext({ viewport, masks });
+	const handle = await acquireStableContext(viewport);
+	const page = await openStablePage(handle);
 	try {
 		const url = new URL(opts.url, baseUrl).toString();
 		await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30_000 });
@@ -55,6 +58,7 @@ export async function captureScreenshot(
 
 		return { id: opts.id, outputPath, mode: opts.mode, bytes: buffer.length };
 	} finally {
-		await context.close().catch(() => {});
+		await page.close().catch(() => {});
+		await releaseStableContext(handle);
 	}
 }

@@ -1,38 +1,12 @@
 import type { Command } from "commander";
-import { runCheck } from "../../check";
 import { loadConfig, resolveBaseUrl } from "../../config";
 import { DEFAULT_THRESHOLD } from "../../defaults";
-import { applyJudgments, type JudgeBackend } from "../../judge";
+import { type RunEvent, runGraph } from "../../graph";
+import { applyJudgments } from "../../judge";
 import { paths } from "../../paths";
-import type { CheckReport, CheckResult } from "../../types";
+import { failureLines, parseJudge, slimReport } from "../check-output";
 import type { Output } from "../output";
-
-function slimResult(r: CheckResult) {
-	return {
-		id: r.id,
-		url: r.url,
-		status: r.status,
-		verdict: r.verdict
-			? {
-					label: r.verdict.label,
-					headline: r.verdict.headline,
-					action: r.verdict.action,
-				}
-			: undefined,
-	};
-}
-
-function slimReport(report: CheckReport, summaryPath: string) {
-	return {
-		summaryPath,
-		createdAt: report.createdAt,
-		totalEntries: report.totalEntries,
-		passed: report.passed,
-		failed: report.failed,
-		pendingJudgments: report.pendingJudgments,
-		results: report.results.filter((r) => r.status !== "pass").map(slimResult),
-	};
-}
+import { parsePositiveInteger, parseThreshold } from "../parsers";
 
 interface Opts {
 	baseUrl?: string;
@@ -44,35 +18,51 @@ interface Opts {
 	applyJudgments?: boolean;
 }
 
-function failureLines(results: CheckResult[]): string[] {
-	return results
-		.filter((r) => r.status !== "pass")
-		.flatMap((r) => {
-			const lines: string[] = [];
-			const prefix = r.status === "needs-judgment" ? "?" : "✗";
-			if (r.verdict) {
-				lines.push(
-					`  ${prefix} ${r.id}  [${r.verdict.label}]  ${r.verdict.headline}`,
-				);
-				lines.push(`      → ${r.verdict.action}`);
-			} else {
-				const detail =
-					typeof r.diffPercentage === "number"
-						? `${r.status} (${r.diffPercentage.toFixed(3)}%)`
-						: r.status;
-				lines.push(`  ${prefix} ${r.id}: ${detail}`);
-			}
-			if (r.status === "needs-judgment" && r.message) {
-				lines.push(`      ${r.message}`);
-			}
-			if (r.diffPath) lines.push(`      diff: ${r.diffPath}`);
-			return lines;
-		});
+function glyphFor(status: string): string {
+	switch (status) {
+		case "pass":
+			return "✓";
+		case "needs-judgment":
+			return "?";
+		case "stale-baseline":
+		case "missing-baseline":
+			return "!";
+		default:
+			return "✗";
+	}
 }
 
-function parseJudge(input: string): JudgeBackend {
-	if (input === "host" || input === "none") return input;
-	throw new Error(`unknown --judge backend: ${input} (expected: host | none)`);
+function makeProgressReporter(out: Output) {
+	if (out.isJson() || out.isQuiet()) return undefined;
+	let done = 0;
+	let total = 0;
+	const counter = () => (total > 0 ? `[${done}/${total}]` : `[${done}]`);
+	return (event: RunEvent) => {
+		if (event.type === "report") {
+			total = event.report.totalEntries;
+			return;
+		}
+		if (event.type === "result") {
+			done += 1;
+			const r = event.result;
+			const detail =
+				r.status === "fail" && typeof r.diffPercentage === "number"
+					? `  (${r.diffPercentage.toFixed(3)}%)`
+					: r.status !== "pass" && r.message
+						? `  (${r.message})`
+						: "";
+			process.stderr.write(
+				`${counter()} ${glyphFor(r.status)} ${r.id}${detail}\n`,
+			);
+			return;
+		}
+		if (event.type === "interrupt") {
+			done += 1;
+			process.stderr.write(
+				`${counter()} ? ${event.interrupt.entryId}  (awaiting judgment)\n`,
+			);
+		}
+	};
 }
 
 export function registerCheck(program: Command, out: Output): void {
@@ -87,7 +77,7 @@ export function registerCheck(program: Command, out: Output): void {
 		)
 		.option(
 			"--concurrency <n>",
-			"max entries checked in parallel (default: auto based on CPU cores, capped at 8)",
+			"max entries captured in parallel (default: auto based on CPU cores, capped at 8)",
 		)
 		.option("--no-diff-png", "skip writing diff PNGs")
 		.option("--junit <path>", "write JUnit XML to this path (default: skipped)")
@@ -98,11 +88,14 @@ export function registerCheck(program: Command, out: Output): void {
 		)
 		.option(
 			"--apply-judgments",
-			"regenerate summary.md from .blazediff/judgments/<id>/verdict.json files (no re-check)",
+			"resume the suspended graph using .blazediff/judgments/<id>/verdict.json files",
 		)
 		.action(async (opts: Opts) => {
 			if (opts.applyJudgments) {
-				const { report, applied, missing, invalid } = await applyJudgments();
+				const { report, applied, missing, invalid } = await applyJudgments({
+					onEvent: makeProgressReporter(out),
+					junitPath: opts.junit,
+				});
 				const summaryPath = paths().summary;
 				const human =
 					applied.length === 0 && missing.length === 0 && invalid.length === 0
@@ -135,13 +128,16 @@ export function registerCheck(program: Command, out: Output): void {
 			}
 
 			const baseUrl = resolveBaseUrl(await loadConfig(), opts.baseUrl);
-			const report = await runCheck({
+			const report = await runGraph({
 				baseUrl,
-				threshold: Number(opts.threshold),
-				concurrency: opts.concurrency ? Number(opts.concurrency) : undefined,
+				threshold: parseThreshold(opts.threshold),
+				concurrency: opts.concurrency
+					? parsePositiveInteger(opts.concurrency, "--concurrency")
+					: undefined,
 				emitDiffPng: opts.diffPng,
 				junitPath: opts.junit,
 				judge: parseJudge(opts.judge),
+				onEvent: makeProgressReporter(out),
 			});
 
 			const summaryPath = paths().summary;

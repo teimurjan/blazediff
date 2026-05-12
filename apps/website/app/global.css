@@ -25,6 +25,12 @@
 
 html {
 	--nextra-content-width: 80rem;
+	background-color: var(--color-canvas);
+	color-scheme: dark;
+}
+
+body {
+	background-color: var(--color-canvas);
 }
 
 .nextra-navbar > nav {

@@ -15,7 +15,7 @@ export default function AgentTerminalDemo() {
 			<span className="text-accent">⏺</span>
 			<span className="text-fg"> Bash(</span>
 			<span className="text-muted">
-				blazediff-agent run --judge host --json
+				blazediff-agent check --judge host --json
 			</span>
 			<span className="text-fg">)</span>
 			{"\n"}

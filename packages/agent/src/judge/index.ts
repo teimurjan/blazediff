@@ -5,7 +5,7 @@ import type { Judge, JudgeBackend } from "./types";
 export type { ApplyJudgmentsResult } from "./apply";
 export { applyJudgments } from "./apply";
 export type { JudgmentRequest } from "./persist";
-export { writeJudgments } from "./persist";
+export { signatureOf, writeJudgments } from "./persist";
 export type {
 	Judge,
 	JudgeBackend,

@@ -94,6 +94,11 @@ export const metadata = {
 	manifest: "/site.webmanifest",
 };
 
+export const viewport = {
+	themeColor: "#0a0a0f",
+	colorScheme: "dark",
+};
+
 export default function RootLayout({
 	children,
 }: {
@@ -106,7 +111,7 @@ export default function RootLayout({
 			className={`${spaceGrotesk.variable} ${jetbrainsMono.variable} ${inter.variable}`}
 			suppressHydrationWarning
 		>
-			<Head />
+			<Head backgroundColor={{ light: "#0a0a0f", dark: "#0a0a0f" }} />
 			<body>{children}</body>
 		</html>
 	);

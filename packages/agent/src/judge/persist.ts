@@ -1,5 +1,11 @@
-import { existsSync } from "node:fs";
-import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
+import {
+	access,
+	mkdir,
+	readdir,
+	readFile,
+	rm,
+	writeFile,
+} from "node:fs/promises";
 import path from "node:path";
 import type { Verdict } from "../diff/verdict";
 import { paths } from "../paths";
@@ -54,12 +60,21 @@ function relTo(cwd: string, abs?: string): string | undefined {
 	return path.relative(cwd, abs).split(path.sep).join("/");
 }
 
-function signatureOf(r: CheckResult): string {
+export function signatureOf(r: CheckResult): string {
 	const pct =
 		typeof r.diffPercentage === "number" ? r.diffPercentage.toFixed(4) : "?";
 	const regions = r.regions?.length ?? 0;
 	const severity = r.severity ?? "?";
 	return `${r.status}|diff:${pct}|regions:${regions}|severity:${severity}`;
+}
+
+async function fileExists(p: string): Promise<boolean> {
+	try {
+		await access(p);
+		return true;
+	} catch {
+		return false;
+	}
 }
 
 async function readJsonOrNull<T>(file: string): Promise<T | null> {
@@ -129,9 +144,13 @@ async function discoverTiles(dir: string): Promise<{
 }> {
 	const locatorAbs = path.join(dir, "locator.png");
 	const tilesAbs = path.join(dir, "regions.png");
+	const [locator, tiles] = await Promise.all([
+		fileExists(locatorAbs),
+		fileExists(tilesAbs),
+	]);
 	return {
-		locatorPath: existsSync(locatorAbs) ? "locator.png" : undefined,
-		tilesPath: existsSync(tilesAbs) ? "regions.png" : undefined,
+		locatorPath: locator ? "locator.png" : undefined,
+		tilesPath: tiles ? "regions.png" : undefined,
 	};
 }
 
@@ -151,52 +170,57 @@ export async function writeJudgments(
 	const knownIds = new Set<string>();
 	for (const r of opts.report.results) knownIds.add(r.id);
 
-	for (const result of opts.report.results) {
-		const dir = path.join(root, result.id);
+	await Promise.all(
+		opts.report.results.map(async (result) => {
+			const dir = path.join(root, result.id);
 
-		if (result.status === "pass") {
-			if (existsSync(dir)) await rm(dir, { recursive: true, force: true });
-			continue;
-		}
+			if (result.status === "pass") {
+				if (await fileExists(dir))
+					await rm(dir, { recursive: true, force: true });
+				return;
+			}
 
-		const entry = entryById(opts.manifest, result.id);
-		if (!entry) continue;
+			const entry = entryById(opts.manifest, result.id);
+			if (!entry) return;
 
-		await mkdir(dir, { recursive: true });
-		const tiles = await discoverTiles(dir);
-		const request = buildRequest(result, entry, cwd, tiles);
+			await mkdir(dir, { recursive: true });
+			const tiles = await discoverTiles(dir);
+			const request = buildRequest(result, entry, cwd, tiles);
 
-		const requestFile = path.join(dir, "request.json");
-		const prior = await readJsonOrNull<JudgmentRequest>(requestFile);
-		const verdictFile = path.join(dir, "verdict.json");
-		const priorVerdict = existsSync(verdictFile)
-			? await readJsonOrNull<VerdictFile>(verdictFile)
-			: null;
+			const requestFile = path.join(dir, "request.json");
+			const verdictFile = path.join(dir, "verdict.json");
+			const [prior, priorVerdict] = await Promise.all([
+				readJsonOrNull<JudgmentRequest>(requestFile),
+				fileExists(verdictFile).then((exists) =>
+					exists ? readJsonOrNull<VerdictFile>(verdictFile) : null,
+				),
+			]);
 
-		const signatureMatches =
-			prior !== null && prior.signature === request.signature;
+			const signatureMatches =
+				prior !== null && prior.signature === request.signature;
 
-		await writeFile(
-			requestFile,
-			`${JSON.stringify(request, null, 2)}\n`,
-			"utf8",
-		);
-
-		if (priorVerdict && signatureMatches) {
-			continue;
-		}
-
-		const auto = autoVerdict(result);
-		if (auto) {
 			await writeFile(
-				verdictFile,
-				`${JSON.stringify(auto, null, 2)}\n`,
+				requestFile,
+				`${JSON.stringify(request, null, 2)}\n`,
 				"utf8",
 			);
-		} else if (priorVerdict && !signatureMatches) {
-			await rm(verdictFile, { force: true });
-		}
-	}
+
+			if (priorVerdict && signatureMatches) {
+				return;
+			}
+
+			const auto = autoVerdict(result);
+			if (auto) {
+				await writeFile(
+					verdictFile,
+					`${JSON.stringify(auto, null, 2)}\n`,
+					"utf8",
+				);
+			} else if (priorVerdict && !signatureMatches) {
+				await rm(verdictFile, { force: true });
+			}
+		}),
+	);
 
 	let entries: string[];
 	try {
@@ -204,8 +228,11 @@ export async function writeJudgments(
 	} catch {
 		return;
 	}
-	for (const name of entries) {
-		if (knownIds.has(name)) continue;
-		await rm(path.join(root, name), { recursive: true, force: true });
-	}
+	await Promise.all(
+		entries
+			.filter((name) => !knownIds.has(name))
+			.map((name) =>
+				rm(path.join(root, name), { recursive: true, force: true }),
+			),
+	);
 }

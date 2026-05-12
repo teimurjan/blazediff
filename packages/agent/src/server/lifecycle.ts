@@ -110,11 +110,11 @@ export async function startServer(opts: StartOptions): Promise<ServerHandle> {
 		};
 	}
 
-	const [bin, ...args] = parseCommand(opts.command);
-	const child = spawn(bin, args, {
+	const child = spawn(opts.command, {
 		cwd,
 		stdio: ["ignore", "pipe", "pipe"],
 		detached: true,
+		shell: true,
 		env: { ...process.env, FORCE_COLOR: "0", CI: "1" },
 	});
 
@@ -195,28 +195,6 @@ export async function stopProcess(pid: number): Promise<void> {
 			resolve();
 		});
 	});
-}
-
-function parseCommand(command: string): string[] {
-	const out: string[] = [];
-	let current = "";
-	let inQuote = false;
-	for (const ch of command) {
-		if (ch === '"') {
-			inQuote = !inQuote;
-			continue;
-		}
-		if (ch === " " && !inQuote) {
-			if (current) {
-				out.push(current);
-				current = "";
-			}
-			continue;
-		}
-		current += ch;
-	}
-	if (current) out.push(current);
-	return out;
 }
 
 let signalsInstalled = false;
