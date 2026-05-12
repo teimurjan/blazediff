@@ -25,18 +25,14 @@ Paste this file into any coding agent (Claude Code, Codex, Cursor, …) and tell
 
 2. **Playwright Chromium.** Run `blazediff-agent browsers install --check --json`. If it reports `installed: false`, run `blazediff-agent browsers install`. This uses the bundled playwright — no `npx playwright install`, no `--with-deps`, no sudo. On Linux, if the chromium binary fails to launch later due to missing system libs, the user can run `npx playwright install-deps chromium` themselves; the install itself never needs root.
 
-3. **Skill file.** Fetch the canonical SKILL.md and write it to one of:
-   - **Claude Code (project-scope, preferred when inside a git project):** `<project>/.claude/skills/blazediff/SKILL.md`
-   - **Claude Code (user-wide):** `~/.claude/skills/blazediff/SKILL.md`
-   - **Codex (user-wide):** `~/.codex/skills/blazediff/SKILL.md`
-   - **Cursor / other:** ask the user where their custom commands or skills live.
+3. **Skill file.** Run `blazediff-agent onboard --json`. It auto-detects the active harness in `cwd` (Claude Code, Codex, Cursor) and writes the bundled playbook to the right location:
+   - **Claude Code (project-scope):** `<project>/.claude/skills/blazediff/SKILL.md`
+   - **Codex (user-global):** `~/.codex/prompts/blazediff.md` — Codex CLI looks here for slash-command prompts
+   - **Cursor (project-scope):** `<project>/.cursor/rules/blazediff.mdc` with the right frontmatter
 
-   Source URL: `https://raw.githubusercontent.com/teimurjan/blazediff/main/skill/blazediff/SKILL.md`
+   If detection finds nothing and stdout is a TTY, the command prompts. Force a specific subset with `--harness claude,codex,cursor` (or `--harness all`). Pass `--force` to overwrite an existing playbook file.
 
-   Prefer project-scope inside a git project. If the user has the BlazeDiff repo cloned locally, prefer a symlink so future updates flow through:
-   ```
-   ln -sf <path-to-blazediff>/skill/blazediff/SKILL.md <target>
-   ```
+   Idempotent — re-runs report `unchanged` when the on-disk content already matches.
 
 4. **Reload** the host agent's skill list if it supports it (Claude Code: `/reload-plugins`).
 

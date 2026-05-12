@@ -20,13 +20,17 @@
 		}
 	},
 	"files": [
-		"dist"
+		"dist",
+		"SKILL.md",
+		"JUDGING.md",
+		"MASKING.md"
 	],
 	"scripts": {
 		"typecheck": "tsc --noEmit",
+		"prebuild": "node -e \"const {readdirSync,copyFileSync}=require('node:fs');for(const f of readdirSync('../../skill/blazediff'))if(f.endsWith('.md')&&f!=='INSTALL.md')copyFileSync('../../skill/blazediff/'+f,f)\"",
 		"build": "tsup",
 		"dev": "tsup --watch",
-		"clean": "rm -rf dist",
+		"clean": "rm -rf dist SKILL.md JUDGING.md MASKING.md",
 		"test": "vitest run --passWithNoTests"
 	},
 	"keywords": [

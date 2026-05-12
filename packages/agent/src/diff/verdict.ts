@@ -103,9 +103,12 @@ export function deriveVerdict(input: DeriveVerdictInput): Verdict {
 
 	if (reason === "layout-diff") {
 		return {
-			label: "regression-likely",
+			label: "ambiguous",
 			headline,
-			rationale: ["baseline and current image dimensions differ"],
+			rationale: [
+				"baseline and actual image dimensions differ — page height likely shifted",
+				"could be intentional (content added/removed) or regression (broken layout)",
+			],
 			action: "investigate",
 		};
 	}

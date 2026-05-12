@@ -34,10 +34,30 @@ blazediff-agent rewrite home --json
 
 Commit `.blazediff/` (config + manifest + baselines). Run `check` / `run` in CI.
 
+## Onboarding a coding agent
+
+`blazediff-agent onboard` installs the playbook into whatever coding-agent harness you're using:
+
+```sh
+blazediff-agent onboard --json                 # auto-detect Claude Code / Codex / Cursor in cwd
+blazediff-agent onboard --harness codex        # explicit (override detection)
+blazediff-agent onboard --harness all          # all three
+blazediff-agent onboard --force                # overwrite existing playbook
+```
+
+Per harness:
+
+- **Claude Code** writes `<project>/.claude/skills/blazediff/SKILL.md`
+- **Codex** writes `~/.codex/prompts/blazediff.md` (user-global; Codex CLI looks here for slash-command prompts)
+- **Cursor** writes `<project>/.cursor/rules/blazediff.mdc` with the right frontmatter
+
+Detection is project-local (looks for `.claude/` / `CLAUDE.md` / `AGENTS.md` for Claude Code, `AGENTS.md` / `.codex/` for Codex, `.cursor/` / `.cursorrules` for Cursor). Both Claude Code and Codex read `AGENTS.md`, so a project with only `AGENTS.md` will install for both. On a TTY with no detection, the command prompts.
+
 ## Commands
 
 | Command | What it does |
 |---|---|
+| `onboard` | Install the playbook into the detected coding-agent harness (Claude Code, Codex, Cursor) |
 | `init` | Detect framework/dev-script, write `.blazediff/config.json` + `.gitignore` |
 | `discover` | BFS-crawl routes from `baseUrl` as a fallback when source-walking fails |
 | `capture --stdin` | Read a JSON list of routes, screenshot each, write baselines/actuals + manifest |

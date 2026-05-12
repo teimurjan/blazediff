@@ -258,7 +258,7 @@ export default function AgentPage() {
 					<div className="bg-[#1c1c26] border border-[#2a2a38] p-2 flex flex-col gap-2">
 						<div className="flex items-center justify-between border-b border-[#2a2a38] pb-2 px-2">
 							<span className="font-[var(--font-jetbrains-mono)] text-[14px] text-[#ff7a1a]">
-								.blazediff/report.json
+								.blazediff/summary.md
 							</span>
 							<div className="flex gap-2 shrink-0">
 								<div className="w-2 h-2 bg-[#7a7585]" />
@@ -271,10 +271,13 @@ export default function AgentPage() {
 							{/* Summary bar */}
 							<div className="flex flex-wrap items-center gap-6 border-b border-[#2a2a38] pb-4 font-[var(--font-jetbrains-mono)] text-[13px] uppercase tracking-widest">
 								<span className="text-[#7a7585]">
-									TOTAL <span className="text-[#f0ece8]">22</span>
+									TOTAL <span className="text-[#f0ece8]">23</span>
 								</span>
 								<span className="text-[#7a7585]">
-									FAILED <span className="text-[#ff2e8b]">1</span>
+									PASSED <span className="text-[#ff7a1a]">22</span>
+								</span>
+								<span className="text-[#7a7585]">
+									PENDING <span className="text-[#ff2e8b]">1</span>
 								</span>
 							</div>
 

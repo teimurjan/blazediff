@@ -192,9 +192,11 @@ Roadmap and design intent: `packages/agent/ROADMAP.md`. End-user docs: `apps/web
 
 ### Commands the agent exposes
 
-`init`, `discover`, `capture --stdin`, `check`, `run`, `rewrite`, `diff`, `manifest`, `serve-status`, `browsers install`, `reset --yes`. All accept `--json`. `--cwd <abs-path>` operates on a sub-directory.
+`onboard`, `init`, `discover`, `capture --stdin`, `check`, `run`, `rewrite`, `diff`, `manifest`, `serve-status`, `browsers install`, `reset --yes`. All accept `--json`. `--cwd <abs-path>` operates on a sub-directory.
 
 `check` is the single-pool CI verb; `run` is the LangGraph-pipelined equivalent (≥10 routes, want LangSmith traces, want wall-time speedup). Both share report shape.
+
+`onboard` installs the bundled SKILL.md into the detected coding-agent harness. Targets: Claude Code → `<project>/.claude/skills/blazediff/SKILL.md` (project-scope); Codex → `~/.codex/prompts/blazediff.md` (user-global — Codex CLI's slash-command prompts live there, not in `AGENTS.md`); Cursor → `<project>/.cursor/rules/blazediff.mdc` with frontmatter. Override autodetect with `--harness claude,codex,cursor` or `--harness all`. SKILL.md is bundled into the published package via `prebuild` copy from `skill/blazediff/SKILL.md` and loaded at runtime by `src/onboard/skill-loader.ts`.
 
 ### Skill / playbook
 

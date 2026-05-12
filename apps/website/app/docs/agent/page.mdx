@@ -31,9 +31,33 @@ blazediff-agent browsers install --check --json   # check
 blazediff-agent browsers install                  # install if missing
 ```
 
+## Onboard a coding agent
+
+`blazediff-agent onboard` installs the BlazeDiff playbook into whatever coding-agent harness lives in your project. Run once per project.
+
+```sh
+# Auto-detect (Claude Code, Codex, Cursor)
+blazediff-agent onboard --json
+
+# Explicit
+blazediff-agent onboard --harness codex
+blazediff-agent onboard --harness claude,codex
+blazediff-agent onboard --harness all
+```
+
+Per harness:
+
+| Harness | Target | Scope | Detection signal |
+|---|---|---|---|
+| Claude Code | `<project>/.claude/skills/blazediff/SKILL.md` | project | `CLAUDE.md` or `.claude/` |
+| Codex | `~/.codex/prompts/blazediff.md` | user-global | `AGENTS.md`, `.codex/`, or `~/.codex/` |
+| Cursor | `<project>/.cursor/rules/blazediff.mdc` | project | `.cursor/` or `.cursorrules` |
+
+Codex is user-global because OpenAI's Codex CLI looks for slash-command prompts in `~/.codex/prompts/` — installing there means `/blazediff` works in every project on your machine. On a TTY with no detection, the command prompts. Pass `--force` to overwrite a hand-edited file.
+
 ## Quickstart from a coding agent
 
-From Claude Code (or any agent that loads the [BlazeDiff skill](https://github.com/teimurjan/blazediff/blob/main/skill/blazediff/SKILL.md)):
+Once onboarded, from Claude Code / Codex / Cursor:
 
 ```
 /blazediff --cwd apps/website
@@ -150,6 +174,7 @@ Deletes the entire `.blazediff/` directory (config, manifest, baselines, actual,
 
 | Command | Purpose |
 |---|---|
+| `onboard` | Install the playbook into the detected coding-agent harness (Claude Code, Codex, Cursor) |
 | `init` | Detect framework/dev-script, write `.blazediff/config.json` + `.gitignore` |
 | `discover` | BFS-crawl routes from `baseUrl` (depth 2, ≤50 routes) as a fallback when source-walking fails |
 | `capture --stdin` | Read a JSON array of routes from stdin, screenshot each, write baselines/actuals + manifest |
