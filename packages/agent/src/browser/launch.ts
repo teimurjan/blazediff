@@ -32,17 +32,27 @@ const CHROMIUM_FLAGS = [
 ];
 
 let cachedBrowser: Browser | null = null;
+let launchInFlight: Promise<Browser> | null = null;
 
 export async function getBrowser(): Promise<Browser> {
 	if (cachedBrowser?.isConnected()) return cachedBrowser;
-	cachedBrowser = await chromium.launch({
-		headless: true,
-		args: CHROMIUM_FLAGS,
-	});
-	return cachedBrowser;
+	if (launchInFlight) return launchInFlight;
+	launchInFlight = chromium
+		.launch({ headless: true, args: CHROMIUM_FLAGS })
+		.then((b) => {
+			cachedBrowser = b;
+			return b;
+		})
+		.finally(() => {
+			launchInFlight = null;
+		});
+	return launchInFlight;
 }
 
 export async function closeBrowser(): Promise<void> {
+	if (launchInFlight) {
+		await launchInFlight.catch(() => {});
+	}
 	if (!cachedBrowser) return;
 	await cachedBrowser.close().catch(() => {});
 	cachedBrowser = null;
