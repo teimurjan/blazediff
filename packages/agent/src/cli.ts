@@ -9,6 +9,7 @@ import { registerInit } from "./cli/commands/init";
 import { registerManifest } from "./cli/commands/manifest";
 import { registerReset } from "./cli/commands/reset";
 import { registerRewrite } from "./cli/commands/rewrite";
+import { registerRun } from "./cli/commands/run";
 import { registerServeStatus } from "./cli/commands/serve-status";
 import { applyCwdFromArgv, maybeDefaultToCheck } from "./cli/cwd";
 import { makeOutput, type RootOpts } from "./cli/output";
@@ -32,6 +33,7 @@ function buildProgram(): Command {
 	registerDiff(program, out);
 	registerManifest(program, out);
 	registerCheck(program, out);
+	registerRun(program, out);
 	registerRewrite(program, out);
 	registerReset(program, out);
 

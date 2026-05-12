@@ -1,8 +1,8 @@
 import type { Command } from "commander";
-import { runCheck } from "../../check";
 import { loadConfig, resolveBaseUrl } from "../../config";
 import { DEFAULT_THRESHOLD } from "../../defaults";
-import { applyJudgments, type JudgeBackend } from "../../judge";
+import { runGraph } from "../../graph";
+import type { JudgeBackend } from "../../judge";
 import { paths } from "../../paths";
 import type { CheckResult } from "../../types";
 import type { Output } from "../output";
@@ -14,7 +14,7 @@ interface Opts {
 	diffPng: boolean;
 	junit?: string;
 	judge: string;
-	applyJudgments?: boolean;
+	mode: string;
 }
 
 function failureLines(results: CheckResult[]): string[] {
@@ -48,10 +48,23 @@ function parseJudge(input: string): JudgeBackend {
 	throw new Error(`unknown --judge backend: ${input} (expected: host | none)`);
 }
 
-export function registerCheck(program: Command, out: Output): void {
+function parseMode(input: string): "actual" {
+	if (input === "actual") return input;
+	if (input === "baseline") {
+		throw new Error(
+			"`run --mode baseline` is not yet implemented. Use `init` + `capture` for authoring.",
+		);
+	}
+	throw new Error(`unknown --mode: ${input} (expected: actual)`);
+}
+
+export function registerRun(program: Command, out: Output): void {
 	program
-		.command("check")
-		.description("run the visual regression check (CI verb)")
+		.command("run")
+		.description(
+			"streaming check pipeline via LangGraph (alternative to `check`)",
+		)
+		.option("--mode <mode>", "pipeline mode (actual)", "actual")
 		.option("--base-url <url>", "override base URL")
 		.option(
 			"--threshold <n>",
@@ -60,7 +73,7 @@ export function registerCheck(program: Command, out: Output): void {
 		)
 		.option(
 			"--concurrency <n>",
-			"max entries checked in parallel (default: auto based on CPU cores, capped at 8)",
+			"max entries captured in parallel (default: auto based on CPU cores, capped at 8)",
 		)
 		.option("--no-diff-png", "skip writing diff PNGs")
 		.option("--junit <path>", "write JUnit XML to this path (default: skipped)")
@@ -69,36 +82,10 @@ export function registerCheck(program: Command, out: Output): void {
 			"judge backend for ambiguous diffs (host | none)",
 			"none",
 		)
-		.option(
-			"--apply-judgments",
-			"merge .blazediff/judgments/*.json into the last report, skip checking",
-		)
 		.action(async (opts: Opts) => {
-			if (opts.applyJudgments) {
-				const { report, applied, missing, invalid } = await applyJudgments();
-				const human =
-					applied.length === 0 && missing.length === 0 && invalid.length === 0
-						? "no judgments to apply"
-						: [
-								`applied ${applied.length} judgment(s)`,
-								missing.length
-									? `  ${missing.length} pending without judgment: ${missing.join(", ")}`
-									: undefined,
-								invalid.length
-									? `  ${invalid.length} invalid judgment file(s): ${invalid.join(", ")}`
-									: undefined,
-								`  ${report.passed}/${report.totalEntries} passed (${report.failed} failed, ${report.pendingJudgments} pending)`,
-							]
-								.filter(Boolean)
-								.join("\n");
-				out.emit({ ok: true, applied, missing, invalid, report }, human);
-				if (report.failed > 0 || report.pendingJudgments > 0)
-					process.exitCode = 1;
-				return;
-			}
-
+			parseMode(opts.mode);
 			const baseUrl = resolveBaseUrl(await loadConfig(), opts.baseUrl);
-			const report = await runCheck({
+			const report = await runGraph({
 				baseUrl,
 				threshold: Number(opts.threshold),
 				concurrency: opts.concurrency ? Number(opts.concurrency) : undefined,
@@ -122,7 +109,7 @@ export function registerCheck(program: Command, out: Output): void {
 							...failureLines(report.results),
 							`  report: ${paths().report}`,
 							report.pendingJudgments > 0
-								? `  pending: ${paths().pendingJudgments}/ — host harness writes verdicts to ${paths().judgments}/, then re-run with --apply-judgments`
+								? `  pending: ${paths().pendingJudgments}/ — host harness writes verdicts to ${paths().judgments}/, then re-run \`check --apply-judgments\``
 								: undefined,
 						]
 							.filter(Boolean)

@@ -71,13 +71,19 @@ export interface CheckReport {
 	totalEntries: number;
 	passed: number;
 	failed: number;
+	pendingJudgments: number;
 	results: CheckResult[];
 }
 
 export interface CheckResult {
 	id: string;
 	url: string;
-	status: "pass" | "fail" | "missing-baseline" | "stale-baseline";
+	status:
+		| "pass"
+		| "fail"
+		| "missing-baseline"
+		| "stale-baseline"
+		| "needs-judgment";
 	diffCount?: number;
 	diffPercentage?: number;
 	severity?: string;

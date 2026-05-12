@@ -25,9 +25,10 @@ export async function writeJunit(
       <failure message="${escapeXml(message)}" type="${escapeXml(r.status)}">${escapeXml(message)}</failure>
     </testcase>`;
 	});
+	const failures = report.totalEntries - report.passed;
 	const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <testsuites>
-  <testsuite name="blazediff" tests="${report.totalEntries}" failures="${report.failed}">
+  <testsuite name="blazediff" tests="${report.totalEntries}" failures="${failures}">
 ${cases.join("\n")}
   </testsuite>
 </testsuites>

@@ -27,14 +27,40 @@ CLI binary is `blazediff-agent` (the name `blazediff` belongs to the cargo image
 - Else → **authoring**.
 
 ## check
-1. `blazediff-agent --cwd "$TARGET" check --json` (the CLI starts the dev server if `devServer` is configured; otherwise hits the configured baseUrl directly).
+1. `blazediff-agent --cwd "$TARGET" check --judge host --json` (the CLI starts the dev server if `devServer` is configured; otherwise hits the configured baseUrl directly).
+   - Prefer `run` instead for large sites (≥10 routes): `blazediff-agent --cwd "$TARGET" run --judge host --json`. Same flags, same report shape — it just pipelines capture → diff → verdict → judge through a LangGraph state graph so per-entry stages overlap. Use `check` when you want the simpler, single-pool implementation; `run` when wall-time matters or you want LangSmith traces.
 2. Pass: report `P/T passed`. Stop.
-3. Fail: read `<TARGET>/.blazediff/report.json`. Each failing entry has a `verdict`: `{ label, headline, action, rationale[] }` derived from interpret heuristics (no LLM yet). Emit one line per failure: `<id>: <verdict.label> — <verdict.headline>`. Then act per `verdict.label`:
+3. **Pending judgments** (`pendingJudgments > 0`): the heuristic couldn't classify some diffs. You are the judge — see "judge ambiguous diffs" below. After judging, re-run `check --apply-judgments --json`, then re-evaluate as if from step 2/4.
+4. Fail: read `<TARGET>/.blazediff/report.json`. Each failing entry has a `verdict`: `{ label, headline, action, rationale[] }`. Emit one line per failure: `<id>: <verdict.label> — <verdict.headline>`. Then act per `verdict.label`:
    - `regression-likely` → point the user at `<TARGET>/.blazediff/diffs/<id>.png` and ask them to investigate. Do not rewrite.
    - `intentional-likely` → ask the user to confirm; if yes, `blazediff-agent --cwd "$TARGET" rewrite <id> --json`.
    - `noise-likely` → ask the user once whether to ignore or rewrite. If rewriting, group with other rewrites in one call (`rewrite <id1> <id2> ...`).
-   - `ambiguous` → treat like `regression-likely`.
    Never rewrite without explicit user confirmation.
+
+## judge ambiguous diffs
+When `check --judge host` reports `pendingJudgments > 0`, the heuristic returned `ambiguous` for those entries and is deferring to you. For each `<TARGET>/.blazediff/pending-judgments/<id>/`:
+
+1. Read `request.json`. It contains `regions[]` (each with a relative `tilePath`), `locatorPath`, `heuristicVerdict`, and full `manifestEntry` context. The `baselinePath` / `actualPath` / `diffPath` fields are full-page fallbacks — prefer the tiles.
+2. **Read `locator.png` first** — a small (~400 px wide) thumbnail of the diff with every change region outlined in red. Use it for spatial orientation.
+3. **Read each region tile in order** (`region-0.png`, `region-1.png`, …) — each is a horizontal `[baseline | actual | diff]` strip of one changed area at native resolution. Base your verdict primarily on what these strips show.
+4. Only open the full `diffPath` / `baselinePath` / `actualPath` if the tiles are themselves ambiguous (e.g., the change clearly continues outside the cropped region, or you need page-wide context the locator doesn't give).
+5. Write `<TARGET>/.blazediff/judgments/<id>.json` with shape:
+   ```json
+   {
+     "id": "<same id>",
+     "verdict": {
+       "label": "regression-likely" | "intentional-likely" | "noise-likely",
+       "headline": "<one-line summary>",
+       "rationale": ["<short reason>", "..."],
+       "action": "investigate" | "rewrite-if-intended" | "ignore-or-rewrite"
+     },
+     "rationale": "<one-paragraph explanation of what you saw>",
+     "confidence": 0.0
+   }
+   ```
+   Pick `action` to match `label`: `regression-likely` → `investigate`, `intentional-likely` → `rewrite-if-intended`, `noise-likely` → `ignore-or-rewrite`.
+6. Run `blazediff-agent --cwd "$TARGET" check --apply-judgments --json`. The CLI merges your verdicts into the report and removes the consumed pending subdirectories.
+7. Resume the check flow from step 4 with the upgraded verdicts.
 
 ## accept regression (rebaseline)
 Use `verdict.action === "rewrite-if-intended"` (or explicit user confirmation) before calling `rewrite`. When the user confirms a failing entry's new state is correct:

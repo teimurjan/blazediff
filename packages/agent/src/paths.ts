@@ -11,6 +11,8 @@ export const paths = (cwd: string = process.cwd()) => {
 		baselines: path.join(root, "baselines"),
 		actual: path.join(root, "actual"),
 		diffs: path.join(root, "diffs"),
+		pendingJudgments: path.join(root, "pending-judgments"),
+		judgments: path.join(root, "judgments"),
 		report: path.join(root, "report.json"),
 		gitignore: path.join(root, ".gitignore"),
 		serverLog: path.join(root, "dev-server.log"),

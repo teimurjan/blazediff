@@ -1,9 +1,10 @@
 import path from "node:path";
 import { captureScreenshot } from "./browser/capture";
 import { closeBrowser } from "./browser/launch";
-import { DEFAULT_FULL_PAGE } from "./defaults";
+import { DEFAULT_FULL_PAGE, defaultConcurrency } from "./defaults";
 import { type DiffOutcome, diffEntry } from "./diff";
-import { deriveVerdict } from "./diff/verdict";
+import { deriveVerdict, type Verdict } from "./diff/verdict";
+import { type Judge, type JudgeBackend, resolveJudge } from "./judge";
 import { isEntryStale, loadManifest } from "./manifest";
 import { paths } from "./paths";
 import { writeJsonReport } from "./report/json";
@@ -17,9 +18,8 @@ export interface CheckOptions {
 	concurrency?: number;
 	emitDiffPng?: boolean;
 	junitPath?: string;
+	judge?: JudgeBackend;
 }
-
-const DEFAULT_CONCURRENCY = 4;
 
 async function pool<T, R>(
 	items: T[],
@@ -84,6 +84,7 @@ function failResult(
 	outcome: DiffOutcome,
 	actualPath: string,
 	baselinePath: string,
+	verdict: Verdict,
 ): CheckResult {
 	return {
 		id: entry.id,
@@ -93,12 +94,7 @@ function failResult(
 		diffPercentage: outcome.diffPercentage,
 		severity: outcome.interpretation?.severity,
 		regions: outcome.interpretation?.regions,
-		verdict: deriveVerdict({
-			reason: outcome.reason,
-			interpretation: outcome.interpretation,
-			diffCount: outcome.diffCount,
-			diffPercentage: outcome.diffPercentage,
-		}),
+		verdict,
 		diffPath: outcome.diffPath,
 		baselinePath,
 		actualPath,
@@ -109,11 +105,50 @@ function failResult(
 	};
 }
 
+async function judgeAmbiguous(
+	result: CheckResult,
+	entry: ManifestEntry,
+	judge: Judge,
+	cwd: string,
+): Promise<CheckResult> {
+	if (
+		result.status !== "fail" ||
+		!result.verdict ||
+		result.verdict.label !== "ambiguous" ||
+		!result.baselinePath ||
+		!result.actualPath
+	) {
+		return result;
+	}
+	const output = await judge.judge(
+		{
+			entry,
+			baselinePath: result.baselinePath,
+			actualPath: result.actualPath,
+			diffPath: result.diffPath,
+			regions: result.regions,
+			diffPercentage: result.diffPercentage,
+			severity: result.severity,
+			heuristicVerdict: result.verdict,
+		},
+		cwd,
+	);
+	if (output.kind === "judged") {
+		return { ...result, verdict: output.verdict };
+	}
+	return {
+		...result,
+		status: "needs-judgment",
+		message: `awaiting judgment at ${output.requestPath}`,
+	};
+}
+
 async function checkEntry(
 	entry: ManifestEntry,
 	opts: CheckOptions,
 	cwd: string,
 	baselinesDir: string,
+	judge: Judge,
 ): Promise<CheckResult> {
 	if (entry.auth === "required") {
 		return skipResult(entry, "skipped: auth required (deferred to v0.2)");
@@ -147,7 +182,21 @@ async function checkEntry(
 	if (outcome.match) return passResult(entry, baselinePath, capture.outputPath);
 	if (outcome.reason === "file-not-exists")
 		return missingBaselineResult(entry, baselinePath);
-	return failResult(entry, outcome, capture.outputPath, baselinePath);
+
+	const verdict = deriveVerdict({
+		reason: outcome.reason,
+		interpretation: outcome.interpretation,
+		diffCount: outcome.diffCount,
+		diffPercentage: outcome.diffPercentage,
+	});
+	const failed = failResult(
+		entry,
+		outcome,
+		capture.outputPath,
+		baselinePath,
+		verdict,
+	);
+	return judgeAmbiguous(failed, entry, judge, cwd);
 }
 
 export async function runCheck(opts: CheckOptions): Promise<CheckReport> {
@@ -160,23 +209,28 @@ export async function runCheck(opts: CheckOptions): Promise<CheckReport> {
 	}
 
 	const baselinesDir = paths(cwd).baselines;
-	const concurrency = opts.concurrency ?? DEFAULT_CONCURRENCY;
+	const concurrency = opts.concurrency ?? defaultConcurrency();
+	const judge = resolveJudge(opts.judge ?? "none");
 	let results: CheckResult[];
 
 	try {
 		results = await pool(manifest.entries, concurrency, (entry) =>
-			checkEntry(entry, opts, cwd, baselinesDir),
+			checkEntry(entry, opts, cwd, baselinesDir, judge),
 		);
 	} finally {
 		await closeBrowser();
 	}
 
 	const passed = results.filter((r) => r.status === "pass").length;
+	const pendingJudgments = results.filter(
+		(r) => r.status === "needs-judgment",
+	).length;
 	const report: CheckReport = {
 		createdAt: new Date().toISOString(),
 		totalEntries: results.length,
 		passed,
-		failed: results.length - passed,
+		failed: results.length - passed - pendingJudgments,
+		pendingJudgments,
 		results,
 	};
 	await writeJsonReport(report, cwd);

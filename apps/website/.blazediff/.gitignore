@@ -1,6 +1,8 @@
 # blazediff: generated artifacts (committed: config.json, manifest.json, baselines/)
 actual/
 diffs/
+pending-judgments/
+judgments/
 report.json
 dev-server.log
 dev-server.pid

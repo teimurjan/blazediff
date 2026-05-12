@@ -6,6 +6,8 @@ import { paths } from "../paths";
 const ENTRIES = [
 	"actual/",
 	"diffs/",
+	"pending-judgments/",
+	"judgments/",
 	"report.json",
 	"dev-server.log",
 	"dev-server.pid",

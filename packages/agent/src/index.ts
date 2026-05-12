@@ -14,6 +14,18 @@ export type { DiffOptions, DiffOutcome } from "./diff";
 export { diffEntry } from "./diff";
 export type { Verdict, VerdictAction, VerdictLabel } from "./diff/verdict";
 export { discover } from "./discover";
+export type { RunOptions } from "./graph";
+export { runGraph } from "./graph";
+export type {
+	ApplyJudgmentsResult,
+	Judge,
+	JudgeBackend,
+	JudgeInput,
+	JudgeOutput,
+	JudgmentRequest,
+	JudgmentRequestRegion,
+} from "./judge";
+export { applyJudgments, resolveJudge } from "./judge";
 export { loadManifest, saveManifest } from "./manifest";
 export { paths } from "./paths";
 export * from "./types";
