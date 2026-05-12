@@ -92,8 +92,7 @@ export function registerCheck(program: Command, out: Output): void {
 								.filter(Boolean)
 								.join("\n");
 				out.emit({ ok: true, applied, missing, invalid, report }, human);
-				if (report.failed > 0 || report.pendingJudgments > 0)
-					process.exitCode = 1;
+				if (report.failed > 0) process.exitCode = 1;
 				return;
 			}
 
@@ -129,7 +128,6 @@ export function registerCheck(program: Command, out: Output): void {
 							.join("\n");
 
 			out.emit(report, human);
-			if (report.failed > 0 || report.pendingJudgments > 0)
-				process.exitCode = 1;
+			if (report.failed > 0) process.exitCode = 1;
 		});
 }

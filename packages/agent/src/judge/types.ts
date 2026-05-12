@@ -19,7 +19,6 @@ export interface JudgmentRequestRegion {
 	percentage: number;
 	changeType: string;
 	confidence: number;
-	tilePath?: string;
 }
 
 export type JudgeOutput =

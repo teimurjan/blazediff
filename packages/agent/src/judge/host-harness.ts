@@ -19,6 +19,7 @@ export interface JudgmentRequest {
 	severity?: string;
 	regions?: JudgmentRequestRegion[];
 	locatorPath?: string;
+	tilesPath?: string;
 	heuristicVerdict: JudgeInput["heuristicVerdict"];
 	manifestEntry: {
 		viewport: JudgeInput["entry"]["viewport"];
@@ -32,9 +33,8 @@ export interface JudgmentRequest {
 
 const INSTRUCTIONS = [
 	"The visual-regression heuristic could not classify this diff confidently.",
-	"Read `locator.png` first (a thumbnail of the diff with all change regions outlined in red) for spatial context.",
-	"Then read each `regions[i].tilePath` in order — they are `[baseline | actual | diff]` strips of the changed area at native resolution. Decide from these.",
-	"Only open the full `diffPath` / `baselinePath` / `actualPath` if the tiles are themselves ambiguous (e.g., the change clearly continues outside the cropped region).",
+	"Read `locator.png` AND `tilesPath` (regions.png) in parallel — issue both Read calls in a single tool batch. locator.png is a small thumbnail of the diff with every change region outlined in red; regions.png is a vertical stack of all change regions, each row showing `[baseline | actual | diff]` at native resolution. Row order matches the `regions[]` array (top = largest by pixelCount).",
+	"Decide from the tiles. Only open the full `diffPath` / `baselinePath` / `actualPath` if the composite is itself ambiguous (e.g., a change clearly continues outside the cropped region).",
 	"Decide whether the change is a regression, an intentional UI change, or rendering noise.",
 	"Write your decision to `.blazediff/judgments/<id>.json` with shape:",
 	'  { "id": string, "verdict": { "label": "regression-likely" | "intentional-likely" | "noise-likely", "headline": string, "rationale": string[], "action": "investigate" | "rewrite-if-intended" | "ignore-or-rewrite" }, "rationale": string, "confidence": number }',
@@ -43,16 +43,14 @@ const INSTRUCTIONS = [
 
 function narrowRegions(
 	input: JudgeInput["regions"],
-	tilesByIndex: Map<number, string>,
 ): JudgmentRequestRegion[] | undefined {
 	if (!input || input.length === 0) return undefined;
-	return input.map((r, i) => ({
+	return input.map((r) => ({
 		bbox: r.bbox,
 		pixelCount: r.pixelCount,
 		percentage: r.percentage,
 		changeType: r.changeType,
 		confidence: r.confidence,
-		tilePath: tilesByIndex.get(i),
 	}));
 }
 
@@ -88,18 +86,6 @@ export const hostHarnessJudge: Judge = {
 
 		const tiles = await tryPrepareTiles(input, entryDir);
 
-		const tilesByIndex = new Map<number, string>();
-		if (tiles && input.regions) {
-			const ranked = [...input.regions]
-				.map((r, i) => ({ r, i }))
-				.sort((a, b) => b.r.pixelCount - a.r.pixelCount)
-				.slice(0, tiles.regions.length);
-			ranked.forEach((entry, rank) => {
-				const tile = tiles.regions[rank];
-				if (tile) tilesByIndex.set(entry.i, tile.tilePath);
-			});
-		}
-
 		const requestPath = path.join(entryDir, "request.json");
 		const request: JudgmentRequest = {
 			id: input.entry.id,
@@ -109,8 +95,9 @@ export const hostHarnessJudge: Judge = {
 			diffPath: input.diffPath,
 			diffPercentage: input.diffPercentage,
 			severity: input.severity,
-			regions: narrowRegions(input.regions, tilesByIndex),
+			regions: narrowRegions(input.regions),
 			locatorPath: tiles?.locatorPath,
+			tilesPath: tiles?.tilesPath,
 			heuristicVerdict: input.heuristicVerdict,
 			manifestEntry: {
 				viewport: input.entry.viewport,

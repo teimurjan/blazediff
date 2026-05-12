@@ -40,11 +40,10 @@ CLI binary is `blazediff-agent` (the name `blazediff` belongs to the cargo image
 ## judge ambiguous diffs
 When `check --judge host` reports `pendingJudgments > 0`, the heuristic returned `ambiguous` for those entries and is deferring to you. For each `<TARGET>/.blazediff/pending-judgments/<id>/`:
 
-1. Read `request.json`. It contains `regions[]` (each with a relative `tilePath`), `locatorPath`, `heuristicVerdict`, and full `manifestEntry` context. The `baselinePath` / `actualPath` / `diffPath` fields are full-page fallbacks — prefer the tiles.
-2. **Read `locator.png` first** — a small (~400 px wide) thumbnail of the diff with every change region outlined in red. Use it for spatial orientation.
-3. **Read each region tile in order** (`region-0.png`, `region-1.png`, …) — each is a horizontal `[baseline | actual | diff]` strip of one changed area at native resolution. Base your verdict primarily on what these strips show.
-4. Only open the full `diffPath` / `baselinePath` / `actualPath` if the tiles are themselves ambiguous (e.g., the change clearly continues outside the cropped region, or you need page-wide context the locator doesn't give).
-5. Write `<TARGET>/.blazediff/judgments/<id>.json` with shape:
+1. Read `request.json`. It contains `regions[]` (bbox + pixelCount + change type per region), `locatorPath`, `tilesPath`, `heuristicVerdict`, and full `manifestEntry` context. The `baselinePath` / `actualPath` / `diffPath` fields are full-page fallbacks — prefer the tiles.
+2. **Batch-read `locator.png` and `regions.png` in a single tool call** (one message with two parallel Read invocations). `locator.png` is a ~400 px thumbnail of the diff with every change region outlined in red — use it for spatial orientation. `regions.png` is a vertical stack of all change regions, each row showing `[baseline | actual | diff]` at native resolution. Row order matches the `regions[]` array (top = largest by pixelCount). When multiple pending entries exist, batch reads across entries too — every Read in one tool call.
+3. Base your verdict primarily on what `regions.png` shows. Only open the full `diffPath` / `baselinePath` / `actualPath` if the composite is itself ambiguous (e.g., a change clearly continues outside the cropped region).
+4. Write `<TARGET>/.blazediff/judgments/<id>.json` with shape:
    ```json
    {
      "id": "<same id>",
@@ -59,8 +58,8 @@ When `check --judge host` reports `pendingJudgments > 0`, the heuristic returned
    }
    ```
    Pick `action` to match `label`: `regression-likely` → `investigate`, `intentional-likely` → `rewrite-if-intended`, `noise-likely` → `ignore-or-rewrite`.
-6. Run `blazediff-agent --cwd "$TARGET" check --apply-judgments --json`. The CLI merges your verdicts into the report and removes the consumed pending subdirectories.
-7. Resume the check flow from step 4 with the upgraded verdicts.
+5. Run `blazediff-agent --cwd "$TARGET" check --apply-judgments --json`. The CLI merges your verdicts into the report and removes the consumed pending subdirectories.
+6. Resume the check flow with the upgraded verdicts.
 
 ## accept regression (rebaseline)
 Use `verdict.action === "rewrite-if-intended"` (or explicit user confirmation) before calling `rewrite`. When the user confirms a failing entry's new state is correct:

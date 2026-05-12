@@ -3,13 +3,13 @@ import type { BoundingBox, ChangeRegion } from "@blazediff/core-native";
 import sharp from "sharp";
 
 export interface TilePrepRegion {
-	tilePath: string;
 	bbox: BoundingBox;
 	pixelCount: number;
 }
 
 export interface TilePrepResult {
 	locatorPath: string;
+	tilesPath?: string;
 	regions: TilePrepRegion[];
 }
 
@@ -23,12 +23,14 @@ export interface PrepareTilesOptions {
 	padding?: number;
 	locatorMaxWidth?: number;
 	gutter?: number;
+	rowGutter?: number;
 }
 
 const DEFAULT_TOP_N = 5;
 const DEFAULT_PADDING = 16;
 const DEFAULT_LOCATOR_MAX_WIDTH = 400;
 const DEFAULT_GUTTER = 2;
+const DEFAULT_ROW_GUTTER = 8;
 const BG_WHITE = { r: 255, g: 255, b: 255 };
 
 function padAndClamp(
@@ -56,6 +58,7 @@ export async function prepareTiles(
 	const padding = opts.padding ?? DEFAULT_PADDING;
 	const locatorMaxWidth = opts.locatorMaxWidth ?? DEFAULT_LOCATOR_MAX_WIDTH;
 	const gutter = opts.gutter ?? DEFAULT_GUTTER;
+	const rowGutter = opts.rowGutter ?? DEFAULT_ROW_GUTTER;
 
 	const diffMeta = await sharp(opts.diffPath).metadata();
 	const imgWidth = diffMeta.width ?? 0;
@@ -68,49 +71,60 @@ export async function prepareTiles(
 		.sort((a, b) => b.pixelCount - a.pixelCount)
 		.slice(0, topN);
 
-	const regionTiles: TilePrepRegion[] = [];
-	for (let i = 0; i < ranked.length; i++) {
-		const region = ranked[i];
-		const padded = padAndClamp(region.bbox, padding, imgWidth, imgHeight);
-		const extract = {
-			left: padded.x,
-			top: padded.y,
-			width: padded.width,
-			height: padded.height,
-		};
-		const [baseBuf, actualBuf, diffBuf] = await Promise.all([
-			sharp(opts.baselinePath).extract(extract).toBuffer(),
-			sharp(opts.actualPath).extract(extract).toBuffer(),
-			sharp(opts.diffPath).extract(extract).toBuffer(),
-		]);
+	const regionData = await Promise.all(
+		ranked.map(async (region) => {
+			const padded = padAndClamp(region.bbox, padding, imgWidth, imgHeight);
+			const extract = {
+				left: padded.x,
+				top: padded.y,
+				width: padded.width,
+				height: padded.height,
+			};
+			const [base, actual, diff] = await Promise.all([
+				sharp(opts.baselinePath).extract(extract).toBuffer(),
+				sharp(opts.actualPath).extract(extract).toBuffer(),
+				sharp(opts.diffPath).extract(extract).toBuffer(),
+			]);
+			return { region, padded, base, actual, diff };
+		}),
+	);
 
-		const w = padded.width;
-		const h = padded.height;
-		const canvasWidth = w * 3 + gutter * 2;
-		const tileName = `region-${i}.png`;
-		const tileFile = path.join(opts.outputDir, tileName);
+	let tilesName: string | undefined;
+	if (regionData.length > 0) {
+		const canvasWidth = Math.max(
+			...regionData.map((r) => r.padded.width * 3 + gutter * 2),
+		);
+		const totalHeight = regionData.reduce(
+			(sum, r, i) => sum + r.padded.height + (i > 0 ? rowGutter : 0),
+			0,
+		);
 
+		const composites: sharp.OverlayOptions[] = [];
+		let y = 0;
+		for (let i = 0; i < regionData.length; i++) {
+			const r = regionData[i];
+			const w = r.padded.width;
+			composites.push(
+				{ input: r.base, left: 0, top: y },
+				{ input: r.actual, left: w + gutter, top: y },
+				{ input: r.diff, left: 2 * (w + gutter), top: y },
+			);
+			y += r.padded.height;
+			if (i < regionData.length - 1) y += rowGutter;
+		}
+
+		tilesName = "regions.png";
 		await sharp({
 			create: {
 				width: canvasWidth,
-				height: h,
+				height: totalHeight,
 				channels: 3,
 				background: BG_WHITE,
 			},
 		})
-			.composite([
-				{ input: baseBuf, left: 0, top: 0 },
-				{ input: actualBuf, left: w + gutter, top: 0 },
-				{ input: diffBuf, left: 2 * (w + gutter), top: 0 },
-			])
+			.composite(composites)
 			.png()
-			.toFile(tileFile);
-
-		regionTiles.push({
-			tilePath: tileName,
-			bbox: region.bbox,
-			pixelCount: region.pixelCount,
-		});
+			.toFile(path.join(opts.outputDir, tilesName));
 	}
 
 	const scale = locatorMaxWidth / Math.max(imgWidth, imgHeight);
@@ -129,15 +143,18 @@ export async function prepareTiles(
 	const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${locW}" height="${locH}">${rects}</svg>`;
 
 	const locatorName = "locator.png";
-	const locatorFile = path.join(opts.outputDir, locatorName);
 	await sharp(opts.diffPath)
 		.resize(locW, locH, { fit: "fill" })
 		.composite([{ input: Buffer.from(svg), left: 0, top: 0 }])
 		.png()
-		.toFile(locatorFile);
+		.toFile(path.join(opts.outputDir, locatorName));
 
 	return {
 		locatorPath: locatorName,
-		regions: regionTiles,
+		tilesPath: tilesName,
+		regions: regionData.map((r) => ({
+			bbox: r.region.bbox,
+			pixelCount: r.region.pixelCount,
+		})),
 	};
 }
