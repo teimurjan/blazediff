@@ -21,6 +21,9 @@ export default {
 	cli: {
 		title: "@blazediff/cli",
 	},
+	agent: {
+		title: "@blazediff/agent",
+	},
 	"core-native": {
 		title: "@blazediff/core-native",
 	},

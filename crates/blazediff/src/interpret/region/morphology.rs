@@ -114,7 +114,7 @@ fn erode(mask: &[bool], width: u32, height: u32, radius: u32) -> Vec<bool> {
                 count += 1;
             }
         }
-        // For x=0, the window is [0, r] — clipped window size is min(r+1, w)
+        // For x=0, the window is [0, r] - clipped window size is min(r+1, w)
         let effective_size = (r + 1).min(w);
         horiz[row_start] = count == effective_size;
 
@@ -238,7 +238,7 @@ mod tests {
                 mask[(y * w + x) as usize] = true;
             }
         }
-        // Blob 2: (6,1) to (8,3) — gap of 2px (x=4,5 empty)
+        // Blob 2: (6,1) to (8,3) - gap of 2px (x=4,5 empty)
         for y in 1..4 {
             for x in 6..9 {
                 mask[(y * w + x) as usize] = true;

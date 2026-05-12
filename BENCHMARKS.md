@@ -269,11 +269,11 @@ _Benchmarks run on MacBook Pro M1 Max using hyperfine_
 
 ## Python Bindings (`blazediff` PyPI via PyO3) (image IO included)
 
-The PyO3-backed `blazediff` PyPI package wraps the same Rust core as the native binary; published as platform-tagged wheels (manylinux / macOS / Windows). Comparisons below use the path-based `compare()` API, so PNG decode is part of the timed region — directly comparable to the Native Binary section above.
+The PyO3-backed `blazediff` PyPI package wraps the same Rust core as the native binary; published as platform-tagged wheels (manylinux / macOS / Windows). Comparisons below use the path-based `compare()` API, so PNG decode is part of the timed region (directly comparable to the Native Binary section above).
 
 ### vs `pixelmatch` (pypi)
 
-_25 iterations (5 warmup) for blazediff; 10 iterations (5 warmup) for pixelmatch — pure-Python `pixelmatch` runs many seconds per call on 4k/page fixtures._
+_25 iterations (5 warmup) for blazediff; 10 iterations (5 warmup) for pixelmatch - pure-Python `pixelmatch` runs many seconds per call on 4k/page fixtures._
 
 > **~83%** performance improvement on average.
 

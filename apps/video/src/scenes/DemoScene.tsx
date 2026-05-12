@@ -435,7 +435,7 @@ export const DemoScene: React.FC = () => {
 							opacity: interpretFadeIn,
 						}}
 					>
-						{/* Image pair — same size as diff scene */}
+						{/* Image pair - same size as diff scene */}
 						<div style={{ display: "flex", gap: 32 }}>
 							<div>
 								<div
@@ -496,7 +496,7 @@ export const DemoScene: React.FC = () => {
 							</div>
 						</div>
 
-						{/* Region card — full width below */}
+						{/* Region card - full width below */}
 						<div style={{ width: IMG_WIDTH * 2 + 32 }}>
 							<RegionCard
 								region={activeRegion ?? displayRegions[0]}

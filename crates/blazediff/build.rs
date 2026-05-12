@@ -17,7 +17,7 @@ fn main() {
     // are not reliably available:
     //   - Windows targets (no system zlib)
     //   - Cross-compiling to Linux from a non-Linux host (e.g. maturin --zig
-    //     from macOS — zig ships glibc but not zlib headers)
+    //     from macOS - zig ships glibc but not zlib headers)
     //   - Explicit override via BLAZEDIFF_FORCE_MINIZ=1
     let cross_to_linux = target_os == "linux" && !host.contains("linux");
     let force_miniz = env::var("BLAZEDIFF_FORCE_MINIZ").is_ok();

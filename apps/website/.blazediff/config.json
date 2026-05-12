@@ -1,0 +1,10 @@
+{
+	"devServer": {
+		"command": "pnpm dev",
+		"port": 3000,
+		"readyTimeoutMs": 60000
+	},
+	"framework": "next",
+	"packageManager": "pnpm",
+	"baseUrl": "http://127.0.0.1:3000"
+}

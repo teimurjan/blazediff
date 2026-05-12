@@ -45,7 +45,7 @@ pub fn interpret(
     let total_pixels = (width * height) as f64;
 
     let mut output = Image::new(width, height);
-    // Force alpha=0 so unchanged pixels are pure grayscale — the change mask
+    // Force alpha=0 so unchanged pixels are pure grayscale - the change mask
     // relies on R!=G||R!=B to detect changed pixels, and any original-color
     // bleed would cause false positives.
     let mask_options = DiffOptions {
@@ -111,7 +111,7 @@ pub fn interpret(
 
     detect_shifts(&mut regions, img1, img2, &mask, width);
 
-    // Drop RenderingNoise — not actionable, clutters output
+    // Drop RenderingNoise - not actionable, clutters output
     regions.retain(|r| r.change_type != ChangeType::RenderingNoise);
 
     let severity = classify_severity(diff_result.diff_percentage);

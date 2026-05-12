@@ -10,7 +10,7 @@ export function useInView(
 		const el = ref.current;
 		if (!el) return;
 
-		// Delay observer setup so initial-render intersections are skipped —
+		// Delay observer setup so initial-render intersections are skipped -
 		// only scroll-triggered intersections fire the callback.
 		let observer: IntersectionObserver | null = null;
 		const timer = setTimeout(() => {

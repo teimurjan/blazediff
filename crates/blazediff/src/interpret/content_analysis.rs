@@ -14,7 +14,7 @@ pub struct ContentEvidence {
     pub bg_distance_img2: f64,
 }
 
-/// Threshold for "blends with background" — normalized RGB distance.
+/// Threshold for "blends with background" - normalized RGB distance.
 /// ~35 RGB units out of max ~442.
 pub const BG_BLEND_THRESHOLD: f64 = 0.08;
 
@@ -299,7 +299,7 @@ mod tests {
 
     #[test]
     fn test_no_bg_pixels_returns_max_distance() {
-        // 1x1 image where the only pixel is masked — no background available at all
+        // 1x1 image where the only pixel is masked - no background available at all
         let w = 1u32;
         let h = 1u32;
         let img1 = make_solid_image(w, h, 128, 128, 128);

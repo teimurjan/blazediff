@@ -161,7 +161,7 @@ const Grainient: React.FC<GrainientProps> = ({
 		mesh: Mesh;
 	} | null>(null);
 
-	// Initialize WebGL once — props are synced per-frame in the second effect
+	// Initialize WebGL once - props are synced per-frame in the second effect
 	// biome-ignore lint/correctness/useExhaustiveDependencies: intentional init-only effect
 	useEffect(() => {
 		const container = containerRef.current;

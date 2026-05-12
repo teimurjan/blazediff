@@ -1,2 +1,32 @@
 @import "tailwindcss";
 @import "nextra-theme-docs/style.css";
+
+@theme {
+	--color-canvas: #0a0a0f;
+	--color-surface: #15151c;
+	--color-terminal: #1c1c26;
+	--color-line: #2a2a38;
+	--color-muted: #7a7585;
+	--color-fg: #f0ece8;
+	--color-accent: #ff7a1a;
+	--color-magenta: #ff2e8b;
+
+	--font-display: var(--font-space-grotesk);
+	--font-mono: var(--font-jetbrains-mono);
+	--font-sans: var(--font-inter);
+}
+
+@utility bg-grid {
+	background-image:
+		linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+		linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+	background-size: 40px 40px;
+}
+
+html {
+	--nextra-content-width: 80rem;
+}
+
+.nextra-navbar > nav {
+	max-width: 80rem;
+}

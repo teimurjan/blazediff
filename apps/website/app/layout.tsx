@@ -1,40 +1,55 @@
-import { IconBrandGithub } from "@tabler/icons-react";
-import { Roboto_Mono } from "next/font/google";
-import Image from "next/image";
-import Link from "next/link";
-import { Banner, Head } from "nextra/components";
-import { getPageMap } from "nextra/page-map";
-import { Footer, Layout, Navbar } from "nextra-theme-docs";
+import { Inter, JetBrains_Mono, Space_Grotesk } from "next/font/google";
+import { Head } from "nextra/components";
 import "./global.css";
 
-const suse = Roboto_Mono({
+const spaceGrotesk = Space_Grotesk({
 	subsets: ["latin"],
+	variable: "--font-space-grotesk",
+	weight: ["600", "700"],
+});
+
+const jetbrainsMono = JetBrains_Mono({
+	subsets: ["latin"],
+	variable: "--font-jetbrains-mono",
+	weight: ["400", "500", "700", "800"],
+});
+
+const inter = Inter({
+	subsets: ["latin"],
+	variable: "--font-inter",
+	weight: ["400", "500", "600"],
 });
 
 export const metadata = {
 	title: {
-		default: "BlazeDiff - High-Performance Image Comparison",
+		default: "BlazeDiff. Open-source image diff for CI, in Rust.",
 		template: "%s | BlazeDiff",
 	},
 	description:
-		"BlazeDiff is a high-performance image comparison ecosystem. Built with cutting-edge algorithms and optimized for speed, BlazeDiff provides tools for comparing content, visualizing differences, and integrating diff functionality into your applications.",
+		"Open-source image and object diffing. Rust core with SIMD. Up to 8x faster than pixelmatch on 4K, 3 to 4x faster than odiff. Ships matchers for Jest, Vitest, Bun, plus an agent that drives visual regression from Claude Code, Cursor, and Codex.",
 	keywords: [
 		"image comparison",
+		"visual regression",
 		"diff",
 		"pixelmatch",
-		"visual testing",
-		"image diff",
+		"odiff",
+		"ssim",
+		"playwright",
+		"rust",
+		"simd",
 		"blazediff",
 		"typescript",
-		"react",
+		"claude code",
+		"cursor",
+		"codex",
 	],
 	authors: [{ name: "Teimur Gasanov" }],
 	creator: "Teimur Gasanov",
 	publisher: "Teimur Gasanov",
 	openGraph: {
-		title: "BlazeDiff - High-Performance Image Comparison",
+		title: "BlazeDiff. Open-source image diff for CI, in Rust.",
 		description:
-			"High-performance image comparison library. 1.5x faster than pixelmatch while maintaining identical accuracy.",
+			"Open-source image and object diffing. Rust core with SIMD. Up to 8x faster than pixelmatch on 4K, 3 to 4x faster than odiff. Ships matchers for Jest, Vitest, Bun, plus an agent that drives visual regression from Claude Code, Cursor, and Codex.",
 		url: "https://blazediff.dev",
 		siteName: "BlazeDiff",
 		locale: "en_US",
@@ -42,9 +57,9 @@ export const metadata = {
 	},
 	twitter: {
 		card: "summary_large_image",
-		title: "BlazeDiff - High-Performance Image Comparison",
+		title: "BlazeDiff. Open-source image diff for CI, in Rust.",
 		description:
-			"High-performance image comparison library. 1.5x faster than pixelmatch while maintaining identical accuracy.",
+			"Open-source image and object diffing. Rust core with SIMD. Up to 8x faster than pixelmatch on 4K, 3 to 4x faster than odiff. Ships matchers for Jest, Vitest, Bun, plus an agent that drives visual regression from Claude Code, Cursor, and Codex.",
 	},
 	robots: {
 		index: true,
@@ -79,25 +94,7 @@ export const metadata = {
 	manifest: "/site.webmanifest",
 };
 
-const banner = (
-	<Banner storageKey="interpret-launch">
-		<Link href="/docs/core-native">
-			New: <b className="text-blue-400">@blazediff/core-native</b> now includes
-			interpret - structured diff analysis to understand what changed. Read more
-			→
-		</Link>
-	</Banner>
-);
-const navbar = (
-	<Navbar
-		logo={<Image src="/logo.png" alt="BlazeDiff" width={48} height={48} />}
-		projectIcon={<IconBrandGithub />}
-		projectLink="https://github.com/teimurjan/blazediff"
-	/>
-);
-const footer = <Footer>MIT {new Date().getFullYear()} © BlazeDiff.</Footer>;
-
-export default async function RootLayout({
+export default function RootLayout({
 	children,
 }: {
 	children: React.ReactNode;
@@ -106,21 +103,11 @@ export default async function RootLayout({
 		<html
 			lang="en"
 			dir="ltr"
-			className={suse.className}
+			className={`${spaceGrotesk.variable} ${jetbrainsMono.variable} ${inter.variable}`}
 			suppressHydrationWarning
 		>
 			<Head />
-			<body>
-				<Layout
-					banner={banner}
-					navbar={navbar}
-					pageMap={await getPageMap()}
-					docsRepositoryBase="https://github.com/teimurjan/blazediff/tree/main/apps/website"
-					footer={footer}
-				>
-					<div className="max-w-7xl m-auto">{children}</div>
-				</Layout>
-			</body>
+			<body>{children}</body>
 		</html>
 	);
 }
