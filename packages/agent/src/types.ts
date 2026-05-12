@@ -1,7 +1,15 @@
-import type { ChangeRegion } from "@blazediff/core-native";
+import type { BoundingBox } from "@blazediff/core-native";
 import type { Verdict } from "./diff/verdict";
 
 export const STABILITY_HOOKS_VERSION = 1;
+
+export interface RegionSummary {
+	bbox: BoundingBox;
+	pixelCount: number;
+	percentage: number;
+	changeType: string;
+	confidence: number;
+}
 
 export interface Viewport {
 	width: number;
@@ -87,7 +95,7 @@ export interface CheckResult {
 	diffCount?: number;
 	diffPercentage?: number;
 	severity?: string;
-	regions?: ChangeRegion[];
+	regions?: RegionSummary[];
 	verdict?: Verdict;
 	diffPath?: string;
 	actualPath?: string;

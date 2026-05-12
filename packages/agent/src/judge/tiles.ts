@@ -1,6 +1,7 @@
 import path from "node:path";
-import type { BoundingBox, ChangeRegion } from "@blazediff/core-native";
+import type { BoundingBox } from "@blazediff/core-native";
 import sharp from "sharp";
+import type { RegionSummary } from "../types";
 
 export interface TilePrepRegion {
 	bbox: BoundingBox;
@@ -14,7 +15,7 @@ export interface TilePrepResult {
 }
 
 export interface PrepareTilesOptions {
-	regions: ChangeRegion[];
+	regions: RegionSummary[];
 	baselinePath: string;
 	actualPath: string;
 	diffPath: string;
@@ -80,19 +81,18 @@ export async function prepareTiles(
 				width: padded.width,
 				height: padded.height,
 			};
-			const [base, actual, diff] = await Promise.all([
+			const [base, actual] = await Promise.all([
 				sharp(opts.baselinePath).extract(extract).toBuffer(),
 				sharp(opts.actualPath).extract(extract).toBuffer(),
-				sharp(opts.diffPath).extract(extract).toBuffer(),
 			]);
-			return { region, padded, base, actual, diff };
+			return { region, padded, base, actual };
 		}),
 	);
 
 	let tilesName: string | undefined;
 	if (regionData.length > 0) {
 		const canvasWidth = Math.max(
-			...regionData.map((r) => r.padded.width * 3 + gutter * 2),
+			...regionData.map((r) => r.padded.width * 2 + gutter),
 		);
 		const totalHeight = regionData.reduce(
 			(sum, r, i) => sum + r.padded.height + (i > 0 ? rowGutter : 0),
@@ -107,7 +107,6 @@ export async function prepareTiles(
 			composites.push(
 				{ input: r.base, left: 0, top: y },
 				{ input: r.actual, left: w + gutter, top: y },
-				{ input: r.diff, left: 2 * (w + gutter), top: y },
 			);
 			y += r.padded.height;
 			if (i < regionData.length - 1) y += rowGutter;

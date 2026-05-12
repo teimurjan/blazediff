@@ -1,4 +1,5 @@
 import path from "node:path";
+import type { ChangeRegion } from "@blazediff/core-native";
 import { captureScreenshot } from "./browser/capture";
 import { closeBrowser } from "./browser/launch";
 import { DEFAULT_FULL_PAGE, defaultConcurrency } from "./defaults";
@@ -9,7 +10,22 @@ import { isEntryStale, loadManifest } from "./manifest";
 import { paths } from "./paths";
 import { writeJsonReport } from "./report/json";
 import { writeJunit } from "./report/junit";
-import type { CheckReport, CheckResult, ManifestEntry } from "./types";
+import type {
+	CheckReport,
+	CheckResult,
+	ManifestEntry,
+	RegionSummary,
+} from "./types";
+
+function narrowRegion(r: ChangeRegion): RegionSummary {
+	return {
+		bbox: r.bbox,
+		pixelCount: r.pixelCount,
+		percentage: r.percentage,
+		changeType: r.changeType,
+		confidence: r.confidence,
+	};
+}
 
 export interface CheckOptions {
 	baseUrl: string;
@@ -93,7 +109,7 @@ function failResult(
 		diffCount: outcome.diffCount,
 		diffPercentage: outcome.diffPercentage,
 		severity: outcome.interpretation?.severity,
-		regions: outcome.interpretation?.regions,
+		regions: outcome.interpretation?.regions?.map(narrowRegion),
 		verdict,
 		diffPath: outcome.diffPath,
 		baselinePath,

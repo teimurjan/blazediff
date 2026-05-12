@@ -1,13 +1,24 @@
 import path from "node:path";
+import type { ChangeRegion } from "@blazediff/core-native";
 import { captureScreenshot } from "../../browser/capture";
 import { DEFAULT_FULL_PAGE } from "../../defaults";
 import { type DiffOutcome, diffEntry } from "../../diff";
 import { deriveVerdict, type Verdict } from "../../diff/verdict";
 import { resolveJudge } from "../../judge";
 import { isEntryStale } from "../../manifest";
-import type { CheckResult, ManifestEntry } from "../../types";
+import type { CheckResult, ManifestEntry, RegionSummary } from "../../types";
 import type { Semaphore } from "../semaphore";
 import type { GraphStateType } from "../state";
+
+function narrowRegion(r: ChangeRegion): RegionSummary {
+	return {
+		bbox: r.bbox,
+		pixelCount: r.pixelCount,
+		percentage: r.percentage,
+		changeType: r.changeType,
+		confidence: r.confidence,
+	};
+}
 
 function skipResult(entry: ManifestEntry, message: string): CheckResult {
 	return { id: entry.id, url: entry.url, status: "pass", message };
@@ -62,7 +73,7 @@ function failResult(
 		diffCount: outcome.diffCount,
 		diffPercentage: outcome.diffPercentage,
 		severity: outcome.interpretation?.severity,
-		regions: outcome.interpretation?.regions,
+		regions: outcome.interpretation?.regions?.map(narrowRegion),
 		verdict,
 		diffPath: outcome.diffPath,
 		baselinePath,

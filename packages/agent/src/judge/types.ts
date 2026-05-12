@@ -1,25 +1,18 @@
-import type { BoundingBox, ChangeRegion } from "@blazediff/core-native";
 import type { Verdict } from "../diff/verdict";
-import type { ManifestEntry } from "../types";
+import type { ManifestEntry, RegionSummary } from "../types";
 
 export interface JudgeInput {
 	entry: ManifestEntry;
 	baselinePath: string;
 	actualPath: string;
 	diffPath?: string;
-	regions?: ChangeRegion[];
+	regions?: RegionSummary[];
 	diffPercentage?: number;
 	severity?: string;
 	heuristicVerdict: Verdict;
 }
 
-export interface JudgmentRequestRegion {
-	bbox: BoundingBox;
-	pixelCount: number;
-	percentage: number;
-	changeType: string;
-	confidence: number;
-}
+export type JudgmentRequestRegion = RegionSummary;
 
 export type JudgeOutput =
 	| {

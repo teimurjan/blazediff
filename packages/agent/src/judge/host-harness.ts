@@ -33,26 +33,13 @@ export interface JudgmentRequest {
 
 const INSTRUCTIONS = [
 	"The visual-regression heuristic could not classify this diff confidently.",
-	"Read `locator.png` AND `tilesPath` (regions.png) in parallel — issue both Read calls in a single tool batch. locator.png is a small thumbnail of the diff with every change region outlined in red; regions.png is a vertical stack of all change regions, each row showing `[baseline | actual | diff]` at native resolution. Row order matches the `regions[]` array (top = largest by pixelCount).",
-	"Decide from the tiles. Only open the full `diffPath` / `baselinePath` / `actualPath` if the composite is itself ambiguous (e.g., a change clearly continues outside the cropped region).",
+	"Read `locator.png` AND `tilesPath` (regions.png) in parallel — issue both Read calls in a single tool batch. locator.png is a small thumbnail of the diff with every change region outlined in red; regions.png is a vertical stack of [baseline | actual] pairs, one row per change region at native resolution. Row order matches the `regions[]` array (top = largest by pixelCount).",
+	"Decide from the tile pairs. Only open the full `diffPath` / `baselinePath` / `actualPath` if the composite is itself ambiguous (e.g., a change clearly continues outside the cropped region).",
 	"Decide whether the change is a regression, an intentional UI change, or rendering noise.",
 	"Write your decision to `.blazediff/judgments/<id>.json` with shape:",
 	'  { "id": string, "verdict": { "label": "regression-likely" | "intentional-likely" | "noise-likely", "headline": string, "rationale": string[], "action": "investigate" | "rewrite-if-intended" | "ignore-or-rewrite" }, "rationale": string, "confidence": number }',
 	"Then re-run `blazediff-agent check --apply-judgments --json` to merge verdicts back into report.json.",
 ].join("\n");
-
-function narrowRegions(
-	input: JudgeInput["regions"],
-): JudgmentRequestRegion[] | undefined {
-	if (!input || input.length === 0) return undefined;
-	return input.map((r) => ({
-		bbox: r.bbox,
-		pixelCount: r.pixelCount,
-		percentage: r.percentage,
-		changeType: r.changeType,
-		confidence: r.confidence,
-	}));
-}
 
 async function tryPrepareTiles(
 	input: JudgeInput,
@@ -81,8 +68,12 @@ async function tryPrepareTiles(
 export const hostHarnessJudge: Judge = {
 	name: "host",
 	async judge(input: JudgeInput, cwd: string): Promise<JudgeOutput> {
-		const entryDir = path.join(paths(cwd).pendingJudgments, input.entry.id);
-		await mkdir(entryDir, { recursive: true });
+		const p = paths(cwd);
+		const entryDir = path.join(p.pendingJudgments, input.entry.id);
+		await Promise.all([
+			mkdir(entryDir, { recursive: true }),
+			mkdir(p.judgments, { recursive: true }),
+		]);
 
 		const tiles = await tryPrepareTiles(input, entryDir);
 
@@ -95,7 +86,8 @@ export const hostHarnessJudge: Judge = {
 			diffPath: input.diffPath,
 			diffPercentage: input.diffPercentage,
 			severity: input.severity,
-			regions: narrowRegions(input.regions),
+			regions:
+				input.regions && input.regions.length > 0 ? input.regions : undefined,
 			locatorPath: tiles?.locatorPath,
 			tilesPath: tiles?.tilesPath,
 			heuristicVerdict: input.heuristicVerdict,
