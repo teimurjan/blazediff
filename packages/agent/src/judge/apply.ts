@@ -1,7 +1,8 @@
-import { existsSync } from "node:fs";
-import { readdir, readFile, stat } from "node:fs/promises";
+import { access, readdir, readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import type { Verdict, VerdictAction, VerdictLabel } from "../diff/verdict";
+import { type RunEvent, resumeGraph, threadIdFor } from "../graph";
+import { FsCheckpointSaver } from "../graph/checkpoint";
 import { loadManifest } from "../manifest";
 import { paths } from "../paths";
 import { writeSummaryMarkdown } from "../report/markdown";
@@ -27,6 +28,12 @@ export interface ApplyJudgmentsResult {
 	applied: string[];
 	missing: string[];
 	invalid: string[];
+}
+
+export interface ApplyJudgmentsOptions {
+	cwd?: string;
+	onEvent?: (event: RunEvent) => void;
+	junitPath?: string;
 }
 
 function parseVerdict(raw: unknown): VerdictFile | null {
@@ -60,6 +67,15 @@ function parseVerdict(raw: unknown): VerdictFile | null {
 		rationale: typeof r.rationale === "string" ? r.rationale : undefined,
 		confidence: typeof r.confidence === "number" ? r.confidence : undefined,
 	};
+}
+
+async function fileExists(p: string): Promise<boolean> {
+	try {
+		await access(p);
+		return true;
+	} catch {
+		return false;
+	}
 }
 
 async function readJsonOrNull<T>(file: string): Promise<T | null> {
@@ -100,7 +116,7 @@ async function readJudgmentDirs(root: string): Promise<DirRead[]> {
 		const verdictFile = path.join(dir, "verdict.json");
 		let verdict: VerdictFile | null = null;
 		let verdictInvalid = false;
-		if (existsSync(verdictFile)) {
+		if (await fileExists(verdictFile)) {
 			const raw = await readJsonOrNull<unknown>(verdictFile);
 			verdict = raw ? parseVerdict(raw) : null;
 			if (raw && !verdict) verdictInvalid = true;
@@ -115,7 +131,7 @@ function toAbs(cwd: string, rel?: string): string | undefined {
 	return path.isAbsolute(rel) ? rel : path.join(cwd, rel);
 }
 
-function buildResult(
+function fromDiskResult(
 	cwd: string,
 	dir: DirRead,
 	entry: ManifestEntry | undefined,
@@ -148,7 +164,10 @@ function buildResult(
 	};
 }
 
-function passResult(entry: ManifestEntry, cwd: string): CheckResult {
+async function passResultFromDisk(
+	entry: ManifestEntry,
+	cwd: string,
+): Promise<CheckResult> {
 	const baselineAbs = path.join(paths(cwd).baselines, `${entry.id}.png`);
 	const actualAbs = path.join(paths(cwd).actual, `${entry.id}.png`);
 	return {
@@ -156,46 +175,33 @@ function passResult(entry: ManifestEntry, cwd: string): CheckResult {
 		url: entry.url,
 		status: "pass",
 		baselinePath: baselineAbs,
-		actualPath: existsSync(actualAbs) ? actualAbs : undefined,
+		actualPath: (await fileExists(actualAbs)) ? actualAbs : undefined,
 	};
 }
 
-export async function applyJudgments(
-	cwd: string = process.cwd(),
-): Promise<ApplyJudgmentsResult> {
-	const p = paths(cwd);
+async function reconstructFromDisk(
+	cwd: string,
+	dirs: DirRead[],
+): Promise<CheckReport> {
 	const manifest = await loadManifest(cwd);
 	if (!manifest) {
 		throw new Error(
-			`no manifest at ${p.manifest}. Run \`blazediff-agent init\` first.`,
+			`no manifest at ${paths(cwd).manifest}. Run \`blazediff-agent init\` first.`,
 		);
 	}
-
-	const dirs = await readJudgmentDirs(p.judgments);
 	const dirById = new Map(dirs.map((d) => [d.id, d]));
-
-	const applied: string[] = [];
-	const missing: string[] = [];
-	const invalid: string[] = [];
-
-	for (const d of dirs) {
-		if (d.verdictInvalid) invalid.push(path.join(p.judgments, d.id));
-		else if (d.verdict) applied.push(d.id);
-		else missing.push(d.id);
-	}
-
-	const nonPassResults: CheckResult[] = [];
-	for (const d of dirs) {
-		const entry = manifest.entries.find((e) => e.id === d.id);
-		nonPassResults.push(buildResult(cwd, d, entry));
-	}
-
-	const passResults: CheckResult[] = [];
-	for (const entry of manifest.entries) {
-		if (dirById.has(entry.id)) continue;
-		passResults.push(passResult(entry, cwd));
-	}
-
+	const nonPassResults: CheckResult[] = dirs.map((d) =>
+		fromDiskResult(
+			cwd,
+			d,
+			manifest.entries.find((e) => e.id === d.id),
+		),
+	);
+	const passResults = await Promise.all(
+		manifest.entries
+			.filter((entry) => !dirById.has(entry.id))
+			.map((entry) => passResultFromDisk(entry, cwd)),
+	);
 	const results = [...passResults, ...nonPassResults];
 	const passed = results.filter((r) => r.status === "pass").length;
 	const pendingJudgments = results.filter(
@@ -209,8 +215,72 @@ export async function applyJudgments(
 		pendingJudgments,
 		results,
 	};
-
 	await writeSummaryMarkdown(report, cwd);
+	return report;
+}
+
+async function hasCheckpoint(cwd: string, threadId: string): Promise<boolean> {
+	const dir = path.join(paths(cwd).checkpoints, threadId);
+	try {
+		const names = await readdir(dir);
+		return names.length > 0;
+	} catch {
+		return false;
+	}
+}
+
+export async function applyJudgments(
+	opts: ApplyJudgmentsOptions | string = process.cwd(),
+): Promise<ApplyJudgmentsResult> {
+	const options: ApplyJudgmentsOptions =
+		typeof opts === "string" ? { cwd: opts } : opts;
+	const cwd = options.cwd ?? process.cwd();
+	const manifest = await loadManifest(cwd);
+	if (!manifest) {
+		throw new Error(
+			`no manifest at ${paths(cwd).manifest}. Run \`blazediff-agent init\` first.`,
+		);
+	}
+
+	const dirs = await readJudgmentDirs(paths(cwd).judgments);
+
+	const applied: string[] = [];
+	const missing: string[] = [];
+	const invalid: string[] = [];
+	const verdicts: Record<string, Verdict> = {};
+
+	for (const d of dirs) {
+		if (d.verdictInvalid) {
+			invalid.push(path.join(paths(cwd).judgments, d.id));
+			continue;
+		}
+		if (d.verdict) {
+			verdicts[d.id] = d.verdict.verdict;
+			applied.push(d.id);
+			continue;
+		}
+		missing.push(d.id);
+	}
+
+	const threadId = threadIdFor(cwd);
+	const checkpointExists = await hasCheckpoint(cwd, threadId);
+
+	if (!checkpointExists) {
+		const report = await reconstructFromDisk(cwd, dirs);
+		return { report, applied, missing, invalid };
+	}
+
+	const report = await resumeGraph({
+		cwd,
+		verdicts,
+		threadId,
+		onEvent: options.onEvent,
+		junitPath: options.junitPath,
+	});
+
+	await new FsCheckpointSaver(paths(cwd).checkpoints)
+		.deleteThread(threadId)
+		.catch(() => undefined);
 
 	return { report, applied, missing, invalid };
 }

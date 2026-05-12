@@ -811,6 +811,333 @@ SSIM: 0.9597
 
 ---
 
+# @blazediff/agent
+
+Agentic visual regression for BlazeDiff. Auto-discovers routes, captures deterministic screenshots, diffs them against committed baselines with the native BlazeDiff core, and hands ambiguous diffs back to your coding agent (Claude Code, Cursor, Codex) to judge.
+
+The package ships a deterministic CLI (`blazediff-agent`) plus a portable playbook (`SKILL.md`) that any coding agent drives. No embedded LLM call, no API key in the default flow - your coding agent supplies the loop, vision, and context engineering.
+
+[View on GitHub](https://github.com/teimurjan/blazediff/tree/main/packages/agent) · [Landing page](/agent)
+
+## Installation
+
+### Global
+
+```sh
+npm install -g @blazediff/agent
+```
+
+### Local
+
+```sh
+npm install --save-dev @blazediff/agent
+```
+
+### Chromium
+
+First run will prompt to install bundled Playwright Chromium - no sudo, no `npx playwright install --with-deps`.
+
+```sh
+blazediff-agent browsers install --check --json   # check
+blazediff-agent browsers install                  # install if missing
+```
+
+## Onboard a coding agent
+
+`blazediff-agent onboard` installs the BlazeDiff playbook into whatever coding-agent harness lives in your project. Run once per project.
+
+```sh
+# Auto-detect (Claude Code, Codex, Cursor)
+blazediff-agent onboard --json
+
+# Explicit
+blazediff-agent onboard --harness codex
+blazediff-agent onboard --harness claude,codex
+blazediff-agent onboard --harness all
+```
+
+Per harness:
+
+| Harness | Target | Scope | Detection signal |
+|---|---|---|---|
+| Claude Code | `<project>/.claude/skills/blazediff/SKILL.md` | project | `CLAUDE.md` or `.claude/` |
+| Codex | `~/.codex/prompts/blazediff.md` | user-global | `AGENTS.md`, `.codex/`, or `~/.codex/` |
+| Cursor | `<project>/.cursor/rules/blazediff.mdc` | project | `.cursor/` or `.cursorrules` |
+
+Codex is user-global because OpenAI's Codex CLI looks for slash-command prompts in `~/.codex/prompts/` — installing there means `/blazediff` works in every project on your machine. On a TTY with no detection, the command prompts. Pass `--force` to overwrite a hand-edited file.
+
+## Quickstart from a coding agent
+
+Once onboarded, from Claude Code / Codex / Cursor:
+
+```
+/blazediff --cwd apps/website
+```
+
+The skill detects whether you're authoring (no `.blazediff/manifest.json`) or checking (manifest exists), runs the right flow end-to-end, and stops to ask for confirmation only before destructive operations (rewriting baselines, masking).
+
+## Quickstart from the CLI
+
+### Author baselines
+
+```bash
+# 1. Generate config from your dev script
+blazediff-agent init --json
+
+# 2. Ensure Chromium is installed
+blazediff-agent browsers install --check --json
+
+# 3. Start the configured dev server (waits up to 60s for the port)
+blazediff-agent serve-status --detach --json
+
+# 4. Capture baselines in one call - pipe a JSON list of routes
+cat <<'EOF' | blazediff-agent capture --stdin --mode baseline --json
+[
+  {"id": "home", "url": "/", "mask": [".timestamp"]},
+  {"id": "pricing", "url": "/pricing"}
+]
+EOF
+
+# 5. Stop the dev server (mandatory teardown)
+blazediff-agent serve-status --kill --json
+```
+
+Commit `.blazediff/` (config + manifest + baselines).
+
+### Check (CI verb)
+
+```bash
+# Pipelined - prefer for sites with 10+ routes; uses LangGraph for parallelism
+blazediff-agent run --judge host --json
+
+# Single-pool - simpler, same report shape
+blazediff-agent check --judge host --json
+```
+
+The CLI starts the dev server automatically when `config.devServer` is set, runs every manifest entry through Playwright, diffs each capture against its baseline, and emits a `CheckReport`:
+
+```json
+{
+  "summaryPath": ".blazediff/summary.md",
+  "totalEntries": 23,
+  "passed": 22,
+  "failed": 0,
+  "pendingJudgments": 1,
+  "results": [
+    {
+      "id": "agent",
+      "url": "/agent",
+      "status": "needs-judgment",
+      "verdict": {
+        "label": "ambiguous",
+        "headline": "5 regions: 4 content-change, 1 addition @ left (0.13%, low)",
+        "action": "investigate"
+      }
+    }
+  ]
+}
+```
+
+`results[]` lists non-pass entries only. Full per-entry details (regions, paths, rationale) live in `.blazediff/summary.md` (a 5-column markdown table with inline image previews) and `.blazediff/judgments/<id>/request.json`.
+
+### Accept an intentional regression
+
+```bash
+# By id
+blazediff-agent rewrite home pricing --json
+
+# All failures from the last check
+blazediff-agent rewrite --failed --json
+
+# All entries (rare; usually wrong)
+blazediff-agent rewrite --all --json
+```
+
+`rewrite` preserves the existing manifest entry's `mask` / `viewport` / `waitFor` / `fullPage`; only the baseline PNG is regenerated. Re-run `check` afterwards to confirm clean.
+
+### Wipe and start over
+
+```bash
+blazediff-agent reset --yes --json
+```
+
+Deletes the entire `.blazediff/` directory (config, manifest, baselines, actual, judgments, summary, pid/log). Tracked dev server is stopped first. Discards committed baselines - confirm explicitly before running.
+
+## Commands
+
+| Command | Purpose |
+|---|---|
+| `onboard` | Install the playbook into the detected coding-agent harness (Claude Code, Codex, Cursor) |
+| `init` | Detect framework/dev-script, write `.blazediff/config.json` + `.gitignore` |
+| `discover` | BFS-crawl routes from `baseUrl` (depth 2, ≤50 routes) as a fallback when source-walking fails |
+| `capture --stdin` | Read a JSON array of routes from stdin, screenshot each, write baselines/actuals + manifest |
+| `check` | Re-capture every manifest entry, diff against baseline, emit `CheckReport` |
+| `run` | Pipelines capture → diff → verdict → judge via LangGraph for parallelism + LangSmith traces |
+| `rewrite <id...>` | Re-baseline existing manifest entries (mask/viewport/waitFor preserved) |
+| `diff <id>` | Re-diff one entry against its actual capture without re-screenshotting |
+| `manifest` | Inspect / list manifest entries |
+| `serve-status` | `--detach` / `--kill` / `--status` against the configured dev server |
+| `browsers install` | Install bundled Playwright Chromium |
+| `reset --yes` | Wipe `.blazediff/` |
+
+All commands accept `--json` for machine-readable output. Pass `-C, --cwd <abs-path>` to operate on a sub-directory (e.g. one app inside a monorepo).
+
+## The judging model
+
+The heuristic verdict pipeline emits one of four labels per failing entry:
+
+| Label | Meaning | Default action |
+|---|---|---|
+| `regression-likely` | Confident structural change | Investigate; do not rewrite |
+| `intentional-likely` | Confident styling/typographic change | Ask user, then rewrite |
+| `noise-likely` | Confident non-deterministic source | Ask user; prefer masking over rewriting |
+| `ambiguous` | Heuristic couldn't classify | Defer to host judge |
+
+For `ambiguous`, the `--judge host` backend writes a `JudgmentRequest` to `.blazediff/judgments/<id>/request.json` containing:
+
+- `regions[]` - bounding boxes, pixel counts, and change types per detected region
+- `paths.locator` (`locator.png`) - a ~400 px overview thumbnail with every region outlined in red
+- `paths.tiles` (`regions.png`) - a vertical stack of `[baseline | actual]` pairs, one row per region, at native resolution
+- `paths.{baseline,actual,diff}` - full-page PNGs as a fallback
+- `heuristicVerdict` and full `manifestEntry` context
+
+> **Info:** **Token discipline.** The region tiles are 10-100x smaller than the full-page PNGs. A well-behaved host agent reads `regions.png` + `locator.png` first and only falls back to the full-page PNGs if a region clearly continues outside its crop.
+
+The host agent writes its verdict to `.blazediff/judgments/<id>/verdict.json`:
+
+```json
+{
+  "id": "agent",
+  "verdict": {
+    "label": "intentional-likely",
+    "headline": "Em-dash replaced with hyphen in copy",
+    "rationale": ["region tile shows only typographic substitution"],
+    "action": "rewrite-if-intended"
+  },
+  "rationale": "Full paragraph explanation...",
+  "confidence": 0.95
+}
+```
+
+Then re-run `blazediff-agent check --apply-judgments --json` to merge verdicts into the report. No re-screenshot.
+
+## Masking unstable regions
+
+When a diff is `noise-likely` - or when a `regression-likely` / `intentional-likely` diff is actually caused by something inherently non-deterministic in the page - the right fix is usually a mask, not a rebaseline. A rebaseline just resets the clock on a flake; a mask removes it.
+
+**Mask whenever the changing region is:**
+
+- An auto-cycling animation: carousels, marquees, demo widgets with `setInterval`, video posters, Lottie loops
+- A third-party iframe or embed: Storybook, YouTube, codesandbox, Stripe checkout - anything whose load timing or content you don't control. `networkidle` does not wait for embedded iframe subresources.
+- Time-derived: `Date.now()` clocks, "X minutes ago" timestamps, today-highlighted calendars, expiry countdowns
+- Per-session randomness: avatars seeded from session id, A/B-test variants, generated IDs, shuffled lists
+- Anti-bot / personalization noise: async cookie banners, recommendation strips, geo-derived prices
+
+**Don't mask** real content that just happens to be changing - that's the change you want the test to catch.
+
+### Default attribute
+
+The agent always masks any element matching `[data-blazediff-agent-mask]`. No manifest changes are needed. This is the preferred path whenever you can edit the source.
+
+```tsx
+<div data-blazediff-agent-mask>...</div>
+// or with a reason inline:
+<div data-blazediff-agent-mask="report-carousel">...</div>
+```
+
+The attribute value is ignored by the matcher (presence is enough); use it to document intent for future readers. Add the attribute to a shared component (layout, header, footer) and the mask applies on every route automatically.
+
+### Per-entry selector (fallback)
+
+When you can't edit the source (third-party iframe, framework-owned element), fall back to a CSS selector on the manifest entry. Selectors are passed to `document.querySelectorAll`, then painted with a magenta rect over the bounding rect in both baseline and actual.
+
+- For external embeds, target the element type: `iframe`, `video`, `[data-testid="storybook-preview"]`.
+- Avoid Tailwind class chains and `nth-child` selectors. They break on the next style tweak.
+- Scope matters. Each manifest entry has its own `mask` array, so `iframe` on `/examples/web-components` won't affect `/home`.
+
+Re-capture the affected entries with the new mask list. The mask list **replaces** the existing one. Include every selector you want kept.
+
+```sh
+cat <<'EOF' | blazediff-agent capture --stdin --mode baseline --json
+[
+  {"id": "examples-web-components", "url": "/examples/web-components", "mask": ["iframe"]}
+]
+EOF
+```
+
+Re-run `check` / `run` to confirm the entry now passes.
+
+## Configuration
+
+`.blazediff/config.json` is written by `init` and committed:
+
+```json
+{
+  "devServer": {
+    "command": "pnpm dev",
+    "port": 3000,
+    "readyTimeoutMs": 60000
+  },
+  "framework": "next",
+  "packageManager": "pnpm",
+  "baseUrl": "http://127.0.0.1:3000"
+}
+```
+
+Omit `devServer` to point the agent at an already-running URL (set `baseUrl` directly):
+
+```sh
+blazediff-agent init --url https://staging.example.com --json
+```
+
+`.blazediff/manifest.json` is written by `capture` - **never edit it directly**. Each entry holds:
+
+```ts
+{
+  id: string;
+  url: string;
+  mask: string[];               // CSS selectors
+  viewport: { width: number; height: number };
+  waitFor: ("networkidle" | "fonts" | string)[];
+  fullPage: boolean;
+}
+```
+
+## CI
+
+In CI (`CI=1` or no TTY), only `check` and `run` are allowed. `init` / `capture` / `rewrite` / `reset` are explicitly blocked - authoring belongs at the developer's machine.
+
+### GitHub Actions
+
+```yaml
+- run: pnpm install
+- run: npx blazediff-agent browsers install
+- run: npx blazediff-agent --cwd apps/website check --json
+```
+
+Exit codes:
+
+- `0` - every entry passed
+- `1` - at least one regression, intentional, noise, or pending-judgment entry
+- non-zero with structured JSON error on infra failures (missing manifest, no chromium, etc.)
+
+## Hard rules
+
+- Never `--mode baseline` an existing manifest entry without explicit user request.
+- Never edit `.blazediff/manifest.json` directly.
+- In CI (`CI=1` or no TTY), only `check` / `run` are allowed.
+- A route that times out is logged once in the result array and skipped - never blocks the run.
+- Never leave a dev server running after authoring exits. `serve-status --kill` is mandatory teardown.
+
+## Links
+
+- [GitHub Repository](https://github.com/teimurjan/blazediff/tree/main/packages/agent)
+- [Roadmap](https://github.com/teimurjan/blazediff/blob/main/packages/agent/ROADMAP.md)
+- [Skill playbook (`SKILL.md`)](https://github.com/teimurjan/blazediff/blob/main/skill/blazediff/SKILL.md)
+- [Landing page →](/agent)
+
+---
+
 # @blazediff/core-native
 
 The fastest single-threaded image diff in the world. Native Rust implementation with SIMD optimization, **3-4x faster** and **3x smaller** than [odiff](https://github.com/dmtrKovalenko/odiff).

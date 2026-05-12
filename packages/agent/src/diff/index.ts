@@ -1,13 +1,17 @@
-import { existsSync } from "node:fs";
-import { mkdir } from "node:fs/promises";
+import { access, mkdir } from "node:fs/promises";
 import path from "node:path";
-import {
-	compare,
-	type InterpretResult,
-	interpret,
-} from "@blazediff/core-native";
+import { compare, type InterpretResult } from "@blazediff/core-native";
 import { DEFAULT_THRESHOLD } from "../defaults";
 import { paths } from "../paths";
+
+async function fileExists(p: string): Promise<boolean> {
+	try {
+		await access(p);
+		return true;
+	} catch {
+		return false;
+	}
+}
 
 export interface DiffOptions {
 	threshold?: number;
@@ -34,7 +38,11 @@ export async function diffEntry(
 	opts: DiffOptions = {},
 	cwd: string = process.cwd(),
 ): Promise<DiffOutcome> {
-	if (!existsSync(baselinePath) || !existsSync(actualPath)) {
+	const [hasBaseline, hasActual] = await Promise.all([
+		fileExists(baselinePath),
+		fileExists(actualPath),
+	]);
+	if (!hasBaseline || !hasActual) {
 		return {
 			id,
 			baselinePath,
@@ -54,11 +62,10 @@ export async function diffEntry(
 	const threshold = opts.threshold ?? DEFAULT_THRESHOLD;
 	const antialiasing = opts.antialiasing ?? true;
 
-	// Two-pass: compare alone writes the diff PNG (the Rust core suppresses
-	// the PNG side-effect when --interpret is on), then interpret reads regions.
 	const result = await compare(baselinePath, actualPath, diffPath, {
 		threshold,
 		antialiasing,
+		interpret: true,
 	});
 
 	if (result.match) return { id, baselinePath, actualPath, match: true };
@@ -82,11 +89,6 @@ export async function diffEntry(
 		};
 	}
 
-	const interpretation = await interpret(baselinePath, actualPath, {
-		threshold,
-		antialiasing,
-	}).catch(() => undefined);
-
 	return {
 		id,
 		baselinePath,
@@ -96,6 +98,6 @@ export async function diffEntry(
 		reason: "pixel-diff",
 		diffCount: result.diffCount,
 		diffPercentage: result.diffPercentage,
-		interpretation,
+		interpretation: result.interpretation,
 	};
 }

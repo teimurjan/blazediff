@@ -3,6 +3,7 @@ import { loadConfig } from "../../config";
 import { DEFAULT_READY_TIMEOUT_MS } from "../../defaults";
 import { isPortOpen, startServer, stopServer } from "../../server/lifecycle";
 import type { Output } from "../output";
+import { parsePort } from "../parsers";
 
 interface Opts {
 	start?: boolean;
@@ -37,7 +38,7 @@ export function registerServeStatus(program: Command, out: Output): void {
 				return;
 			}
 
-			const port = opts.port ? Number(opts.port) : config.devServer.port;
+			const port = opts.port ? parsePort(opts.port) : config.devServer.port;
 
 			if (opts.kill) {
 				const result = await stopServer(process.cwd(), port);

@@ -7,6 +7,7 @@ import { paths } from "../../paths";
 import type { AgentConfig } from "../../types";
 import { ensureGitignore } from "../gitignore";
 import type { Output } from "../output";
+import { parsePort } from "../parsers";
 
 interface Opts {
 	force?: boolean;
@@ -28,7 +29,7 @@ async function buildConfig(opts: Opts): Promise<AgentConfig> {
 	}
 
 	if (opts.devCommand) {
-		const port = opts.port ? Number(opts.port) : DEFAULT_PORT;
+		const port = opts.port ? parsePort(opts.port) : DEFAULT_PORT;
 		return {
 			devServer: {
 				command: opts.devCommand,
@@ -66,7 +67,7 @@ async function buildConfig(opts: Opts): Promise<AgentConfig> {
 		chosen = match;
 	}
 
-	const port = opts.port ? Number(opts.port) : chosen.port;
+	const port = opts.port ? parsePort(opts.port) : chosen.port;
 	return {
 		devServer: {
 			command: chosen.command,

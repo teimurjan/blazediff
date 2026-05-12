@@ -1,4 +1,4 @@
-import { getBrowser } from "../browser/launch";
+import { acquireStableContext, releaseStableContext } from "../browser/launch";
 import type { DiscoveredRoute } from "../types";
 
 export interface CrawlOptions {
@@ -40,45 +40,45 @@ function extractInternalLinks(
 	return out;
 }
 
+const CRAWL_VIEWPORT = { width: 1024, height: 768 };
+const CRAWL_WORKERS = 4;
+
 export async function crawlRoutes(
 	opts: CrawlOptions,
 ): Promise<DiscoveredRoute[]> {
 	const maxRoutes = opts.maxRoutes ?? 50;
 	const maxDepth = opts.maxDepth ?? 2;
 	const base = new URL(opts.baseUrl);
-	const visited = new Set<string>();
+	const visited = new Set<string>(["/"]);
 	const queue: QueueItem[] = [{ url: "/", depth: 0 }];
-	visited.add("/");
 	const discovered: DiscoveredRoute[] = [];
 
-	const browser = await getBrowser();
-	const context = await browser.newContext({
-		viewport: { width: 1024, height: 768 },
-		deviceScaleFactor: 1,
-	});
+	const handle = await acquireStableContext(CRAWL_VIEWPORT);
 
-	try {
+	const fetchOne = async (): Promise<void> => {
 		while (queue.length && discovered.length < maxRoutes) {
-			const { url, depth } = queue.shift() as QueueItem;
-			const page = await context.newPage();
+			const item = queue.shift();
+			if (!item) return;
+			if (discovered.length >= maxRoutes) return;
+			discovered.push({ url: item.url, source: "crawl" });
+
+			if (item.depth >= maxDepth) continue;
+			const page = await handle.context.newPage();
 			try {
-				const target = new URL(url, base).toString();
+				const target = new URL(item.url, base).toString();
 				await page.goto(target, {
 					waitUntil: "domcontentloaded",
 					timeout: 15_000,
 				});
-				discovered.push({ url, source: "crawl" });
-
-				if (depth >= maxDepth) continue;
 				const hrefs = await page.evaluate(() =>
 					Array.from(
 						document.querySelectorAll<HTMLAnchorElement>("a[href]"),
 					).map((a) => a.getAttribute("href") ?? ""),
 				);
-				for (const path of extractInternalLinks(base, target, hrefs)) {
-					if (visited.has(path)) continue;
-					visited.add(path);
-					queue.push({ url: path, depth: depth + 1 });
+				for (const p of extractInternalLinks(base, target, hrefs)) {
+					if (visited.has(p)) continue;
+					visited.add(p);
+					queue.push({ url: p, depth: item.depth + 1 });
 				}
 			} catch {
 				// page-level error - skip and continue crawl
@@ -86,9 +86,13 @@ export async function crawlRoutes(
 				await page.close().catch(() => {});
 			}
 		}
+	};
+
+	try {
+		await Promise.all(Array.from({ length: CRAWL_WORKERS }, () => fetchOne()));
 	} finally {
-		await context.close().catch(() => {});
+		await releaseStableContext(handle);
 	}
 
-	return discovered;
+	return discovered.slice(0, maxRoutes);
 }
