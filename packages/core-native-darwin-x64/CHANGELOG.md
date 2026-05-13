@@ -1,5 +1,7 @@
 # @blazediff/core-native-darwin-x64
 
+## 4.3.1
+
 ## 4.3.0
 
 ### Minor Changes
