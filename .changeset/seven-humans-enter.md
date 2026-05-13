@@ -8,6 +8,7 @@
 "@blazediff/core-native-win32-x64": minor
 "@blazediff/core-wasm": minor
 "@blazediff/cli": minor
+"@blazediff/matcher": minor
 ---
 
 Add core-wasm support to Rust

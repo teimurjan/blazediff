@@ -5,6 +5,7 @@ import type { Buffer } from "node:buffer";
 export type ComparisonMethod =
 	| "core-native" // @blazediff/core-native (Rust N-API, file paths only)
 	| "core" // @blazediff/core (pixel-by-pixel YIQ)
+	| "core-wasm" // @blazediff/core-wasm (WebAssembly, same algo as core-native)
 	| "ssim" // @blazediff/ssim (standard SSIM)
 	| "msssim" // @blazediff/ssim/msssim (multi-scale SSIM)
 	| "hitchhikers-ssim" // @blazediff/ssim/hitchhikers-ssim (fast SSIM)
