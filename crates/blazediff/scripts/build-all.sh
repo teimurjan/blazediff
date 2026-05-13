@@ -35,24 +35,31 @@ build_target() {
     local use_cross="${2:-false}"
     local friendly; friendly=$(get_friendly_name "$target")
     local output_name="blazediff-${friendly}"
+    local ext_for_target=""
+    [[ "$target" == *windows* ]] && ext_for_target=".exe"
 
     echo "Building $output_name ($target)..."
     mkdir -p "$DIST_DIR"
     local flags; flags=$(get_rustflags "$target")
+
+    # Wipe any prior CLI artifact for this target so a silent build failure
+    # can't ship a stale binary via sync_binaries_to_packages.
+    rm -f "$DIST_DIR/${output_name}${ext_for_target}"
 
     if [[ "$target" == *"-pc-windows-msvc" ]]; then
         check_xwin || return 1
         PATH="$(xwin_path_prefix)" RUSTFLAGS="$flags" \
             cargo xwin build --release --target "$target"
     elif [[ "$use_cross" == "true" ]]; then
-        RUSTFLAGS="$flags" cross build --release --target "$target" \
-            --manifest-path "$WORKSPACE_DIR/Cargo.toml" -p blazediff
+        # See build-napi.sh: cross v0.2.5's images are linux/amd64-only, and
+        # host-absolute --manifest-path doesn't resolve inside the container.
+        ( cd "$WORKSPACE_DIR" && DOCKER_DEFAULT_PLATFORM=linux/amd64 RUSTFLAGS="$flags" \
+            cross build --release --target "$target" -p blazediff )
     else
         RUSTFLAGS="$flags" cargo build --release --target "$target"
     fi
 
-    local ext=""
-    [[ "$target" == *windows* ]] && ext=".exe"
+    local ext="$ext_for_target"
 
     local src="$TARGET_DIR/$target/release/blazediff${ext}"
     local dst="$DIST_DIR/${output_name}${ext}"

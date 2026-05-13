@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
 pub struct InterpretResult {
     pub summary: String,
     pub diff_count: u32,
@@ -13,6 +14,7 @@ pub struct InterpretResult {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
 pub struct ChangeRegion {
     pub bbox: BoundingBox,
     pub pixel_count: u32,
@@ -28,6 +30,7 @@ pub struct ChangeRegion {
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
 pub enum ChangeType {
     RenderingNoise,
     ContentChange,
@@ -38,6 +41,7 @@ pub enum ChangeType {
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
 pub struct ClassificationSignals {
     pub blends_with_bg_in_img1: bool,
     pub blends_with_bg_in_img2: bool,
@@ -51,6 +55,7 @@ pub struct ClassificationSignals {
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
 pub struct ColorDeltaStats {
     pub mean_delta: f32,
     pub max_delta: f32,
@@ -60,6 +65,7 @@ pub struct ColorDeltaStats {
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
 pub struct GradientStats {
     pub edge_score: f32,
     pub edge_score_img2: f32,
@@ -67,6 +73,7 @@ pub struct GradientStats {
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
 pub struct ShapeStats {
     pub fill_ratio: f64,
     pub border_ratio: f64,
@@ -77,6 +84,7 @@ pub struct ShapeStats {
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
 pub enum ChangeShape {
     SolidRegion,
     ContourFrame,
@@ -116,6 +124,7 @@ impl BoundingBox {
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
 pub enum ChangeSeverity {
     Low,
     Medium,
@@ -123,6 +132,7 @@ pub enum ChangeSeverity {
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[serde(rename_all = "kebab-case")]
 pub enum SpatialPosition {
     TopLeft,
     Top,

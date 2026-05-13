@@ -8,6 +8,15 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=_targets.sh
 source "$SCRIPT_DIR/_targets.sh"
 
+# Isolate the napi cdylib target dir so maturin (python feature) and napi
+# can't overwrite each other's libblazediff.so. Both writes land at
+# target/<triple>/release/libblazediff.so; sharing it means the last writer
+# wins (or worse, cross's host-mounted target/ keeps a stale python-tainted
+# .so that the napi rebuild fails to overwrite). Path-isolation kills the
+# whole class of bug.
+export CARGO_TARGET_DIR="$TARGET_DIR/napi"
+TARGET_DIR="$CARGO_TARGET_DIR"
+
 print_usage() {
     cat <<EOF
 Usage: $0 [OPTIONS]
@@ -25,6 +34,22 @@ Options:
 Output: \$DIST_DIR/blazediff-{os}-{arch}.node
 Sync:   packages/core-native-{platform}/blazediff.node
 EOF
+}
+
+# Refuse to ship a .node that links libpython. The python feature uses pyo3
+# with extension-module, which leaves undefined PyErr_*/Py_* symbols expected
+# to resolve at runtime via a libpython embedding. macOS's dyld lazy-binds
+# them and Node loads such a .node fine on darwin; Linux dlopen() rejects it.
+# Detect at build time, not at user import time.
+check_no_python_symbols() {
+    local file="$1"
+    command -v strings >/dev/null 2>&1 || return 0
+    if strings "$file" 2>/dev/null | grep -qE '^(PyErr_|Py_Initialize$|PyObject_GC_)'; then
+        echo "ERROR: $file contains CPython symbols (python feature accidentally enabled)."
+        echo "       This .node will fail to dlopen on Linux. Aborting."
+        rm -f "$file"
+        return 1
+    fi
 }
 
 build_native_napi() {
@@ -47,6 +72,7 @@ build_native_napi() {
     local dst="$DIST_DIR/blazediff-${os}-${arch}.node"
     if [[ -f "$src" ]]; then
         cp "$src" "$dst"
+        check_no_python_symbols "$dst" || return 1
         echo "Built N-API: $dst ($(ls -lh "$dst" | awk '{print $5}'))"
     else
         echo "Warning: N-API library not found at $src"
@@ -64,13 +90,25 @@ build_napi_target() {
     mkdir -p "$DIST_DIR"
     local flags; flags=$(get_rustflags "$target")
 
+    # Remove any prior artifact for this target before building so a silent
+    # cross/xwin failure can't slip a stale .node through sync_napi_to_packages.
+    rm -f "$DIST_DIR/${output_name}"
+
     if [[ "$target" == *"-pc-windows-msvc" ]]; then
         check_xwin || return 1
         PATH="$(xwin_path_prefix)" RUSTFLAGS="$flags" \
             cargo xwin build --release --target "$target" --features napi --lib
     elif [[ "$use_cross" == "true" ]]; then
-        RUSTFLAGS="$flags" cross build --release --target "$target" \
-            --manifest-path "$WORKSPACE_DIR/Cargo.toml" -p blazediff --features napi --lib
+        # `cross` v0.2.5 only ships linux/amd64 Docker images, so on Apple
+        # Silicon the linux-x64/arm64 builds bail with "no match for platform
+        # in manifest". Force amd64 emulation (OrbStack/Rosetta handle it).
+        #
+        # Run from the workspace root so cross mounts it and the relative
+        # manifest path resolves inside the container. Passing a host-absolute
+        # --manifest-path here fails because the container can't see that path.
+        ( cd "$WORKSPACE_DIR" && DOCKER_DEFAULT_PLATFORM=linux/amd64 RUSTFLAGS="$flags" \
+            cross build --release --target "$target" \
+            -p blazediff --features napi --lib )
     else
         RUSTFLAGS="$flags" cargo build --release --target "$target" --features napi --lib
     fi
@@ -86,6 +124,7 @@ build_napi_target() {
     local dst="$DIST_DIR/${output_name}"
     if [[ -f "$src" ]]; then
         cp "$src" "$dst"
+        check_no_python_symbols "$dst" || return 1
         echo "  -> $dst ($(ls -lh "$dst" | awk '{print $5}'))"
     else
         echo "  Warning: N-API library not found at $src"

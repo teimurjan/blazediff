@@ -8,6 +8,12 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=_targets.sh
 source "$SCRIPT_DIR/_targets.sh"
 
+# Isolate the maturin cdylib target dir from the napi build. See build-napi.sh
+# for the full reasoning - sharing target/<triple>/release/libblazediff.so
+# between the python and napi feature sets has shipped python-tainted .node
+# files in the past.
+export CARGO_TARGET_DIR="$TARGET_DIR/maturin"
+
 # dist/wheels/ - transient build output (gitignored).
 # crates/blazediff/wheels/ - committed source of truth that CI publishes from.
 WHEELS_DIR="$DIST_DIR/wheels"
