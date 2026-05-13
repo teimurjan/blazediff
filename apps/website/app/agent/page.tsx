@@ -17,7 +17,7 @@ import interpretData from "../../data/interpret/blazediff-3-diff.json";
 export const metadata = {
 	title: "Agent",
 	description:
-		"BlazeDiff Agent - autonomous visual regression testing for your coding agent. Pixel-level deviation detection wired into CI/CD.",
+		"Open-source visual regression. A deterministic CLI runs the tests; your coding agent (Claude Code, Cursor, Codex) judges ambiguous diffs from compact region tiles. No SaaS, no API key.",
 };
 
 const FIXTURE_A =
@@ -29,11 +29,11 @@ const PRINCIPLES = [
 	{
 		num: "01",
 		title: "YOUR AGENT IS THE JUDGE",
-		body: "When the heuristic can't decide, the agent reads compact region tiles and writes a verdict file. The loop, the vision, and the context are yours. No API call leaves your machine.",
+		body: "When the heuristic can't decide, the agent judges compact region tiles and writes a verdict file. No API call leaves your machine.",
 	},
 	{
 		num: "02",
-		title: "TOKEN-EFFICIENT BY DESIGN",
+		title: "TOKEN-EFFICIENT",
 		body: "Region tiles are 10x to 100x smaller than full-page PNGs. The host agent reads only the changed crops first, full pages only on demand.",
 	},
 	{
@@ -84,9 +84,9 @@ export default function AgentPage() {
 							<HeroGradient>CODING AGENT</HeroGradient>
 						</HeroHeading>
 						<HeroSubhead>
-							YOUR CODING AGENT RUNS THE TESTS, READS THE DIFFS, AND WRITES THE
-							VERDICTS. NO EMBEDDED LLM. NO API KEY. NO PER-SNAPSHOT BILL. OPEN
-							SOURCE FROM CLI TO CI.
+							YOUR CODING AGENT RUNS THE TESTS AND JUDGES AMBIGUOUS DIFFS FROM
+							COMPACT REGION TILES. NO EMBEDDED LLM. NO API KEY. NO PER-SNAPSHOT
+							BILL. OPEN SOURCE FROM CLI TO CI.
 						</HeroSubhead>
 						<InstallSnippet
 							commands={[

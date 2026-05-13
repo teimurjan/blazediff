@@ -1,5 +1,6 @@
 import { IconBolt, IconLayoutGrid, IconLockOpen } from "@tabler/icons-react";
 import Link from "next/link";
+import BenchmarkChart from "../components/landing/benchmark-chart";
 import CtaLink from "../components/landing/cta-link";
 import Hero from "../components/landing/hero";
 import HeroHeading, { HeroGradient } from "../components/landing/hero-heading";
@@ -7,8 +8,10 @@ import HeroInterpret from "../components/landing/hero-interpret";
 import HeroSubhead from "../components/landing/hero-subhead";
 import InstallSnippet from "../components/landing/install-snippet";
 import NumberedCard from "../components/landing/numbered-card";
+import RegionImage from "../components/landing/region-image";
 import Section from "../components/landing/section";
 import LandingShell from "../components/landing/shell";
+import TerminalFrame from "../components/landing/terminal-frame";
 import interpretData from "../data/interpret/blazediff-3-diff.json";
 
 const FIXTURE_A =
@@ -16,94 +19,108 @@ const FIXTURE_A =
 const FIXTURE_B =
 	"https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3b.png";
 
-const PACKAGES = [
+type Tier = "foundation" | "metrics" | "harness" | "surfaces";
+
+const TIER_LABELS: Record<Tier, string> = {
+	foundation: "FOUNDATION",
+	metrics: "METRICS",
+	harness: "TEST HARNESSES",
+	surfaces: "SURFACES",
+};
+
+const PACKAGES: {
+	name: string;
+	href: string;
+	blurb: string;
+	tier: Tier;
+}[] = [
 	{
 		name: "@blazediff/core",
 		href: "/docs/core",
 		blurb:
 			"Pure-JS pixel diff with two-pass block optimization. ~1.5x faster than pixelmatch with identical accuracy.",
+		tier: "foundation",
 	},
 	{
 		name: "@blazediff/core-native",
 		href: "/docs/core-native",
 		blurb:
 			"SIMD-accelerated Rust binary. 3 to 4x faster than odiff, up to 8x faster than pixelmatch on 4K.",
+		tier: "foundation",
 	},
 	{
 		name: "@blazediff/ssim",
 		href: "/docs/ssim",
 		blurb:
 			"SSIM (Structural Similarity Index) for CI visual testing. ~25% faster than ssim.js; Hitchhiker variant ~70% faster.",
+		tier: "metrics",
 	},
 	{
 		name: "@blazediff/gmsd",
 		href: "/docs/gmsd",
 		blurb:
 			"GMSD (Gradient Magnitude Similarity Deviation) metric for CI visual testing. Single-threaded, allocation-free hot path.",
+		tier: "metrics",
 	},
 	{
 		name: "@blazediff/object",
 		href: "/docs/object",
 		blurb:
 			"Object comparison with path tracking, cycle detection, and CREATE/REMOVE/CHANGE types. ~55% faster than microdiff.",
+		tier: "metrics",
+	},
+	{
+		name: "@blazediff/jest",
+		href: "/docs/jest",
+		blurb: "Jest matcher for visual regression testing.",
+		tier: "harness",
+	},
+	{
+		name: "@blazediff/vitest",
+		href: "/docs/vitest",
+		blurb: "Vitest matcher for visual regression testing.",
+		tier: "harness",
+	},
+	{
+		name: "@blazediff/bun",
+		href: "/docs/bun",
+		blurb: "Bun test matcher for visual regression testing.",
+		tier: "harness",
+	},
+	{
+		name: "@blazediff/matcher",
+		href: "/docs/matcher",
+		blurb: "Core matcher logic for visual regression testing.",
+		tier: "harness",
 	},
 	{
 		name: "@blazediff/agent",
 		href: "/agent",
 		blurb:
 			"Visual regression that your coding agent runs. Onboards Claude Code, Cursor, Codex. No API key required.",
+		tier: "surfaces",
 	},
 	{
 		name: "@blazediff/cli",
 		href: "/docs/cli",
 		blurb: "Command-line interface for image comparison.",
-	},
-	{
-		name: "@blazediff/jest",
-		href: "/docs/jest",
-		blurb: "Jest matcher for visual regression testing.",
-	},
-	{
-		name: "@blazediff/vitest",
-		href: "/docs/vitest",
-		blurb: "Vitest matcher for visual regression testing.",
-	},
-	{
-		name: "@blazediff/bun",
-		href: "/docs/bun",
-		blurb: "Bun test matcher for visual regression testing.",
-	},
-	{
-		name: "@blazediff/matcher",
-		href: "/docs/matcher",
-		blurb: "Core matcher logic for visual regression testing.",
+		tier: "surfaces",
 	},
 	{
 		name: "@blazediff/ui",
 		href: "/docs/ui",
 		blurb: "Unstyled web components for displaying image differences.",
+		tier: "surfaces",
 	},
 	{
 		name: "@blazediff/react",
 		href: "/docs/react",
 		blurb: "React components for image comparison.",
-	},
-	{
-		name: "@blazediff/codec-sharp",
-		href: "/docs/core-native",
-		blurb: "Image codec using Sharp.",
-	},
-	{
-		name: "@blazediff/codec-pngjs",
-		href: "/docs/core-native",
-		blurb: "PNG image codec using pngjs.",
-	},
-	{
-		name: "@blazediff/codec-jsquash-png",
-		href: "/docs/core-native",
-		blurb: "WASM-based PNG image codec using @jsquash/png.",
+		tier: "surfaces",
 	},
 ];
+
+const TIER_ORDER: Tier[] = ["surfaces", "harness", "metrics", "foundation"];
 
 const USED_BY = [
 	{
@@ -151,23 +168,52 @@ const USED_BY = [
 const FEATURES = [
 	{
 		num: "01",
-		title: "FAST",
+		title: "DETERMINISTIC",
 		icon: IconBolt,
-		body: "1.5x faster pure JS. Up to 8x faster native on 4K. Two-pass block optimization with YIQ perceptual color and anti-aliasing detection.",
+		body: "Pure-JS core ~1.5x faster than pixelmatch. Rust binary 3 to 4x faster than odiff, up to 8x on 4K. Reproducible on any machine.",
 	},
 	{
 		num: "02",
-		title: "EVERYWHERE",
-		icon: IconLayoutGrid,
-		body: "One Rust core, six surfaces. Node + Bun via npm, Deno via JSR, Python via PyPI, Rust via crates.io. Five prebuilt binaries.",
+		title: "LOCAL",
+		icon: IconLockOpen,
+		body: "No SaaS, no API keys, no per-snapshot pricing. Screenshots never leave your machine. Self-hosted from your CI. MIT licensed.",
 	},
 	{
 		num: "03",
-		title: "OPEN",
-		icon: IconLockOpen,
-		body: "MIT licensed. No SaaS, no API keys, no per-snapshot pricing. Self-hosted from your CI. Matchers for Jest, Vitest, Bun.",
+		title: "AGENT-READY",
+		icon: IconLayoutGrid,
+		body: "When the heuristic can't decide, the agent hands a small region tile to Claude Code, Cursor, or Codex for judgment. Resume from a checkpoint.",
 	},
 ];
+
+const BENCHMARK_GROUPS = [
+	{
+		title: "JS CORE VS PIXELMATCH",
+		subtitle: "4K · IO EXCLUDED · 50 RUNS",
+		bars: [
+			{ label: "pixelmatch", ms: 302.29 },
+			{
+				label: "@blazediff/core",
+				ms: 211.92,
+				highlight: true,
+			},
+		],
+	},
+	{
+		title: "NATIVE BINARY VS ODIFF",
+		subtitle: "4K · IO INCLUDED · 25 RUNS",
+		bars: [
+			{ label: "odiff", ms: 1190.92 },
+			{
+				label: "@blazediff/core-native",
+				ms: 293.86,
+				highlight: true,
+			},
+		],
+	},
+];
+
+const FIRST_REGION = interpretData.regions[0];
 
 export default function Home() {
 	return (
@@ -176,16 +222,18 @@ export default function Home() {
 				left={
 					<>
 						<HeroHeading>
-							BLAZING FAST
+							DETERMINISTIC
 							<br />
-							IMAGE DIFFING
+							PIXEL DIFF.
 							<br />
-							FOR YOUR <HeroGradient>UI PIPELINE</HeroGradient>
+							<HeroGradient>AGENT-IN-THE-LOOP</HeroGradient>
+							<br />
+							<HeroGradient>VERDICTS.</HeroGradient>
 						</HeroHeading>
 						<HeroSubhead>
-							RUST CORE WITH SIMD. UP TO 8X FASTER THAN PIXELMATCH ON 4K, 3 TO
-							4X FASTER THAN ODIFF. PIXEL-BY-PIXEL, SSIM, GMSD, OBJECT DIFF, AND
-							AN AGENT FOR VISUAL REGRESSION. NODE, BUN, DENO, PYTHON, RUST.
+							RUST AND JS DIFF CORES. SSIM AND GMSD METRICS. JEST, VITEST, AND
+							BUN MATCHERS. AN AGENT THAT HANDS AMBIGUOUS DIFFS TO CLAUDE CODE,
+							CURSOR, OR CODEX. NO SAAS. NO API KEY. MIT.
 						</HeroSubhead>
 						<InstallSnippet commands="npm install @blazediff/core" />
 					</>
@@ -209,6 +257,108 @@ export default function Home() {
 				</div>
 			</Section>
 
+			<Section
+				title="BENCHMARKS"
+				intro="REPRODUCIBLE FROM THE REPO. SAME FIXTURES, SAME HARDWARE (M1 MAX), HYPERFINE-MEASURED."
+			>
+				<BenchmarkChart
+					groups={BENCHMARK_GROUPS}
+					footnote="FULL TABLE IN BENCHMARKS.MD AT THE REPO ROOT. EVERY ROW HAS A FIXTURE AND A METHODOLOGY NOTE."
+				/>
+			</Section>
+
+			<Section
+				title="REGION-TILE HANDOFF"
+				intro="OTHER TOOLS HAND A REVIEWER THE FULL PAGE. BLAZEDIFF HANDS YOUR AGENT THE CROP THAT CHANGED. 10X TO 100X FEWER BYTES. 10X TO 100X FEWER TOKENS."
+			>
+				<div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+					<TerminalFrame title="full-page baseline.png">
+						<div className="p-3 flex flex-col gap-3">
+							<RegionImage
+								src={FIXTURE_A}
+								alt="Full-page baseline screenshot with all diff regions overlaid"
+								imageWidth={interpretData.width}
+								imageHeight={interpretData.height}
+								regions={interpretData.regions}
+								activeIndex={-1}
+							/>
+							<div className="font-mono text-[11px] text-muted uppercase tracking-widest flex flex-wrap gap-x-4">
+								<span>
+									{interpretData.width}×{interpretData.height} px
+								</span>
+								<span>10 diff regions</span>
+								<span className="text-fg">~ 2.4 MB · ~ 1.6M pixels</span>
+							</div>
+						</div>
+					</TerminalFrame>
+
+					<TerminalFrame title="diff/00.png · region tile">
+						<div className="p-3 flex flex-col gap-3">
+							<div
+								className="relative overflow-hidden border border-line bg-canvas mx-auto w-full"
+								style={{
+									aspectRatio: `${FIRST_REGION.bbox.width} / ${FIRST_REGION.bbox.height}`,
+								}}
+							>
+								{/* biome-ignore lint/performance/noImgElement: external static fixture, no Image config */}
+								<img
+									src={FIXTURE_A}
+									alt="Region tile cropped to the changed bounding box"
+									className="absolute top-0 left-0 max-w-none"
+									style={{
+										width: `${(interpretData.width / FIRST_REGION.bbox.width) * 100}%`,
+										left: `-${(FIRST_REGION.bbox.x / FIRST_REGION.bbox.width) * 100}%`,
+										top: `-${(FIRST_REGION.bbox.y / FIRST_REGION.bbox.height) * 100}%`,
+									}}
+								/>
+							</div>
+							<div className="font-mono text-[11px] text-muted uppercase tracking-widest flex flex-wrap gap-x-4">
+								<span>
+									{FIRST_REGION.bbox.width}×{FIRST_REGION.bbox.height} px
+								</span>
+								<span>1 region</span>
+								<span className="text-accent">~ 18 KB · ~ 17K pixels</span>
+							</div>
+						</div>
+					</TerminalFrame>
+				</div>
+			</Section>
+
+			<Section
+				title="THE STACK"
+				intro="ONE MONOREPO. FOUR LAYERS. INSTALL ONE PACKAGE OR THE WHOLE STACK."
+			>
+				<div className="flex flex-col gap-12">
+					{TIER_ORDER.map((tier) => {
+						const items = PACKAGES.filter((p) => p.tier === tier);
+						return (
+							<div key={tier} className="flex flex-col gap-4">
+								<span className="font-mono text-[12px] text-muted uppercase tracking-widest">
+									{TIER_LABELS[tier]}
+								</span>
+								<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+									{items.map((p) => (
+										<Link
+											key={p.name}
+											href={p.href}
+											className="bg-surface border border-line p-5 flex flex-col gap-2 relative group hover:border-accent/60 transition-colors"
+										>
+											<div className="absolute top-0 left-0 w-full h-[2px] bg-transparent group-hover:bg-accent transition-colors" />
+											<span className="font-mono text-[14px] text-accent">
+												{p.name}
+											</span>
+											<span className="font-sans text-[13px] text-muted leading-relaxed">
+												{p.blurb}
+											</span>
+										</Link>
+									))}
+								</div>
+							</div>
+						);
+					})}
+				</div>
+			</Section>
+
 			<Section title="USED BY">
 				<div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-8 gap-8 items-center">
 					{USED_BY.map((p) => (
@@ -229,33 +379,13 @@ export default function Home() {
 				</div>
 			</Section>
 
-			<Section title="PACKAGES">
-				<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-					{PACKAGES.map((p) => (
-						<Link
-							key={p.name}
-							href={p.href}
-							className="bg-surface border border-line p-5 flex flex-col gap-2 relative group hover:border-accent/60 transition-colors"
-						>
-							<div className="absolute top-0 left-0 w-full h-[2px] bg-transparent group-hover:bg-accent transition-colors" />
-							<span className="font-mono text-[14px] text-accent">
-								{p.name}
-							</span>
-							<span className="font-sans text-[13px] text-muted leading-relaxed">
-								{p.blurb}
-							</span>
-						</Link>
-					))}
-				</div>
-			</Section>
-
 			<Section>
 				<div className="flex flex-col md:flex-row gap-4">
 					<CtaLink href="/docs/core" variant="primary">
 						READ DOCS
 					</CtaLink>
-					<CtaLink href="/examples/image-comparison">BROWSE EXAMPLES</CtaLink>
 					<CtaLink href="/agent">TRY THE AGENT →</CtaLink>
+					<CtaLink href="/examples/image-comparison">BROWSE EXAMPLES</CtaLink>
 					<CtaLink href="https://github.com/teimurjan/blazediff" external>
 						GITHUB
 					</CtaLink>

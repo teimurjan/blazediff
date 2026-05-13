@@ -20,16 +20,20 @@ const inter = Inter({
 	weight: ["400", "500", "600"],
 });
 
+const TITLE = "BlazeDiff. Visual regression with an agent-in-the-loop.";
+const DESCRIPTION =
+	"Open-source visual regression for JS. Deterministic Rust + JS diff cores (3 to 8x faster than pixelmatch and odiff on 4K), SSIM/GMSD metrics, and an agent that hands ambiguous diffs to Claude Code, Cursor, or Codex. No SaaS, no API key.";
+
 export const metadata = {
 	title: {
-		default: "BlazeDiff. Open-source image diff for CI, in Rust.",
+		default: TITLE,
 		template: "%s | BlazeDiff",
 	},
-	description:
-		"Open-source image and object diffing. Rust core with SIMD. Up to 8x faster than pixelmatch on 4K, 3 to 4x faster than odiff. Ships matchers for Jest, Vitest, Bun, plus an agent that drives visual regression from Claude Code, Cursor, and Codex.",
+	description: DESCRIPTION,
 	keywords: [
 		"image comparison",
 		"visual regression",
+		"visual testing",
 		"diff",
 		"pixelmatch",
 		"odiff",
@@ -40,16 +44,18 @@ export const metadata = {
 		"blazediff",
 		"typescript",
 		"claude code",
+		"claude code skill",
 		"cursor",
+		"cursor rule",
 		"codex",
+		"coding agent",
 	],
 	authors: [{ name: "Teimur Gasanov" }],
 	creator: "Teimur Gasanov",
 	publisher: "Teimur Gasanov",
 	openGraph: {
-		title: "BlazeDiff. Open-source image diff for CI, in Rust.",
-		description:
-			"Open-source image and object diffing. Rust core with SIMD. Up to 8x faster than pixelmatch on 4K, 3 to 4x faster than odiff. Ships matchers for Jest, Vitest, Bun, plus an agent that drives visual regression from Claude Code, Cursor, and Codex.",
+		title: TITLE,
+		description: DESCRIPTION,
 		url: "https://blazediff.dev",
 		siteName: "BlazeDiff",
 		locale: "en_US",
@@ -57,9 +63,8 @@ export const metadata = {
 	},
 	twitter: {
 		card: "summary_large_image",
-		title: "BlazeDiff. Open-source image diff for CI, in Rust.",
-		description:
-			"Open-source image and object diffing. Rust core with SIMD. Up to 8x faster than pixelmatch on 4K, 3 to 4x faster than odiff. Ships matchers for Jest, Vitest, Bun, plus an agent that drives visual regression from Claude Code, Cursor, and Codex.",
+		title: TITLE,
+		description: DESCRIPTION,
 	},
 	robots: {
 		index: true,
