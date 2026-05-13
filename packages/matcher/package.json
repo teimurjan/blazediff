@@ -43,6 +43,7 @@
 	"dependencies": {
 		"@blazediff/core-native": "workspace:*",
 		"@blazediff/core": "workspace:*",
+		"@blazediff/core-wasm": "workspace:*",
 		"@blazediff/gmsd": "workspace:*",
 		"@blazediff/codec-pngjs": "workspace:*",
 		"@blazediff/ssim": "workspace:*",

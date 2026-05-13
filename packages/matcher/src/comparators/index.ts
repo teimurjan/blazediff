@@ -7,6 +7,7 @@ import type {
 } from "../types";
 import { compareCore } from "./core";
 import { compareCoreNative } from "./core-native";
+import { compareCoreWasm } from "./core-wasm";
 import { compareGmsd } from "./gmsd";
 import { compareSsim, isSsimMethod } from "./ssim";
 
@@ -105,6 +106,21 @@ export async function runComparison(
 		};
 	}
 
+	// Core WASM
+	if (method === "core-wasm") {
+		const result = await compareCoreWasm(
+			receivedData,
+			baselineData,
+			generateDiff,
+			options,
+		);
+		return {
+			diffCount: result.diffCount,
+			diffPercentage: result.diffPercentage,
+			diffOutput: result.diffOutput,
+		};
+	}
+
 	// Core (pixel-by-pixel)
 	const result = compareCore(receivedData, baselineData, generateDiff, options);
 	return {
@@ -116,5 +132,6 @@ export async function runComparison(
 
 export { compareCore } from "./core";
 export { compareCoreNative } from "./core-native";
+export { compareCoreWasm } from "./core-wasm";
 export { compareGmsd } from "./gmsd";
 export { compareSsim, isSsimMethod } from "./ssim";

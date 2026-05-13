@@ -223,6 +223,37 @@ describe("runComparison", () => {
 		});
 	});
 
+	describe("core-wasm method", () => {
+		it("should return 0 diff for identical images", async () => {
+			const img = createTestImage(100, 100);
+			const result = await runComparison(img, img, "core-wasm", {
+				method: "core-wasm",
+			});
+			expect(result.diffCount).toBe(0);
+			expect(result.diffPercentage).toBe(0);
+		});
+
+		it("should detect differences", async () => {
+			const img1 = createTestImage(100, 100, [0, 0, 0, 255]);
+			const img2 = createTestImage(100, 100, [255, 255, 255, 255]);
+			const result = await runComparison(img1, img2, "core-wasm", {
+				method: "core-wasm",
+			});
+			expect(result.diffCount).toBe(10000);
+			expect(result.diffPercentage).toBe(100);
+		});
+
+		it("should match the core method on the same fixture pair", async () => {
+			const a = await loadPNG(join(FIXTURES_PATH, "pixelmatch/1a.png"));
+			const b = await loadPNG(join(FIXTURES_PATH, "pixelmatch/1b.png"));
+			const core = await runComparison(a, b, "core", { method: "core" });
+			const wasm = await runComparison(a, b, "core-wasm", {
+				method: "core-wasm",
+			});
+			expect(wasm.diffCount).toBe(core.diffCount);
+		});
+	});
+
 	describe("ssim method", () => {
 		it("should return score 1 for identical images", async () => {
 			const img = createTestImage(100, 100);
