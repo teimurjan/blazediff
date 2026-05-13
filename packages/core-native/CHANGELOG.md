@@ -1,5 +1,11 @@
 # @blazediff/core-native
 
+## 4.3.1
+
+### Patch Changes
+
+- 442d1ee: Rebuild Linux .node files without CPython symbol contamination so Node.js can dlopen them on Linux. Emit camelCase fields and kebab-case enum values from the CLI interpret JSON path so the `tryLoadNativeBinding` fallback parses into the typed `InterpretResult` shape.
+
 ## 4.3.0
 
 ### Minor Changes

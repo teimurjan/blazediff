@@ -1,5 +1,7 @@
 # @blazediff/core-native-linux-x64
 
+## 4.3.1
+
 ## 4.3.0
 
 ### Minor Changes
