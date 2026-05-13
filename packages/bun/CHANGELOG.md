@@ -1,5 +1,12 @@
 # @blazediff/bun
 
+## 1.2.3
+
+### Patch Changes
+
+- Updated dependencies [345e842]
+  - @blazediff/matcher@1.5.0
+
 ## 1.2.2
 
 ### Patch Changes
