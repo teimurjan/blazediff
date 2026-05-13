@@ -5,8 +5,9 @@ function printUsage(): void {
 Usage: blazediff-cli<command> <image1> <image2> [options]
 
 Commands:
-	core-native        Pixel-by-pixel comparison (Rust + SIMD) (default)
+  core-native        Pixel-by-pixel comparison (Rust + SIMD) (default)
   core               Pixel-by-pixel comparison (JavaScript)
+  core-wasm          Pixel-by-pixel comparison (WebAssembly)
   gmsd               Gradient Magnitude Similarity Deviation metric
   ssim               Structural Similarity Index (Gaussian-based)
   msssim             Multi-Scale Structural Similarity Index
@@ -45,6 +46,7 @@ async function main(): Promise<void> {
 	const validCommands = [
 		"core-native",
 		"core",
+		"core-wasm",
 		"gmsd",
 		"ssim",
 		"msssim",
@@ -68,6 +70,9 @@ async function main(): Promise<void> {
 				break;
 			case "core":
 				await import("./commands/core");
+				break;
+			case "core-wasm":
+				await import("./commands/core-wasm");
 				break;
 			case "gmsd":
 				await import("./commands/gmsd");

@@ -1,19 +1,7 @@
 #!/usr/bin/env node
 
-import blazediff, { type CoreOptions } from "@blazediff/core";
-
-function parseRGB(colorStr: string): [number, number, number] {
-	const parts = colorStr.split(",").map((s) => parseInt(s.trim(), 10));
-	if (
-		parts.length !== 3 ||
-		parts.some((p) => Number.isNaN(p) || p < 0 || p > 255)
-	) {
-		throw new Error(
-			`Invalid RGB color format: ${colorStr}. Expected format: r,g,b (e.g., 255,0,0)`,
-		);
-	}
-	return [parts[0], parts[1], parts[2]];
-}
+import blazediff from "@blazediff/core";
+import { parseCoreArgs, runCoreDiff } from "./_core-shared";
 
 function printUsage(): void {
 	console.log(`
@@ -36,27 +24,11 @@ Options:
   -h, --help                Show this help message
 
 Examples:
-  blazediff diff image1.png image2.png
-  blazediff diff image1.png image2.png -o diff.png -t 0.05
-  blazediff diff image1.png image2.png --threshold 0.2 --alpha 0.3
+  blazediff-cli core image1.png image2.png
+  blazediff-cli core image1.png image2.png -o diff.png -t 0.05
+  blazediff-cli core image1.png image2.png --threshold 0.2 --alpha 0.3
 `);
 }
-
-const getCodec = async (codec?: string) => {
-	if (!codec || codec === "pngjs") {
-		const { default: c } = await import("@blazediff/codec-pngjs");
-		return c;
-	}
-	if (codec === "sharp") {
-		const { default: c } = await import("@blazediff/codec-sharp");
-		return c;
-	}
-	if (codec === "jsquash-png") {
-		const { default: c } = await import("@blazediff/codec-jsquash-png");
-		return c;
-	}
-	throw new Error(`Unknown codec: ${codec}`);
-};
 
 export default async function main(): Promise<void> {
 	try {
@@ -67,176 +39,11 @@ export default async function main(): Promise<void> {
 			process.exit(0);
 		}
 
-		if (args.length < 2) {
-			console.error("Error: Two image paths are required");
-			printUsage();
-			process.exit(1);
-		}
+		const parsed = parseCoreArgs(args, printUsage);
 
-		const image1 = args[0];
-		const image2 = args[1];
-		const options: Record<
-			string,
-			string | number | boolean | [number, number, number]
-		> = {};
-
-		for (let i = 2; i < args.length; i++) {
-			const arg = args[i];
-			const nextArg = args[i + 1];
-
-			switch (arg) {
-				case "-o":
-				case "--output":
-					if (nextArg) {
-						options.outputPath = nextArg;
-						i++;
-					}
-					break;
-				case "-t":
-				case "--threshold":
-					if (nextArg) {
-						const threshold = parseFloat(nextArg);
-						if (Number.isNaN(threshold) || threshold < 0 || threshold > 1) {
-							throw new Error(
-								`Invalid threshold: ${nextArg}. Must be between 0 and 1`,
-							);
-						}
-						options.threshold = threshold;
-						i++;
-					}
-					break;
-				case "-a":
-				case "--alpha":
-					if (nextArg) {
-						const alpha = parseFloat(nextArg);
-						if (Number.isNaN(alpha) || alpha < 0 || alpha > 1) {
-							throw new Error(
-								`Invalid alpha: ${nextArg}. Must be between 0 and 1`,
-							);
-						}
-						options.alpha = alpha;
-						i++;
-					}
-					break;
-				case "--aa-color":
-					if (nextArg) {
-						options.aaColor = parseRGB(nextArg);
-						i++;
-					}
-					break;
-				case "--diff-color":
-					if (nextArg) {
-						options.diffColor = parseRGB(nextArg);
-						i++;
-					}
-					break;
-				case "--diff-color-alt":
-					if (nextArg) {
-						options.diffColorAlt = parseRGB(nextArg);
-						i++;
-					}
-					break;
-				case "--include-aa":
-					options.includeAA = true;
-					break;
-				case "--diff-mask":
-					options.diffMask = true;
-					break;
-				case "--codec":
-					if (nextArg) {
-						options.codec = nextArg;
-						i++;
-					}
-					break;
-				default:
-					console.error(`Unknown option: ${arg}`);
-					printUsage();
-					process.exit(1);
-			}
-		}
-
-		const codec = await getCodec(options.codec as string | undefined);
-
-		// Load images
-		const [img1, img2] = await Promise.all([
-			codec.read(image1),
-			codec.read(image2),
-		]);
-
-		if (img1.width !== img2.width || img1.height !== img2.height) {
-			throw new Error(
-				`Image dimensions do not match: ${img1.width}x${img1.height} vs ${img2.width}x${img2.height}`,
-			);
-		}
-
-		// Prepare output buffer if needed
-		let outputData: Uint8Array | undefined;
-		if (options.outputPath) {
-			outputData = new Uint8Array(img1.data.length);
-		}
-
-		// Run diff
-		const coreOptions: CoreOptions = {
-			threshold: options.threshold as number | undefined,
-			alpha: options.alpha as number | undefined,
-			aaColor: options.aaColor as [number, number, number] | undefined,
-			diffColor: options.diffColor as [number, number, number] | undefined,
-			diffColorAlt: options.diffColorAlt as
-				| [number, number, number]
-				| undefined,
-			includeAA: options.includeAA as boolean | undefined,
-			diffMask: options.diffMask as boolean | undefined,
-		};
-
-		const startTime = performance.now();
-		const diffCount = blazediff(
-			img1.data,
-			img2.data,
-			outputData,
-			img1.width,
-			img1.height,
-			coreOptions,
+		await runCoreDiff(parsed, (a, b, width, height, output, options) =>
+			blazediff(a, b, output, width, height, options),
 		);
-		const duration = performance.now() - startTime;
-
-		// Write output if needed
-		if (diffCount > 0 && options.outputPath && outputData) {
-			await codec.write(
-				{
-					data: outputData,
-					width: img1.width,
-					height: img1.height,
-				},
-				options.outputPath as string,
-			);
-		}
-
-		const result = {
-			diffCount,
-			width: img1.width,
-			height: img1.height,
-			duration,
-		};
-
-		console.log(`completed in: ${result.duration.toFixed(2)}ms`);
-		console.log(`dimensions: ${result.width}x${result.height}`);
-		console.log(`different pixels: ${result.diffCount}`);
-		console.log(
-			`error: ${(
-				(result.diffCount / (result.width * result.height)) * 100
-			).toFixed(2)}%`,
-		);
-
-		if (result.diffCount > 0 && outputData && options.outputPath) {
-			console.log(`diff image: ${options.outputPath}`);
-		}
-
-		if (result.diffCount > 0) {
-			process.exit(1);
-		} else {
-			console.log(`Images are identical!`);
-			process.exit(0);
-		}
 	} catch (error) {
 		console.error(
 			"Error:",
