@@ -7,14 +7,14 @@
 
 </div>
 
-Agentic visual regression for BlazeDiff. Discovers routes, screenshots them with Playwright, diffs against committed baselines, and hands ambiguous diffs to a coding agent (Claude Code, Codex, Cursor) for judgment.
+Visual regression testing your coding agent can judge. Discovers routes, screenshots them with Playwright, diffs against committed baselines, and hands ambiguous diffs to Claude Code, Codex, or Cursor as compact region tiles, not full PNGs. Deterministic CLI, no embedded LLM, no API key.
 
 **Features:**
-- Deterministic CLI — no embedded LLM, no API key required
+- Deterministic CLI. No embedded LLM, no API key required
 - Source-walking route discovery for Next.js / Vite / Remix (BFS fallback)
 - Heuristic verdict: `regression-likely | intentional-likely | noise-likely | ambiguous`
 - LangGraph pipeline with per-entry subgraphs, suspendable via `interrupt()` and resumable from an on-disk checkpoint
-- Region-tile handoff to host agents (10–100× smaller than full PNGs)
+- Region-tile handoff to host agents (10 to 100x smaller than full PNGs)
 - Auto-masking via `data-blazediff-agent-mask` attribute
 
 ## Installation
@@ -83,7 +83,7 @@ For third-party embeds you can't annotate, use a per-entry `manifest.entries[].m
 
 ## Judging
 
-Every non-match routes through the configured judge. With `--judge host` the judge node `interrupt()`s the LangGraph pipeline, writes a `JudgmentRequest` (region tiles + locator thumbnail) to `.blazediff/judgments/<id>/`, and the suspended graph is checkpointed to `.blazediff/checkpoints/`. The host agent reads the tiles, writes `verdict.json`, and `check --apply-judgments` resumes the same graph with the verdicts — no re-capture, no re-diff.
+Every non-match routes through the configured judge. With `--judge host` the judge node `interrupt()`s the LangGraph pipeline, writes a `JudgmentRequest` (region tiles + locator thumbnail) to `.blazediff/judgments/<id>/`, and the suspended graph is checkpointed to `.blazediff/checkpoints/`. The host agent reads the tiles, writes `verdict.json`, and `check --apply-judgments` resumes the same graph with the verdicts. No re-capture, no re-diff.
 
 ## Configuration
 
@@ -98,14 +98,14 @@ Every non-match routes through the configured judge. With `--judge host` the jud
 }
 ```
 
-`.blazediff/manifest.json` is written by `capture` — don't edit it directly.
+`.blazediff/manifest.json` is written by `capture`; don't edit it directly.
 
 ## CI
 
 Only `check` is allowed under `CI=1`. Exit codes:
 
-- `0` — all passed
-- `1` — regression, intentional, or pending judgment
+- `0`: all passed
+- `1`: regression, intentional, or pending judgment
 - non-zero with structured error JSON on infra failures
 
 ## Links
