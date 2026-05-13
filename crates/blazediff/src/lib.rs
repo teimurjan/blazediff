@@ -19,16 +19,21 @@
 
 pub mod antialiasing;
 pub mod diff;
+#[cfg(feature = "io")]
 pub mod interpret;
+#[cfg(feature = "io")]
 pub mod io;
+#[cfg(feature = "io")]
 pub mod jpeg_io;
 #[cfg(feature = "napi")]
 mod napi;
 pub mod output;
 #[cfg(feature = "python")]
 mod python;
+#[cfg(feature = "io")]
 pub mod qoi_io;
 pub mod simd;
+#[cfg(feature = "io")]
 #[allow(
     non_upper_case_globals,
     non_camel_case_types,
@@ -36,6 +41,7 @@ pub mod simd;
     dead_code
 )]
 pub mod spng_ffi;
+#[cfg(feature = "io")]
 #[allow(
     non_upper_case_globals,
     non_camel_case_types,
@@ -44,11 +50,16 @@ pub mod spng_ffi;
 )]
 mod turbojpeg_ffi;
 pub mod types;
+#[cfg(all(feature = "wasm", target_arch = "wasm32"))]
+mod wasm;
 pub mod yiq;
 
 // Re-export main types and functions
 pub use diff::diff;
+#[cfg(feature = "io")]
 pub use io::{encode_png, load_png, load_pngs, save_png, save_png_with_compression};
+#[cfg(feature = "io")]
 pub use jpeg_io::{load_jpeg, load_jpegs, save_jpeg};
+#[cfg(feature = "io")]
 pub use qoi_io::{load_qoi, load_qois, save_qoi};
 pub use types::{DiffError, DiffOptions, DiffResult, Image};

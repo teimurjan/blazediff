@@ -49,6 +49,13 @@ const PACKAGES: {
 		tier: "foundation",
 	},
 	{
+		name: "@blazediff/core-wasm",
+		href: "/docs/core-wasm",
+		blurb:
+			"Same Rust algorithm, wasm32 v128 SIMD. ~5x faster than pixelmatch on 4K. Browser, edge, any wasm host.",
+		tier: "foundation",
+	},
+	{
 		name: "@blazediff/ssim",
 		href: "/docs/ssim",
 		blurb:
@@ -170,7 +177,7 @@ const FEATURES = [
 		num: "01",
 		title: "DETERMINISTIC",
 		icon: IconBolt,
-		body: "Pure-JS core ~1.5x faster than pixelmatch. Rust binary 3 to 4x faster than odiff, up to 8x on 4K. Reproducible on any machine.",
+		body: "Pure-JS core ~1.5x faster than pixelmatch. Rust binary 3 to 4x faster than odiff, up to 8x on 4K. Wasm build (~32 KB, v128 SIMD) ~5x faster than pixelmatch on 4K in the browser. Reproducible on any machine.",
 	},
 	{
 		num: "02",
@@ -211,6 +218,18 @@ const BENCHMARK_GROUPS = [
 			},
 		],
 	},
+	{
+		title: "WASM CORE VS PIXELMATCH",
+		subtitle: "4K · IO EXCLUDED · 25 RUNS",
+		bars: [
+			{ label: "pixelmatch", ms: 287.72 },
+			{
+				label: "@blazediff/core-wasm",
+				ms: 51.75,
+				highlight: true,
+			},
+		],
+	},
 ];
 
 const FIRST_REGION = interpretData.regions[0];
@@ -231,9 +250,9 @@ export default function Home() {
 							<HeroGradient>VERDICTS.</HeroGradient>
 						</HeroHeading>
 						<HeroSubhead>
-							RUST AND JS DIFF CORES. SSIM AND GMSD METRICS. JEST, VITEST, AND
-							BUN MATCHERS. AN AGENT THAT HANDS AMBIGUOUS DIFFS TO CLAUDE CODE,
-							CURSOR, OR CODEX. NO SAAS. NO API KEY. MIT.
+							RUST, WASM, AND JS DIFF CORES. SSIM AND GMSD METRICS. JEST,
+							VITEST, AND BUN MATCHERS. AN AGENT THAT HANDS AMBIGUOUS DIFFS TO
+							CLAUDE CODE, CURSOR, OR CODEX. NO SAAS. NO API KEY. MIT.
 						</HeroSubhead>
 						<InstallSnippet commands="npm install @blazediff/core" />
 					</>

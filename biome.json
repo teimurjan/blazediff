@@ -6,7 +6,11 @@
 		"useIgnoreFile": true
 	},
 	"files": {
-		"includes": ["**/*.{js,ts,jsx,tsx,json}", "!crates"],
+		"includes": [
+			"**/*.{js,ts,jsx,tsx,json}",
+			"!crates",
+			"!packages/core-wasm/wasm"
+		],
 		"ignoreUnknown": false
 	},
 	"formatter": {

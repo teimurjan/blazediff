@@ -64,7 +64,7 @@ build_napi_target() {
     mkdir -p "$DIST_DIR"
     local flags; flags=$(get_rustflags "$target")
 
-    if [[ "$target" == "aarch64-pc-windows-msvc" ]]; then
+    if [[ "$target" == *"-pc-windows-msvc" ]]; then
         check_xwin || return 1
         PATH="$(xwin_path_prefix)" RUSTFLAGS="$flags" \
             cargo xwin build --release --target "$target" --features napi --lib
@@ -107,7 +107,7 @@ sync_napi_to_packages() {
             blazediff-linux-arm64.node) target="aarch64-unknown-linux-gnu" ;;
             blazediff-linux-x64.node)   target="x86_64-unknown-linux-gnu" ;;
             blazediff-windows-arm64.node) target="aarch64-pc-windows-msvc" ;;
-            blazediff-windows-x64.node)   target="x86_64-pc-windows-gnu" ;;
+            blazediff-windows-x64.node)   target="x86_64-pc-windows-msvc" ;;
             *) continue ;;
         esac
         local pkg_name; pkg_name=$(get_package_name "$target")
@@ -156,7 +156,7 @@ case "$MODE" in
         elif [[ "$(uname -s)" == "Darwin" && "$SPECIFIC_TARGET" == *"apple-darwin"* ]]; then
             rustup target add "$SPECIFIC_TARGET" 2>/dev/null || true
             build_napi_target "$SPECIFIC_TARGET" false
-        elif [[ "$SPECIFIC_TARGET" == "aarch64-pc-windows-msvc" ]]; then
+        elif [[ "$SPECIFIC_TARGET" == *"-pc-windows-msvc" ]]; then
             rustup target add "$SPECIFIC_TARGET" 2>/dev/null || true
             build_napi_target "$SPECIFIC_TARGET" false
         else
@@ -175,7 +175,7 @@ case "$MODE" in
             elif [[ "$(uname -s)" == "Darwin" && "$target" == *"apple-darwin"* ]]; then
                 rustup target add "$target" 2>/dev/null || true
                 build_napi_target "$target" false || echo "  Skipped $target"
-            elif [[ "$target" == "aarch64-pc-windows-msvc" ]]; then
+            elif [[ "$target" == *"-pc-windows-msvc" ]]; then
                 rustup target add "$target" 2>/dev/null || true
                 build_napi_target "$target" false || echo "  Skipped $target"
             elif [[ "$has_cross" == "true" ]]; then

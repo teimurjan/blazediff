@@ -9,6 +9,9 @@ pub mod x86;
 #[cfg(target_arch = "aarch64")]
 pub mod aarch64;
 
+#[cfg(target_arch = "wasm32")]
+pub mod wasm;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SimdBackend {
     Scalar,
@@ -20,6 +23,8 @@ pub enum SimdBackend {
     Avx512,
     #[cfg(target_arch = "aarch64")]
     Neon,
+    #[cfg(target_arch = "wasm32")]
+    Wasm128,
 }
 
 pub fn detect_backend() -> SimdBackend {
@@ -42,6 +47,11 @@ pub fn detect_backend() -> SimdBackend {
         return SimdBackend::Neon;
     }
 
+    #[cfg(all(target_arch = "wasm32", target_feature = "simd128"))]
+    {
+        return SimdBackend::Wasm128;
+    }
+
     #[allow(unreachable_code)]
     SimdBackend::Scalar
 }
@@ -57,6 +67,8 @@ pub fn lane_count() -> usize {
         SimdBackend::Avx512 => 16,
         #[cfg(target_arch = "aarch64")]
         SimdBackend::Neon => 4,
+        #[cfg(target_arch = "wasm32")]
+        SimdBackend::Wasm128 => 4,
     }
 }
 
@@ -134,6 +146,25 @@ pub fn compare_pixels(a: &[u32], b: &[u32]) -> bool {
         return false;
     }
 
+    #[cfg(all(target_arch = "wasm32", target_feature = "simd128"))]
+    {
+        let mut offset = 0;
+        while offset + 4 <= a.len() {
+            // Safety: simd128 is enabled at compile time, bounds checked.
+            if unsafe { wasm::compare_4_wasm(a.as_ptr().add(offset), b.as_ptr().add(offset)) } {
+                return true;
+            }
+            offset += 4;
+        }
+        while offset < a.len() {
+            if a[offset] != b[offset] {
+                return true;
+            }
+            offset += 1;
+        }
+        return false;
+    }
+
     // Scalar fallback
     #[allow(unreachable_code)]
     compare_pixels_scalar(a, b)
@@ -165,7 +196,16 @@ mod tests {
         ));
         #[cfg(target_arch = "aarch64")]
         assert!(matches!(backend, SimdBackend::Scalar | SimdBackend::Neon));
-        #[cfg(not(any(target_arch = "x86_64", target_arch = "aarch64")))]
+        #[cfg(target_arch = "wasm32")]
+        assert!(matches!(
+            backend,
+            SimdBackend::Scalar | SimdBackend::Wasm128
+        ));
+        #[cfg(not(any(
+            target_arch = "x86_64",
+            target_arch = "aarch64",
+            target_arch = "wasm32"
+        )))]
         assert!(matches!(backend, SimdBackend::Scalar));
     }
 

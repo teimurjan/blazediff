@@ -1,0 +1,57 @@
+{
+	"name": "@blazediff/core-wasm",
+	"version": "4.2.0",
+	"description": "WebAssembly build of blazediff for browsers, edge runtimes, and any wasm host. Same algorithm as @blazediff/core-native.",
+	"private": false,
+	"publishConfig": {
+		"access": "public"
+	},
+	"type": "module",
+	"module": "dist/index.js",
+	"types": "dist/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"default": "./dist/index.js"
+		},
+		"./wasm/blazediff_bg.wasm": "./wasm/blazediff_bg.wasm"
+	},
+	"files": [
+		"dist",
+		"wasm"
+	],
+	"scripts": {
+		"typecheck": "tsc --noEmit",
+		"build": "tsup",
+		"build:wasm": "cd ../../crates/blazediff && ./scripts/build-wasm.sh",
+		"clean": "rm -rf dist",
+		"test": "vitest run",
+		"test:watch": "vitest"
+	},
+	"keywords": [
+		"image",
+		"comparison",
+		"diff",
+		"pixel",
+		"visual-testing",
+		"visual-regression",
+		"screenshot",
+		"wasm",
+		"webassembly",
+		"browser",
+		"simd"
+	],
+	"author": "Teimur Gasanov <me@teimurjan.dev> (https://github.com/teimurjan)",
+	"repository": "https://github.com/teimurjan/blazediff",
+	"homepage": "https://blazediff.dev",
+	"license": "MIT",
+	"devDependencies": {
+		"@blazediff/core-native": "workspace:*",
+		"@types/node": "^24.3.0",
+		"@types/pngjs": "^6.0.5",
+		"pngjs": "^7.0.0",
+		"tsup": "8.5.0",
+		"typescript": "5.9.2",
+		"vitest": "^3.2.4"
+	}
+}

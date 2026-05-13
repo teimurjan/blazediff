@@ -22,6 +22,7 @@ Options:
   --all              Build all platforms (requires 'cross')
   --napi             Also invoke build-napi.sh   for the same scope
   --maturin          Also invoke build-maturin.sh for the same scope
+  --wasm             Also build wasm32 artifact for @blazediff/core-wasm
   --list             List supported targets
   --help             Show this help
 
@@ -39,7 +40,7 @@ build_target() {
     mkdir -p "$DIST_DIR"
     local flags; flags=$(get_rustflags "$target")
 
-    if [[ "$target" == "aarch64-pc-windows-msvc" ]]; then
+    if [[ "$target" == *"-pc-windows-msvc" ]]; then
         check_xwin || return 1
         PATH="$(xwin_path_prefix)" RUSTFLAGS="$flags" \
             cargo xwin build --release --target "$target"
@@ -99,7 +100,7 @@ sync_binaries_to_packages() {
             blazediff-linux-arm64)        target="aarch64-unknown-linux-gnu" ;;
             blazediff-linux-x64)          target="x86_64-unknown-linux-gnu" ;;
             blazediff-windows-arm64.exe)  target="aarch64-pc-windows-msvc" ;;
-            blazediff-windows-x64.exe)    target="x86_64-pc-windows-gnu" ;;
+            blazediff-windows-x64.exe)    target="x86_64-pc-windows-msvc" ;;
             *) continue ;;
         esac
 
@@ -136,6 +137,7 @@ MODE="native"
 SPECIFIC_TARGET=""
 BUILD_NAPI="false"
 BUILD_MATURIN="false"
+BUILD_WASM="false"
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -145,6 +147,7 @@ while [[ $# -gt 0 ]]; do
         --all)      MODE="all";    shift ;;
         --napi)     BUILD_NAPI="true";    shift ;;
         --maturin)  BUILD_MATURIN="true"; shift ;;
+        --wasm)     BUILD_WASM="true";    shift ;;
         --list)
             echo "Supported targets:"
             for t in "${DEFAULT_TARGETS_NAPI[@]}"; do
@@ -176,7 +179,7 @@ case "$MODE" in
         elif [[ "$(uname -s)" == "Darwin" && "$SPECIFIC_TARGET" == *"apple-darwin"* ]]; then
             rustup target add "$SPECIFIC_TARGET" 2>/dev/null || true
             build_target "$SPECIFIC_TARGET" false
-        elif [[ "$SPECIFIC_TARGET" == "aarch64-pc-windows-msvc" ]]; then
+        elif [[ "$SPECIFIC_TARGET" == *"-pc-windows-msvc" ]]; then
             rustup target add "$SPECIFIC_TARGET" 2>/dev/null || true
             build_target "$SPECIFIC_TARGET" false
         else
@@ -196,7 +199,7 @@ case "$MODE" in
             elif [[ "$(uname -s)" == "Darwin" && "$target" == *"apple-darwin"* ]]; then
                 rustup target add "$target" 2>/dev/null || true
                 build_target "$target" false || echo "  Skipped $target"
-            elif [[ "$target" == "aarch64-pc-windows-msvc" ]]; then
+            elif [[ "$target" == *"-pc-windows-msvc" ]]; then
                 rustup target add "$target" 2>/dev/null || true
                 build_target "$target" false || echo "  Skipped $target"
             elif [[ "$has_cross" == "true" ]]; then
@@ -221,4 +224,10 @@ if [[ "$BUILD_MATURIN" == "true" ]]; then
     echo ""
     echo "==> Delegating Python wheel build to build-maturin.sh"
     delegate build-maturin.sh "$MODE" "$SPECIFIC_TARGET"
+fi
+
+if [[ "$BUILD_WASM" == "true" ]]; then
+    echo ""
+    echo "==> Delegating wasm build to build-wasm.sh"
+    "$SCRIPT_DIR/build-wasm.sh"
 fi

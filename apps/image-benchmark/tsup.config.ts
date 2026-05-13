@@ -8,5 +8,5 @@ export default defineConfig({
 	sourcemap: true,
 	clean: true,
 	treeshake: true,
-	external: ["@blazediff/core-native"],
+	external: ["@blazediff/core-native", "@blazediff/core-wasm"],
 });

@@ -12,6 +12,7 @@ Performance benchmarks comparing BlazeDiff ecosystem components against popular 
     - [vs `opencv-python` (`cv2.absdiff`)](#vs-opencv-python-cv2absdiff)
   - [Pixel By Pixel](#pixel-by-pixel)
     - [JavaScript (`@blazediff/core` vs `pixelmatch`) (image IO excluded)](#javascript-blazediffcore-vs-pixelmatch-image-io-excluded)
+    - [WebAssembly (`@blazediff/core-wasm` vs `pixelmatch`) (image IO excluded)](#webassembly-blazediffcore-wasm-vs-pixelmatch-image-io-excluded)
   - [SSIM](#ssim)
     - [Fast Original ( `@blazediff/ssim` using `ssim` vs `ssim.js` using `fast` algorithm) (image IO excluded)](#fast-original--blazediffssim-using-ssim-vs-ssimjs-using-fast-algorithm-image-io-excluded)
     - [Hitchhikers SSIM SSIM (`@blazediff/ssim` using `hitchhikers-ssim` vs `ssim.js` using `weber` algorithm) (image IO excluded)](#hitchhikers-ssim-ssim-blazediffssim-using-hitchhikers-ssim-vs-ssimjs-using-weber-algorithm-image-io-excluded)
@@ -1005,6 +1006,254 @@ _50 iterations (5 warmup)_
       <td>0.21ms</td>
       <td>1.65ms</td>
       <td>88.8%</td>
+    </tr>
+  </tbody>
+</table>
+
+_Benchmarks run on MacBook Pro M1 Max, Node.js 22_
+
+### WebAssembly (`@blazediff/core-wasm` vs `pixelmatch`) (image IO excluded)
+
+_25 iterations (5 warmup)_
+
+> **~58%** performance improvement on average.
+
+The WebAssembly build of BlazeDiff uses the same Rust algorithm as the native binary, compiled to `wasm32` with `v128` SIMD (`+simd128`). Counts agree with `pixelmatch` to within ~0.05% across the fixture set (e.g. `pixelmatch/1`: identical 106 vs 106; `blazediff/3`: 22 869 vs 22 883 out of 1 630 784 pixels; `4k/1`: 69 932 vs 69 912 out of 17 920 000): both use a YIQ-style perceptual delta, so they classify the same pixels modulo a handful of edge cases.
+
+<table>
+  <thead>
+    <tr>
+      <th width="500">Benchmark</th>
+      <th width="500">Pixelmatch</th>
+      <th width="500">BlazeDiff (core-wasm)</th>
+      <th width="500">Time Saved</th>
+      <th width="500">% Improvement</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>4k/1</td>
+      <td>287.72ms</td>
+      <td>51.75ms</td>
+      <td>235.97ms</td>
+      <td>82.0%</td>
+    </tr>
+    <tr>
+      <td>4k/1 (identical)</td>
+      <td>24.82ms</td>
+      <td>14.59ms</td>
+      <td>10.23ms</td>
+      <td>41.2%</td>
+    </tr>
+    <tr>
+      <td>4k/2</td>
+      <td>299.62ms</td>
+      <td>74.35ms</td>
+      <td>225.27ms</td>
+      <td>75.2%</td>
+    </tr>
+    <tr>
+      <td>4k/2 (identical)</td>
+      <td>27.83ms</td>
+      <td>18.78ms</td>
+      <td>9.05ms</td>
+      <td>32.5%</td>
+    </tr>
+    <tr>
+      <td>4k/3</td>
+      <td>366.81ms</td>
+      <td>69.90ms</td>
+      <td>296.91ms</td>
+      <td>80.9%</td>
+    </tr>
+    <tr>
+      <td>4k/3 (identical)</td>
+      <td>33.24ms</td>
+      <td>21.60ms</td>
+      <td>11.65ms</td>
+      <td>35.0%</td>
+    </tr>
+    <tr>
+      <td>blazediff/1</td>
+      <td>2.54ms</td>
+      <td>0.35ms</td>
+      <td>2.19ms</td>
+      <td>86.4%</td>
+    </tr>
+    <tr>
+      <td>blazediff/1 (identical)</td>
+      <td>0.60ms</td>
+      <td>0.27ms</td>
+      <td>0.33ms</td>
+      <td>55.6%</td>
+    </tr>
+    <tr>
+      <td>blazediff/2</td>
+      <td>2.67ms</td>
+      <td>0.47ms</td>
+      <td>2.20ms</td>
+      <td>82.4%</td>
+    </tr>
+    <tr>
+      <td>blazediff/2 (identical)</td>
+      <td>0.48ms</td>
+      <td>0.22ms</td>
+      <td>0.26ms</td>
+      <td>54.6%</td>
+    </tr>
+    <tr>
+      <td>blazediff/3</td>
+      <td>14.60ms</td>
+      <td>5.52ms</td>
+      <td>9.09ms</td>
+      <td>62.2%</td>
+    </tr>
+    <tr>
+      <td>blazediff/3 (identical)</td>
+      <td>2.23ms</td>
+      <td>1.22ms</td>
+      <td>1.01ms</td>
+      <td>45.1%</td>
+    </tr>
+    <tr>
+      <td>page/1</td>
+      <td>317.16ms</td>
+      <td>63.97ms</td>
+      <td>253.19ms</td>
+      <td>79.8%</td>
+    </tr>
+    <tr>
+      <td>page/1 (identical)</td>
+      <td>81.91ms</td>
+      <td>59.47ms</td>
+      <td>22.44ms</td>
+      <td>27.4%</td>
+    </tr>
+    <tr>
+      <td>page/2</td>
+      <td>443.83ms</td>
+      <td>109.74ms</td>
+      <td>334.10ms</td>
+      <td>75.3%</td>
+    </tr>
+    <tr>
+      <td>page/2 (identical)</td>
+      <td>58.12ms</td>
+      <td>38.62ms</td>
+      <td>19.51ms</td>
+      <td>33.6%</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/1</td>
+      <td>0.87ms</td>
+      <td>0.13ms</td>
+      <td>0.74ms</td>
+      <td>84.6%</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/1 (identical)</td>
+      <td>0.18ms</td>
+      <td>0.08ms</td>
+      <td>0.10ms</td>
+      <td>55.8%</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/2</td>
+      <td>2.10ms</td>
+      <td>1.28ms</td>
+      <td>0.81ms</td>
+      <td>38.7%</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/2 (identical)</td>
+      <td>0.09ms</td>
+      <td>0.04ms</td>
+      <td>0.05ms</td>
+      <td>56.6%</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/3</td>
+      <td>0.74ms</td>
+      <td>0.12ms</td>
+      <td>0.62ms</td>
+      <td>84.0%</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/3 (identical)</td>
+      <td>0.18ms</td>
+      <td>0.08ms</td>
+      <td>0.10ms</td>
+      <td>57.3%</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/4</td>
+      <td>4.23ms</td>
+      <td>2.73ms</td>
+      <td>1.50ms</td>
+      <td>35.4%</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/4 (identical)</td>
+      <td>0.24ms</td>
+      <td>0.12ms</td>
+      <td>0.13ms</td>
+      <td>51.5%</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/5</td>
+      <td>0.37ms</td>
+      <td>0.06ms</td>
+      <td>0.31ms</td>
+      <td>84.2%</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/5 (identical)</td>
+      <td>0.09ms</td>
+      <td>0.04ms</td>
+      <td>0.05ms</td>
+      <td>56.5%</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/6</td>
+      <td>0.90ms</td>
+      <td>0.52ms</td>
+      <td>0.38ms</td>
+      <td>41.9%</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/6 (identical)</td>
+      <td>0.09ms</td>
+      <td>0.05ms</td>
+      <td>0.05ms</td>
+      <td>50.1%</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/7</td>
+      <td>1.86ms</td>
+      <td>0.58ms</td>
+      <td>1.28ms</td>
+      <td>68.8%</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/7 (identical)</td>
+      <td>0.35ms</td>
+      <td>0.16ms</td>
+      <td>0.19ms</td>
+      <td>54.2%</td>
+    </tr>
+    <tr>
+      <td>same/1</td>
+      <td>2.50ms</td>
+      <td>1.19ms</td>
+      <td>1.31ms</td>
+      <td>52.4%</td>
+    </tr>
+    <tr>
+      <td>same/1 (identical)</td>
+      <td>2.48ms</td>
+      <td>1.43ms</td>
+      <td>1.05ms</td>
+      <td>42.4%</td>
     </tr>
   </tbody>
 </table>

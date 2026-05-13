@@ -9,6 +9,12 @@ fn main() {
     #[cfg(feature = "napi")]
     napi_build::setup();
 
+    // Skip vendored C compilation when the `io` feature is off (e.g. wasm builds).
+    // The diff algorithm itself is pure Rust; only PNG/JPEG decoders need C.
+    if env::var("CARGO_FEATURE_IO").is_err() {
+        return;
+    }
+
     let libspng_dir = "vendor/libspng/spng";
     let target_os = env::var("CARGO_CFG_TARGET_OS").unwrap();
     let host = env::var("HOST").unwrap_or_default();

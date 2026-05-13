@@ -13,6 +13,7 @@
 		"clean": "rm -rf dist",
 		"core": "node dist/pixel-by-pixel/blazediff-core-benchmark.js",
 		"core-native": "node dist/pixel-by-pixel/blazediff-core-native-benchmark.js",
+		"core-wasm": "node dist/pixel-by-pixel/blazediff-core-wasm-benchmark.js",
 		"odiff": "node dist/pixel-by-pixel/blazediff-odiff-benchmark.js",
 		"pixelmatch": "node dist/pixel-by-pixel/external-pixelmatch-benchmark.js",
 		"gmsd": "node dist/structure/gmsd-benchmark.js",
@@ -23,6 +24,7 @@
 	},
 	"devDependencies": {
 		"@blazediff/core-native": "workspace:*",
+		"@blazediff/core-wasm": "workspace:*",
 		"@blazediff/cli": "workspace:*",
 		"@blazediff/core": "workspace:*",
 		"@blazediff/gmsd": "workspace:*",

@@ -27,6 +27,9 @@ export default {
 	"core-native": {
 		title: "@blazediff/core-native",
 	},
+	"core-wasm": {
+		title: "@blazediff/core-wasm",
+	},
 	matcher: {
 		title: "@blazediff/matcher",
 	},
