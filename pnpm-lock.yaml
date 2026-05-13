@@ -309,6 +309,9 @@ importers:
       '@blazediff/core-native':
         specifier: workspace:*
         version: link:../core-native
+      '@blazediff/core-wasm':
+        specifier: workspace:*
+        version: link:../core-wasm
       '@blazediff/gmsd':
         specifier: workspace:*
         version: link:../gmsd

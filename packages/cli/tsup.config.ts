@@ -25,6 +25,7 @@ export default defineConfig([
 			cli: "src/cli.ts",
 			"commands/core-native": "src/commands/core-native.ts",
 			"commands/core": "src/commands/core.ts",
+			"commands/core-wasm": "src/commands/core-wasm.ts",
 			"commands/gmsd": "src/commands/gmsd.ts",
 			"commands/ssim": "src/commands/ssim.ts",
 			"commands/msssim": "src/commands/msssim.ts",
@@ -45,6 +46,8 @@ export default defineConfig([
 			"@blazediff/codec-sharp",
 			"@blazediff/codec-jsquash-png",
 		],
-		external: ["@blazediff/core-native"], // Don't bundle - binary paths rely on __dirname
+		// core-native: binary paths rely on __dirname.
+		// core-wasm: ESM-only, loaded via Function-wrapped import() at runtime.
+		external: ["@blazediff/core-native", "@blazediff/core-wasm"],
 	},
 ]);
