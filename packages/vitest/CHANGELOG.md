@@ -1,5 +1,12 @@
 # @blazediff/vitest
 
+## 1.1.13
+
+### Patch Changes
+
+- Updated dependencies [345e842]
+  - @blazediff/matcher@1.5.0
+
 ## 1.1.12
 
 ### Patch Changes

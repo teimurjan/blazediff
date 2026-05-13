@@ -1,5 +1,17 @@
 # @blazediff/matcher
 
+## 1.5.0
+
+### Minor Changes
+
+- 345e842: Add core-wasm support to Rust
+
+### Patch Changes
+
+- Updated dependencies [345e842]
+  - @blazediff/core-native@4.3.0
+  - @blazediff/core-wasm@4.3.0
+
 ## 1.4.2
 
 ### Patch Changes
