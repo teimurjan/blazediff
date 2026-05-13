@@ -108,10 +108,26 @@ fn block_has_perceptual_diff(
     block_has_perceptual_diff_scalar(a32, b32, width, start_x, start_y, end_x, end_y, max_delta)
 }
 
+#[cfg(all(target_arch = "wasm32", target_feature = "simd128"))]
+#[inline]
+fn block_has_perceptual_diff(
+    a32: &[u32],
+    b32: &[u32],
+    width: u32,
+    start_x: u32,
+    start_y: u32,
+    end_x: u32,
+    end_y: u32,
+    max_delta: f32,
+) -> bool {
+    block_has_perceptual_diff_wasm(a32, b32, width, start_x, start_y, end_x, end_y, max_delta)
+}
+
 #[cfg(not(any(
     target_arch = "aarch64",
     target_arch = "x86_64",
-    target_arch = "riscv64"
+    target_arch = "riscv64",
+    all(target_arch = "wasm32", target_feature = "simd128"),
 )))]
 #[inline]
 fn block_has_perceptual_diff(
@@ -164,6 +180,62 @@ fn block_has_perceptual_diff_neon(
                     let abs_deltas = vabsq_f32(deltas);
                     let exceeds = vcgtq_f32(abs_deltas, max_vec);
                     if vmaxvq_u32(vreinterpretq_u32_f32(vreinterpretq_f32_u32(exceeds))) != 0 {
+                        return true;
+                    }
+                }
+                offset += 4;
+            }
+        }
+
+        // Scalar remainder
+        for i in offset..row_width {
+            let idx = row_start + i;
+            let pa = a32[idx];
+            let pb = b32[idx];
+            if pa != pb && color_delta_f32(pa, pb).abs() > max_delta {
+                return true;
+            }
+        }
+    }
+    false
+}
+
+#[cfg(all(target_arch = "wasm32", target_feature = "simd128"))]
+#[inline]
+fn block_has_perceptual_diff_wasm(
+    a32: &[u32],
+    b32: &[u32],
+    width: u32,
+    start_x: u32,
+    start_y: u32,
+    end_x: u32,
+    end_y: u32,
+    max_delta: f32,
+) -> bool {
+    use std::arch::wasm32::*;
+
+    let row_width = (end_x - start_x) as usize;
+
+    for y in start_y..end_y {
+        let row_start = (y * width + start_x) as usize;
+        let mut offset = 0;
+
+        unsafe {
+            let a_ptr = a32.as_ptr().add(row_start);
+            let b_ptr = b32.as_ptr().add(row_start);
+
+            while offset + 4 <= row_width {
+                let va = v128_load(a_ptr.add(offset) as *const v128);
+                let vb = v128_load(b_ptr.add(offset) as *const v128);
+                let cmp = i32x4_eq(va, vb);
+                let not_cmp = v128_not(cmp);
+
+                if v128_any_true(not_cmp) {
+                    let deltas = yiq_delta_4_wasm_direct(va, vb);
+                    let max_vec = f32x4_splat(max_delta);
+                    let abs_deltas = f32x4_abs(deltas);
+                    let exceeds = f32x4_gt(abs_deltas, max_vec);
+                    if v128_any_true(exceeds) {
                         return true;
                     }
                 }
@@ -317,7 +389,10 @@ unsafe fn block_has_perceptual_diff_sse(
     false
 }
 
-#[cfg(not(target_arch = "aarch64"))]
+#[cfg(not(any(
+    target_arch = "aarch64",
+    all(target_arch = "wasm32", target_feature = "simd128"),
+)))]
 #[inline]
 fn block_has_perceptual_diff_scalar(
     a32: &[u32],
@@ -422,6 +497,92 @@ unsafe fn yiq_delta_4_neon_direct(
         ),
         vq2,
         YIQ_WEIGHTS_F32[2],
+    )
+}
+
+/// wasm v128: Extract RGB and compute YIQ delta for 4 pixels - pure SIMD with alpha handling
+#[cfg(all(target_arch = "wasm32", target_feature = "simd128"))]
+#[inline]
+#[target_feature(enable = "simd128")]
+unsafe fn yiq_delta_4_wasm_direct(
+    va: std::arch::wasm32::v128,
+    vb: std::arch::wasm32::v128,
+) -> std::arch::wasm32::v128 {
+    use std::arch::wasm32::*;
+
+    let mask_ff = u32x4_splat(0xFF);
+    let v255 = f32x4_splat(255.0);
+    let inv255 = f32x4_splat(INV_255);
+
+    let r_a = v128_and(va, mask_ff);
+    let g_a = v128_and(u32x4_shr(va, 8), mask_ff);
+    let b_a = v128_and(u32x4_shr(va, 16), mask_ff);
+    let a_a = u32x4_shr(va, 24);
+
+    let r_b = v128_and(vb, mask_ff);
+    let g_b = v128_and(u32x4_shr(vb, 8), mask_ff);
+    let b_b = v128_and(u32x4_shr(vb, 16), mask_ff);
+    let a_b = u32x4_shr(vb, 24);
+
+    let r_a_f = f32x4_convert_u32x4(r_a);
+    let g_a_f = f32x4_convert_u32x4(g_a);
+    let b_a_f = f32x4_convert_u32x4(b_a);
+    let a_a_f = f32x4_convert_u32x4(a_a);
+
+    let r_b_f = f32x4_convert_u32x4(r_b);
+    let g_b_f = f32x4_convert_u32x4(g_b);
+    let b_b_f = f32x4_convert_u32x4(b_b);
+    let a_b_f = f32x4_convert_u32x4(a_b);
+
+    let alpha_norm_a = f32x4_mul(a_a_f, inv255);
+    let alpha_norm_b = f32x4_mul(a_b_f, inv255);
+
+    let br_a = f32x4_add(v255, f32x4_mul(f32x4_sub(r_a_f, v255), alpha_norm_a));
+    let bg_a = f32x4_add(v255, f32x4_mul(f32x4_sub(g_a_f, v255), alpha_norm_a));
+    let bb_a = f32x4_add(v255, f32x4_mul(f32x4_sub(b_a_f, v255), alpha_norm_a));
+
+    let br_b = f32x4_add(v255, f32x4_mul(f32x4_sub(r_b_f, v255), alpha_norm_b));
+    let bg_b = f32x4_add(v255, f32x4_mul(f32x4_sub(g_b_f, v255), alpha_norm_b));
+    let bb_b = f32x4_add(v255, f32x4_mul(f32x4_sub(b_b_f, v255), alpha_norm_b));
+
+    let dr = f32x4_sub(br_a, br_b);
+    let dg = f32x4_sub(bg_a, bg_b);
+    let db = f32x4_sub(bb_a, bb_b);
+
+    let y_r = f32x4_splat(YIQ_Y_F32[0]);
+    let y_g = f32x4_splat(YIQ_Y_F32[1]);
+    let y_b = f32x4_splat(YIQ_Y_F32[2]);
+    let i_r = f32x4_splat(YIQ_I_F32[0]);
+    let i_g = f32x4_splat(YIQ_I_F32[1]);
+    let i_b = f32x4_splat(YIQ_I_F32[2]);
+    let q_r = f32x4_splat(YIQ_Q_F32[0]);
+    let q_g = f32x4_splat(YIQ_Q_F32[1]);
+    let q_b = f32x4_splat(YIQ_Q_F32[2]);
+    let w_y = f32x4_splat(YIQ_WEIGHTS_F32[0]);
+    let w_i = f32x4_splat(YIQ_WEIGHTS_F32[1]);
+    let w_q = f32x4_splat(YIQ_WEIGHTS_F32[2]);
+
+    // No native FMA in baseline simd128; use add(mul, c).
+    let vy = f32x4_add(
+        f32x4_add(f32x4_mul(dr, y_r), f32x4_mul(dg, y_g)),
+        f32x4_mul(db, y_b),
+    );
+    let vi = f32x4_add(
+        f32x4_add(f32x4_mul(dr, i_r), f32x4_mul(dg, i_g)),
+        f32x4_mul(db, i_b),
+    );
+    let vq = f32x4_add(
+        f32x4_add(f32x4_mul(dr, q_r), f32x4_mul(dg, q_g)),
+        f32x4_mul(db, q_b),
+    );
+
+    let vy2 = f32x4_mul(vy, vy);
+    let vi2 = f32x4_mul(vi, vi);
+    let vq2 = f32x4_mul(vq, vq);
+
+    f32x4_add(
+        f32x4_add(f32x4_mul(vy2, w_y), f32x4_mul(vi2, w_i)),
+        f32x4_mul(vq2, w_q),
     )
 }
 
@@ -770,8 +931,55 @@ fn process_hot_block_with_features(
     }
 }
 
+/// Process a block of changed pixels with SIMD (wasm32 v128)
+#[cfg(all(target_arch = "wasm32", target_feature = "simd128"))]
+#[inline]
+fn process_hot_block(
+    a32: &[u32],
+    b32: &[u32],
+    out32: Option<&mut [u32]>,
+    width: u32,
+    start_x: u32,
+    start_y: u32,
+    end_x: u32,
+    end_y: u32,
+    max_delta: f32,
+    include_aa: bool,
+    draw_background: bool,
+    diff_color: u32,
+    diff_color_alt: u32,
+    aa_color: u32,
+    alpha_f32: f32,
+    image1: &Image,
+    image2: &Image,
+) -> u32 {
+    process_hot_block_wasm(
+        a32,
+        b32,
+        out32,
+        width,
+        start_x,
+        start_y,
+        end_x,
+        end_y,
+        max_delta,
+        include_aa,
+        draw_background,
+        diff_color,
+        diff_color_alt,
+        aa_color,
+        alpha_f32,
+        image1,
+        image2,
+    )
+}
+
 /// Process a block of changed pixels (scalar fallback)
-#[cfg(not(any(target_arch = "aarch64", target_arch = "x86_64")))]
+#[cfg(not(any(
+    target_arch = "aarch64",
+    target_arch = "x86_64",
+    all(target_arch = "wasm32", target_feature = "simd128"),
+)))]
 #[inline]
 fn process_hot_block(
     a32: &[u32],
@@ -980,6 +1188,176 @@ fn process_hot_block_neon(
     diff_count
 }
 
+/// wasm v128 hot block processing
+#[cfg(all(target_arch = "wasm32", target_feature = "simd128"))]
+#[inline]
+fn process_hot_block_wasm(
+    a32: &[u32],
+    b32: &[u32],
+    mut out32: Option<&mut [u32]>,
+    width: u32,
+    start_x: u32,
+    start_y: u32,
+    end_x: u32,
+    end_y: u32,
+    max_delta: f32,
+    include_aa: bool,
+    draw_background: bool,
+    diff_color: u32,
+    diff_color_alt: u32,
+    aa_color: u32,
+    alpha_f32: f32,
+    image1: &Image,
+    image2: &Image,
+) -> u32 {
+    use std::arch::wasm32::*;
+
+    let mut diff_count = 0u32;
+    let inv_255 = 1.0 / 255.0;
+    let alpha_scaled = alpha_f32 * inv_255;
+
+    for y in start_y..end_y {
+        let row_offset = (y * width) as usize;
+        let base_offset = row_offset + start_x as usize;
+        let row_width = (end_x - start_x) as usize;
+        let mut offset = 0usize;
+
+        unsafe {
+            let a_ptr = a32.as_ptr().add(base_offset);
+            let b_ptr = b32.as_ptr().add(base_offset);
+
+            let mask_ff = u32x4_splat(0xFF);
+            let v255 = f32x4_splat(255.0);
+            let max_delta_vec = f32x4_splat(max_delta);
+            let alpha_vec = f32x4_splat(alpha_scaled);
+
+            while offset + 4 <= row_width {
+                let va = v128_load(a_ptr.add(offset) as *const v128);
+                let vb = v128_load(b_ptr.add(offset) as *const v128);
+                let cmp = i32x4_eq(va, vb);
+
+                if !v128_any_true(v128_not(cmp)) {
+                    // All 4 pixels identical - draw gray if needed
+                    if draw_background {
+                        if let Some(ref mut out) = out32 {
+                            let grays = compute_gray_4_wasm(va, alpha_vec, mask_ff, v255);
+                            v128_store(
+                                out.as_mut_ptr().add(base_offset + offset) as *mut v128,
+                                grays,
+                            );
+                        }
+                    }
+                } else {
+                    // At least one pixel differs - compute deltas
+                    let deltas = yiq_delta_4_wasm_signed(va, vb);
+                    let abs_deltas = f32x4_abs(deltas);
+                    let exceeds = f32x4_gt(abs_deltas, max_delta_vec);
+
+                    let mut delta_arr: [f32; 4] = [0.0f32; 4];
+                    let mut pa_arr: [u32; 4] = [0u32; 4];
+                    let mut pb_arr: [u32; 4] = [0u32; 4];
+                    v128_store(delta_arr.as_mut_ptr() as *mut v128, deltas);
+                    v128_store(pa_arr.as_mut_ptr() as *mut v128, va);
+                    v128_store(pb_arr.as_mut_ptr() as *mut v128, vb);
+
+                    let any_exceeds = v128_any_true(exceeds);
+
+                    for i in 0..4 {
+                        let pixel_index = base_offset + offset + i;
+                        let pa = pa_arr[i];
+                        let pb = pb_arr[i];
+
+                        if pa == pb {
+                            if draw_background {
+                                if let Some(ref mut out) = out32 {
+                                    let g = compute_gray_pixel_f32(pa, alpha_scaled);
+                                    out[pixel_index] = pack_gray_pixel(g);
+                                }
+                            }
+                        } else if any_exceeds {
+                            let lane_exceeds = match i {
+                                0 => u32x4_extract_lane::<0>(exceeds),
+                                1 => u32x4_extract_lane::<1>(exceeds),
+                                2 => u32x4_extract_lane::<2>(exceeds),
+                                _ => u32x4_extract_lane::<3>(exceeds),
+                            };
+                            if lane_exceeds != 0 {
+                                diff_count += process_diff_pixel(
+                                    pixel_index,
+                                    delta_arr[i],
+                                    include_aa,
+                                    draw_background,
+                                    diff_color,
+                                    diff_color_alt,
+                                    aa_color,
+                                    start_x + offset as u32 + i as u32,
+                                    y,
+                                    image1,
+                                    image2,
+                                    out32.as_deref_mut(),
+                                );
+                            } else if draw_background {
+                                if let Some(ref mut out) = out32 {
+                                    let g = compute_gray_pixel_f32(pa, alpha_scaled);
+                                    out[pixel_index] = pack_gray_pixel(g);
+                                }
+                            }
+                        } else if draw_background {
+                            if let Some(ref mut out) = out32 {
+                                let g = compute_gray_pixel_f32(pa, alpha_scaled);
+                                out[pixel_index] = pack_gray_pixel(g);
+                            }
+                        }
+                    }
+                }
+                offset += 4;
+            }
+        }
+
+        // Scalar remainder
+        while offset < row_width {
+            let pixel_index = base_offset + offset;
+            let pa = a32[pixel_index];
+            let pb = b32[pixel_index];
+
+            if pa == pb {
+                if draw_background {
+                    if let Some(ref mut out) = out32 {
+                        let g = compute_gray_pixel_f32(pa, alpha_scaled);
+                        out[pixel_index] = pack_gray_pixel(g);
+                    }
+                }
+            } else {
+                let delta = color_delta_f32(pa, pb);
+                if delta.abs() > max_delta {
+                    diff_count += process_diff_pixel(
+                        pixel_index,
+                        delta,
+                        include_aa,
+                        draw_background,
+                        diff_color,
+                        diff_color_alt,
+                        aa_color,
+                        start_x + offset as u32,
+                        y,
+                        image1,
+                        image2,
+                        out32.as_deref_mut(),
+                    );
+                } else if draw_background {
+                    if let Some(ref mut out) = out32 {
+                        let g = compute_gray_pixel_f32(pa, alpha_scaled);
+                        out[pixel_index] = pack_gray_pixel(g);
+                    }
+                }
+            }
+            offset += 1;
+        }
+    }
+
+    diff_count
+}
+
 /// NEON: Compute gray values for 4 pixels
 #[cfg(target_arch = "aarch64")]
 #[inline]
@@ -1012,6 +1390,48 @@ unsafe fn compute_gray_4_neon(
             vshlq_n_u32(gray_u32, 16),
         ),
         vdupq_n_u32(0xFF000000),
+    )
+}
+
+/// wasm v128: Compute gray values for 4 pixels
+#[cfg(all(target_arch = "wasm32", target_feature = "simd128"))]
+#[inline]
+#[target_feature(enable = "simd128")]
+unsafe fn compute_gray_4_wasm(
+    pixels: std::arch::wasm32::v128,
+    alpha_vec: std::arch::wasm32::v128,
+    mask_ff: std::arch::wasm32::v128,
+    v255: std::arch::wasm32::v128,
+) -> std::arch::wasm32::v128 {
+    use std::arch::wasm32::*;
+
+    let r = f32x4_convert_u32x4(v128_and(pixels, mask_ff));
+    let g = f32x4_convert_u32x4(v128_and(u32x4_shr(pixels, 8), mask_ff));
+    let b = f32x4_convert_u32x4(v128_and(u32x4_shr(pixels, 16), mask_ff));
+    let a = f32x4_convert_u32x4(u32x4_shr(pixels, 24));
+
+    let y_r = f32x4_splat(YIQ_Y_F32[0]);
+    let y_g = f32x4_splat(YIQ_Y_F32[1]);
+    let y_b = f32x4_splat(YIQ_Y_F32[2]);
+
+    let luminance = f32x4_add(
+        f32x4_add(f32x4_mul(r, y_r), f32x4_mul(g, y_g)),
+        f32x4_mul(b, y_b),
+    );
+
+    let gray_f = f32x4_add(
+        v255,
+        f32x4_mul(f32x4_sub(luminance, v255), f32x4_mul(alpha_vec, a)),
+    );
+    let gray_clamped = f32x4_min(f32x4_max(gray_f, f32x4_splat(0.0)), v255);
+    let gray_u32 = u32x4_trunc_sat_f32x4(gray_clamped);
+
+    v128_or(
+        v128_or(
+            v128_or(gray_u32, u32x4_shl(gray_u32, 8)),
+            u32x4_shl(gray_u32, 16),
+        ),
+        u32x4_splat(0xFF000000),
     )
 }
 
@@ -1096,6 +1516,95 @@ unsafe fn yiq_delta_4_neon_signed(
     let zero = vdupq_n_f32(0.0);
     let y_positive = vcgtq_f32(vy, zero);
     vbslq_f32(y_positive, vnegq_f32(delta), delta)
+}
+
+/// wasm v128: YIQ delta with sign for 4 pixels (with alpha handling)
+#[cfg(all(target_arch = "wasm32", target_feature = "simd128"))]
+#[inline]
+#[target_feature(enable = "simd128")]
+unsafe fn yiq_delta_4_wasm_signed(
+    va: std::arch::wasm32::v128,
+    vb: std::arch::wasm32::v128,
+) -> std::arch::wasm32::v128 {
+    use std::arch::wasm32::*;
+
+    let mask_ff = u32x4_splat(0xFF);
+    let v255 = f32x4_splat(255.0);
+    let inv255 = f32x4_splat(INV_255);
+
+    let r_a = v128_and(va, mask_ff);
+    let g_a = v128_and(u32x4_shr(va, 8), mask_ff);
+    let b_a = v128_and(u32x4_shr(va, 16), mask_ff);
+    let a_a = u32x4_shr(va, 24);
+
+    let r_b = v128_and(vb, mask_ff);
+    let g_b = v128_and(u32x4_shr(vb, 8), mask_ff);
+    let b_b = v128_and(u32x4_shr(vb, 16), mask_ff);
+    let a_b = u32x4_shr(vb, 24);
+
+    let r_a_f = f32x4_convert_u32x4(r_a);
+    let g_a_f = f32x4_convert_u32x4(g_a);
+    let b_a_f = f32x4_convert_u32x4(b_a);
+    let a_a_f = f32x4_convert_u32x4(a_a);
+
+    let r_b_f = f32x4_convert_u32x4(r_b);
+    let g_b_f = f32x4_convert_u32x4(g_b);
+    let b_b_f = f32x4_convert_u32x4(b_b);
+    let a_b_f = f32x4_convert_u32x4(a_b);
+
+    let alpha_norm_a = f32x4_mul(a_a_f, inv255);
+    let alpha_norm_b = f32x4_mul(a_b_f, inv255);
+
+    let br_a = f32x4_add(v255, f32x4_mul(f32x4_sub(r_a_f, v255), alpha_norm_a));
+    let bg_a = f32x4_add(v255, f32x4_mul(f32x4_sub(g_a_f, v255), alpha_norm_a));
+    let bb_a = f32x4_add(v255, f32x4_mul(f32x4_sub(b_a_f, v255), alpha_norm_a));
+
+    let br_b = f32x4_add(v255, f32x4_mul(f32x4_sub(r_b_f, v255), alpha_norm_b));
+    let bg_b = f32x4_add(v255, f32x4_mul(f32x4_sub(g_b_f, v255), alpha_norm_b));
+    let bb_b = f32x4_add(v255, f32x4_mul(f32x4_sub(b_b_f, v255), alpha_norm_b));
+
+    let dr = f32x4_sub(br_a, br_b);
+    let dg = f32x4_sub(bg_a, bg_b);
+    let db = f32x4_sub(bb_a, bb_b);
+
+    let y_r = f32x4_splat(YIQ_Y_F32[0]);
+    let y_g = f32x4_splat(YIQ_Y_F32[1]);
+    let y_b = f32x4_splat(YIQ_Y_F32[2]);
+    let i_r = f32x4_splat(YIQ_I_F32[0]);
+    let i_g = f32x4_splat(YIQ_I_F32[1]);
+    let i_b = f32x4_splat(YIQ_I_F32[2]);
+    let q_r = f32x4_splat(YIQ_Q_F32[0]);
+    let q_g = f32x4_splat(YIQ_Q_F32[1]);
+    let q_b = f32x4_splat(YIQ_Q_F32[2]);
+    let w_y = f32x4_splat(YIQ_WEIGHTS_F32[0]);
+    let w_i = f32x4_splat(YIQ_WEIGHTS_F32[1]);
+    let w_q = f32x4_splat(YIQ_WEIGHTS_F32[2]);
+
+    let vy = f32x4_add(
+        f32x4_add(f32x4_mul(dr, y_r), f32x4_mul(dg, y_g)),
+        f32x4_mul(db, y_b),
+    );
+    let vi = f32x4_add(
+        f32x4_add(f32x4_mul(dr, i_r), f32x4_mul(dg, i_g)),
+        f32x4_mul(db, i_b),
+    );
+    let vq = f32x4_add(
+        f32x4_add(f32x4_mul(dr, q_r), f32x4_mul(dg, q_g)),
+        f32x4_mul(db, q_b),
+    );
+
+    let vy2 = f32x4_mul(vy, vy);
+    let vi2 = f32x4_mul(vi, vi);
+    let vq2 = f32x4_mul(vq, vq);
+
+    let delta = f32x4_add(
+        f32x4_add(f32x4_mul(vy2, w_y), f32x4_mul(vi2, w_i)),
+        f32x4_mul(vq2, w_q),
+    );
+
+    let zero = f32x4_splat(0.0);
+    let y_positive = f32x4_gt(vy, zero);
+    v128_bitselect(f32x4_neg(delta), delta, y_positive)
 }
 
 /// AVX2 hot block processing
@@ -1737,7 +2246,10 @@ unsafe fn yiq_delta_4_sse_signed(
 }
 
 /// Scalar hot block processing (fallback for non-SIMD architectures or x86_64 without SSE4.1)
-#[cfg(not(target_arch = "aarch64"))]
+#[cfg(not(any(
+    target_arch = "aarch64",
+    all(target_arch = "wasm32", target_feature = "simd128"),
+)))]
 fn process_hot_block_scalar(
     a32: &[u32],
     b32: &[u32],

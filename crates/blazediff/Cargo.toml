@@ -22,6 +22,7 @@ include = [
 [[bin]]
 name = "blazediff"
 path = "src/main.rs"
+required-features = ["cli"]
 
 [lib]
 name = "blazediff"
@@ -29,22 +30,38 @@ path = "src/lib.rs"
 crate-type = ["lib", "cdylib"]
 
 [features]
-default = []
-napi = ["dep:napi", "dep:napi-derive"]
-python = ["dep:pyo3"]
+default = ["io", "cli"]
+io = ["dep:rayon", "dep:memmap2", "dep:libc"]
+cli = ["io", "dep:clap"]
+napi = ["io", "dep:napi", "dep:napi-derive"]
+python = ["io", "dep:pyo3"]
+wasm = [
+    "dep:wasm-bindgen",
+    "dep:js-sys",
+    "dep:serde-wasm-bindgen",
+    "dep:console_error_panic_hook",
+]
 
 [dependencies]
-clap = { version = "4", features = ["derive"] }
-rayon = "1.10"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-libc = "0.2"
-memmap2 = "0.9"
 qoi = "0.4"
 base64 = "0.22"
+clap = { version = "4", features = ["derive"], optional = true }
+rayon = { version = "1.10", optional = true }
+memmap2 = { version = "0.9", optional = true }
+libc = { version = "0.2", optional = true }
 napi = { version = "2", features = ["napi4", "serde-json"], optional = true }
 napi-derive = { version = "2", optional = true }
 pyo3 = { version = "0.22", features = ["extension-module", "abi3-py38", "generate-import-lib"], optional = true }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+# wasm-bindgen pinned to match the wasm-bindgen-cli version used in build-wasm.sh.
+# Bumping requires bumping both in lockstep.
+wasm-bindgen = { version = "=0.2.100", optional = true }
+js-sys = { version = "0.3", optional = true }
+serde-wasm-bindgen = { version = "0.6", optional = true }
+console_error_panic_hook = { version = "0.1", optional = true }
 
 [build-dependencies]
 cc = "1.2"
