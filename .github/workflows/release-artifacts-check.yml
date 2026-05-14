@@ -59,6 +59,17 @@ jobs:
           BASE_SHA="${{ github.event.pull_request.base.sha }}"
           echo "Base SHA: $BASE_SHA"
 
+          # Binaries and WASM only need rebuilding when the Rust crate
+          # actually changed; for JS-only releases the existing artifacts
+          # from the previous version are still valid.
+          if git diff --quiet "$BASE_SHA" -- crates/blazediff/; then
+            crate_changed=false
+            echo "crates/blazediff/ unchanged since base — skipping binary/WASM freshness checks."
+          else
+            crate_changed=true
+            echo "crates/blazediff/ changed since base — binaries and WASM must be rebuilt."
+          fi
+
           missing=()
           stale=()
 
@@ -90,19 +101,21 @@ jobs:
             require_file "crates/blazediff/wheels/blazediff-${VER}-cp38-abi3-${plat}.whl"
           done
 
-          # --- NAPI .node + per-platform CLI -------------------------------
-          for plat in darwin-arm64 darwin-x64 linux-arm64 linux-x64; do
-            require_fresh_file "packages/core-native-${plat}/blazediff.node"
-            require_fresh_file "packages/core-native-${plat}/blazediff"
-          done
-          for plat in win32-arm64 win32-x64; do
-            require_fresh_file "packages/core-native-${plat}/blazediff.node"
-            require_fresh_file "packages/core-native-${plat}/blazediff.exe"
-          done
+          if [[ "$crate_changed" == "true" ]]; then
+            # --- NAPI .node + per-platform CLI -----------------------------
+            for plat in darwin-arm64 darwin-x64 linux-arm64 linux-x64; do
+              require_fresh_file "packages/core-native-${plat}/blazediff.node"
+              require_fresh_file "packages/core-native-${plat}/blazediff"
+            done
+            for plat in win32-arm64 win32-x64; do
+              require_fresh_file "packages/core-native-${plat}/blazediff.node"
+              require_fresh_file "packages/core-native-${plat}/blazediff.exe"
+            done
 
-          # --- WASM --------------------------------------------------------
-          require_fresh_file "packages/core-wasm/wasm/blazediff_bg.wasm"
-          require_fresh_file "packages/core-wasm/wasm/blazediff.js"
+            # --- WASM ------------------------------------------------------
+            require_fresh_file "packages/core-wasm/wasm/blazediff_bg.wasm"
+            require_fresh_file "packages/core-wasm/wasm/blazediff.js"
+          fi
 
           if [[ ${#missing[@]} -gt 0 || ${#stale[@]} -gt 0 ]]; then
             echo "::error::Release artifacts for v${VER} are not ready."

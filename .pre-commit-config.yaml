@@ -9,7 +9,7 @@ repos:
         always_run: true
       - id: biome
         name: biome check
-        entry: pnpm exec biome check --write
+        entry: pnpm exec biome check --write --no-errors-on-unmatched
         language: system
         types_or: [javascript, jsx, ts, tsx, json]
       - id: cargo-fmt
