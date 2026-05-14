@@ -1,8 +1,25 @@
+# Binary release artifacts — tracked via Git LFS to keep clone size sane.
+# Smudged on checkout by `git lfs install` (one-time per machine).
+#
+# Workflows that publish to npm/PyPI/JSR MUST `lfs: true` on actions/checkout
+# or they ship pointer files. The `release-artifacts-check.yml` workflow uses
+# `lfs: false` intentionally — it only diffs pointer hashes vs base.
+
+*.node    filter=lfs diff=lfs merge=lfs -text
+*.whl     filter=lfs diff=lfs merge=lfs -text
+*.wasm    filter=lfs diff=lfs merge=lfs -text
+*.exe     filter=lfs diff=lfs merge=lfs -text
+# Extension-less per-platform CLI binaries (Linux + macOS). Pattern is scoped
+# to packages/core-native-*/blazediff so we don't accidentally LFS-track e.g.
+# `apps/*/blazediff` source files.
+packages/core-native-darwin-arm64/blazediff filter=lfs diff=lfs merge=lfs -text
+packages/core-native-darwin-x64/blazediff   filter=lfs diff=lfs merge=lfs -text
+packages/core-native-linux-arm64/blazediff  filter=lfs diff=lfs merge=lfs -text
+packages/core-native-linux-x64/blazediff    filter=lfs diff=lfs merge=lfs -text
 *.node filter=lfs diff=lfs merge=lfs -text
 *.whl filter=lfs diff=lfs merge=lfs -text
 *.wasm filter=lfs diff=lfs merge=lfs -text
 *.exe filter=lfs diff=lfs merge=lfs -text
-packages/core-native-darwin-arm64/blazediff filter=lfs diff=lfs merge=lfs -text
 packages/core-native-darwin-x64/blazediff filter=lfs diff=lfs merge=lfs -text
 packages/core-native-linux-arm64/blazediff filter=lfs diff=lfs merge=lfs -text
 packages/core-native-linux-x64/blazediff filter=lfs diff=lfs merge=lfs -text

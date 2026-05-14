@@ -31,6 +31,9 @@ Options:
   --macos            Build both macOS targets (arm64 + x64)
   --all              Build all supported platforms
   --develop          Install editable into the active venv (skips wheel build)
+  --version <X.Y.Z>  Assert Cargo.toml is at this version before building.
+                     Guards against shipping wheels whose filename version
+                     drifts from the release being cut.
   --help             Show this help
 
 Output: \$WHEELS_DIR/blazediff-{version}-cp38-abi3-{platform}.whl
@@ -115,6 +118,7 @@ run_maturin_target() {
 # Parse args
 MODE="native"
 SPECIFIC_TARGET=""
+EXPECTED_VERSION=""
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -123,12 +127,28 @@ while [[ $# -gt 0 ]]; do
         --macos)   MODE="macos";  shift ;;
         --all)     MODE="all";    shift ;;
         --develop) MODE="develop"; shift ;;
+        --version) EXPECTED_VERSION="$2"; shift 2 ;;
         --help|-h) print_usage; exit 0 ;;
         *)         echo "Unknown option: $1"; print_usage; exit 1 ;;
     esac
 done
 
 cd "$PROJECT_DIR"
+
+# Version sanity: read it from Cargo.toml (maturin bakes this into wheel
+# filenames via pyproject's `dynamic = ["version"]`). Surface it loudly so a
+# wrong-version build is obvious, and let callers assert via --version.
+CARGO_VERSION="$(sed -nE 's/^version *= *"([^"]+)".*/\1/p' "$PROJECT_DIR/Cargo.toml" | head -1)"
+if [[ -z "$CARGO_VERSION" ]]; then
+    echo "Error: could not read version from $PROJECT_DIR/Cargo.toml"
+    exit 1
+fi
+if [[ -n "$EXPECTED_VERSION" && "$EXPECTED_VERSION" != "$CARGO_VERSION" ]]; then
+    echo "Error: --version $EXPECTED_VERSION does not match Cargo.toml ($CARGO_VERSION)."
+    echo "       Bump Cargo.toml (e.g. \`pnpm sync-cargo-version\`) or correct the --version flag before building."
+    exit 1
+fi
+echo "==> Building wheels for blazediff v$CARGO_VERSION (from Cargo.toml)"
 
 # Wipe stale wheels from prior runs so $WHEELS_DIR only contains wheels from
 # this build - otherwise older versions linger and get synced into the committed

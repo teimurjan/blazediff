@@ -17,6 +17,11 @@ source "$SCRIPT_DIR/_targets.sh"
 export CARGO_TARGET_DIR="$TARGET_DIR/napi"
 TARGET_DIR="$CARGO_TARGET_DIR"
 
+# .node files produced by this invocation. Sync only these — globbing $DIST_DIR
+# would also pick up stale artifacts from prior runs and clobber unrelated
+# platform packages.
+BUILT_NODES=()
+
 print_usage() {
     cat <<EOF
 Usage: $0 [OPTIONS]
@@ -74,6 +79,7 @@ build_native_napi() {
         cp "$src" "$dst"
         check_no_python_symbols "$dst" || return 1
         echo "Built N-API: $dst ($(ls -lh "$dst" | awk '{print $5}'))"
+        BUILT_NODES+=("$dst")
     else
         echo "Warning: N-API library not found at $src"
         return 1
@@ -126,6 +132,7 @@ build_napi_target() {
         cp "$src" "$dst"
         check_no_python_symbols "$dst" || return 1
         echo "  -> $dst ($(ls -lh "$dst" | awk '{print $5}'))"
+        BUILT_NODES+=("$dst")
     else
         echo "  Warning: N-API library not found at $src"
         return 1
@@ -135,8 +142,12 @@ build_napi_target() {
 sync_napi_to_packages() {
     echo ""
     echo "Syncing .node files to platform packages..."
+    if [[ ${#BUILT_NODES[@]} -eq 0 ]]; then
+        echo "  No .node files to sync."
+        return 0
+    fi
     local synced=0
-    for binary in "$DIST_DIR"/blazediff-*.node; do
+    for binary in "${BUILT_NODES[@]}"; do
         [[ -f "$binary" ]] || continue
         local name; name=$(basename "$binary")
         local target=""

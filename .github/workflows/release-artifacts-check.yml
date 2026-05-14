@@ -1,0 +1,127 @@
+name: release-artifacts-check
+
+# Merge gate on the Changesets "Version Packages" PR. Goes green only when
+# every release-shipped binary matches the version recorded in
+# `crates/blazediff/Cargo.toml`. Non-Changesets PRs short-circuit to success.
+#
+# Workflow:
+#   1. Changesets opens a PR on `changeset-release/main` bumping versions.
+#   2. This check goes red — artifacts are stale or missing.
+#   3. Maintainer checks out the PR branch, runs:
+#        pnpm build:rust
+#        pnpm build:wasm
+#        pnpm build:python:all -- --version <NEW>
+#      commits + pushes the resulting artifacts.
+#   4. Check turns green; PR is mergeable; merge fires release.yml.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: verify release artifacts for current version
+    runs-on: ubuntu-latest
+    steps:
+      - name: short-circuit for non-Changesets PRs
+        id: gate
+        run: |
+          if [[ "${{ github.head_ref }}" == changeset-release/* ]]; then
+            echo "release_pr=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "release_pr=false" >> "$GITHUB_OUTPUT"
+            echo "Not a Changesets release PR; check is a no-op."
+          fi
+
+      - uses: actions/checkout@v5
+        if: steps.gate.outputs.release_pr == 'true'
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          # Need base commit for the staleness diff on binaries whose
+          # filenames don't encode the version (.node, CLI, .wasm).
+          fetch-depth: 0
+          # We only diff LFS pointer hashes (changed pointer = changed
+          # binary); pulling the actual blobs from LFS would burn
+          # bandwidth on every PR sync for no information gained.
+          lfs: false
+
+      - name: verify all expected files present and fresh
+        if: steps.gate.outputs.release_pr == 'true'
+        run: |
+          set -euo pipefail
+          VER=$(sed -nE 's/^version *= *"([^"]+)".*/\1/p' crates/blazediff/Cargo.toml | head -1)
+          echo "Target version: $VER"
+
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          echo "Base SHA: $BASE_SHA"
+
+          missing=()
+          stale=()
+
+          require_file() {
+            local f="$1"
+            if [[ ! -f "$f" ]]; then missing+=("$f"); fi
+          }
+
+          # Files whose names don't encode version: require both presence
+          # AND a diff vs. base, otherwise a leftover from the prior release
+          # would silently satisfy the check.
+          require_fresh_file() {
+            local f="$1"
+            if [[ ! -f "$f" ]]; then
+              missing+=("$f")
+            elif git diff --quiet "$BASE_SHA" -- "$f"; then
+              stale+=("$f (unchanged since $BASE_SHA)")
+            fi
+          }
+
+          # --- Python wheels (version is in filename) ----------------------
+          for plat in \
+              "macosx_10_12_x86_64" \
+              "macosx_11_0_arm64" \
+              "manylinux_2_17_aarch64.manylinux2014_aarch64" \
+              "manylinux_2_17_x86_64.manylinux2014_x86_64" \
+              "win_amd64" \
+              "win_arm64"; do
+            require_file "crates/blazediff/wheels/blazediff-${VER}-cp38-abi3-${plat}.whl"
+          done
+
+          # --- NAPI .node + per-platform CLI -------------------------------
+          for plat in darwin-arm64 darwin-x64 linux-arm64 linux-x64; do
+            require_fresh_file "packages/core-native-${plat}/blazediff.node"
+            require_fresh_file "packages/core-native-${plat}/blazediff"
+          done
+          for plat in win32-arm64 win32-x64; do
+            require_fresh_file "packages/core-native-${plat}/blazediff.node"
+            require_fresh_file "packages/core-native-${plat}/blazediff.exe"
+          done
+
+          # --- WASM --------------------------------------------------------
+          require_fresh_file "packages/core-wasm/wasm/blazediff_bg.wasm"
+          require_fresh_file "packages/core-wasm/wasm/blazediff.js"
+
+          if [[ ${#missing[@]} -gt 0 || ${#stale[@]} -gt 0 ]]; then
+            echo "::error::Release artifacts for v${VER} are not ready."
+            if [[ ${#missing[@]} -gt 0 ]]; then
+              echo "Missing:"
+              for f in "${missing[@]}"; do echo "  - $f"; done
+            fi
+            if [[ ${#stale[@]} -gt 0 ]]; then
+              echo "Stale (committed but not rebuilt for this version):"
+              for f in "${stale[@]}"; do echo "  - $f"; done
+            fi
+            echo
+            echo "Rebuild locally and push to this PR branch:"
+            echo "  git fetch origin && git checkout ${{ github.head_ref }}"
+            echo "  pnpm build:rust"
+            echo "  pnpm build:wasm"
+            echo "  pnpm build:python:all -- --version ${VER}"
+            echo "  git add -A && git commit -m 'build: artifacts for v${VER}' && git push"
+            exit 1
+          fi
+
+          echo "All expected v${VER} artifacts present and rebuilt."

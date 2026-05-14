@@ -47,6 +47,7 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 qoi = "0.4"
 base64 = "0.22"
+bytemuck = "1"
 clap = { version = "4", features = ["derive"], optional = true }
 rayon = { version = "1.10", optional = true }
 memmap2 = { version = "0.9", optional = true }

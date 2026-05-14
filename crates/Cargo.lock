@@ -90,6 +90,7 @@ name = "blazediff"
 version = "4.3.1"
 dependencies = [
  "base64",
+ "bytemuck",
  "cc",
  "clap",
  "cmake",

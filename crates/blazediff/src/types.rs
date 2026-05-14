@@ -17,14 +17,11 @@ impl Image {
         }
     }
 
-    /// Create a new image without zero-initializing the buffer.
-    /// Use when the buffer will be fully overwritten (e.g., diff output).
+    /// Create a new image. Equivalent to [`Image::new`]; retained as a distinct
+    /// entry point for diff-output buffers that get fully overwritten.
     pub fn new_uninit(width: u32, height: u32) -> Self {
-        let size = (width * height * 4) as usize;
-        let mut data = Vec::with_capacity(size);
-        unsafe { data.set_len(size) };
         Self {
-            data,
+            data: vec![0u8; (width * height * 4) as usize],
             width,
             height,
         }
@@ -32,15 +29,12 @@ impl Image {
 
     #[inline]
     pub fn as_u32(&self) -> &[u32] {
-        // SAFETY: Vec<u8> with length divisible by 4 can be viewed as &[u32]
-        unsafe { std::slice::from_raw_parts(self.data.as_ptr() as *const u32, self.data.len() / 4) }
+        bytemuck::cast_slice(&self.data)
     }
 
     #[inline]
     pub fn as_u32_mut(&mut self) -> &mut [u32] {
-        unsafe {
-            std::slice::from_raw_parts_mut(self.data.as_mut_ptr() as *mut u32, self.data.len() / 4)
-        }
+        bytemuck::cast_slice_mut(&mut self.data)
     }
 
     #[inline]
