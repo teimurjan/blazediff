@@ -1,9 +1,6 @@
 name: Test
 
 on:
-  push:
-    branches:
-      - main
   pull_request:
     branches:
       - main
@@ -15,6 +12,7 @@ concurrency:
 jobs:
   test:
     name: Test
+    if: github.head_ref == 'changeset-release/main'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repo
