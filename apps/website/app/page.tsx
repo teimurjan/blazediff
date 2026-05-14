@@ -1,4 +1,3 @@
-import { IconBolt, IconLayoutGrid, IconLockOpen } from "@tabler/icons-react";
 import Link from "next/link";
 import BenchmarkChart from "../components/landing/benchmark-chart";
 import CtaLink from "../components/landing/cta-link";
@@ -8,10 +7,8 @@ import HeroInterpret from "../components/landing/hero-interpret";
 import HeroSubhead from "../components/landing/hero-subhead";
 import InstallSnippet from "../components/landing/install-snippet";
 import NumberedCard from "../components/landing/numbered-card";
-import RegionImage from "../components/landing/region-image";
 import Section from "../components/landing/section";
 import LandingShell from "../components/landing/shell";
-import TerminalFrame from "../components/landing/terminal-frame";
 import interpretData from "../data/interpret/blazediff-3-diff.json";
 
 const FIXTURE_A =
@@ -176,32 +173,37 @@ const FEATURES = [
 	{
 		num: "01",
 		title: "DETERMINISTIC",
-		icon: IconBolt,
 		body: "Pure-JS core ~1.5x faster than pixelmatch. Rust binary 3 to 4x faster than odiff, up to 8x on 4K. Wasm build (~32 KB, v128 SIMD) ~5x faster than pixelmatch on 4K in the browser. Reproducible on any machine.",
+		illustration: "/home-determenistic.png",
 	},
 	{
 		num: "02",
 		title: "LOCAL",
-		icon: IconLockOpen,
 		body: "No SaaS, no API keys, no per-snapshot pricing. Screenshots never leave your machine. Self-hosted from your CI. MIT licensed.",
+		illustration: "/home-local.png",
 	},
 	{
 		num: "03",
 		title: "AGENT-READY",
-		icon: IconLayoutGrid,
 		body: "When the heuristic can't decide, the agent hands a small region tile to Claude Code, Cursor, or Codex for judgment. Resume from a checkpoint.",
+		illustration: "/agent-skill.png",
 	},
 ];
 
 const BENCHMARK_GROUPS = [
 	{
-		title: "JS CORE VS PIXELMATCH",
+		title: "JS CORE VS PIXELMATCH VS WASM CORE",
 		subtitle: "4K · IO EXCLUDED · 50 RUNS",
 		bars: [
 			{ label: "pixelmatch", ms: 302.29 },
 			{
 				label: "@blazediff/core",
 				ms: 211.92,
+				highlight: true,
+			},
+			{
+				label: "@blazediff/core-wasm",
+				ms: 51.75,
 				highlight: true,
 			},
 		],
@@ -218,21 +220,7 @@ const BENCHMARK_GROUPS = [
 			},
 		],
 	},
-	{
-		title: "WASM CORE VS PIXELMATCH",
-		subtitle: "4K · IO EXCLUDED · 25 RUNS",
-		bars: [
-			{ label: "pixelmatch", ms: 287.72 },
-			{
-				label: "@blazediff/core-wasm",
-				ms: 51.75,
-				highlight: true,
-			},
-		],
-	},
 ];
-
-const FIRST_REGION = interpretData.regions[0];
 
 export default function Home() {
 	return (
@@ -269,9 +257,9 @@ export default function Home() {
 			/>
 
 			<Section title="WHY BLAZEDIFF">
-				<div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-					{FEATURES.map((f) => (
-						<NumberedCard key={f.num} {...f} />
+				<div className="flex flex-col gap-20 md:gap-24">
+					{FEATURES.map((f, i) => (
+						<NumberedCard key={f.num} {...f} reverse={i % 2 === 1} />
 					))}
 				</div>
 			</Section>
@@ -286,60 +274,23 @@ export default function Home() {
 				/>
 			</Section>
 
-			<Section
-				title="REGION-TILE HANDOFF"
-				intro="OTHER TOOLS HAND A REVIEWER THE FULL PAGE. BLAZEDIFF HANDS YOUR AGENT THE CROP THAT CHANGED. 10X TO 100X FEWER BYTES. 10X TO 100X FEWER TOKENS."
-			>
-				<div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
-					<TerminalFrame title="full-page baseline.png">
-						<div className="p-3 flex flex-col gap-3">
-							<RegionImage
-								src={FIXTURE_A}
-								alt="Full-page baseline screenshot with all diff regions overlaid"
-								imageWidth={interpretData.width}
-								imageHeight={interpretData.height}
-								regions={interpretData.regions}
-								activeIndex={-1}
-							/>
-							<div className="font-mono text-[11px] text-muted uppercase tracking-widest flex flex-wrap gap-x-4">
-								<span>
-									{interpretData.width}×{interpretData.height} px
-								</span>
-								<span>10 diff regions</span>
-								<span className="text-fg">~ 2.4 MB · ~ 1.6M pixels</span>
-							</div>
-						</div>
-					</TerminalFrame>
-
-					<TerminalFrame title="diff/00.png · region tile">
-						<div className="p-3 flex flex-col gap-3">
-							<div
-								className="relative overflow-hidden border border-line bg-canvas mx-auto w-full"
-								style={{
-									aspectRatio: `${FIRST_REGION.bbox.width} / ${FIRST_REGION.bbox.height}`,
-								}}
-							>
-								{/* biome-ignore lint/performance/noImgElement: external static fixture, no Image config */}
-								<img
-									src={FIXTURE_A}
-									alt="Region tile cropped to the changed bounding box"
-									className="absolute top-0 left-0 max-w-none"
-									style={{
-										width: `${(interpretData.width / FIRST_REGION.bbox.width) * 100}%`,
-										left: `-${(FIRST_REGION.bbox.x / FIRST_REGION.bbox.width) * 100}%`,
-										top: `-${(FIRST_REGION.bbox.y / FIRST_REGION.bbox.height) * 100}%`,
-									}}
-								/>
-							</div>
-							<div className="font-mono text-[11px] text-muted uppercase tracking-widest flex flex-wrap gap-x-4">
-								<span>
-									{FIRST_REGION.bbox.width}×{FIRST_REGION.bbox.height} px
-								</span>
-								<span>1 region</span>
-								<span className="text-accent">~ 18 KB · ~ 17K pixels</span>
-							</div>
-						</div>
-					</TerminalFrame>
+			<Section title="USED BY">
+				<div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-8 gap-8 items-center">
+					{USED_BY.map((p) => (
+						<a
+							key={p.name}
+							href={p.href}
+							target="_blank"
+							rel="noopener noreferrer"
+							className="flex flex-col items-center gap-2 grayscale hover:grayscale-0 opacity-70 hover:opacity-100 transition-all"
+						>
+							{/* biome-ignore lint/performance/noImgElement: simple logo asset */}
+							<img src={p.logo} alt={p.name} className="h-12" />
+							<span className="font-mono text-[11px] text-muted uppercase tracking-wider">
+								{p.name}
+							</span>
+						</a>
+					))}
 				</div>
 			</Section>
 
@@ -375,26 +326,6 @@ export default function Home() {
 							</div>
 						);
 					})}
-				</div>
-			</Section>
-
-			<Section title="USED BY">
-				<div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-8 gap-8 items-center">
-					{USED_BY.map((p) => (
-						<a
-							key={p.name}
-							href={p.href}
-							target="_blank"
-							rel="noopener noreferrer"
-							className="flex flex-col items-center gap-2 grayscale hover:grayscale-0 opacity-70 hover:opacity-100 transition-all"
-						>
-							{/* biome-ignore lint/performance/noImgElement: simple logo asset */}
-							<img src={p.logo} alt={p.name} className="h-12" />
-							<span className="font-mono text-[11px] text-muted uppercase tracking-wider">
-								{p.name}
-							</span>
-						</a>
-					))}
 				</div>
 			</Section>
 

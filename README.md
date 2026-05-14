@@ -2,9 +2,9 @@
 
 <div align="center">
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
-[![NPM Version](https://img.shields.io/npm/v/%40blazediff%2Fcore?style=flat-square)](https://www.npmjs.com/org/blazediff)
-[![JSR](https://jsr.io/badges/@blazediff/core)](https://jsr.io/@blazediff)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+![NPM](https://img.shields.io/badge/NPM-%40blazediff-red?link=https%3A%2F%2Fwww.npmjs.com%2Forg%2Fblazediff)
+[![JSR](https://jsr.io/badges/@blazediff)](https://jsr.io/@blazediff)
 [![Test](https://github.com/teimurjan/blazediff/actions/workflows/test.yml/badge.svg)](https://github.com/teimurjan/blazediff/actions/workflows/test.yml)
 [![Release](https://github.com/teimurjan/blazediff/actions/workflows/release.yml/badge.svg)](https://github.com/teimurjan/blazediff/actions/workflows/release.yml)
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/teimurjan/blazediff)

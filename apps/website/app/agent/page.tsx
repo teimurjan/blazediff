@@ -30,21 +30,25 @@ const PRINCIPLES = [
 		num: "01",
 		title: "YOUR AGENT IS THE JUDGE",
 		body: "When the heuristic can't decide, the agent judges compact region tiles and writes a verdict file. No API call leaves your machine.",
+		illustration: "/agent-verdict.png",
 	},
 	{
 		num: "02",
 		title: "TOKEN-EFFICIENT",
 		body: "Region tiles are 10x to 100x smaller than full-page PNGs. The host agent reads only the changed crops first, full pages only on demand.",
+		illustration: "/agent-tile.png",
 	},
 	{
 		num: "03",
 		title: "ONE PLAYBOOK, THREE HARNESSES",
 		body: "One onboard command installs the same skill into Claude Code, Cursor, and Codex. Switch tools without rewriting your testing setup.",
+		illustration: "/agent-skill.png",
 	},
 	{
 		num: "04",
 		title: "MASK, DON'T REBASELINE",
 		body: "Carousels, iframes, clocks, randomized avatars. Tag them with a CSS selector once. The agent paints them out in both baseline and actual, so flakiness stops at the source.",
+		illustration: "/agent-mask.png",
 	},
 ];
 
@@ -107,9 +111,9 @@ export default function AgentPage() {
 				title="WHY THIS DESIGN"
 				intro="FOUR DECISIONS THAT KEEP THE LOOP CHEAP, AUDITABLE, AND OUTSIDE A VENDOR'S CLOUD."
 			>
-				<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-					{PRINCIPLES.map((p) => (
-						<NumberedCard key={p.num} {...p} />
+				<div className="flex flex-col gap-20 md:gap-24">
+					{PRINCIPLES.map((p, i) => (
+						<NumberedCard key={p.num} {...p} reverse={i % 2 === 1} />
 					))}
 				</div>
 			</Section>

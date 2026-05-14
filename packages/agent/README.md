@@ -2,8 +2,8 @@
 
 <div align="center">
 
-[![npm bundle size](https://img.shields.io/npm/unpacked-size/%40blazediff%2Fagent?style=flat-square)](https://www.npmjs.com/package/@blazediff/agent)
-[![NPM Downloads](https://img.shields.io/npm/dy/%40blazediff%2Fagent?style=flat-square)](https://www.npmjs.com/package/@blazediff/agent)
+[![npm bundle size](https://img.shields.io/npm/unpacked-size/%40blazediff%2Fagent)](https://www.npmjs.com/package/@blazediff/agent)
+[![NPM Downloads](https://img.shields.io/npm/dy/%40blazediff%2Fagent)](https://www.npmjs.com/package/@blazediff/agent)
 
 </div>
 

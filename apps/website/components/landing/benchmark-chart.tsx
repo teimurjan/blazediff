@@ -38,7 +38,7 @@ export default function BenchmarkChart({
 							<span className="font-display text-[16px] text-fg uppercase tracking-tight">
 								{group.title}
 							</span>
-							<span className="font-mono text-[12px] text-muted uppercase">
+							<span className="font-mono text-[12px] text-muted uppercase font-semibold">
 								{group.subtitle}
 							</span>
 						</div>
