@@ -32,6 +32,10 @@ jobs:
         with:
           submodules: recursive
           lfs: true
+          # Use a PAT so the Version Packages PR is opened/pushed as a
+          # real user — actions performed by GITHUB_TOKEN don't trigger
+          # downstream workflows (notably release-artifacts-check.yml).
+          token: ${{ secrets.CHANGESETS_PAT }}
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -60,6 +64,6 @@ jobs:
           version: pnpm run version
           publish: pnpm run release
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.CHANGESETS_PAT }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           CRATES_IO_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
