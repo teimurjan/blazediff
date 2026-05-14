@@ -186,7 +186,7 @@ const FEATURES = [
 		num: "03",
 		title: "AGENT-READY",
 		body: "When the heuristic can't decide, the agent hands a small region tile to Claude Code, Cursor, or Codex for judgment. Resume from a checkpoint.",
-		illustration: "/agent-skill.png",
+		illustration: "/home-agent.png",
 	},
 ];
 

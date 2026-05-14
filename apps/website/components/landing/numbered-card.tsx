@@ -27,7 +27,7 @@ export default function NumberedCard({
 				}`}
 			>
 				<div className="md:w-[33%] shrink-0">
-					<div className="relative aspect-[3/2] bg-surface border border-line overflow-hidden">
+					<div className="relative aspect-[16/9] bg-surface border border-line overflow-hidden">
 						<Image
 							src={illustration}
 							alt=""
