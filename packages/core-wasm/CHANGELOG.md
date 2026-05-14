@@ -1,5 +1,11 @@
 # @blazediff/core-wasm
 
+## 4.3.1
+
+### Patch Changes
+
+- 4dc5244: Clean up unsafe blocks
+
 ## 4.3.0
 
 ### Minor Changes
