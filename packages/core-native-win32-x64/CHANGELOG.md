@@ -1,5 +1,11 @@
 # @blazediff/core-native-win32-x64
 
+## 4.3.2
+
+### Patch Changes
+
+- 4dc5244: Clean up unsafe blocks
+
 ## 4.3.1
 
 ## 4.3.0
