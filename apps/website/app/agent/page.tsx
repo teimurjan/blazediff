@@ -42,7 +42,7 @@ const PRINCIPLES = [
 		num: "03",
 		title: "ONE PLAYBOOK, THREE HARNESSES",
 		body: "One onboard command installs the same skill into Claude Code, Cursor, and Codex. Switch tools without rewriting your testing setup.",
-		illustration: "/agent-skill.png",
+		illustration: "/home-agent.png",
 	},
 	{
 		num: "04",

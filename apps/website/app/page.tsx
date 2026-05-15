@@ -172,13 +172,13 @@ const USED_BY = [
 const FEATURES = [
 	{
 		num: "01",
-		title: "DETERMINISTIC",
+		title: "FAST, DETERMINISTIC PIXEL DIFF",
 		body: "Pure-JS core ~1.5x faster than pixelmatch. Rust binary 3 to 4x faster than odiff, up to 8x on 4K. Wasm build (~32 KB, v128 SIMD) ~5x faster than pixelmatch on 4K in the browser. Reproducible on any machine.",
-		illustration: "/home-determenistic.png",
+		illustration: "/home-fast.png",
 	},
 	{
 		num: "02",
-		title: "LOCAL",
+		title: "FULL CONTROL, ZERO VENDOR LOCK-IN",
 		body: "No SaaS, no API keys, no per-snapshot pricing. Screenshots never leave your machine. Self-hosted from your CI. MIT licensed.",
 		illustration: "/home-local.png",
 	},
