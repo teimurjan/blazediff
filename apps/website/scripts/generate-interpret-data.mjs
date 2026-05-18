@@ -10,8 +10,11 @@ const fixturesDir = path.resolve(__dirname, "../../../fixtures/blazediff");
 mkdirSync(dataDir, { recursive: true });
 
 const pairs = [
+	{ name: "blazediff-1-diff", a: "1a.png", b: "1b.png" },
+	{ name: "blazediff-2-diff", a: "2a.png", b: "2b.png" },
 	{ name: "blazediff-3-diff", a: "3a.png", b: "3b.png" },
 	{ name: "blazediff-3-identical", a: "3a.png", b: "3a.png" },
+	{ name: "blazediff-4-diff", a: "4a.png", b: "4b.png" },
 ];
 
 for (const { name, a, b } of pairs) {

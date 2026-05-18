@@ -6,15 +6,18 @@
 		"typecheck": "tsc --noEmit",
 		"dev": "next dev --turbopack",
 		"prebuild": "node scripts/generate-interpret-data.mjs && node scripts/generate-llms-txt.mjs",
+		"gen:launch-hero": "node scripts/generate-launch-hero.mjs",
+		"gen:launch-problem": "node scripts/generate-launch-problem.mjs",
+		"gen:launch-verdict": "node scripts/generate-launch-verdict.mjs",
 		"build": "next build && pnpm postbuild",
 		"start": "next start",
 		"postbuild": "pagefind --site .next/server/app --output-path public/_pagefind && cp -r ./public/_pagefind ./out"
 	},
 	"dependencies": {
 		"@blazediff/core": "workspace:*",
+		"@blazediff/core-native": "workspace:*",
 		"@blazediff/gmsd": "workspace:*",
 		"@blazediff/object": "workspace:*",
-		"@blazediff/core-native": "workspace:*",
 		"@blazediff/ssim": "workspace:*",
 		"@tabler/icons-react": "^3.35.0",
 		"next": "^16.0.10",
@@ -24,6 +27,7 @@
 		"react-dom": "^19.1.1"
 	},
 	"devDependencies": {
+		"@napi-rs/canvas": "^1.0.0",
 		"@tailwindcss/postcss": "^4.1.13",
 		"@types/node": "^20",
 		"@types/react": "^19",
