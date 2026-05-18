@@ -1,4 +1,5 @@
 import { Inter, JetBrains_Mono, Space_Grotesk } from "next/font/google";
+import Script from "next/script";
 import { Head } from "nextra/components";
 import "./global.css";
 
@@ -118,6 +119,12 @@ export default function RootLayout({
 		>
 			<Head backgroundColor={{ light: "#0a0a0f", dark: "#0a0a0f" }} />
 			<body>{children}</body>
+			<Script
+				defer
+				src="https://cloud.umami.is/script.js"
+				data-website-id="8fc50eb6-4b08-4aed-97a1-61440b3284dc"
+				strategy="afterInteractive"
+			/>
 		</html>
 	);
 }
