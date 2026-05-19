@@ -770,7 +770,7 @@ _Benchmarks run on MacBook Pro M1 Max, Python 3.11_
 
 _50 iterations (5 warmup)_
 
-> **~82%** performance improvement on average
+> **~66.6%** performance improvement on average.
 
 <table>
   <thead>
@@ -785,227 +785,241 @@ _50 iterations (5 warmup)_
   <tbody>
     <tr>
       <td>4k/1</td>
-      <td>302.29ms</td>
-      <td>211.92ms</td>
-      <td>90.37ms</td>
-      <td>29.9%</td>
+      <td>275.60ms</td>
+      <td>186.63ms</td>
+      <td>88.97ms</td>
+      <td>32.3%</td>
     </tr>
     <tr>
       <td>4k/1 (identical)</td>
-      <td>19.18ms</td>
-      <td>2.39ms</td>
-      <td>16.79ms</td>
-      <td>87.5%</td>
+      <td>25.53ms</td>
+      <td>2.35ms</td>
+      <td>23.18ms</td>
+      <td>90.8%</td>
     </tr>
     <tr>
       <td>4k/2</td>
-      <td>300.89ms</td>
-      <td>215.40ms</td>
-      <td>85.49ms</td>
-      <td>28.4%</td>
-    </tr>
-    <tr>
-      <td>4k/2 (identical)</td>
-      <td>21.39ms</td>
-      <td>2.61ms</td>
-      <td>18.79ms</td>
-      <td>87.8%</td>
-    </tr>
-    <tr>
-      <td>4k/3</td>
-      <td>378.13ms</td>
-      <td>263.82ms</td>
-      <td>114.31ms</td>
-      <td>30.2%</td>
-    </tr>
-    <tr>
-      <td>4k/3 (identical)</td>
-      <td>25.67ms</td>
-      <td>3.20ms</td>
-      <td>22.48ms</td>
-      <td>87.5%</td>
-    </tr>
-    <tr>
-      <td>blazediff/1</td>
-      <td>2.57ms</td>
-      <td>0.68ms</td>
-      <td>1.89ms</td>
-      <td>73.7%</td>
-    </tr>
-    <tr>
-      <td>blazediff/1 (identical)</td>
-      <td>0.46ms</td>
-      <td>0.05ms</td>
-      <td>0.41ms</td>
-      <td>90.2%</td>
-    </tr>
-    <tr>
-      <td>blazediff/2</td>
-      <td>2.69ms</td>
-      <td>1.12ms</td>
-      <td>1.57ms</td>
-      <td>58.3%</td>
-    </tr>
-    <tr>
-      <td>blazediff/2 (identical)</td>
-      <td>0.38ms</td>
-      <td>0.04ms</td>
-      <td>0.35ms</td>
-      <td>90.4%</td>
-    </tr>
-    <tr>
-      <td>blazediff/3</td>
-      <td>14.87ms</td>
-      <td>9.01ms</td>
-      <td>5.85ms</td>
-      <td>39.4%</td>
-    </tr>
-    <tr>
-      <td>blazediff/3 (identical)</td>
-      <td>1.75ms</td>
-      <td>0.20ms</td>
-      <td>1.56ms</td>
-      <td>88.8%</td>
-    </tr>
-    <tr>
-      <td>page/1</td>
-      <td>331.94ms</td>
-      <td>92.77ms</td>
-      <td>239.17ms</td>
-      <td>72.1%</td>
-    </tr>
-    <tr>
-      <td>page/1 (identical)</td>
-      <td>63.18ms</td>
-      <td>7.68ms</td>
-      <td>55.50ms</td>
-      <td>87.8%</td>
-    </tr>
-    <tr>
-      <td>page/2</td>
-      <td>421.89ms</td>
-      <td>306.72ms</td>
-      <td>115.18ms</td>
+      <td>274.97ms</td>
+      <td>199.79ms</td>
+      <td>75.17ms</td>
       <td>27.3%</td>
     </tr>
     <tr>
-      <td>page/2 (identical)</td>
-      <td>44.76ms</td>
-      <td>5.37ms</td>
-      <td>39.39ms</td>
-      <td>88.0%</td>
+      <td>4k/2 (identical)</td>
+      <td>22.91ms</td>
+      <td>2.73ms</td>
+      <td>20.18ms</td>
+      <td>88.1%</td>
     </tr>
     <tr>
-      <td>pixelmatch/1</td>
-      <td>0.87ms</td>
-      <td>0.39ms</td>
+      <td>4k/3</td>
+      <td>341.11ms</td>
+      <td>255.21ms</td>
+      <td>85.90ms</td>
+      <td>25.2%</td>
+    </tr>
+    <tr>
+      <td>4k/3 (identical)</td>
+      <td>27.87ms</td>
+      <td>3.45ms</td>
+      <td>24.42ms</td>
+      <td>87.6%</td>
+    </tr>
+    <tr>
+      <td>blazediff/1</td>
+      <td>2.33ms</td>
+      <td>0.69ms</td>
+      <td>1.64ms</td>
+      <td>70.5%</td>
+    </tr>
+    <tr>
+      <td>blazediff/1 (identical)</td>
+      <td>0.53ms</td>
+      <td>0.05ms</td>
       <td>0.48ms</td>
-      <td>55.0%</td>
-    </tr>
-    <tr>
-      <td>pixelmatch/1 (identical)</td>
-      <td>0.14ms</td>
-      <td>0.01ms</td>
-      <td>0.13ms</td>
       <td>90.3%</td>
     </tr>
     <tr>
+      <td>blazediff/2</td>
+      <td>2.45ms</td>
+      <td>1.10ms</td>
+      <td>1.35ms</td>
+      <td>54.9%</td>
+    </tr>
+    <tr>
+      <td>blazediff/2 (identical)</td>
+      <td>0.40ms</td>
+      <td>0.04ms</td>
+      <td>0.36ms</td>
+      <td>90.2%</td>
+    </tr>
+    <tr>
+      <td>blazediff/3</td>
+      <td>14.44ms</td>
+      <td>8.53ms</td>
+      <td>5.91ms</td>
+      <td>40.9%</td>
+    </tr>
+    <tr>
+      <td>blazediff/3 (identical)</td>
+      <td>1.85ms</td>
+      <td>0.23ms</td>
+      <td>1.62ms</td>
+      <td>87.7%</td>
+    </tr>
+    <tr>
+      <td>blazediff/4</td>
+      <td>21.28ms</td>
+      <td>8.18ms</td>
+      <td>13.10ms</td>
+      <td>61.6%</td>
+    </tr>
+    <tr>
+      <td>blazediff/4 (identical)</td>
+      <td>4.43ms</td>
+      <td>0.53ms</td>
+      <td>3.89ms</td>
+      <td>87.9%</td>
+    </tr>
+    <tr>
+      <td>page/1</td>
+      <td>299.97ms</td>
+      <td>96.18ms</td>
+      <td>203.79ms</td>
+      <td>67.9%</td>
+    </tr>
+    <tr>
+      <td>page/1 (identical)</td>
+      <td>69.77ms</td>
+      <td>7.83ms</td>
+      <td>61.94ms</td>
+      <td>88.8%</td>
+    </tr>
+    <tr>
+      <td>page/2</td>
+      <td>405.56ms</td>
+      <td>240.36ms</td>
+      <td>165.20ms</td>
+      <td>40.7%</td>
+    </tr>
+    <tr>
+      <td>page/2 (identical)</td>
+      <td>53.20ms</td>
+      <td>5.82ms</td>
+      <td>47.38ms</td>
+      <td>89.1%</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/1</td>
+      <td>0.82ms</td>
+      <td>0.36ms</td>
+      <td>0.45ms</td>
+      <td>55.4%</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/1 (identical)</td>
+      <td>0.15ms</td>
+      <td>0.02ms</td>
+      <td>0.13ms</td>
+      <td>88.9%</td>
+    </tr>
+    <tr>
       <td>pixelmatch/2</td>
-      <td>2.12ms</td>
-      <td>2.18ms</td>
-      <td>-0.06ms</td>
-      <td>-2.8%</td>
+      <td>2.04ms</td>
+      <td>1.96ms</td>
+      <td>0.08ms</td>
+      <td>3.8%</td>
     </tr>
     <tr>
       <td>pixelmatch/2 (identical)</td>
       <td>0.07ms</td>
       <td>0.01ms</td>
-      <td>0.06ms</td>
-      <td>90.0%</td>
+      <td>0.07ms</td>
+      <td>90.8%</td>
     </tr>
     <tr>
       <td>pixelmatch/3</td>
-      <td>0.78ms</td>
-      <td>0.26ms</td>
-      <td>0.53ms</td>
-      <td>67.3%</td>
+      <td>0.70ms</td>
+      <td>0.27ms</td>
+      <td>0.43ms</td>
+      <td>61.0%</td>
     </tr>
     <tr>
       <td>pixelmatch/3 (identical)</td>
-      <td>0.14ms</td>
-      <td>0.01ms</td>
+      <td>0.15ms</td>
+      <td>0.02ms</td>
       <td>0.13ms</td>
-      <td>90.3%</td>
+      <td>89.5%</td>
     </tr>
     <tr>
       <td>pixelmatch/4</td>
-      <td>4.20ms</td>
-      <td>3.93ms</td>
-      <td>0.27ms</td>
-      <td>6.5%</td>
+      <td>3.98ms</td>
+      <td>3.72ms</td>
+      <td>0.25ms</td>
+      <td>6.4%</td>
     </tr>
     <tr>
       <td>pixelmatch/4 (identical)</td>
-      <td>0.19ms</td>
+      <td>0.21ms</td>
       <td>0.02ms</td>
-      <td>0.17ms</td>
-      <td>90.3%</td>
+      <td>0.19ms</td>
+      <td>90.0%</td>
     </tr>
     <tr>
       <td>pixelmatch/5</td>
-      <td>0.39ms</td>
-      <td>0.13ms</td>
-      <td>0.26ms</td>
-      <td>67.3%</td>
+      <td>0.35ms</td>
+      <td>0.14ms</td>
+      <td>0.21ms</td>
+      <td>58.7%</td>
     </tr>
     <tr>
       <td>pixelmatch/5 (identical)</td>
       <td>0.07ms</td>
       <td>0.01ms</td>
-      <td>0.06ms</td>
-      <td>89.7%</td>
+      <td>0.07ms</td>
+      <td>90.6%</td>
     </tr>
     <tr>
       <td>pixelmatch/6</td>
-      <td>0.94ms</td>
-      <td>0.80ms</td>
-      <td>0.14ms</td>
-      <td>15.3%</td>
+      <td>0.90ms</td>
+      <td>0.87ms</td>
+      <td>0.03ms</td>
+      <td>3.1%</td>
     </tr>
     <tr>
       <td>pixelmatch/6 (identical)</td>
       <td>0.07ms</td>
       <td>0.01ms</td>
-      <td>0.06ms</td>
+      <td>0.07ms</td>
       <td>90.0%</td>
     </tr>
     <tr>
       <td>pixelmatch/7</td>
-      <td>1.92ms</td>
-      <td>0.98ms</td>
-      <td>0.94ms</td>
-      <td>48.9%</td>
+      <td>1.77ms</td>
+      <td>0.95ms</td>
+      <td>0.82ms</td>
+      <td>46.5%</td>
     </tr>
     <tr>
       <td>pixelmatch/7 (identical)</td>
-      <td>0.27ms</td>
+      <td>0.28ms</td>
       <td>0.03ms</td>
-      <td>0.24ms</td>
-      <td>90.3%</td>
+      <td>0.26ms</td>
+      <td>90.6%</td>
     </tr>
     <tr>
       <td>same/1</td>
-      <td>1.89ms</td>
-      <td>0.21ms</td>
-      <td>1.68ms</td>
-      <td>88.6%</td>
+      <td>1.97ms</td>
+      <td>0.22ms</td>
+      <td>1.76ms</td>
+      <td>89.0%</td>
     </tr>
     <tr>
       <td>same/1 (identical)</td>
-      <td>1.86ms</td>
-      <td>0.21ms</td>
-      <td>1.65ms</td>
-      <td>88.8%</td>
+      <td>1.96ms</td>
+      <td>0.25ms</td>
+      <td>1.71ms</td>
+      <td>87.2%</td>
     </tr>
   </tbody>
 </table>

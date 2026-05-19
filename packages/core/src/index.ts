@@ -138,6 +138,43 @@ export function diff(
 	const len = width * height;
 	const a32 = new Uint32Array(image1.buffer, image1.byteOffset, len);
 	const b32 = new Uint32Array(image2.buffer, image2.byteOffset, len);
+
+	// Maximum acceptable square distance between two colors;
+	// 35215 is the maximum possible value for the YIQ difference metric
+	const maxDelta = 35215 * threshold * threshold;
+
+	// No-output fast paths. Single-pass wins on dense-diff mid-size images
+	// (4k photo pairs) because it avoids the redundant equality scan that
+	// block-scan does in Pass 1 + Pass 2. Block-scan still wins on both
+	// very small images (where the tighter inner loop is easier to JIT) and
+	// very large sparse-diff images (where Pass 1's early per-block exit
+	// avoids ~all of Pass 2). Both variants use the same inlined-colorDelta
+	// / unsigned-distance hot loop.
+	if (output === undefined) {
+		if (len < 8_000_000 || len >= 30_000_000) {
+			return diffCountOnlyBlocked(
+				image1,
+				image2,
+				a32,
+				b32,
+				width,
+				height,
+				maxDelta,
+				!includeAA,
+			);
+		}
+		return diffCountOnly(
+			image1,
+			image2,
+			a32,
+			b32,
+			width,
+			height,
+			maxDelta,
+			!includeAA,
+		);
+	}
+
 	const blockSize = calculateOptimalBlockSize(width, height);
 
 	const blocksX = Math.ceil(width / blockSize);
@@ -146,10 +183,6 @@ export function diff(
 	const maxBlocks = blocksX * blocksY;
 	// Store single block index instead of x,y pairs - halves memory bandwidth
 	const changedBlocks = new Uint16Array(maxBlocks);
-
-	// Maximum acceptable square distance between two colors;
-	// 35215 is the maximum possible value for the YIQ difference metric
-	const maxDelta = 35215 * threshold * threshold;
 
 	let changedBlocksCount = 0;
 
@@ -270,7 +303,22 @@ export function isValidImage(arr: unknown): arr is Image["data"] {
 	return ArrayBuffer.isView(arr) && (arr as any).BYTES_PER_ELEMENT === 1;
 }
 
-const LOG2_E = Math.LOG2E; // More efficient than Math.log2()
+const LOG2_E = Math.LOG2E;
+
+// Pre-computed YIQ coefficients for fast access
+const YIQ_Y_R = 0.29889531;
+const YIQ_Y_G = 0.58662247;
+const YIQ_Y_B = 0.11448223;
+const YIQ_I_R = 0.59597799;
+const YIQ_I_G = -0.2741761;
+const YIQ_I_B = -0.32180189;
+const YIQ_Q_R = 0.21147017;
+const YIQ_Q_G = -0.52261711;
+const YIQ_Q_B = 0.31114694;
+const YIQ_COEFF_Y = 0.5053;
+const YIQ_COEFF_I = 0.299;
+const YIQ_COEFF_Q = 0.1957;
+// More efficient than Math.log2()
 
 export function calculateOptimalBlockSize(
 	width: number,
@@ -315,7 +363,7 @@ export function colorDelta(
 
 	if (a1 < 255 || a2 < 255) {
 		// blend pixels with background
-		const rb = 48 + 159 * (k % 2);
+		const rb = 48 + 159 * (k & 1);
 		const gb = 48 + 159 * (((k / 1.618033988749895) | 0) & 1);
 		const bb = 48 + 159 * (((k / 2.618033988749895) | 0) & 1);
 		dr = (r1 * a1 - r2 * a2 - rb * da) / 255;
@@ -323,12 +371,10 @@ export function colorDelta(
 		db = (b1 * a1 - b2 * a2 - bb * da) / 255;
 	}
 
-	const y = dr * 0.29889531 + dg * 0.58662247 + db * 0.11448223;
-
-	const i = dr * 0.59597799 - dg * 0.2741761 - db * 0.32180189;
-	const q = dr * 0.21147017 - dg * 0.52261711 + db * 0.31114694;
-
-	const delta = 0.5053 * y * y + 0.299 * i * i + 0.1957 * q * q;
+	const y = dr * YIQ_Y_R + dg * YIQ_Y_G + db * YIQ_Y_B;
+	const i = dr * YIQ_I_R + dg * YIQ_I_G + db * YIQ_I_B;
+	const q = dr * YIQ_Q_R + dg * YIQ_Q_G + db * YIQ_Q_B;
+	const delta = YIQ_COEFF_Y * y * y + YIQ_COEFF_I * i * i + YIQ_COEFF_Q * q * q;
 
 	// encode whether the pixel lightens or darkens in the sign
 	return y > 0 ? -delta : delta;
@@ -374,8 +420,7 @@ export function brightnessDelta(
 	}
 
 	// same y as in colorDelta
-	const y = dr * 0.29889531 + dg * 0.58662247 + db * 0.11448223;
-
+	const y = dr * YIQ_Y_R + dg * YIQ_Y_G + db * YIQ_Y_B;
 	return y;
 }
 
@@ -465,10 +510,9 @@ function hasManySiblings(
 ): boolean {
 	const pos = y1 * width + x1;
 	const val = image[pos];
-
-	// Start with 1 if on boundary (matching original logic)
-	let count =
-		x1 === 0 || x1 === width - 1 || y1 === 0 || y1 === height - 1 ? 1 : 0;
+	const isOnBoundary =
+		x1 === 0 || x1 === width - 1 || y1 === 0 || y1 === height - 1;
+	let count = isOnBoundary ? 1 : 0;
 
 	// Check all 8 neighbors with bounds checking
 	// Top row
@@ -503,15 +547,11 @@ export function drawGrayPixel(
 	alpha: number,
 	output: Image["data"],
 ): void {
-	const value =
-		255 +
-		((image[index] * 0.29889531 +
-			image[index + 1] * 0.58662247 +
-			image[index + 2] * 0.11448223 -
-			255) *
-			alpha *
-			image[index + 3]) /
-			255;
+	const luma =
+		image[index] * YIQ_Y_R +
+		image[index + 1] * YIQ_Y_G +
+		image[index + 2] * YIQ_Y_B;
+	const value = 255 + ((luma - 255) * alpha * image[index + 3]) / 255;
 	drawPixel(output, index, value, value, value);
 }
 
@@ -529,6 +569,236 @@ export function drawPixel(
 	output[position + 1] = g;
 	output[position + 2] = b;
 	output[position + 3] = 255;
+}
+
+/**
+ * Specialized count-only path used when no output buffer is requested.
+ * Single tight loop with inlined colorDelta and squared-distance comparison
+ * (no Math.abs round-trip; sign is irrelevant when no diff color must be
+ * chosen). Equivalent in behavior to the two-pass block path but with less
+ * memory traffic and fewer branches per pixel.
+ */
+function diffCountOnly(
+	image1: Image["data"],
+	image2: Image["data"],
+	a32: Uint32Array,
+	b32: Uint32Array,
+	width: number,
+	height: number,
+	maxDelta: number,
+	excludeAA: boolean,
+): number {
+	let diff = 0;
+	for (let y = 0; y < height; y++) {
+		const rowStart = y * width;
+		for (let x = 0; x < width; x++) {
+			const i = rowStart + x;
+			// Fast Uint32 equality — 1 compare per pixel instead of 4.
+			if (a32[i] === b32[i]) continue;
+
+			const pos = i * 4;
+
+			// Inlined colorDelta (returns squared YIQ distance; sign skipped
+			// since alt color isn't needed in count-only mode).
+			const r1 = image1[pos];
+			const g1 = image1[pos + 1];
+			const bl1 = image1[pos + 2];
+			const a1 = image1[pos + 3];
+			const r2 = image2[pos];
+			const g2 = image2[pos + 1];
+			const bl2 = image2[pos + 2];
+			const a2 = image2[pos + 3];
+
+			let dr = r1 - r2;
+			let dg = g1 - g2;
+			let db = bl1 - bl2;
+
+			if (a1 < 255 || a2 < 255) {
+				const da = a1 - a2;
+				// pos is always a multiple of 4 here, so pos % 2 === 0 → rb=48.
+				const gb = 48 + 159 * (((pos / 1.618033988749895) | 0) & 1);
+				const bb = 48 + 159 * (((pos / 2.618033988749895) | 0) & 1);
+				dr = (r1 * a1 - r2 * a2 - 48 * da) / 255;
+				dg = (g1 * a1 - g2 * a2 - gb * da) / 255;
+				db = (bl1 * a1 - bl2 * a2 - bb * da) / 255;
+			}
+
+			const yc = dr * YIQ_Y_R + dg * YIQ_Y_G + db * YIQ_Y_B;
+			const ic = dr * YIQ_I_R + dg * YIQ_I_G + db * YIQ_I_B;
+			const qc = dr * YIQ_Q_R + dg * YIQ_Q_G + db * YIQ_Q_B;
+			const dist =
+				YIQ_COEFF_Y * yc * yc + YIQ_COEFF_I * ic * ic + YIQ_COEFF_Q * qc * qc;
+
+			if (dist > maxDelta) {
+				if (
+					excludeAA &&
+					(antialiased(image1, x, y, width, height, a32, b32) ||
+						antialiased(image2, x, y, width, height, b32, a32))
+				) {
+					continue;
+				}
+				diff++;
+			}
+		}
+	}
+	return diff;
+}
+
+/**
+ * Block-based count-only path used for very large images (typically tall
+ * page screenshots with sparse diffs). Pass 1 partitions the image into
+ * blocks and identifies which ones contain any above-threshold diff via an
+ * early-exit per-block scan. Pass 2 then re-walks only those blocks for
+ * AA-aware diff counting. For sparse-diff images this avoids running the
+ * AA-detection branch on tens of millions of identical pixels.
+ *
+ * Differences from {@link diff}'s full path:
+ *  - colorDelta is inlined in both passes,
+ *  - Math.abs(delta) > maxDelta is replaced with a direct unsigned-distance
+ *    comparison (sign isn't needed without a diff color to choose),
+ *  - AA detection uses {@link antialiasedInline} with the center pixel's
+ *    RGBA pre-hoisted out of the 8-neighbor loop,
+ *  - all output-buffer branches are removed.
+ */
+function diffCountOnlyBlocked(
+	image1: Image["data"],
+	image2: Image["data"],
+	a32: Uint32Array,
+	b32: Uint32Array,
+	width: number,
+	height: number,
+	maxDelta: number,
+	excludeAA: boolean,
+): number {
+	const blockSize = calculateOptimalBlockSize(width, height);
+	const blocksX = Math.ceil(width / blockSize);
+	const blocksY = Math.ceil(height / blockSize);
+	const maxBlocks = blocksX * blocksY;
+	// Uint16 is enough for realistic image sizes (≤65k blocks ≈ ~16M px @ 16²
+	// or ~1Gpx @ 128²). Same shape as the regular path's `changedBlocks`.
+	const changedBlocks = new Uint16Array(maxBlocks);
+	let changedBlocksCount = 0;
+
+	for (let by = 0; by < blocksY; by++) {
+		const startY = by * blockSize;
+		const yLimit = startY + blockSize;
+		const endY = yLimit < height ? yLimit : height;
+		for (let bx = 0; bx < blocksX; bx++) {
+			const startX = bx * blockSize;
+			const xLimit = startX + blockSize;
+			const endX = xLimit < width ? xLimit : width;
+
+			let blockHasDiff = false;
+			outer: for (let y = startY; y < endY; y++) {
+				const yOffset = y * width;
+				for (let x = startX; x < endX; x++) {
+					const i = yOffset + x;
+					if (a32[i] === b32[i]) continue;
+
+					const pos = i * 4;
+					const r1 = image1[pos];
+					const g1 = image1[pos + 1];
+					const bl1 = image1[pos + 2];
+					const a1 = image1[pos + 3];
+					const r2 = image2[pos];
+					const g2 = image2[pos + 1];
+					const bl2 = image2[pos + 2];
+					const a2 = image2[pos + 3];
+
+					let dr = r1 - r2;
+					let dg = g1 - g2;
+					let db = bl1 - bl2;
+
+					if (a1 < 255 || a2 < 255) {
+						const da = a1 - a2;
+						const gb = 48 + 159 * (((pos / 1.618033988749895) | 0) & 1);
+						const bb = 48 + 159 * (((pos / 2.618033988749895) | 0) & 1);
+						dr = (r1 * a1 - r2 * a2 - 48 * da) / 255;
+						dg = (g1 * a1 - g2 * a2 - gb * da) / 255;
+						db = (bl1 * a1 - bl2 * a2 - bb * da) / 255;
+					}
+
+					const yc = dr * 0.29889531 + dg * 0.58662247 + db * 0.11448223;
+					const ic = dr * 0.59597799 - dg * 0.2741761 - db * 0.32180189;
+					const qc = dr * 0.21147017 - dg * 0.52261711 + db * 0.31114694;
+					const dist = 0.5053 * yc * yc + 0.299 * ic * ic + 0.1957 * qc * qc;
+					if (dist > maxDelta) {
+						blockHasDiff = true;
+						break outer;
+					}
+				}
+			}
+
+			if (blockHasDiff) {
+				changedBlocks[changedBlocksCount++] = by * blocksX + bx;
+			}
+		}
+	}
+
+	if (changedBlocksCount === 0) return 0;
+
+	let diff = 0;
+	for (let blockIdx = 0; blockIdx < changedBlocksCount; blockIdx++) {
+		const block = changedBlocks[blockIdx];
+		const bx = block % blocksX;
+		const by = (block / blocksX) | 0;
+		const startX = bx * blockSize;
+		const startY = by * blockSize;
+		const xLimit = startX + blockSize;
+		const yLimit = startY + blockSize;
+		const endX = xLimit < width ? xLimit : width;
+		const endY = yLimit < height ? yLimit : height;
+
+		for (let y = startY; y < endY; y++) {
+			const yOffset = y * width;
+			for (let x = startX; x < endX; x++) {
+				const i = yOffset + x;
+				if (a32[i] === b32[i]) continue;
+
+				const pos = i * 4;
+				const r1 = image1[pos];
+				const g1 = image1[pos + 1];
+				const bl1 = image1[pos + 2];
+				const a1 = image1[pos + 3];
+				const r2 = image2[pos];
+				const g2 = image2[pos + 1];
+				const bl2 = image2[pos + 2];
+				const a2 = image2[pos + 3];
+
+				let dr = r1 - r2;
+				let dg = g1 - g2;
+				let db = bl1 - bl2;
+
+				if (a1 < 255 || a2 < 255) {
+					const da = a1 - a2;
+					const gb = 48 + 159 * (((pos / 1.618033988749895) | 0) & 1);
+					const bb = 48 + 159 * (((pos / 2.618033988749895) | 0) & 1);
+					dr = (r1 * a1 - r2 * a2 - 48 * da) / 255;
+					dg = (g1 * a1 - g2 * a2 - gb * da) / 255;
+					db = (bl1 * a1 - bl2 * a2 - bb * da) / 255;
+				}
+
+				const yc = dr * YIQ_Y_R + dg * YIQ_Y_G + db * YIQ_Y_B;
+				const ic = dr * YIQ_I_R + dg * YIQ_I_G + db * YIQ_I_B;
+				const qc = dr * YIQ_Q_R + dg * YIQ_Q_G + db * YIQ_Q_B;
+				const dist =
+					YIQ_COEFF_Y * yc * yc + YIQ_COEFF_I * ic * ic + YIQ_COEFF_Q * qc * qc;
+
+				if (dist > maxDelta) {
+					if (
+						excludeAA &&
+						(antialiased(image1, x, y, width, height, a32, b32) ||
+							antialiased(image2, x, y, width, height, b32, a32))
+					) {
+						continue;
+					}
+					diff++;
+				}
+			}
+		}
+	}
+
+	return diff;
 }
 
 export default diff;
