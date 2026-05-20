@@ -118,6 +118,8 @@ export function diff(
 			}. Got ${image1.length}`,
 		);
 
+	const len = width * height;
+
 	// Fast buffer identical check
 	if (
 		fastBufferCheck &&
@@ -128,14 +130,11 @@ export function diff(
 		Buffer.compare(image1, image2) === 0
 	) {
 		if (output && !diffMask) {
-			for (let i = 0; i < width * height; i++) {
-				drawGrayPixel(image1, i * 4, alpha, output);
-			}
+			fillGray(image1, output, len, alpha);
 		}
 		return 0;
 	}
 
-	const len = width * height;
 	const a32 = new Uint32Array(image1.buffer, image1.byteOffset, len);
 	const b32 = new Uint32Array(image2.buffer, image2.byteOffset, len);
 
@@ -175,36 +174,329 @@ export function diff(
 		);
 	}
 
-	const blockSize = calculateOptimalBlockSize(width, height);
+	return diffWithOutput(
+		image1,
+		image2,
+		a32,
+		b32,
+		output,
+		width,
+		height,
+		maxDelta,
+		alpha,
+		aaColor,
+		diffColor,
+		diffColorAlt || diffColor,
+		!includeAA,
+		!!diffMask,
+	);
+}
 
+/**
+ * Fill `output` with grayscale pixels derived from `image`. Uses a Uint32Array
+ * view to coalesce four byte stores into a single 32-bit write when the
+ * output buffer is 4-byte aligned (universal for `new Uint8Array(W*H*4)` and
+ * Node `Buffer.alloc` for non-pool-sized allocs). Falls back to per-byte
+ * writes for misaligned views.
+ */
+function fillGray(
+	image: Image["data"],
+	output: Image["data"],
+	len: number,
+	alpha: number,
+): void {
+	if ((output.byteOffset & 3) === 0) {
+		const out32 = new Uint32Array(output.buffer, output.byteOffset, len);
+		for (let i = 0; i < len; i++) {
+			const pos = i * 4;
+			const luma =
+				image[pos] * YIQ_Y_R +
+				image[pos + 1] * YIQ_Y_G +
+				image[pos + 2] * YIQ_Y_B;
+			const value = (255 + ((luma - 255) * alpha * image[pos + 3]) / 255) | 0;
+			out32[i] = (value | (value << 8) | (value << 16) | 0xff000000) >>> 0;
+		}
+		return;
+	}
+	for (let i = 0; i < len; i++) {
+		drawGrayPixel(image, i * 4, alpha, output);
+	}
+}
+
+/**
+ * Optimized output-buffer path. Differences from the naive implementation:
+ *  - Uint32Array view of the output coalesces 4 byte stores into 1 store
+ *    per pixel (gray, AA, and diff colors all become single 32-bit writes).
+ *  - colorDelta is inlined; the redundant sign round-trip through Math.abs
+ *    is replaced by a direct unsigned-distance comparison plus a y-sign
+ *    test for the diffColorAlt branch (delta < 0 ⟺ y > 0).
+ *  - Pre-packed color words (aa/diff/alt) are computed once outside the
+ *    hot loops.
+ *  - drawGrayPixel is inlined to avoid per-pixel function call overhead
+ *    on the dominant unchanged-block fill path.
+ * Falls back to a byte-store path when the output buffer's byteOffset is
+ * not a multiple of 4 (extremely rare in practice).
+ */
+function diffWithOutput(
+	image1: Image["data"],
+	image2: Image["data"],
+	a32: Uint32Array,
+	b32: Uint32Array,
+	output: Image["data"],
+	width: number,
+	height: number,
+	maxDelta: number,
+	alpha: number,
+	aaColor: [number, number, number],
+	diffColor: [number, number, number],
+	diffColorAltOrDiff: [number, number, number],
+	excludeAA: boolean,
+	diffMask: boolean,
+): number {
+	if ((output.byteOffset & 3) !== 0) {
+		return diffWithOutputBytes(
+			image1,
+			image2,
+			a32,
+			b32,
+			output,
+			width,
+			height,
+			maxDelta,
+			alpha,
+			aaColor,
+			diffColor,
+			diffColorAltOrDiff,
+			excludeAA,
+			diffMask,
+		);
+	}
+
+	const len = width * height;
+	const out32 = new Uint32Array(output.buffer, output.byteOffset, len);
+
+	const [aaR, aaG, aaB] = aaColor;
+	const [diffR, diffG, diffB] = diffColor;
+	const [altR, altG, altB] = diffColorAltOrDiff;
+	const aaPacked = (aaR | (aaG << 8) | (aaB << 16) | 0xff000000) >>> 0;
+	const diffPacked = (diffR | (diffG << 8) | (diffB << 16) | 0xff000000) >>> 0;
+	const altPacked = (altR | (altG << 8) | (altB << 16) | 0xff000000) >>> 0;
+
+	const blockSize = calculateOptimalBlockSize(width, height);
 	const blocksX = Math.ceil(width / blockSize);
 	const blocksY = Math.ceil(height / blockSize);
-
-	const maxBlocks = blocksX * blocksY;
-	// Store single block index instead of x,y pairs - halves memory bandwidth
-	const changedBlocks = new Uint16Array(maxBlocks);
-
+	const changedBlocks = new Uint16Array(blocksX * blocksY);
 	let changedBlocksCount = 0;
 
+	// Pass 1: find blocks containing at least one above-threshold diff; fill
+	// unchanged blocks with gray pixels in the same pass.
 	for (let by = 0; by < blocksY; by++) {
+		const startY = by * blockSize;
+		const yLimit = startY + blockSize;
+		const endY = yLimit < height ? yLimit : height;
 		for (let bx = 0; bx < blocksX; bx++) {
 			const startX = bx * blockSize;
-			const startY = by * blockSize;
-			const endX = Math.min(startX + blockSize, width);
-			const endY = Math.min(startY + blockSize, height);
+			const xLimit = startX + blockSize;
+			const endX = xLimit < width ? xLimit : width;
 
 			let blockHasDiff = false;
-
-			// Check block using YIQ perceptual threshold (with early exit)
 			outer: for (let y = startY; y < endY; y++) {
 				const yOffset = y * width;
 				for (let x = startX; x < endX; x++) {
 					const i = yOffset + x;
-					// Fast path: skip identical pixels
 					if (a32[i] === b32[i]) continue;
-					// Check if perceptually different
+
 					const pos = i * 4;
-					const delta = colorDelta(image1, image2, pos, pos);
+					const r1 = image1[pos];
+					const g1 = image1[pos + 1];
+					const bl1 = image1[pos + 2];
+					const a1 = image1[pos + 3];
+					const r2 = image2[pos];
+					const g2 = image2[pos + 1];
+					const bl2 = image2[pos + 2];
+					const a2 = image2[pos + 3];
+
+					let dr = r1 - r2;
+					let dg = g1 - g2;
+					let db = bl1 - bl2;
+					if (a1 < 255 || a2 < 255) {
+						const da = a1 - a2;
+						const gb = 48 + 159 * (((pos / 1.618033988749895) | 0) & 1);
+						const bb = 48 + 159 * (((pos / 2.618033988749895) | 0) & 1);
+						dr = (r1 * a1 - r2 * a2 - 48 * da) / 255;
+						dg = (g1 * a1 - g2 * a2 - gb * da) / 255;
+						db = (bl1 * a1 - bl2 * a2 - bb * da) / 255;
+					}
+					const yc = dr * YIQ_Y_R + dg * YIQ_Y_G + db * YIQ_Y_B;
+					const ic = dr * YIQ_I_R + dg * YIQ_I_G + db * YIQ_I_B;
+					const qc = dr * YIQ_Q_R + dg * YIQ_Q_G + db * YIQ_Q_B;
+					const dist =
+						YIQ_COEFF_Y * yc * yc +
+						YIQ_COEFF_I * ic * ic +
+						YIQ_COEFF_Q * qc * qc;
+					if (dist > maxDelta) {
+						blockHasDiff = true;
+						break outer;
+					}
+				}
+			}
+
+			if (blockHasDiff) {
+				changedBlocks[changedBlocksCount++] = by * blocksX + bx;
+			} else if (!diffMask) {
+				for (let y = startY; y < endY; y++) {
+					const yOffset = y * width;
+					for (let x = startX; x < endX; x++) {
+						const i = yOffset + x;
+						const pos = i * 4;
+						const luma =
+							image1[pos] * YIQ_Y_R +
+							image1[pos + 1] * YIQ_Y_G +
+							image1[pos + 2] * YIQ_Y_B;
+						const value =
+							(255 + ((luma - 255) * alpha * image1[pos + 3]) / 255) | 0;
+						out32[i] =
+							(value | (value << 8) | (value << 16) | 0xff000000) >>> 0;
+					}
+				}
+			}
+		}
+	}
+
+	if (changedBlocksCount === 0) return 0;
+
+	let diff = 0;
+	for (let blockIdx = 0; blockIdx < changedBlocksCount; blockIdx++) {
+		const block = changedBlocks[blockIdx];
+		const bx = block % blocksX;
+		const by = (block / blocksX) | 0;
+		const startX = bx * blockSize;
+		const startY = by * blockSize;
+		const xLimit = startX + blockSize;
+		const yLimit = startY + blockSize;
+		const endX = xLimit < width ? xLimit : width;
+		const endY = yLimit < height ? yLimit : height;
+
+		for (let y = startY; y < endY; y++) {
+			const yOffset = y * width;
+			for (let x = startX; x < endX; x++) {
+				const i = yOffset + x;
+				const pos = i * 4;
+
+				if (a32[i] === b32[i]) {
+					if (!diffMask) {
+						const luma =
+							image1[pos] * YIQ_Y_R +
+							image1[pos + 1] * YIQ_Y_G +
+							image1[pos + 2] * YIQ_Y_B;
+						const value =
+							(255 + ((luma - 255) * alpha * image1[pos + 3]) / 255) | 0;
+						out32[i] =
+							(value | (value << 8) | (value << 16) | 0xff000000) >>> 0;
+					}
+					continue;
+				}
+
+				const r1 = image1[pos];
+				const g1 = image1[pos + 1];
+				const bl1 = image1[pos + 2];
+				const a1 = image1[pos + 3];
+				const r2 = image2[pos];
+				const g2 = image2[pos + 1];
+				const bl2 = image2[pos + 2];
+				const a2 = image2[pos + 3];
+
+				let dr = r1 - r2;
+				let dg = g1 - g2;
+				let db = bl1 - bl2;
+				if (a1 < 255 || a2 < 255) {
+					const da = a1 - a2;
+					const gb = 48 + 159 * (((pos / 1.618033988749895) | 0) & 1);
+					const bb = 48 + 159 * (((pos / 2.618033988749895) | 0) & 1);
+					dr = (r1 * a1 - r2 * a2 - 48 * da) / 255;
+					dg = (g1 * a1 - g2 * a2 - gb * da) / 255;
+					db = (bl1 * a1 - bl2 * a2 - bb * da) / 255;
+				}
+				const yc = dr * YIQ_Y_R + dg * YIQ_Y_G + db * YIQ_Y_B;
+				const ic = dr * YIQ_I_R + dg * YIQ_I_G + db * YIQ_I_B;
+				const qc = dr * YIQ_Q_R + dg * YIQ_Q_G + db * YIQ_Q_B;
+				const dist =
+					YIQ_COEFF_Y * yc * yc + YIQ_COEFF_I * ic * ic + YIQ_COEFF_Q * qc * qc;
+
+				if (dist > maxDelta) {
+					if (
+						excludeAA &&
+						(antialiased(image1, x, y, width, height, a32, b32) ||
+							antialiased(image2, x, y, width, height, b32, a32))
+					) {
+						if (!diffMask) out32[i] = aaPacked;
+					} else {
+						out32[i] = yc > 0 ? altPacked : diffPacked;
+						diff++;
+					}
+				} else if (!diffMask) {
+					const luma =
+						image1[pos] * YIQ_Y_R +
+						image1[pos + 1] * YIQ_Y_G +
+						image1[pos + 2] * YIQ_Y_B;
+					const value =
+						(255 + ((luma - 255) * alpha * image1[pos + 3]) / 255) | 0;
+					out32[i] = (value | (value << 8) | (value << 16) | 0xff000000) >>> 0;
+				}
+			}
+		}
+	}
+
+	return diff;
+}
+
+/**
+ * Misaligned-output fallback for {@link diffWithOutput}. Uses byte stores
+ * but otherwise mirrors the optimized path's structure (inlined colorDelta,
+ * unsigned-distance comparison, pre-resolved alt color). Only reached when
+ * `output.byteOffset` is not a multiple of 4.
+ */
+function diffWithOutputBytes(
+	image1: Image["data"],
+	image2: Image["data"],
+	a32: Uint32Array,
+	b32: Uint32Array,
+	output: Image["data"],
+	width: number,
+	height: number,
+	maxDelta: number,
+	alpha: number,
+	aaColor: [number, number, number],
+	diffColor: [number, number, number],
+	diffColorAltOrDiff: [number, number, number],
+	excludeAA: boolean,
+	diffMask: boolean,
+): number {
+	const [aaR, aaG, aaB] = aaColor;
+	const [diffR, diffG, diffB] = diffColor;
+	const [altR, altG, altB] = diffColorAltOrDiff;
+	const blockSize = calculateOptimalBlockSize(width, height);
+	const blocksX = Math.ceil(width / blockSize);
+	const blocksY = Math.ceil(height / blockSize);
+	const changedBlocks = new Uint16Array(blocksX * blocksY);
+	let changedBlocksCount = 0;
+
+	for (let by = 0; by < blocksY; by++) {
+		const startY = by * blockSize;
+		const yLimit = startY + blockSize;
+		const endY = yLimit < height ? yLimit : height;
+		for (let bx = 0; bx < blocksX; bx++) {
+			const startX = bx * blockSize;
+			const xLimit = startX + blockSize;
+			const endX = xLimit < width ? xLimit : width;
+
+			let blockHasDiff = false;
+			outer: for (let y = startY; y < endY; y++) {
+				const yOffset = y * width;
+				for (let x = startX; x < endX; x++) {
+					const i = yOffset + x;
+					if (a32[i] === b32[i]) continue;
+					const delta = colorDelta(image1, image2, i * 4, i * 4);
 					if (Math.abs(delta) > maxDelta) {
 						blockHasDiff = true;
 						break outer;
@@ -212,82 +504,56 @@ export function diff(
 				}
 			}
 
-			if (!blockHasDiff) {
-				// Draw gray pixels for perceptually identical blocks
-				if (output && !diffMask) {
-					for (let y = startY; y < endY; y++) {
-						const yOffset = y * width;
-						for (let x = startX; x < endX; x++) {
-							const i = yOffset + x;
-							drawGrayPixel(image1, i * 4, alpha, output);
-						}
+			if (blockHasDiff) {
+				changedBlocks[changedBlocksCount++] = by * blocksX + bx;
+			} else if (!diffMask) {
+				for (let y = startY; y < endY; y++) {
+					const yOffset = y * width;
+					for (let x = startX; x < endX; x++) {
+						drawGrayPixel(image1, (yOffset + x) * 4, alpha, output);
 					}
 				}
-			} else {
-				// Store block index - compute coordinates when needed
-				changedBlocks[changedBlocksCount++] = by * blocksX + bx;
 			}
 		}
 	}
 
-	// Early exit if no changed blocks
-	if (changedBlocksCount === 0) {
-		return 0;
-	}
-	const [aaR, aaG, aaB] = aaColor;
-	const [diffR, diffG, diffB] = diffColor;
-	const [altR, altG, altB] = diffColorAlt || diffColor;
-	let diff = 0;
+	if (changedBlocksCount === 0) return 0;
 
-	// Process only changed blocks
+	let diff = 0;
 	for (let blockIdx = 0; blockIdx < changedBlocksCount; blockIdx++) {
 		const block = changedBlocks[blockIdx];
 		const bx = block % blocksX;
 		const by = (block / blocksX) | 0;
 		const startX = bx * blockSize;
 		const startY = by * blockSize;
-		const endX = Math.min(startX + blockSize, width);
-		const endY = Math.min(startY + blockSize, height);
+		const xLimit = startX + blockSize;
+		const yLimit = startY + blockSize;
+		const endX = xLimit < width ? xLimit : width;
+		const endY = yLimit < height ? yLimit : height;
 
 		for (let y = startY; y < endY; y++) {
 			const yOffset = y * width;
 			for (let x = startX; x < endX; x++) {
-				const pixelIndex = yOffset + x;
-				const pos = pixelIndex * 4;
-
-				// Skip if pixels are identical
-				if (a32[pixelIndex] === b32[pixelIndex]) {
-					if (output && !diffMask) {
-						drawGrayPixel(image1, pos, alpha, output);
-					}
+				const i = yOffset + x;
+				const pos = i * 4;
+				if (a32[i] === b32[i]) {
+					if (!diffMask) drawGrayPixel(image1, pos, alpha, output);
 					continue;
 				}
-
 				const delta = colorDelta(image1, image2, pos, pos);
-
-				// Color difference is above threshold
 				if (Math.abs(delta) > maxDelta) {
-					// Check it's a real rendering difference or just anti-aliasing
-					const isExcludedAA =
-						!includeAA &&
+					if (
+						excludeAA &&
 						(antialiased(image1, x, y, width, height, a32, b32) ||
-							antialiased(image2, x, y, width, height, b32, a32));
-					if (isExcludedAA) {
-						// One of the pixels is anti-aliasing
-						if (output && !diffMask) drawPixel(output, pos, aaR, aaG, aaB);
+							antialiased(image2, x, y, width, height, b32, a32))
+					) {
+						if (!diffMask) drawPixel(output, pos, aaR, aaG, aaB);
 					} else {
-						// Found significant difference not caused by anti-aliasing
-						if (output) {
-							if (delta < 0) {
-								drawPixel(output, pos, altR, altG, altB);
-							} else {
-								drawPixel(output, pos, diffR, diffG, diffB);
-							}
-						}
+						if (delta < 0) drawPixel(output, pos, altR, altG, altB);
+						else drawPixel(output, pos, diffR, diffG, diffB);
 						diff++;
 					}
-				} else if (output && !diffMask) {
-					// Pixels are similar
+				} else if (!diffMask) {
 					drawGrayPixel(image1, pos, alpha, output);
 				}
 			}

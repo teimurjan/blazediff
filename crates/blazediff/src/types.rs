@@ -17,11 +17,35 @@ impl Image {
         }
     }
 
-    /// Create a new image. Equivalent to [`Image::new`]; retained as a distinct
-    /// entry point for diff-output buffers that get fully overwritten.
+    /// Create an image whose pixel data is left uninitialized.
+    ///
+    /// Use this for diff-output buffers that the [`crate::diff`] pipeline
+    /// fully overwrites — either by `clear_transparent` (diff_mask mode),
+    /// by the deferred gray-fill pass (when at least one block differs and
+    /// diff_mask is off), or by the hot pass writing changed blocks. The
+    /// only call path that does not overwrite is the early "identical"
+    /// short-circuit: in that case `result.identical` is true and every
+    /// shipping front-end (CLI, N-API, Python, the WASM in-place copy)
+    /// already skips reading the output buffer.
+    ///
+    /// Avoiding `vec![0u8; ...]` here saves a 64 MB memset per 4K-image
+    /// diff. The OS's allocator typically hands us freshly-cleared pages
+    /// for big allocations anyway, but tiny diffs (a few hundred KB) reuse
+    /// arena memory whose contents are whatever the last call left behind
+    /// — fine here, because the callers above respect the "identical →
+    /// don't read" contract.
     pub fn new_uninit(width: u32, height: u32) -> Self {
+        let size = (width as usize) * (height as usize) * 4;
+        let mut data: Vec<u8> = Vec::with_capacity(size);
+        // SAFETY: the new length matches the capacity we just reserved, the
+        // element type (`u8`) has no validity requirements, and every byte
+        // of this allocation is overwritten before being read on every
+        // non-identical diff path. Identical-input callers skip the read.
+        unsafe {
+            data.set_len(size);
+        }
         Self {
-            data: vec![0u8; (width * height * 4) as usize],
+            data,
             width,
             height,
         }

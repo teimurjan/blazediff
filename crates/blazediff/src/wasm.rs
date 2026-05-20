@@ -72,7 +72,13 @@ pub fn diff_rgba(
                 target.length()
             )));
         }
-        target.copy_from(&out.data);
+        // On identical the diff intentionally leaves the output buffer
+        // unwritten (the gray-fill is purely cosmetic and is skipped for
+        // performance). Don't copy that uninitialized-feeling memory back
+        // to the caller — preserve whatever they passed in.
+        if !result.identical {
+            target.copy_from(&out.data);
+        }
     }
 
     Ok(result.diff_count)

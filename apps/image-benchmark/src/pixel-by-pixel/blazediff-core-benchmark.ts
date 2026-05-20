@@ -28,6 +28,10 @@ async function main() {
 		bench.add(`blazediff - ${pairs[i].name}`, () => {
 			blazediff(a.data, b.data, undefined, a.width, a.height);
 		});
+		const output = new Uint8Array(a.width * a.height * 4);
+		bench.add(`blazediff (w\\ output) - ${pairs[i].name}`, () => {
+			blazediff(a.data, b.data, output, a.width, a.height);
+		});
 	}
 
 	await bench.run();

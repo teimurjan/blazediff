@@ -2,7 +2,6 @@
 
 use crate::types::{DiffError, Image};
 use memmap2::Mmap;
-use rayon::prelude::*;
 use std::fs::File;
 use std::io::Write;
 use std::path::Path;
@@ -40,16 +39,8 @@ pub fn load_qois<P1: AsRef<Path> + Sync, P2: AsRef<Path> + Sync>(
     path1: P1,
     path2: P2,
 ) -> Result<(Image, Image), DiffError> {
-    let results: Vec<Result<Image, DiffError>> = [path1.as_ref(), path2.as_ref()]
-        .par_iter()
-        .map(|path| load_qoi(path))
-        .collect();
-
-    let mut iter = results.into_iter();
-    let img1 = iter.next().unwrap()?;
-    let img2 = iter.next().unwrap()?;
-
-    Ok((img1, img2))
+    let (r1, r2) = rayon::join(|| load_qoi(path1.as_ref()), || load_qoi(path2.as_ref()));
+    Ok((r1?, r2?))
 }
 
 pub fn save_qoi<P: AsRef<Path>>(image: &Image, path: P) -> Result<(), DiffError> {

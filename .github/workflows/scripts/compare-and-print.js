@@ -1,17 +1,44 @@
 const fs = require("node:fs");
 
 /**
- * Compare two benchmark JSON files and print a formatted comparison table
+ * Compare two benchmark JSON files and print a formatted comparison table.
+ *
+ * When a JSON file contains multiple variants per fixture (e.g. both
+ * `pixelmatch - 4k/1` and `pixelmatch (w\\ output) - 4k/1`), pass
+ * `prefixA` / `prefixB` to keep only the variant you want — otherwise the
+ * map keyed by the part after `" - "` collapses duplicates and the output
+ * pairs every left row against the last-loaded right row.
+ *
  * @param {Object} config - Configuration object
  * @param {string} config.fileA - Path to first benchmark JSON file
  * @param {string} config.fileB - Path to second benchmark JSON file
  * @param {string} config.nameA - Name of first library (for table header)
  * @param {string} config.nameB - Name of second library (for table header)
  * @param {number} [config.precision=2] - Decimal precision for numbers (default: 2)
+ * @param {string} [config.prefixA] - Optional tinybench task prefix filter for fileA
+ * @param {string} [config.prefixB] - Optional tinybench task prefix filter for fileB
  */
-function compareAndPrint({ fileA, fileB, nameA, nameB, precision = 2 }) {
-	const a = JSON.parse(fs.readFileSync(fileA, "utf8"));
-	const b = JSON.parse(fs.readFileSync(fileB, "utf8"));
+function compareAndPrint({
+	fileA,
+	fileB,
+	nameA,
+	nameB,
+	precision = 2,
+	prefixA,
+	prefixB,
+}) {
+	const rawA = JSON.parse(fs.readFileSync(fileA, "utf8"));
+	const rawB = JSON.parse(fs.readFileSync(fileB, "utf8"));
+
+	const filterByPrefix = (entries, prefix) => {
+		if (!prefix) return entries;
+		const needle = `${prefix} - `;
+		return entries.filter(
+			(r) => typeof r.name === "string" && r.name.startsWith(needle),
+		);
+	};
+	const a = filterByPrefix(rawA, prefixA);
+	const b = filterByPrefix(rawB, prefixB);
 
 	const stripPrefix = (name) => name.split(" - ")[1];
 	const byName = new Map(b.map((r) => [stripPrefix(r.name), r]));

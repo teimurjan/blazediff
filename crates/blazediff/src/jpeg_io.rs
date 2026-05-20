@@ -3,7 +3,6 @@
 use crate::turbojpeg_ffi::*;
 use crate::types::{DiffError, Image};
 use memmap2::Mmap;
-use rayon::prelude::*;
 use std::ffi::CStr;
 use std::fs::File;
 use std::io::Write;
@@ -91,16 +90,8 @@ pub fn load_jpegs<P1: AsRef<Path> + Sync, P2: AsRef<Path> + Sync>(
     path1: P1,
     path2: P2,
 ) -> Result<(Image, Image), DiffError> {
-    let results: Vec<Result<Image, DiffError>> = [path1.as_ref(), path2.as_ref()]
-        .par_iter()
-        .map(|path| load_jpeg(path))
-        .collect();
-
-    let mut iter = results.into_iter();
-    let img1 = iter.next().unwrap()?;
-    let img2 = iter.next().unwrap()?;
-
-    Ok((img1, img2))
+    let (r1, r2) = rayon::join(|| load_jpeg(path1.as_ref()), || load_jpeg(path2.as_ref()));
+    Ok((r1?, r2?))
 }
 
 /// Save an RGBA image as JPEG with specified quality
