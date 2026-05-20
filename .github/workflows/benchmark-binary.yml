@@ -48,4 +48,4 @@ jobs:
 
       - name: Compare and Print Combined Markdown Table
         if: always()
-        run: node .github/workflows/scripts/compare-and-print-binary.js
+        run: node .github/workflows/scripts/compare-and-print-core-native.js
