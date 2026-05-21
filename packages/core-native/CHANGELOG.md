@@ -1,5 +1,7 @@
 # @blazediff/core-native
 
+## 4.3.3
+
 ## 4.3.2
 
 ### Patch Changes

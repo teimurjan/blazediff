@@ -1,5 +1,11 @@
 # @blazediff/core-native-linux-x64
 
+## 4.3.3
+
+### Patch Changes
+
+- f0c3b78: Optimize image decoding, output image generation
+
 ## 4.3.2
 
 ### Patch Changes
