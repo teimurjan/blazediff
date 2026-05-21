@@ -3,7 +3,6 @@
 use crate::spng_ffi::*;
 use crate::types::{DiffError, Image};
 use memmap2::Mmap;
-use rayon::prelude::*;
 use std::fs::File;
 use std::io::Write;
 use std::os::raw::c_int;
@@ -83,16 +82,13 @@ pub fn load_pngs<P1: AsRef<Path> + Sync, P2: AsRef<Path> + Sync>(
     path1: P1,
     path2: P2,
 ) -> Result<(Image, Image), DiffError> {
-    let results: Vec<Result<Image, DiffError>> = [path1.as_ref(), path2.as_ref()]
-        .par_iter()
-        .map(|path| load_png(path))
-        .collect();
-
-    let mut iter = results.into_iter();
-    let img1 = iter.next().unwrap()?;
-    let img2 = iter.next().unwrap()?;
-
-    Ok((img1, img2))
+    // `rayon::join` is a direct fork/join over two closures and runs the
+    // first on the calling thread while a worker steals the second. It
+    // avoids the iterator/Vec/collect machinery of `par_iter`, which adds
+    // noticeable overhead (hundreds of µs) for two-task workloads — a
+    // significant fraction of total time on small-image benchmarks.
+    let (r1, r2) = rayon::join(|| load_png(path1.as_ref()), || load_png(path2.as_ref()));
+    Ok((r1?, r2?))
 }
 
 pub fn save_png<P: AsRef<Path>>(image: &Image, path: P) -> Result<(), DiffError> {

@@ -2394,6 +2394,22 @@ pub fn diff(
         return Ok(DiffResult::new(0, total_pixels));
     }
 
+    // Fast path on *decoded* RGBA equality (parity with `@blazediff/core`'s
+    // `fastBufferCheck`). Two PNGs that round-trip to the same pixel buffer
+    // — e.g. an artifact and its lossless re-encoding, or a snapshot test
+    // comparing an actual against an expected that happen to differ only
+    // in PNG metadata — finish here with zero per-block work.
+    //
+    // The comparison is `==` on `Vec<u8>`, which lowers to a vectorized
+    // memcmp with early exit on first mismatch. For non-identical images
+    // the cost is ~tens of nanoseconds (mismatch is almost always in the
+    // first cache line); for identical images it walks both buffers once
+    // at memory-bandwidth speed, which is no more work than the cold
+    // block-scan would have done.
+    if image1.data == image2.data {
+        return Ok(DiffResult::new(0, total_pixels));
+    }
+
     let block_size = calculate_block_size(width, height);
     let blocks_x = (width + block_size - 1) / block_size;
     let blocks_y = (height + block_size - 1) / block_size;
@@ -2422,7 +2438,18 @@ pub fn diff(
     #[cfg(target_arch = "x86_64")]
     let features = X86Features::detect();
 
-    // Cold pass: identify changed blocks
+    // Cold pass: identify changed blocks. We deliberately *do not* fill the
+    // output's unchanged blocks with gray here — that fill is purely
+    // cosmetic (it visualizes "this pixel did not change") and is wasted
+    // work whenever the image turns out identical: callers skip saving the
+    // diff PNG in that case. Deferring the fill into a second pass means an
+    // identical-image diff finishes after just the cold-pass equality scan,
+    // with no extra writes to the 4×W×H output buffer.
+    //
+    // Cache cost of the deferred fill on non-identical images: each block's
+    // input data has to be reloaded in pass 2. For full-image-fit-in-L2
+    // inputs that's free; for very large screenshots the extra read is a
+    // small percentage of total bandwidth (and is dwarfed by PNG IO).
     for by in 0..blocks_y {
         for bx in 0..blocks_x {
             let start_x = bx * block_size;
@@ -2441,8 +2468,40 @@ pub fn diff(
 
             if has_diff {
                 changed_blocks.push((start_x, start_y, end_x, end_y));
-            } else if let Some(ref mut out) = output {
-                if !options.diff_mask {
+            }
+        }
+    }
+
+    if changed_blocks.is_empty() {
+        // Identical (within threshold) — the output buffer is intentionally
+        // left in its initial state. Callers that care about gray-fill
+        // visualization should also check `result.identical` and either skip
+        // saving or fill explicitly; the napi binding already skips the save
+        // path on identical, which is the case this short-circuit targets.
+        return Ok(DiffResult::new(0, total_pixels));
+    }
+
+    // Second pass: fill unchanged blocks with gray. We re-walk every block
+    // in the same row-major order pass 1 used and skip indexes that ended
+    // up in `changed_blocks` (which is naturally row-major), so the skip
+    // check is a single comparison per block — no hash set needed.
+    if let Some(ref mut out) = output {
+        if !options.diff_mask {
+            let mut next_changed = 0usize;
+            for by in 0..blocks_y {
+                for bx in 0..blocks_x {
+                    let start_x = bx * block_size;
+                    let start_y = by * block_size;
+                    let end_x = (start_x + block_size).min(width);
+                    let end_y = (start_y + block_size).min(height);
+
+                    if next_changed < changed_blocks.len() {
+                        let (csx, csy, _, _) = changed_blocks[next_changed];
+                        if csx == start_x && csy == start_y {
+                            next_changed += 1;
+                            continue;
+                        }
+                    }
                     fill_block_gray_optimized(
                         image1,
                         out,
@@ -2455,10 +2514,6 @@ pub fn diff(
                 }
             }
         }
-    }
-
-    if changed_blocks.is_empty() {
-        return Ok(DiffResult::new(0, total_pixels));
     }
 
     // Hot pass: process changed blocks with SIMD

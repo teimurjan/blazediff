@@ -28,6 +28,10 @@ async function main() {
 		bench.add(`pixelmatch - ${pairs[i].name}`, () => {
 			pixelmatch(a.data, b.data, undefined, a.width, a.height);
 		});
+		const output = new Uint8Array(a.width * a.height * 4);
+		bench.add(`pixelmatch (w\\ output) - ${pairs[i].name}`, () => {
+			pixelmatch(a.data, b.data, output, a.width, a.height);
+		});
 	}
 
 	await bench.run();
