@@ -1,6 +1,7 @@
 node_modules
 .DS_Store
-.claude
+.claude/*
+!.claude/skills
 dist
 data
 .lethe

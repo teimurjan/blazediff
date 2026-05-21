@@ -18,7 +18,7 @@ Monorepo for image and object diffing. pnpm workspaces. Rust core in `crates/bla
 - Verify JSR slow-types per package (`cd packages/<pkg> && npx jsr publish --dry-run`). Never from the workspace root.
 - When iterating on diff algorithms, use `--fixtures=<small-subset>` and `--iterations=2`. Run the full suite only before merging.
 - After Rust core changes, verify both feature builds: `cargo check -p blazediff --features napi` and `cargo check -p blazediff --features python`.
-- JSR-only Node imports (e.g. `node:buffer` in `@blazediff/core`) live in `packages/<pkg>/jsr.patch`. Don't commit source with the patch applied; `scripts/check-jsr-patches-clean.sh` enforces this in pre-commit.
+- JSR-only Node imports (e.g. `node:buffer` in `@blazediff/core`) live in `packages/<pkg>/jsr.patch`. Don't commit source with the patch applied; `scripts/checks/check-jsr-patches-clean.sh` enforces this in pre-commit.
 
 ## Quick commands
 
@@ -33,6 +33,6 @@ Monorepo for image and object diffing. pnpm workspaces. Rust core in `crates/bla
 - Agent design + roadmap: `packages/agent/ROADMAP.md`.
 - Agent on-disk shape, mask semantics, judge handoff: `skill/blazediff/SKILL.md`.
 - Rust build orchestration: `crates/blazediff/scripts/` (`_targets.sh`, `build-all.sh`, `build-napi.sh`, `build-maturin.sh`).
-- Python release: `scripts/publish-pypi.js` (wheels committed to `crates/blazediff/wheels/`, CI uploads via OIDC).
-- JSR release: `scripts/publish-jsr.ts` (chained after `changeset publish` in `pnpm run release`).
+- Python release: `scripts/release/publish-pypi.js` (wheels committed to `crates/blazediff/wheels/`, CI uploads via OIDC).
+- JSR release: `scripts/release/publish-jsr.ts` (chained after `changeset publish` in `pnpm run release`).
 - Pre-commit: `.pre-commit-config.yaml` (prek). Run `npx @j178/prek install` after clone.

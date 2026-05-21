@@ -1,7 +1,7 @@
 """Download InpaintCOCO from HuggingFace and produce a manifest for interpret-validation.
 
 Usage:
-    uv run --with 'datasets Pillow' scripts/prepare_inpaintcoco.py [--limit N]
+    uv run --with 'datasets Pillow' scripts/datasets/prepare_inpaintcoco.py [--limit N]
 """
 
 import argparse

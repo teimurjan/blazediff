@@ -2,7 +2,9 @@
 	"extends": "../../tsconfig.bundler.json",
 	"compilerOptions": {
 		"outDir": "./dist",
-		"rootDir": "./src"
+		"rootDir": "./src",
+		"lib": ["DOM"],
+		"types": ["node"]
 	},
 	"include": ["src/**/*"]
 }

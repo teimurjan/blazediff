@@ -1,7 +1,7 @@
 """Download MagicBrush from HuggingFace and produce a manifest for interpret-validation.
 
 Usage:
-    uv run --with 'datasets Pillow' scripts/prepare_magicbrush.py [--limit N] [--split train]
+    uv run --with 'datasets Pillow' scripts/datasets/prepare_magicbrush.py [--limit N] [--split train]
 """
 
 import argparse

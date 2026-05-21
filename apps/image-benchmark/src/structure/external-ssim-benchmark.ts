@@ -26,13 +26,21 @@ async function main() {
 		const { a, b } = pair;
 
 		const imageDataA = {
-			data: a.data as Uint8ClampedArray,
+			data: new Uint8ClampedArray(
+				a.data.buffer,
+				a.data.byteOffset,
+				a.data.byteLength,
+			),
 			width: a.width,
 			height: a.height,
 		};
 
 		const imageDataB = {
-			data: b.data as Uint8ClampedArray,
+			data: new Uint8ClampedArray(
+				b.data.buffer,
+				b.data.byteOffset,
+				b.data.byteLength,
+			),
 			width: b.width,
 			height: b.height,
 		};

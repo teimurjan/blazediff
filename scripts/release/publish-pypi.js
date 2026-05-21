@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-// Idempotent PyPI publish step - mirrors scripts/publish-rust.js for crates.io.
+// Idempotent PyPI publish step - mirrors scripts/release/publish-rust.js for crates.io.
 //
 // Source of truth: wheels committed at crates/blazediff/wheels/. After building
 // locally with `pnpm build:python:all`, those wheels live in the repo and CI
@@ -21,7 +21,7 @@ const { execSync, spawnSync } = require("node:child_process");
 const fs = require("node:fs");
 const path = require("node:path");
 
-const ROOT = path.resolve(__dirname, "..");
+const ROOT = path.resolve(__dirname, "..", "..");
 const CARGO_TOML = path.join(ROOT, "crates", "blazediff", "Cargo.toml");
 const WHEELS_DIR = path.join(ROOT, "crates", "blazediff", "wheels");
 const PACKAGE = "blazediff";

@@ -3,7 +3,7 @@ repos:
     hooks:
       - id: jsr-patches-clean
         name: jsr patches not applied
-        entry: scripts/check-jsr-patches-clean.sh
+        entry: scripts/checks/check-jsr-patches-clean.sh
         language: system
         pass_filenames: false
         always_run: true

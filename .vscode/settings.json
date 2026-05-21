@@ -11,7 +11,7 @@
 		"./packages/core-native/src/index.deno.test.ts",
 		"./packages/matcher/src/index.deno.test.ts",
 		"./packages/cli/src/index.deno.test.ts",
-		"./scripts/publish-jsr.ts"
+		"./scripts/release/publish-jsr.ts"
 	],
 	"[jsonc]": {
 		"editor.defaultFormatter": "biomejs.biome"
