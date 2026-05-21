@@ -1,5 +1,11 @@
 # @blazediff/core
 
+## 1.9.2
+
+### Patch Changes
+
+- f0c3b78: Speed up core with single pass on no output
+
 ## 1.9.1
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
 	"name": "@blazediff/core-wasm",
-	"version": "4.3.1",
+	"version": "4.3.3",
 	"description": "WebAssembly build of blazediff for browsers, edge runtimes, and any wasm host. Same algorithm as @blazediff/core-native.",
 	"private": false,
 	"publishConfig": {

@@ -1,5 +1,11 @@
 # @blazediff/core-wasm
 
+## 4.3.3
+
+### Patch Changes
+
+- f0c3b78: Optimize image decoding, output image generation
+
 ## 4.3.1
 
 ### Patch Changes
