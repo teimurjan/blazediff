@@ -37,6 +37,8 @@ export default async function NextraShell({
 			pageMap={await getPageMap()}
 			docsRepositoryBase="https://github.com/teimurjan/blazediff/tree/main/apps/website"
 			footer={footer}
+			darkMode={false}
+			nextThemes={{ forcedTheme: "dark" }}
 		>
 			<div className="max-w-7xl m-auto">{children}</div>
 		</Layout>
