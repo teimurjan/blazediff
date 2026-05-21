@@ -11,7 +11,7 @@ Prep scripts download datasets from HuggingFace and produce `manifest.json` file
 Real COCO images with inpainted objects. Tests ContentChange and ColorChange.
 
 ```sh
-uv run --with datasets --with Pillow scripts/prepare_inpaintcoco.py
+uv run --with datasets --with Pillow scripts/datasets/prepare_inpaintcoco.py
 ```
 
 ### Addition/Deletion (~1GB, 904 pairs)
@@ -19,7 +19,7 @@ uv run --with datasets --with Pillow scripts/prepare_inpaintcoco.py
 Real COCO photographs with objects filled by local background color. Each "object" sample produces two cases: clean→original (Addition) and original→clean (Deletion).
 
 ```sh
-uv run --with datasets --with Pillow --with numpy scripts/prepare_addition_deletion.py
+uv run --with datasets --with Pillow --with numpy scripts/datasets/prepare_addition_deletion.py
 ```
 
 ### MagicBrush (~6.5GB, ~8,800 pairs)
@@ -27,8 +27,8 @@ uv run --with datasets --with Pillow --with numpy scripts/prepare_addition_delet
 Real COCO images edited via DALL-E 2. Tests Addition, Deletion, ColorChange, ContentChange. Note: DALL-E regeneration changes pixels globally, so this is a stress test - expect lower scores.
 
 ```sh
-uv run --with datasets --with Pillow scripts/prepare_magicbrush.py          # all
-uv run --with datasets --with Pillow scripts/prepare_magicbrush.py --limit 1000  # first 1000
+uv run --with datasets --with Pillow scripts/datasets/prepare_magicbrush.py          # all
+uv run --with datasets --with Pillow scripts/datasets/prepare_magicbrush.py --limit 1000  # first 1000
 ```
 
 ## Usage

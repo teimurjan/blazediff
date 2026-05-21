@@ -60,9 +60,11 @@ export async function loadImagePairs(
 				codecPngjs.read(a),
 				codecPngjs.read(b),
 			]);
+			// pngjs always returns a Buffer here; assert it at the boundary so
+			// downstream native/wasm calls can take Uint8Array directly.
 			return {
-				a: imageA,
-				b: imageB,
+				a: { ...imageA, data: imageA.data as Uint8Array },
+				b: { ...imageB, data: imageB.data as Uint8Array },
 				name,
 			};
 		}),

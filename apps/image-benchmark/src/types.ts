@@ -1,5 +1,5 @@
 export interface Image {
-	data: Buffer | Uint8Array | Uint8ClampedArray;
+	data: Uint8Array;
 	width: number;
 	height: number;
 }

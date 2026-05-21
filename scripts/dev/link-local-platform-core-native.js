@@ -8,7 +8,7 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 
-const ROOT = path.resolve(__dirname, "..");
+const ROOT = path.resolve(__dirname, "..", "..");
 const PACKAGES_DIR = path.join(ROOT, "packages");
 const BIN_PKG_DIR = path.join(PACKAGES_DIR, "core-native");
 

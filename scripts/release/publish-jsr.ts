@@ -1,7 +1,7 @@
 #!/usr/bin/env -S deno run -A
 import { fromFileUrl, join, resolve } from "jsr:@std/path";
 
-const ROOT = resolve(fromFileUrl(import.meta.url), "..", "..");
+const ROOT = resolve(fromFileUrl(import.meta.url), "..", "..", "..");
 
 // 1. Mirror deno.json#version from package.json#version across the
 //    workspace (Changesets only bumps package.json).

@@ -12,7 +12,7 @@ For each "object" sample in InpaintCOCO:
     - (original, clean) → Deletion (object disappears in img2)
 
 Usage:
-    uv run --with 'datasets Pillow numpy' scripts/prepare_addition_deletion.py [--limit N]
+    uv run --with 'datasets Pillow numpy' scripts/datasets/prepare_addition_deletion.py [--limit N]
 """
 
 import argparse
