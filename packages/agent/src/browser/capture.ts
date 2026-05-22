@@ -1,5 +1,6 @@
 import { mkdir } from "node:fs/promises";
 import path from "node:path";
+import type { Page } from "playwright";
 import {
 	DEFAULT_FULL_PAGE,
 	DEFAULT_VIEWPORT,
@@ -22,19 +23,30 @@ export interface CaptureResult {
 	bytes: number;
 }
 
+export interface CaptureAuth {
+	hook: (page: Page) => Promise<void>;
+}
+
 export async function captureScreenshot(
 	baseUrl: string,
 	opts: CaptureOptions,
 	cwd: string = process.cwd(),
+	auth?: CaptureAuth,
 ): Promise<CaptureResult> {
 	const viewport = opts.viewport ?? DEFAULT_VIEWPORT;
 	const waitFor = opts.waitFor ?? DEFAULT_WAIT_FOR;
 	const masks = opts.mask ?? [];
 	const fullPage = opts.fullPage ?? DEFAULT_FULL_PAGE;
 
-	const handle = await acquireStableContext(viewport);
+	const handle = await acquireStableContext(viewport, {
+		pool: !auth,
+		baseURL: baseUrl || undefined,
+	});
 	const page = await openStablePage(handle);
 	try {
+		if (auth) {
+			await auth.hook(page);
+		}
 		const url = new URL(opts.url, baseUrl).toString();
 		await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30_000 });
 		await waitForStability(page, waitFor);

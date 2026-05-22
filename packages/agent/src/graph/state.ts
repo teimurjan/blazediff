@@ -2,6 +2,7 @@ import { Annotation } from "@langchain/langgraph";
 import type { DiffOutcome } from "../diff";
 import type { JudgeBackend } from "../judge";
 import type {
+	AgentAuthConfig,
 	CheckReport,
 	CheckResult,
 	Manifest,
@@ -16,6 +17,7 @@ export interface GraphOptions {
 	emitDiffPng: boolean;
 	judge: JudgeBackend;
 	baselinesDir: string;
+	auth?: AgentAuthConfig;
 }
 
 export interface CaptureOutput {

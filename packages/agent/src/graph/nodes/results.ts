@@ -26,6 +26,18 @@ export function staleResult(entry: ManifestEntry): CheckResult {
 	};
 }
 
+export function errorResult(
+	entry: ManifestEntry,
+	message: string,
+): CheckResult {
+	return {
+		id: entry.id,
+		url: entry.url,
+		status: "fail",
+		message,
+	};
+}
+
 export function passResult(
 	entry: ManifestEntry,
 	baselinePath: string,

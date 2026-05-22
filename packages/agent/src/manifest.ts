@@ -23,7 +23,7 @@ export interface EntryInput {
 	mask?: string[];
 	waitFor?: WaitFor[];
 	fullPage?: boolean;
-	auth?: null | "required";
+	auth?: null | string;
 	createdBy?: "agent" | "human";
 }
 
@@ -32,7 +32,7 @@ interface HashInput {
 	viewport: Viewport;
 	mask: string[];
 	waitFor: WaitFor[];
-	auth: null | "required";
+	auth: null | string;
 	fullPage: boolean;
 }
 

@@ -6,11 +6,10 @@ import { getPageMap } from "nextra/page-map";
 import { Footer, Layout, Navbar } from "nextra-theme-docs";
 
 const banner = (
-	<Banner storageKey="interpret-launch">
-		<Link href="/docs/core-native">
-			New: <b className="text-blue-400">@blazediff/core-native</b> now includes
-			interpret - structured diff analysis to understand what changed. Read more
-			→
+	<Banner storageKey="agent-launch">
+		<Link href="/docs/agent">
+			New: <b className="text-blue-400">@blazediff/agent</b> - agentic visual
+			regression your coding agent can judge. Read more →
 		</Link>
 	</Banner>
 );

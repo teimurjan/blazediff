@@ -68,6 +68,7 @@ function viewportKey(v: Viewport): string {
 
 async function createStableContext(
 	viewport: Viewport,
+	baseURL?: string,
 ): Promise<BrowserContext> {
 	const browser = await getBrowser();
 	const context = await browser.newContext({
@@ -77,6 +78,7 @@ async function createStableContext(
 		forcedColors: "none",
 		colorScheme: "light",
 		bypassCSP: true,
+		baseURL,
 	});
 
 	await context.addInitScript(
@@ -124,29 +126,39 @@ async function createStableContext(
 export interface StableContextHandle {
 	context: BrowserContext;
 	viewport: Viewport;
+	disposable: boolean;
+}
+
+export interface AcquireStableContextOptions {
+	pool?: boolean;
+	baseURL?: string;
 }
 
 export async function acquireStableContext(
 	viewport: Viewport,
+	options: AcquireStableContextOptions = {},
 ): Promise<StableContextHandle> {
+	const usePool = options.pool !== false;
 	const key = viewportKey(viewport);
-	const pool = contextPool.get(key);
-	if (pool && pool.length > 0) {
-		const context = pool.pop() as BrowserContext;
-		return { context, viewport };
+	if (usePool) {
+		const pool = contextPool.get(key);
+		if (pool && pool.length > 0) {
+			const context = pool.pop() as BrowserContext;
+			return { context, viewport, disposable: false };
+		}
 	}
-	const context = await createStableContext(viewport);
-	return { context, viewport };
+	const context = await createStableContext(viewport, options.baseURL);
+	return { context, viewport, disposable: !usePool };
 }
 
 export async function releaseStableContext(
 	handle: StableContextHandle,
 ): Promise<void> {
-	const key = viewportKey(handle.viewport);
-	if (!cachedBrowser?.isConnected()) {
+	if (handle.disposable || !cachedBrowser?.isConnected()) {
 		await handle.context.close().catch(() => {});
 		return;
 	}
+	const key = viewportKey(handle.viewport);
 	const pool = contextPool.get(key);
 	if (pool) {
 		pool.push(handle.context);

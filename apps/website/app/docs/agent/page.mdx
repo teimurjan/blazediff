@@ -50,10 +50,10 @@ Per harness:
 | Harness | Target | Scope | Detection signal |
 |---|---|---|---|
 | Claude Code | `<project>/.claude/skills/blazediff/SKILL.md` | project | `CLAUDE.md` or `.claude/` |
-| Codex | `~/.codex/prompts/blazediff.md` | user-global | `AGENTS.md`, `.codex/`, or `~/.codex/` |
+| Codex | `~/.codex/skills/blazediff/SKILL.md` | user-global | `AGENTS.md`, `.codex/`, or `~/.codex/` |
 | Cursor | `<project>/.cursor/rules/blazediff.mdc` | project | `.cursor/` or `.cursorrules` |
 
-Codex is user-global because OpenAI's Codex CLI looks for slash-command prompts in `~/.codex/prompts/` — installing there means `/blazediff` works in every project on your machine. On a TTY with no detection, the command prompts. Pass `--force` to overwrite a hand-edited file.
+Codex is user-global because OpenAI's Codex CLI discovers skills under `~/.codex/skills/<name>/SKILL.md` — installing there means `/blazediff` works in every project on your machine. On a TTY with no detection, the command prompts. Pass `--force` to overwrite a hand-edited file.
 
 ## Quickstart from a coding agent
 
@@ -103,10 +103,6 @@ Commit `.blazediff/` (config + manifest + baselines).
 ### Check (CI verb)
 
 ```bash
-# Pipelined - prefer for sites with 10+ routes; uses LangGraph for parallelism
-blazediff-agent run --judge host --json
-
-# Single-pool - simpler, same report shape
 blazediff-agent check --judge host --json
 ```
 
@@ -178,8 +174,7 @@ Deletes the entire `.blazediff/` directory (config, manifest, baselines, actual,
 | `init` | Detect framework/dev-script, write `.blazediff/config.json` + `.gitignore` |
 | `discover` | BFS-crawl routes from `baseUrl` (depth 2, ≤50 routes) as a fallback when source-walking fails |
 | `capture --stdin` | Read a JSON array of routes from stdin, screenshot each, write baselines/actuals + manifest |
-| `check` | Re-capture every manifest entry, diff against baseline, emit `CheckReport` |
-| `run` | Pipelines capture → diff → verdict → judge via LangGraph for parallelism + LangSmith traces |
+| `check` | Re-capture every manifest entry, diff against baseline, emit `CheckReport`. Uses LangGraph for per-entry parallelism; suspends on ambiguous entries when `--judge host` and resumes via `--apply-judgments` |
 | `rewrite <id...>` | Re-baseline existing manifest entries (mask/viewport/waitFor preserved) |
 | `diff <id>` | Re-diff one entry against its actual capture without re-screenshotting |
 | `manifest` | Inspect / list manifest entries |
@@ -274,7 +269,7 @@ cat <<'EOF' | blazediff-agent capture --stdin --mode baseline --json
 EOF
 ```
 
-Re-run `check` / `run` to confirm the entry now passes.
+Re-run `check` to confirm the entry now passes.
 
 ## Configuration
 
@@ -289,9 +284,15 @@ Re-run `check` / `run` to confirm the entry now passes.
   },
   "framework": "next",
   "packageManager": "pnpm",
-  "baseUrl": "http://127.0.0.1:3000"
+  "baseUrl": "http://127.0.0.1:3000",
+  "auth": {
+    "harness": ".blazediff/auth.js",
+    "loginUrl": "http://127.0.0.1:3000/login"
+  }
 }
 ```
+
+The `auth` block is added by `blazediff-agent auth init` and only needed for projects with auth-gated routes — see [Auth-protected routes](#auth-protected-routes) below.
 
 Omit `devServer` to point the agent at an already-running URL (set `baseUrl` directly):
 
@@ -309,12 +310,63 @@ blazediff-agent init --url https://staging.example.com --json
   viewport: { width: number; height: number };
   waitFor: ("networkidle" | "fonts" | string)[];
   fullPage: boolean;
+  auth: null | string;          // persona name; null = public route
 }
 ```
 
+## Auth-protected routes
+
+Routes behind a login flow capture through a per-project harness. Credentials
+live in environment variables — never in the harness file, the manifest, or
+LLM context.
+
+**One-time setup.** From your project root, with the dev server running:
+
+```sh
+blazediff-agent auth init --persona default --login-url http://127.0.0.1:3000/login
+```
+
+This opens a Playwright recorder. Log in once. When you close the window, the
+agent post-processes the recording, swaps the email/password you typed for
+`process.env.BLAZEDIFF_AUTH_<PERSONA>_EMAIL` / `..._PASSWORD`, and writes
+`.blazediff/auth.js`. The file is short (~30 lines), reviewable, and meant to
+be committed.
+
+**Per-entry.** Mark an entry's `auth` field with the persona name (use
+`"default"` for the common case):
+
+```sh
+blazediff-agent manifest add dashboard --url /dashboard --auth default
+```
+
+**At capture / check time.** Set the env vars before running:
+
+```sh
+export BLAZEDIFF_AUTH_DEFAULT_EMAIL='you@example.com'
+export BLAZEDIFF_AUTH_DEFAULT_PASSWORD='hunter2'
+blazediff-agent check
+```
+
+`check` fails fast if any persona referenced in the manifest is missing its
+env vars, before any browser launches.
+
+**Multiple personas.** Re-run `auth init --persona admin` to record another
+flow into the same `.blazediff/auth.js` (the file is a single module taking
+`persona` as an argument). Each persona maps to its own env-var pair.
+
+**What's not supported in v0.2.** OAuth, SSO, magic links, MFA — the recorder
+expects a password form. `storageState` reuse is not yet implemented; every
+auth-gated capture re-runs the harness in a fresh browser context.
+
+**Working reference.** [`examples/agent-auth-spa-example`](https://github.com/teimurjan/blazediff/tree/main/examples/agent-auth-spa-example)
+in the repo is a Vite + React SPA with 2 public and 8 auth-gated routes. It
+ships a hand-authored `.blazediff/auth.js` and committed baselines, so you can
+clone the repo and run `pnpm --filter @blazediff/agent-auth-spa-example check`
+to see the full flow pass 10/10.
+
 ## CI
 
-In CI (`CI=1` or no TTY), only `check` and `run` are allowed. `init` / `capture` / `rewrite` / `reset` are explicitly blocked - authoring belongs at the developer's machine.
+In CI (`CI=1` or no TTY), only `check` is allowed. `init` / `capture` / `rewrite` / `reset` are explicitly blocked - authoring belongs at the developer's machine.
 
 ### GitHub Actions
 
@@ -322,6 +374,11 @@ In CI (`CI=1` or no TTY), only `check` and `run` are allowed. `init` / `capture`
 - run: pnpm install
 - run: npx blazediff-agent browsers install
 - run: npx blazediff-agent --cwd apps/website check --json
+  env:
+    # Only needed if any manifest entry has `auth: "<persona>"`.
+    # Add one pair per persona referenced in the manifest.
+    BLAZEDIFF_AUTH_DEFAULT_EMAIL: ${{ secrets.BLAZEDIFF_AUTH_DEFAULT_EMAIL }}
+    BLAZEDIFF_AUTH_DEFAULT_PASSWORD: ${{ secrets.BLAZEDIFF_AUTH_DEFAULT_PASSWORD }}
 ```
 
 Exit codes:
@@ -334,13 +391,12 @@ Exit codes:
 
 - Never `--mode baseline` an existing manifest entry without explicit user request.
 - Never edit `.blazediff/manifest.json` directly.
-- In CI (`CI=1` or no TTY), only `check` / `run` are allowed.
+- In CI (`CI=1` or no TTY), only `check` is allowed.
 - A route that times out is logged once in the result array and skipped - never blocks the run.
 - Never leave a dev server running after authoring exits. `serve-status --kill` is mandatory teardown.
 
 ## Links
 
 - [GitHub Repository](https://github.com/teimurjan/blazediff/tree/main/packages/agent)
-- [Roadmap](https://github.com/teimurjan/blazediff/blob/main/packages/agent/ROADMAP.md)
 - [Skill playbook (`SKILL.md`)](https://github.com/teimurjan/blazediff/blob/main/skill/blazediff/SKILL.md)
 - [Landing page →](/agent)

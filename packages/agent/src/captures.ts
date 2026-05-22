@@ -1,3 +1,4 @@
+import { buildAuthHook } from "./auth/hook";
 import { captureScreenshot } from "./browser/capture";
 import { closeBrowser } from "./browser/launch";
 import { configHash, loadConfig } from "./config";
@@ -10,7 +11,7 @@ import {
 	makeEntry,
 	saveManifest,
 } from "./manifest";
-import type { Manifest, Viewport, WaitFor } from "./types";
+import type { AgentConfig, Manifest, Viewport, WaitFor } from "./types";
 
 export interface CaptureRouteInput {
 	id: string;
@@ -19,6 +20,7 @@ export interface CaptureRouteInput {
 	viewport?: Viewport;
 	waitFor?: WaitFor[];
 	fullPage?: boolean;
+	auth?: null | string;
 	mode?: "baseline" | "actual";
 }
 
@@ -59,10 +61,12 @@ function validateRoute(route: CaptureRouteInput, i: number): string | null {
 	return null;
 }
 
-async function loadOrCreateManifest(cwd: string): Promise<Manifest> {
+async function loadOrCreateManifest(
+	cwd: string,
+	config: AgentConfig | null,
+): Promise<Manifest> {
 	const existing = await loadManifest(cwd);
 	if (existing) return existing;
-	const config = await loadConfig(cwd);
 	return emptyManifest(config ? configHash(config) : "sha256:none");
 }
 
@@ -90,8 +94,9 @@ export async function runCaptures(
 		}
 	});
 
+	const config = await loadConfig(cwd);
 	let manifest: Manifest | null = writeManifest
-		? await loadOrCreateManifest(cwd)
+		? await loadOrCreateManifest(cwd, config)
 		: null;
 	let manifestUpdates = 0;
 
@@ -107,6 +112,10 @@ export async function runCaptures(
 				semaphore.run(async () => {
 					const mode = r.mode ?? defaultMode;
 					try {
+						const auth =
+							r.auth != null
+								? buildAuthHook(r.auth, config?.auth, cwd)
+								: undefined;
 						const shot = await captureScreenshot(
 							opts.baseUrl,
 							{
@@ -119,6 +128,7 @@ export async function runCaptures(
 								mode,
 							},
 							cwd,
+							auth,
 						);
 						slot[i] = {
 							id: r.id,
@@ -138,6 +148,7 @@ export async function runCaptures(
 									mask: r.mask,
 									waitFor: r.waitFor,
 									fullPage: r.fullPage,
+									auth: r.auth ?? null,
 								}),
 							);
 							manifestUpdates += 1;

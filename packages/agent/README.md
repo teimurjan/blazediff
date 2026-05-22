@@ -16,6 +16,7 @@ Visual regression testing your coding agent can judge. Discovers routes, screens
 - LangGraph pipeline with per-entry subgraphs, suspendable via `interrupt()` and resumable from an on-disk checkpoint
 - Region-tile handoff to host agents (10 to 100x smaller than full PNGs)
 - Auto-masking via `data-blazediff-agent-mask` attribute
+- Auth-protected route capture via a codegen-recorded login harness; credentials live in env vars, never in LLM context
 
 ## Installation
 
@@ -50,6 +51,7 @@ Commit `.blazediff/` (config + manifest + baselines). All commands accept `--jso
   <tr><td><code>rewrite &lt;id...&gt;</code></td><td>Re-baseline existing entries (also <code>--failed</code> / <code>--all</code>). Cleans stale <code>actual/</code>, <code>judgments/</code>, <code>summary.md</code>, <code>checkpoints/</code> for the rewritten ids.</td></tr>
   <tr><td><code>diff &lt;id&gt;</code></td><td>Re-diff one entry without re-screenshotting</td></tr>
   <tr><td><code>manifest</code></td><td>Inspect / list manifest entries</td></tr>
+  <tr><td><code>auth init</code></td><td>Record a login harness via Playwright codegen, rewrite credentials to env-var refs, write <code>.blazediff/auth.js</code></td></tr>
   <tr><td><code>serve-status</code></td><td>Start / stop / probe the dev server</td></tr>
   <tr><td><code>browsers install</code></td><td>Install bundled Playwright Chromium</td></tr>
   <tr><td><code>reset --yes</code></td><td>Wipe <code>.blazediff/</code></td></tr>
@@ -94,11 +96,25 @@ Every non-match routes through the configured judge. With `--judge host` the jud
   "devServer": { "command": "pnpm dev", "port": 3000, "readyTimeoutMs": 60000 },
   "framework": "next",
   "packageManager": "pnpm",
-  "baseUrl": "http://127.0.0.1:3000"
+  "baseUrl": "http://127.0.0.1:3000",
+  "auth": { "harness": ".blazediff/auth.js", "loginUrl": "http://127.0.0.1:3000/login" }
 }
 ```
 
+The `auth` block is added by `blazediff-agent auth init` — omit it on projects without auth-gated routes.
+
 `.blazediff/manifest.json` is written by `capture`; don't edit it directly.
+
+## Auth-protected routes
+
+Capture routes behind a login flow without exposing credentials to the LLM.
+Run `blazediff-agent auth init` once to record a login harness via Playwright
+codegen — the email/password you type get rewritten into env-var references
+before the file is saved. Mark entries with `auth: "<persona>"` (defaults to
+`"default"`), set `BLAZEDIFF_AUTH_<PERSONA>_EMAIL` and `..._PASSWORD`, and
+`check` does the rest. Full walkthrough: [Auth-protected routes][auth-docs].
+
+[auth-docs]: https://blazediff.dev/docs/agent#auth-protected-routes
 
 ## CI
 
@@ -111,5 +127,4 @@ Only `check` is allowed under `CI=1`. Exit codes:
 ## Links
 
 - [GitHub](https://github.com/teimurjan/blazediff/tree/main/packages/agent)
-- [Documentation](https://blazediff.dev/docs)
-- [Roadmap](./ROADMAP.md)
+- [Documentation](https://blazediff.dev/docs/agent)

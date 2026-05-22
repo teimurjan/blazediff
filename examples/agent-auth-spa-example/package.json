@@ -1,0 +1,29 @@
+{
+	"name": "@blazediff/agent-auth-spa-example",
+	"version": "0.0.1",
+	"private": true,
+	"description": "Live test target for @blazediff/agent auth-protected route capture. Vite + React SPA with 2 public and 8 auth-gated routes.",
+	"type": "module",
+	"scripts": {
+		"dev": "vite",
+		"build": "vite build",
+		"preview": "vite preview --port 5173",
+		"typecheck": "tsc --noEmit",
+		"check": "blazediff-agent check --judge none"
+	},
+	"dependencies": {
+		"react": "^19.1.1",
+		"react-dom": "^19.1.1",
+		"react-router-dom": "^7.1.1"
+	},
+	"devDependencies": {
+		"@blazediff/agent": "workspace:*",
+		"@tailwindcss/vite": "^4.1.13",
+		"@types/react": "^19",
+		"@types/react-dom": "^19",
+		"@vitejs/plugin-react": "^4.3.4",
+		"tailwindcss": "^4.1.13",
+		"typescript": "^5.9.2",
+		"vite": "^6.0.7"
+	}
+}

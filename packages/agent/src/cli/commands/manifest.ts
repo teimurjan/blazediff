@@ -33,7 +33,11 @@ export function registerManifest(program: Command, out: Output): void {
 		.option("--mask <selectors>", "selectors", "")
 		.option("--wait-for <list>", "wait list", "networkidle,fonts")
 		.option("--no-full-page", "viewport-only (default: full page)")
-		.option("--auth <required|none>", "mark auth-gated", "none")
+		.option(
+			"--auth <persona|none>",
+			'persona name for auth-gated capture (e.g. "default"); "none" to skip auth',
+			"none",
+		)
 		.option("--created-by <agent|human>", "provenance", "agent")
 		.action(async (id: string, opts: AddOpts) => {
 			const config = await loadConfig();
@@ -48,7 +52,7 @@ export function registerManifest(program: Command, out: Output): void {
 				mask: parseMaskList(opts.mask),
 				waitFor: parseWaitFor(opts.waitFor),
 				fullPage: opts.fullPage,
-				auth: opts.auth === "required" ? "required" : null,
+				auth: opts.auth === "none" || opts.auth === "" ? null : opts.auth,
 				createdBy: opts.createdBy,
 			});
 			await saveManifest(addOrReplaceEntry(manifest, entry));

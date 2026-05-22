@@ -1,0 +1,14 @@
+{
+	"devServer": {
+		"command": "pnpm dev",
+		"port": 5173,
+		"readyTimeoutMs": 60000
+	},
+	"framework": "vite-react",
+	"packageManager": "pnpm",
+	"baseUrl": "http://127.0.0.1:5173",
+	"auth": {
+		"harness": ".blazediff/auth.js",
+		"loginUrl": "http://127.0.0.1:5173/login"
+	}
+}

@@ -23,6 +23,7 @@
 		"@blazediff/object-benchmark",
 		"@blazediff/matcher-examples",
 		"@blazediff/website",
-		"@blazediff/video"
+		"@blazediff/video",
+		"@blazediff/agent-auth-spa-example"
 	]
 }

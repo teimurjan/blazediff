@@ -27,7 +27,7 @@ export interface ManifestEntry {
 	id: string;
 	url: string;
 	viewport: Viewport;
-	auth: null | "required";
+	auth: null | string;
 	waitFor: WaitFor[];
 	mask: string[];
 	fullPage?: boolean;
@@ -51,11 +51,17 @@ export interface DevServerConfig {
 	readyTimeoutMs?: number;
 }
 
+export interface AgentAuthConfig {
+	harness: string;
+	loginUrl: string;
+}
+
 export interface AgentConfig {
 	devServer: DevServerConfig | null;
 	framework?: string;
 	packageManager?: "npm" | "pnpm" | "yarn" | "bun";
 	baseUrl?: string;
+	auth?: AgentAuthConfig;
 }
 
 export interface CaptureOptions {
@@ -71,7 +77,7 @@ export interface CaptureOptions {
 export interface DiscoveredRoute {
 	url: string;
 	source: "next-manifest" | "sitemap" | "crawl";
-	auth?: "required";
+	auth?: string;
 }
 
 export interface CheckReport {

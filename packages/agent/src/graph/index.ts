@@ -4,6 +4,7 @@ import path from "node:path";
 import { Command, END, Send, START, StateGraph } from "@langchain/langgraph";
 import { closeBrowser } from "../browser/launch";
 import { ensureGitignore } from "../cli/gitignore";
+import { loadConfig } from "../config";
 import { defaultConcurrency } from "../defaults";
 import type { Verdict } from "../diff/verdict";
 import { type JudgeBackend, writeJudgments } from "../judge";
@@ -197,6 +198,7 @@ export async function runGraph(opts: RunOptions): Promise<CheckReport> {
 		await checkpointer.deleteThread(threadId);
 	}
 
+	const config = await loadConfig(cwd);
 	const input = opts.resume
 		? new Command({ resume: opts.resume })
 		: {
@@ -208,6 +210,7 @@ export async function runGraph(opts: RunOptions): Promise<CheckReport> {
 					emitDiffPng: opts.emitDiffPng ?? true,
 					judge: opts.judge ?? "none",
 					baselinesDir,
+					auth: config?.auth,
 				},
 			};
 

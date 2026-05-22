@@ -1,5 +1,7 @@
 import { Command } from "commander";
+import pkgJson from "../package.json";
 import { closeBrowser } from "./browser/launch";
+import { registerAuth } from "./cli/commands/auth";
 import { registerBrowsers } from "./cli/commands/browsers";
 import { registerCapture } from "./cli/commands/capture";
 import { registerCheck } from "./cli/commands/check";
@@ -18,7 +20,7 @@ function buildProgram(): Command {
 	const program = new Command()
 		.name("blazediff-agent")
 		.description("Agentic visual regression for BlazeDiff")
-		.version("0.1.2")
+		.version(pkgJson.version)
 		.option("-C, --cwd <path>", "operate on a different directory")
 		.option("--json", "emit JSON to stdout where applicable")
 		.option("--quiet", "suppress non-error output");
@@ -33,6 +35,7 @@ function buildProgram(): Command {
 	registerBrowsers(program, out);
 	registerDiff(program, out);
 	registerManifest(program, out);
+	registerAuth(program, out);
 	registerCheck(program, out);
 	registerRewrite(program, out);
 	registerReset(program, out);

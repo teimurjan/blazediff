@@ -68,21 +68,31 @@ When the user asks to wipe blazediff's state and start over (manifest stale beyo
    - Remix / SvelteKit / Astro: walk `app/routes` or `src/routes`.
 
    If the framework is unknown or the router source is opaque, call `blazediff-agent --cwd "$TARGET" discover --json`. That command does a BFS crawl from the configured `baseUrl` (depth 2, up to 50 routes), reads `.next/routes-manifest.json` if present, and reads `/sitemap.xml`. It's a fallback for when source-walking fails.
-5. **Filter.** Drop `/api/*`, dynamic segments without sample data, redirects/404s. Flag auth-gated as `auth: required` (record in manifest, don't capture).
+5. **Filter.** Drop `/api/*`, dynamic segments without sample data, redirects/404s. For auth-gated routes, set `auth: "<persona>"` on the entry (defaults to `"default"`) — they're captured the same as public routes once the harness is in place. See **auth** below.
 6. **Capture in one call.** Build a JSON array of route entries and pipe it through stdin:
    ```
    cat <<'EOF' | blazediff-agent --cwd "$TARGET" capture --stdin --mode baseline --json
    [
      {"id":"home","url":"/","mask":[".timestamp"]},
-     {"id":"pricing","url":"/pricing"}
+     {"id":"pricing","url":"/pricing"},
+     {"id":"dashboard","url":"/dashboard","auth":"default"}
    ]
    EOF
    ```
-   Entries: `{ id, url, mask?, viewport?, waitFor?, fullPage?, mode? }`. Only `id` and `url` required. Manifest entries are written automatically (pass `--no-manifest` to skip).
+   Entries: `{ id, url, mask?, viewport?, waitFor?, fullPage?, auth?, mode? }`. Only `id` and `url` required. `auth` is `null | "<persona>"`; legacy `"required"` is silently treated as `"default"`. Manifest entries are written automatically (pass `--no-manifest` to skip).
    - `id`: semantic kebab-case (`home`, `pricing`, `docs-getting-started`), not URL slug.
    - `mask`: CSS selectors for unstable regions (timestamps, randomized IDs, avatars, "X ago" times, carousels, third-party iframes). Omit if none. The agent always masks `[data-blazediff-agent-mask]` automatically, so prefer tagging the source element when you can edit it. See `MASKING.md` for full guidance.
 7. **Teardown — ALWAYS run, even on error.** If `config.devServer` is non-null, run `blazediff-agent --cwd "$TARGET" serve-status --kill --json` as the very last step regardless of capture success/failure. The CLI kills by tracked PID first, then falls back to whatever process is listening on the configured port — so it cleans up stale dev servers from prior crashed runs too. If the kill returns `stopped: false`, no server was running; that's fine. Wrap your capture call so this step runs even if capture failed mid-list (shell `trap`, try/finally in the host agent's flow, etc.).
 8. **Final summary line.** Suggest `git add .blazediff/ && git commit`.
+
+## auth (protected routes)
+Auth-gated entries run a per-project login harness before each capture. Credentials live only in env vars — never in the LLM, manifest, or harness file.
+
+1. **Does the project already have a harness?** Check for `.blazediff/auth.js` + `auth` block in `.blazediff/config.json`. If yes, skip to step 3.
+2. **One-time setup (interactive).** Tell the user to run `blazediff-agent --cwd "$TARGET" auth init --persona default --login-url <login URL>`. This opens Playwright codegen; they log in once, close the window, and the agent rewrites the typed email/password to `process.env.BLAZEDIFF_AUTH_<PERSONA>_EMAIL` / `..._PASSWORD` before writing `.blazediff/auth.js`. **Do not run `auth init` yourself in non-interactive contexts — it requires a human to drive the recorder.**
+3. **Per entry.** Set `auth: "<persona>"` on the entry (use `"default"` unless the user specifies a different persona). Legacy `auth: "required"` works as an alias for `"default"`.
+4. **Env vars.** Before `capture --mode baseline` or `check`, both `BLAZEDIFF_AUTH_<PERSONA>_EMAIL` and `..._PASSWORD` must be exported for every persona referenced in the manifest. `check` fails fast (no browser launch) if any are missing and tells you which.
+5. **Don't try to author a harness yourself.** Form-field identification is a security-relevant decision and must stay outside the LLM. Always route the user through `auth init`.
 
 ## Hard rules
 - Never `--mode baseline` an existing manifest entry without explicit user request.
