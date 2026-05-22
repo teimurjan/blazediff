@@ -1,5 +1,11 @@
 # @blazediff/agent
 
+## 0.2.0
+
+### Minor Changes
+
+- f4ee710: Add auth harness generation
+
 ## 0.1.4
 
 ### Patch Changes
