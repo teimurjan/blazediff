@@ -2,10 +2,10 @@
 
 High-performance image diffing with block-based optimization and SIMD acceleration.
 
-[![Crates.io](https://img.shields.io/crates/v/blazediff.svg)](https://crates.io/crates/blazediff)
-[![npm](https://img.shields.io/npm/v/@blazediff/core-native.svg)](https://www.npmjs.com/package/@blazediff/core-native)
-[![PyPI](https://img.shields.io/pypi/v/blazediff.svg)](https://pypi.org/project/blazediff/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Crates.io](https://img.shields.io/crates/v/blazediff.svg?style=for-the-badge)](https://crates.io/crates/blazediff)
+[![npm](https://img.shields.io/npm/v/@blazediff/core-native.svg?style=for-the-badge)](https://www.npmjs.com/package/@blazediff/core-native)
+[![PyPI](https://img.shields.io/pypi/v/blazediff.svg?style=for-the-badge)](https://pypi.org/project/blazediff/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 
 ## Features
 

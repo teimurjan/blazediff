@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280, height=800">
+<title>Share sheet</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="w-[1280px] h-[800px] overflow-hidden">
+<div class="relative w-[1280px] h-[800px] bg-indigo-950">
+<div class="absolute inset-0 p-12">
+<div class="text-xl font-bold text-indigo-100">Sunset Over Marin &middot; Gallery</div>
+<div class="mt-8 h-96 rounded-2xl bg-indigo-900/50"></div>
+</div>
+<div class="absolute inset-0 bg-black/60 flex items-center justify-center">
+<div class="w-[540px] rounded-3xl bg-white shadow-2xl p-7">
+<h2 class="text-lg font-bold text-slate-900">Share this photo</h2>
+<p class="mt-1 text-sm text-slate-500">Choose how you&rsquo;d like to send it.</p>
+<div class="mt-6 grid grid-cols-4 gap-4 text-center">
+<div>
+<div data-changed="true" data-region-id="region-1" class="mx-auto flex items-center justify-center w-14 h-14 rounded-2xl bg-blue-500 text-white text-xl font-bold">f</div>
+<div class="mt-2 text-xs text-slate-600">Facebook</div>
+</div>
+<div>
+<div class="mx-auto flex items-center justify-center w-14 h-14 rounded-2xl bg-sky-400 text-white text-xl font-bold">t</div>
+<div class="mt-2 text-xs text-slate-600">Twitter</div>
+</div>
+<div>
+<div class="mx-auto flex items-center justify-center w-14 h-14 rounded-2xl bg-green-500 text-white text-xl font-bold">w</div>
+<div class="mt-2 text-xs text-slate-600">WhatsApp</div>
+</div>
+<div>
+<div class="mx-auto flex items-center justify-center w-14 h-14 rounded-2xl bg-slate-200 text-slate-600 text-xl font-bold">&hellip;</div>
+<div class="mt-2 text-xs text-slate-600">More</div>
+</div>
+</div>
+<div class="mt-7 flex gap-2">
+<input type="text" value="https://snap.ly/marin-sunset" class="flex-1 px-3 py-2.5 rounded-lg text-sm text-slate-600 bg-slate-50 border border-slate-200" readonly>
+<button data-changed="true" data-region-id="region-2" class="px-5 py-2.5 rounded-lg text-sm font-semibold text-white bg-indigo-600">Copy</button>
+</div>
+</div>
+</div>
+</div>
+</body>
+</html>

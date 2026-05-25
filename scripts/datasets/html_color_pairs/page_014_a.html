@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Project Health</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-neutral-100 h-screen overflow-hidden">
+<div class="h-full p-6 flex flex-col">
+  <div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-bold text-neutral-900">Project Health</h1>
+    <span class="text-sm text-neutral-500">Sprint 24 · ends March 28, 2026</span>
+  </div>
+  <div class="grid grid-cols-3 gap-5 mb-5">
+    <div class="bg-white rounded-xl p-5 shadow-sm border border-neutral-200">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="font-semibold text-neutral-800">Mobile App</h3>
+        <span data-changed="true" data-region-id="region-1" class="text-xs font-medium px-2 py-1 rounded-full bg-amber-100 text-amber-700">At risk</span>
+      </div>
+      <p class="text-sm text-neutral-500 mb-3">8 of 12 tasks complete</p>
+      <div class="h-2 bg-neutral-100 rounded-full"><div class="h-2 bg-blue-500 rounded-full w-2/3"></div></div>
+    </div>
+    <div class="bg-white rounded-xl p-5 shadow-sm border border-neutral-200">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="font-semibold text-neutral-800">Billing API</h3>
+        <span class="text-xs font-medium px-2 py-1 rounded-full bg-emerald-100 text-emerald-700">On track</span>
+      </div>
+      <p class="text-sm text-neutral-500 mb-3">15 of 18 tasks complete</p>
+      <div class="h-2 bg-neutral-100 rounded-full"><div class="h-2 bg-blue-500 rounded-full w-5/6"></div></div>
+    </div>
+    <div class="bg-white rounded-xl p-5 shadow-sm border border-neutral-200">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="font-semibold text-neutral-800">Onboarding</h3>
+        <span class="text-xs font-medium px-2 py-1 rounded-full bg-rose-100 text-rose-700">Blocked</span>
+      </div>
+      <p class="text-sm text-neutral-500 mb-3">3 of 14 tasks complete</p>
+      <div class="h-2 bg-neutral-100 rounded-full"><div class="h-2 bg-blue-500 rounded-full w-1/5"></div></div>
+    </div>
+  </div>
+  <div class="grid grid-cols-3 gap-5 flex-1">
+    <div class="bg-white rounded-xl p-5 shadow-sm border border-neutral-200 flex flex-col">
+      <h3 class="text-sm font-semibold text-neutral-700 mb-4">Velocity</h3>
+      <div class="flex items-end gap-2 flex-1">
+        <div class="flex-1 bg-cyan-500 rounded-t h-1/2"></div>
+        <div class="flex-1 bg-cyan-500 rounded-t h-3/5"></div>
+        <div class="flex-1 bg-cyan-500 rounded-t h-2/5"></div>
+        <div class="flex-1 bg-cyan-500 rounded-t h-3/4"></div>
+        <div class="flex-1 bg-cyan-500 rounded-t h-full"></div>
+      </div>
+    </div>
+    <div class="bg-white rounded-xl p-5 shadow-sm border border-neutral-200 col-span-2 flex flex-col">
+      <h3 class="text-sm font-semibold text-neutral-700 mb-4">Open issues by priority</h3>
+      <div class="space-y-3 flex-1">
+        <div>
+          <div class="flex justify-between text-xs text-neutral-500 mb-1"><span>Critical</span><span>4</span></div>
+          <div class="h-3 bg-neutral-100 rounded-full"><div class="h-3 bg-red-500 rounded-full w-1/12"></div></div>
+        </div>
+        <div>
+          <div class="flex justify-between text-xs text-neutral-500 mb-1"><span>High</span><span>11</span></div>
+          <div class="h-3 bg-neutral-100 rounded-full"><div class="h-3 bg-orange-500 rounded-full w-1/4"></div></div>
+        </div>
+        <div>
+          <div class="flex justify-between text-xs text-neutral-500 mb-1"><span>Medium</span><span>27</span></div>
+          <div class="h-3 bg-neutral-100 rounded-full"><div class="h-3 bg-yellow-500 rounded-full w-3/5"></div></div>
+        </div>
+        <div>
+          <div class="flex justify-between text-xs text-neutral-500 mb-1"><span>Low</span><span>42</span></div>
+          <div class="h-3 bg-neutral-100 rounded-full"><div class="h-3 bg-lime-500 rounded-full w-full"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

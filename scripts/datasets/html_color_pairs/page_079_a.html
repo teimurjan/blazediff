@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atlas Cloud</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 h-screen w-screen overflow-hidden font-sans text-slate-300">
+  <div class="flex h-full">
+    <aside class="w-64 bg-slate-950 flex flex-col py-6 px-3">
+      <div class="flex items-center gap-2 px-3 mb-8">
+        <div class="h-8 w-8 rounded-lg bg-cyan-500"></div>
+        <span class="text-white font-bold text-lg">Atlas</span>
+      </div>
+      <nav class="flex flex-col gap-1 text-sm">
+        <a class="rounded-lg px-3 py-2.5 hover:bg-slate-800">Compute</a>
+        <a class="rounded-lg px-3 py-2.5 hover:bg-slate-800">Storage</a>
+        <a data-changed="true" data-region-id="region-1" class="rounded-lg bg-cyan-600 text-white font-medium px-3 py-2.5">Databases</a>
+        <a class="rounded-lg px-3 py-2.5 hover:bg-slate-800">Networking</a>
+        <a class="rounded-lg px-3 py-2.5 hover:bg-slate-800">Billing</a>
+      </nav>
+    </aside>
+    <main class="flex-1 p-10 overflow-hidden">
+      <nav class="text-sm text-slate-500 mb-3">Atlas / Databases / production-pg</nav>
+      <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-bold text-white">production-pg</h1>
+        <span data-changed="true" data-region-id="region-2" class="rounded-full bg-emerald-500 text-white text-xs font-semibold px-3 py-1">Healthy</span>
+      </div>
+      <p class="text-slate-400 mt-1">PostgreSQL 16 · us-east-1 · March 14, 2026</p>
+      <div class="grid grid-cols-3 gap-6 mt-8">
+        <div class="bg-slate-800 rounded-xl border border-slate-700 p-6">
+          <p class="text-sm text-slate-400">CPU usage</p>
+          <p class="text-3xl font-bold text-white mt-2">34%</p>
+        </div>
+        <div class="bg-slate-800 rounded-xl border border-slate-700 p-6">
+          <p class="text-sm text-slate-400">Connections</p>
+          <p class="text-3xl font-bold text-white mt-2">128 / 500</p>
+        </div>
+        <div class="bg-slate-800 rounded-xl border border-slate-700 p-6">
+          <p class="text-sm text-slate-400">Disk</p>
+          <p class="text-3xl font-bold text-white mt-2">210 GB</p>
+        </div>
+      </div>
+      <div class="bg-slate-800 rounded-xl border border-slate-700 p-6 mt-6">
+        <p class="font-semibold text-white">Recent queries</p>
+        <div class="mt-4 space-y-2 text-sm font-mono text-cyan-400">
+          <p>SELECT * FROM orders WHERE status = 'open';</p>
+          <p>UPDATE users SET last_seen = now();</p>
+          <p>INSERT INTO events (type, payload) VALUES ($1, $2);</p>
+        </div>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

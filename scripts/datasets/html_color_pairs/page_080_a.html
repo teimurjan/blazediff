@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hearth Project Hub</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 h-screen w-screen overflow-hidden font-sans">
+  <div class="flex flex-col h-full">
+    <header class="h-14 bg-white border-b border-slate-200 flex items-center px-6 gap-6 shrink-0">
+      <div class="flex items-center gap-2">
+        <div class="h-7 w-7 rounded-lg bg-amber-500"></div>
+        <span class="font-bold text-slate-900">Hearth</span>
+      </div>
+      <nav class="flex gap-5 text-sm text-slate-500">
+        <a class="hover:text-slate-900">Projects</a>
+        <a data-changed="true" data-region-id="region-1" class="text-amber-600 font-medium">Board</a>
+        <a class="hover:text-slate-900">Timeline</a>
+        <a class="hover:text-slate-900">Team</a>
+      </nav>
+      <button data-changed="true" data-region-id="region-2" class="ml-auto rounded-lg bg-amber-500 text-white font-medium text-sm px-4 py-2">Add task</button>
+    </header>
+    <div class="flex flex-1 overflow-hidden">
+      <aside class="w-56 bg-white border-r border-slate-200 p-5">
+        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Workspaces</p>
+        <ul class="mt-3 space-y-1 text-sm text-slate-600">
+          <li class="px-3 py-2 rounded bg-amber-50 text-amber-700 font-medium">Mobile redesign</li>
+          <li class="px-3 py-2 rounded hover:bg-slate-50">Marketing site</li>
+          <li class="px-3 py-2 rounded hover:bg-slate-50">Infra migration</li>
+        </ul>
+      </aside>
+      <main class="flex-1 p-8 overflow-hidden">
+        <h1 class="text-2xl font-bold text-slate-900">Mobile redesign</h1>
+        <p class="text-slate-500 mt-1">Sprint ends March 14, 2026</p>
+        <div class="grid grid-cols-3 gap-5 mt-6">
+          <div class="bg-white rounded-xl border border-slate-200 p-4">
+            <p class="text-sm font-semibold text-slate-700 mb-3">To do</p>
+            <div class="rounded-lg border border-slate-200 p-3 mb-2"><p class="text-sm text-slate-800">Audit color tokens</p></div>
+            <div class="rounded-lg border border-slate-200 p-3"><p class="text-sm text-slate-800">Update icon set</p></div>
+          </div>
+          <div class="bg-white rounded-xl border border-slate-200 p-4">
+            <p class="text-sm font-semibold text-slate-700 mb-3">In progress</p>
+            <div class="rounded-lg border border-slate-200 p-3"><p class="text-sm text-slate-800">Onboarding flow</p></div>
+          </div>
+          <div class="bg-white rounded-xl border border-slate-200 p-4">
+            <p class="text-sm font-semibold text-slate-700 mb-3">Done</p>
+            <div class="rounded-lg border border-slate-200 p-3 mb-2"><p class="text-sm text-slate-800">Wireframes</p></div>
+            <div class="rounded-lg border border-slate-200 p-3 flex items-center justify-between"><p class="text-sm text-slate-800">User research</p><span data-changed="true" data-region-id="region-3" class="h-3 w-3 rounded-full bg-emerald-500"></span></div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+</body>
+</html>

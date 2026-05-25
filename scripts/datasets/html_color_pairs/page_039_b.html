@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280, height=800">
+<title>Orders</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50">
+<div class="w-[1280px] h-[800px] p-8">
+  <div class="bg-white rounded-2xl border border-gray-200 h-full flex flex-col overflow-hidden">
+    <header class="px-8 py-6 border-b border-gray-100 flex items-center justify-between">
+      <div><h1 class="text-xl font-bold text-gray-900">Recent Orders</h1><p class="text-sm text-gray-500">6 of 1,284 orders</p></div>
+      <span data-changed="true" data-region-id="region-1" class="bg-emerald-600 text-white text-sm px-4 py-2 rounded-lg font-medium">Export</span>
+    </header>
+    <div class="grid grid-cols-12 px-8 py-3 text-xs font-semibold text-gray-400 uppercase border-b border-gray-100">
+      <span class="col-span-3">Order</span><span class="col-span-4">Customer</span><span class="col-span-2">Status</span><span class="col-span-3 text-right">Total</span>
+    </div>
+    <ul class="flex-1 divide-y divide-gray-100">
+      <li class="grid grid-cols-12 items-center px-8 py-4">
+        <span class="col-span-3 font-mono text-sm text-gray-700">#10482</span>
+        <div class="col-span-4 flex items-center gap-3"><div class="w-9 h-9 rounded-full bg-pink-200 text-pink-700 flex items-center justify-center text-sm font-bold">JC</div><span class="text-sm text-gray-800">Jordan Cole</span></div>
+        <span class="col-span-2"><span class="text-xs px-2 py-1 rounded-full bg-emerald-100 text-emerald-700">Shipped</span></span>
+        <span class="col-span-3 text-right font-semibold text-gray-900">$129.00</span>
+      </li>
+      <li class="grid grid-cols-12 items-center px-8 py-4">
+        <span class="col-span-3 font-mono text-sm text-gray-700">#10481</span>
+        <div class="col-span-4 flex items-center gap-3"><div class="w-9 h-9 rounded-full bg-cyan-200 text-cyan-700 flex items-center justify-center text-sm font-bold">MR</div><span class="text-sm text-gray-800">Mia Reyes</span></div>
+        <span class="col-span-2"><span class="text-xs px-2 py-1 rounded-full bg-amber-100 text-amber-700">Pending</span></span>
+        <span class="col-span-3 text-right font-semibold text-gray-900">$54.99</span>
+      </li>
+      <li class="grid grid-cols-12 items-center px-8 py-4">
+        <span class="col-span-3 font-mono text-sm text-gray-700">#10480</span>
+        <div class="col-span-4 flex items-center gap-3"><div class="w-9 h-9 rounded-full bg-lime-200 text-lime-700 flex items-center justify-center text-sm font-bold">EK</div><span class="text-sm text-gray-800">Ethan Kim</span></div>
+        <span class="col-span-2"><span class="text-xs px-2 py-1 rounded-full bg-emerald-100 text-emerald-700">Shipped</span></span>
+        <span class="col-span-3 text-right font-semibold text-gray-900">$312.50</span>
+      </li>
+      <li class="grid grid-cols-12 items-center px-8 py-4">
+        <span class="col-span-3 font-mono text-sm text-gray-700">#10479</span>
+        <div class="col-span-4 flex items-center gap-3"><div class="w-9 h-9 rounded-full bg-orange-200 text-orange-700 flex items-center justify-center text-sm font-bold">PD</div><span class="text-sm text-gray-800">Priya Das</span></div>
+        <span class="col-span-2"><span class="text-xs px-2 py-1 rounded-full bg-rose-100 text-rose-700">Cancelled</span></span>
+        <span class="col-span-3 text-right font-semibold text-gray-900">$78.20</span>
+      </li>
+      <li class="grid grid-cols-12 items-center px-8 py-4">
+        <span class="col-span-3 font-mono text-sm text-gray-700">#10478</span>
+        <div class="col-span-4 flex items-center gap-3"><div class="w-9 h-9 rounded-full bg-indigo-200 text-indigo-700 flex items-center justify-center text-sm font-bold">LW</div><span class="text-sm text-gray-800">Liam Walsh</span></div>
+        <span class="col-span-2"><span data-changed="true" data-region-id="region-2" class="text-xs px-2 py-1 rounded-full bg-sky-100 text-sky-700">Shipped</span></span>
+        <span class="col-span-3 text-right font-semibold text-gray-900">$199.99</span>
+      </li>
+      <li class="grid grid-cols-12 items-center px-8 py-4">
+        <span class="col-span-3 font-mono text-sm text-gray-700">#10477</span>
+        <div class="col-span-4 flex items-center gap-3"><div class="w-9 h-9 rounded-full bg-teal-200 text-teal-700 flex items-center justify-center text-sm font-bold">AN</div><span class="text-sm text-gray-800">Aria Novak</span></div>
+        <span class="col-span-2"><span class="text-xs px-2 py-1 rounded-full bg-amber-100 text-amber-700">Pending</span></span>
+        <span class="col-span-3 text-right font-semibold text-gray-900">$42.00</span>
+      </li>
+    </ul>
+  </div>
+</div>
+</body>
+</html>

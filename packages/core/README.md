@@ -2,12 +2,12 @@
 
 <div align="center">
 
-[![npm bundle size](https://img.shields.io/npm/unpacked-size/%40blazediff%2Fcore)](https://www.npmjs.com/package/@blazediff/core)
-[![NPM Downloads](https://img.shields.io/npm/dy/%40blazediff%2Fcore)](https://www.npmjs.com/package/@blazediff/core)
+[![npm bundle size](https://img.shields.io/npm/unpacked-size/%40blazediff%2Fcore?style=for-the-badge)](https://www.npmjs.com/package/@blazediff/core)
+[![NPM Downloads](https://img.shields.io/npm/dy/%40blazediff%2Fcore?style=for-the-badge)](https://www.npmjs.com/package/@blazediff/core)
 
 </div>
 
-High-performance pixel-by-pixel image comparison with two-pass block-based optimization and YIQ perceptual color difference. Up to 90% faster than pixelmatch on identical images, ~82% median improvement overall.
+High-performance pixel-by-pixel image comparison with two-pass block-based optimization and YIQ perceptual color difference. Up to 91% faster than pixelmatch on identical images, ~62% average improvement overall.
 
 **Features:**
 - YIQ color space for perceptual color difference
@@ -171,19 +171,19 @@ See [FORMULA.md](./FORMULA.md) for detailed mathematical formulas and algorithm 
 
 ## Performance
 
-> **Median: 82%** | Arithmetic mean: 65% | Weighted average: 42%
+> **Average: ~62%** | Median: ~85% | Best case (identical): up to 91%
 
-Benchmarked against pixelmatch across various image sizes (50 iterations, 5 warmup):
+Benchmarked against pixelmatch across 34 fixtures (50 iterations, 5 warmup) on Apple M1 Max with Node.js 22. Full numbers in the root [BENCHMARKS.md](https://github.com/teimurjan/blazediff/blob/main/BENCHMARKS.md).
 
 | Benchmark | Pixelmatch | BlazeDiff | Improvement |
 |-----------|------------|-----------|-------------|
-| 4k/1 (5600×3200) | 302ms | 212ms | **30%** |
-| 4k/1 (identical) | 19ms | 2.4ms | **88%** |
-| page/1 (3598×16384) | 332ms | 93ms | **72%** |
-| page/1 (identical) | 63ms | 7.7ms | **88%** |
-| small images | 0.4-4ms | 0.1-2ms | **55-90%** |
+| 4k/1 (5600×3200) | 349.90ms | 172.60ms | **50.7%** |
+| 4k/1 (identical) | 21.47ms | 3.52ms | **83.6%** |
+| page/1 (3598×16384) | 147.00ms | 94.64ms | **35.6%** |
+| page/1 (identical) | 70.36ms | 7.77ms | **89.0%** |
+| small images | 0.2-4ms | 0.01-2ms | **30-91%** |
 
-The block-based optimization provides the most benefit on identical images (~88% faster) and images with large unchanged regions.
+The block-based optimization provides the most benefit on identical images (~85-91% faster) and images with large unchanged regions.
 
 ## References
 

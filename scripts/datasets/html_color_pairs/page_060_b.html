@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Welcome Tour</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 h-screen flex flex-col items-center justify-center font-sans px-8">
+  <div class="text-center mb-8">
+    <span data-changed="true" data-region-id="region-1" class="inline-block text-xs font-bold uppercase tracking-wider text-teal-600 bg-teal-50 px-3 py-1 rounded-full">Welcome aboard</span>
+    <h1 class="text-3xl font-bold text-slate-900 mt-3">Three things to try first</h1>
+    <p class="text-sm text-slate-500 mt-2">Get the most out of Northwind in your first session.</p>
+  </div>
+  <div class="grid grid-cols-3 gap-6 max-w-4xl w-full">
+    <div class="bg-white rounded-2xl border border-slate-200 p-6 text-center">
+      <div class="mx-auto w-14 h-14 rounded-2xl bg-sky-100 flex items-center justify-center mb-4">
+        <div class="w-7 h-7 rounded-lg bg-sky-500"></div>
+      </div>
+      <h2 class="text-base font-semibold text-slate-800">Import your data</h2>
+      <p class="text-xs text-slate-500 mt-1 leading-relaxed">Bring in contacts and deals from a CSV or another CRM.</p>
+    </div>
+    <div class="bg-white rounded-2xl border border-slate-200 p-6 text-center">
+      <div data-changed="true" data-region-id="region-2" class="mx-auto w-14 h-14 rounded-2xl bg-amber-100 flex items-center justify-center mb-4">
+        <div class="w-7 h-7 rounded-lg bg-pink-500"></div>
+      </div>
+      <h2 class="text-base font-semibold text-slate-800">Build a pipeline</h2>
+      <p class="text-xs text-slate-500 mt-1 leading-relaxed">Set up stages that match how your team closes deals.</p>
+    </div>
+    <div class="bg-white rounded-2xl border border-slate-200 p-6 text-center">
+      <div class="mx-auto w-14 h-14 rounded-2xl bg-emerald-100 flex items-center justify-center mb-4">
+        <div class="w-7 h-7 rounded-lg bg-emerald-500"></div>
+      </div>
+      <h2 class="text-base font-semibold text-slate-800">Invite your team</h2>
+      <p class="text-xs text-slate-500 mt-1 leading-relaxed">Add colleagues so everyone stays in sync.</p>
+    </div>
+  </div>
+  <button type="button" data-changed="true" data-region-id="region-3" class="mt-8 bg-cyan-600 text-white text-sm font-semibold px-8 py-3 rounded-xl hover:bg-indigo-700">Start the tour</button>
+</body>
+</html>

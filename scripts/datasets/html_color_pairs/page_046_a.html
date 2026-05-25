@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280, height=800">
+<title>Blog Post</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-white w-[1280px] h-[800px] overflow-hidden font-sans">
+<div class="grid grid-cols-3 h-full">
+<aside data-changed="true" data-region-id="region-1" class="col-span-1 bg-indigo-950 text-indigo-100 p-10 flex flex-col justify-between">
+<div>
+<div class="h-14 w-14 rounded-xl bg-indigo-400 mb-8"></div>
+<h2 class="text-sm uppercase tracking-widest text-indigo-300">Engineering</h2>
+<h1 class="text-4xl font-bold mt-4 leading-tight">Designing for Failure: A Resilience Playbook</h1>
+<p class="mt-6 text-indigo-300 text-sm">April 2, 2026 · Devon Park</p>
+</div>
+<div class="flex items-center gap-3">
+<div class="h-10 w-10 rounded-full bg-indigo-500"></div>
+<span class="text-indigo-200 text-sm">Staff Engineer, Platform</span>
+</div>
+</aside>
+<main class="col-span-2 p-12 overflow-hidden">
+<p class="text-xl text-slate-700 leading-relaxed">Every system fails. The question is never whether but how gracefully — and whether your users ever notice.</p>
+<p class="mt-5 text-slate-600 leading-relaxed">We rebuilt our payment gateway around the assumption that any dependency can vanish at any moment. Circuit breakers, bulkheads, and aggressive timeouts became the default, not the exception.</p>
+<p class="mt-5 text-slate-600 leading-relaxed">The result was counterintuitive: by planning for collapse, we shipped faster. Engineers stopped fearing deploys because the blast radius of any single fault was provably contained.</p>
+<div class="mt-8 p-6 rounded-xl bg-amber-50 border-l-4 border-amber-400">
+<p class="text-amber-900 italic">"Resilience isn't the absence of failure. It's the presence of recovery."</p>
+</div>
+<div class="flex gap-3 mt-8">
+<span class="px-3 py-1 rounded bg-slate-100 text-slate-600 text-sm">Reliability</span>
+<span class="px-3 py-1 rounded bg-slate-100 text-slate-600 text-sm">Architecture</span>
+</div>
+</main>
+</div>
+</body>
+</html>

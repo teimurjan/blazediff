@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Subscription tiers</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-neutral-50 h-screen w-screen overflow-hidden flex items-center justify-center font-sans">
+  <div class="w-full max-w-3xl px-8">
+    <h1 class="text-2xl font-bold text-neutral-900 mb-1">Manage subscription</h1>
+    <p class="text-neutral-500 mb-6">You're currently on the Pro tier.</p>
+    <div class="space-y-4">
+      <div class="flex items-center justify-between rounded-xl bg-white border border-neutral-200 p-5">
+        <div class="flex items-center gap-4">
+          <div class="h-11 w-11 rounded-lg bg-neutral-100 flex items-center justify-center text-neutral-500 font-bold">B</div>
+          <div>
+            <p class="font-semibold text-neutral-900">Basic</p>
+            <p class="text-sm text-neutral-500">For trying things out</p>
+          </div>
+        </div>
+        <div class="text-right">
+          <p class="font-bold text-neutral-900">$0<span class="text-sm font-normal text-neutral-400">/mo</span></p>
+          <button class="mt-1 text-sm font-medium text-neutral-500 hover:text-neutral-700">Downgrade</button>
+        </div>
+      </div>
+      <div class="flex items-center justify-between rounded-xl bg-white border-2 border-blue-500 p-5">
+        <div class="flex items-center gap-4">
+          <div data-changed="true" data-region-id="region-1" class="h-11 w-11 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold">P</div>
+          <div>
+            <p class="font-semibold text-neutral-900">Pro <span class="ml-2 text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">Current</span></p>
+            <p class="text-sm text-neutral-500">For professionals</p>
+          </div>
+        </div>
+        <div class="text-right">
+          <p class="font-bold text-neutral-900">$22<span class="text-sm font-normal text-neutral-400">/mo</span></p>
+          <button class="mt-1 text-sm font-medium text-neutral-400">Active</button>
+        </div>
+      </div>
+      <div class="flex items-center justify-between rounded-xl bg-white border border-neutral-200 p-5">
+        <div class="flex items-center gap-4">
+          <div class="h-11 w-11 rounded-lg bg-neutral-100 flex items-center justify-center text-neutral-500 font-bold">E</div>
+          <div>
+            <p class="font-semibold text-neutral-900">Elite</p>
+            <p class="text-sm text-neutral-500">For power users</p>
+          </div>
+        </div>
+        <div class="text-right">
+          <p class="font-bold text-neutral-900">$58<span class="text-sm font-normal text-neutral-400">/mo</span></p>
+          <button data-changed="true" data-region-id="region-2" class="mt-1 text-sm font-semibold text-blue-600 hover:text-blue-700">Upgrade</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

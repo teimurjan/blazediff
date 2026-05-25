@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280, height=800">
+<title>Notifications</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900">
+<div class="w-[1280px] h-[800px] flex items-center justify-center p-8">
+  <div class="w-[760px] bg-slate-800 rounded-2xl border border-slate-700 overflow-hidden">
+    <header class="px-7 py-5 border-b border-slate-700 flex items-center justify-between">
+      <h1 class="text-lg font-bold text-white">Notifications</h1>
+      <span data-changed="true" data-region-id="region-1" class="text-xs bg-rose-500 text-white px-2.5 py-1 rounded-full font-semibold">7 new</span>
+    </header>
+    <ul class="divide-y divide-slate-700">
+      <li class="flex items-start gap-4 px-7 py-4 hover:bg-slate-750">
+        <div class="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center text-white font-bold shrink-0">✓</div>
+        <div class="flex-1"><p class="text-slate-100"><span class="font-semibold">Deploy succeeded</span> — production build v2.4.0</p><p class="text-xs text-slate-400 mt-0.5">2 minutes ago</p></div>
+      </li>
+      <li class="flex items-start gap-4 px-7 py-4 hover:bg-slate-750">
+        <div class="w-10 h-10 rounded-full bg-sky-500 flex items-center justify-center text-white font-bold shrink-0">@</div>
+        <div class="flex-1"><p class="text-slate-100"><span class="font-semibold">Theo Knight</span> mentioned you in #engineering</p><p class="text-xs text-slate-400 mt-0.5">18 minutes ago</p></div>
+      </li>
+      <li class="flex items-start gap-4 px-7 py-4 hover:bg-slate-750">
+        <div data-changed="true" data-region-id="region-2" class="w-10 h-10 rounded-full bg-amber-500 flex items-center justify-center text-white font-bold shrink-0">!</div>
+        <div class="flex-1"><p class="text-slate-100"><span class="font-semibold">Storage at 82%</span> — consider upgrading your plan</p><p class="text-xs text-slate-400 mt-0.5">1 hour ago</p></div>
+      </li>
+      <li class="flex items-start gap-4 px-7 py-4 hover:bg-slate-750">
+        <div class="w-10 h-10 rounded-full bg-violet-500 flex items-center justify-center text-white font-bold shrink-0">★</div>
+        <div class="flex-1"><p class="text-slate-100"><span class="font-semibold">Rhea Patel</span> starred your repository</p><p class="text-xs text-slate-400 mt-0.5">3 hours ago</p></div>
+      </li>
+      <li class="flex items-start gap-4 px-7 py-4 hover:bg-slate-750">
+        <div class="w-10 h-10 rounded-full bg-pink-500 flex items-center justify-center text-white font-bold shrink-0">↻</div>
+        <div class="flex-1"><p class="text-slate-100"><span class="font-semibold">New comment</span> on pull request #218</p><p class="text-xs text-slate-400 mt-0.5">5 hours ago</p></div>
+      </li>
+      <li class="flex items-start gap-4 px-7 py-4 hover:bg-slate-750">
+        <div class="w-10 h-10 rounded-full bg-red-500 flex items-center justify-center text-white font-bold shrink-0">✕</div>
+        <div class="flex-1"><p class="text-slate-100"><span class="font-semibold">Build failed</span> on branch feature/search</p><p class="text-xs text-slate-400 mt-0.5">Yesterday</p></div>
+      </li>
+      <li class="flex items-start gap-4 px-7 py-4 hover:bg-slate-750">
+        <div class="w-10 h-10 rounded-full bg-teal-500 flex items-center justify-center text-white font-bold shrink-0">↑</div>
+        <div class="flex-1"><p class="text-slate-100"><span class="font-semibold">Invoice paid</span> — March 2026 subscription</p><p class="text-xs text-slate-400 mt-0.5">Yesterday</p></div>
+      </li>
+    </ul>
+    <footer class="px-7 py-4 border-t border-slate-700">
+      <button data-changed="true" data-region-id="region-3" class="w-full bg-indigo-600 text-white py-2 rounded-lg font-medium">Mark all as read</button>
+    </footer>
+  </div>
+</div>
+</body>
+</html>

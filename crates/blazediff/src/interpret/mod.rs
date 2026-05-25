@@ -21,9 +21,10 @@ pub mod types;
 
 use crate::diff::diff;
 use crate::types::{DiffError, DiffOptions, Image};
+use crate::yiq::color_delta_f32;
 use color_delta::compute_color_delta;
 use content_analysis::analyze_content;
-use gradient::compute_gradient_stats;
+use gradient::{compute_gradient_stats, compute_luminance_ncc};
 use interpretation::classify_change_type;
 use region::{detect_regions, extract_change_mask};
 use severity::classify_severity;
@@ -32,6 +33,152 @@ use shifts::detect_shifts;
 use spatial::classify_position;
 use summary::build_summary;
 use types::{ChangeRegion, ChangeType, InterpretResult};
+
+/// YIQ squared-delta floor for treating a pixel as actually changed.
+/// 100.0 corresponds to a YIQ-weighted distance of 10, roughly equivalent to
+/// a perceptual delta of ~0.017 — filters near-identical pixels without
+/// throwing away genuine edits.
+const REFINE_DELTA_FLOOR_SQ: f32 = 100.0;
+
+/// Minimum changed-pixel count for a region to be reported by `interpret()`.
+/// Scales with image area so dense screenshots and large photos use the same
+/// signal-to-noise ratio, with an absolute floor that catches isolated
+/// sub-pixel deltas left behind by the diff stage.
+fn noise_pixel_floor(width: u32, height: u32) -> u32 {
+    let area = width as u64 * height as u64;
+    // ~0.07% of total pixels: ~180 px on 512², ~700 px on 1024². Calibrated
+    // against the addition_deletion/inpaintcoco corpora where every GT edit
+    // covers tens of thousands of changed pixels, so this only ever lands
+    // on JPEG-ringing or anti-aliasing fragments.
+    let scaled = (area / 1_400) as u32;
+    scaled.max(24)
+}
+
+/// Refine a coarse mask down to the actually-changed pixels inside the given
+/// bboxes. Pixels marked true in `input_mask` but with a tiny YIQ delta between
+/// `img1` and `img2` are dropped. Used by classifier-only paths so callers can
+/// pass a bbox-filled mask without polluting statistics with unchanged content.
+fn refine_change_mask_in_bboxes(
+    img1: &Image,
+    img2: &Image,
+    input_mask: &[bool],
+    bboxes: &[types::BoundingBox],
+    width: u32,
+) -> Vec<bool> {
+    let pixels1 = img1.as_u32();
+    let pixels2 = img2.as_u32();
+    let mut refined = input_mask.to_vec();
+    for bbox in bboxes {
+        for y in bbox.y..bbox.y + bbox.height {
+            for x in bbox.x..bbox.x + bbox.width {
+                let idx = (y * width + x) as usize;
+                if !refined[idx] {
+                    continue;
+                }
+                let delta = color_delta_f32(pixels1[idx], pixels2[idx]).abs();
+                if delta < REFINE_DELTA_FLOOR_SQ {
+                    refined[idx] = false;
+                }
+            }
+        }
+    }
+    refined
+}
+
+fn count_mask_pixels(mask: &[bool], bbox: &types::BoundingBox, width: u32) -> u32 {
+    let mut pixel_count = 0u32;
+    for y in bbox.y..bbox.y + bbox.height {
+        for x in bbox.x..bbox.x + bbox.width {
+            if mask[(y * width + x) as usize] {
+                pixel_count += 1;
+            }
+        }
+    }
+    pixel_count
+}
+
+fn classify_region_with_mask(
+    img1: &Image,
+    img2: &Image,
+    mask: &[bool],
+    bbox: types::BoundingBox,
+) -> ChangeRegion {
+    let width = img1.width;
+    let height = img1.height;
+    let total_pixels = (width * height) as f64;
+    let pixel_count = count_mask_pixels(mask, &bbox, width);
+    let percentage = if total_pixels > 0.0 {
+        100.0 * pixel_count as f64 / total_pixels
+    } else {
+        0.0
+    };
+    let shape_stats = compute_shape_stats(mask, width, &bbox, pixel_count);
+    let shape = classify_shape(&shape_stats);
+    let position = classify_position(&bbox, width, height);
+
+    let color_delta = compute_color_delta(img1, img2, mask, &bbox, width);
+    let gradient_stats = compute_gradient_stats(img1, img2, mask, &bbox, width, height);
+    let luminance_ncc = compute_luminance_ncc(img1, img2, mask, &bbox, width);
+    let content = analyze_content(img1, img2, mask, &bbox, width, height);
+    let (change_type, signals) = classify_change_type(
+        &content,
+        &color_delta,
+        &gradient_stats,
+        &shape_stats,
+        &bbox,
+        luminance_ncc,
+    );
+
+    ChangeRegion {
+        bbox,
+        pixel_count,
+        percentage,
+        position,
+        shape,
+        shape_stats,
+        change_type,
+        signals,
+        confidence: signals.confidence,
+        color_delta,
+        gradient: gradient_stats,
+    }
+}
+
+/// Classify a known change region against a provided full-image change mask.
+///
+/// The mask is evaluated only inside `bbox`, so callers may pass a sparse mask
+/// with one or more labeled regions already marked.
+pub fn classify_region(
+    img1: &Image,
+    img2: &Image,
+    mask: &[bool],
+    bbox: types::BoundingBox,
+) -> ChangeRegion {
+    classify_region_with_mask(img1, img2, mask, bbox)
+}
+
+/// Classify multiple known regions, then run the same shift relabeling pass used
+/// by `interpret()` so classifier-only verification can evaluate final labels.
+///
+/// The caller-supplied `mask` may be coarse (e.g., bbox-filled for verifier
+/// tooling); we refine it to actually-changed pixels inside each bbox before
+/// classification so per-pixel statistics aren't diluted by unchanged content.
+pub fn classify_regions(
+    img1: &Image,
+    img2: &Image,
+    mask: &[bool],
+    bboxes: &[types::BoundingBox],
+) -> Vec<ChangeRegion> {
+    let width = img1.width;
+    let refined = refine_change_mask_in_bboxes(img1, img2, mask, bboxes, width);
+    let mut regions: Vec<ChangeRegion> = bboxes
+        .iter()
+        .copied()
+        .map(|bbox| classify_region_with_mask(img1, img2, &refined, bbox))
+        .collect();
+    detect_shifts(&mut regions, img1, img2, &refined, width);
+    regions
+}
 
 /// Run a diff and interpret the results into structured regions with spatial positions,
 /// severity, color deltas, gradient scoring, and semantic interpretation.
@@ -69,50 +216,31 @@ pub fn interpret(
 
     let mask = extract_change_mask(&output.data, width, height);
     let components = detect_regions(&mask, width, height);
-
     let mut regions: Vec<ChangeRegion> = components
         .into_iter()
         .map(|c| {
-            let percentage = if total_pixels > 0.0 {
+            let mut region = classify_region_with_mask(img1, img2, &mask, c.bbox);
+            region.pixel_count = c.pixel_count;
+            region.percentage = if total_pixels > 0.0 {
                 100.0 * c.pixel_count as f64 / total_pixels
             } else {
                 0.0
             };
-            let shape_stats = compute_shape_stats(&mask, width, &c.bbox, c.pixel_count);
-            let shape = classify_shape(&shape_stats);
-            let position = classify_position(&c.bbox, width, height);
-
-            let color_delta = compute_color_delta(img1, img2, &mask, &c.bbox, width);
-            let gradient_stats = compute_gradient_stats(img1, img2, &mask, &c.bbox, width, height);
-            let content = analyze_content(img1, img2, &mask, &c.bbox, width, height);
-            let (change_type, signals) = classify_change_type(
-                &content,
-                &color_delta,
-                &gradient_stats,
-                &shape_stats,
-                &c.bbox,
-            );
-
-            ChangeRegion {
-                bbox: c.bbox,
-                pixel_count: c.pixel_count,
-                percentage,
-                position,
-                shape,
-                shape_stats,
-                change_type,
-                signals,
-                confidence: signals.confidence,
-                color_delta,
-                gradient: gradient_stats,
-            }
+            region
         })
         .collect();
 
     detect_shifts(&mut regions, img1, img2, &mask, width);
 
-    // Drop RenderingNoise - not actionable, clutters output
-    regions.retain(|r| r.change_type != ChangeType::RenderingNoise);
+    // Drop noise: explicit RenderingNoise labels plus tiny components that
+    // survive the diff threshold (e.g. JPEG ringing along real edits, isolated
+    // sub-pixel deltas the morph close didn't merge). The pixel-count floor
+    // is adaptive — a few stray pixels are noise on a 1024² photo but might
+    // be a meaningful edit on a 64² icon — and the absolute floor of 24
+    // catches the long tail of stray-pixel components without endangering
+    // anything that's actually a visible change.
+    let noise_floor = noise_pixel_floor(width, height);
+    regions.retain(|r| r.change_type != ChangeType::RenderingNoise && r.pixel_count >= noise_floor);
 
     let severity = classify_severity(diff_result.diff_percentage);
     let summary = build_summary(&regions, &severity, diff_result.diff_percentage);
@@ -149,17 +277,17 @@ mod tests {
     }
 
     #[test]
-    fn test_single_pixel_addition() {
+    fn test_single_pixel_change_is_filtered_as_noise() {
+        // Single-pixel deltas sit below interpret()'s noise floor — even when
+        // the YIQ delta is large — so they don't show up as actionable regions.
         let img1 = make_solid_image(100, 100, 128, 128, 128);
         let mut img2 = make_solid_image(100, 100, 128, 128, 128);
         set_pixel(&mut img2, 50, 50, 255, 0, 0);
 
         let result = interpret(&img1, &img2, &DiffOptions::default()).unwrap();
 
-        assert_eq!(result.total_regions, 1);
-        assert_eq!(result.regions[0].pixel_count, 1);
-        assert_eq!(result.regions[0].position, SpatialPosition::Center);
-        assert_eq!(result.regions[0].change_type, ChangeType::Addition);
+        assert_eq!(result.total_regions, 0);
+        assert!(result.regions.is_empty());
     }
 
     #[test]

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280, height=800">
+<title>Inbox</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100">
+<div class="w-[1280px] h-[800px] flex">
+  <aside class="w-64 bg-slate-900 text-slate-300 flex flex-col p-4">
+    <div class="flex items-center gap-2 mb-6">
+      <div class="w-9 h-9 rounded-lg bg-indigo-500 flex items-center justify-center text-white font-bold">M</div>
+      <span class="text-white font-semibold text-lg">Mailbox</span>
+    </div>
+    <button data-changed="true" data-region-id="region-1" class="bg-indigo-600 text-white rounded-lg py-2 px-4 font-medium mb-6">Compose</button>
+    <nav class="flex flex-col gap-1 text-sm">
+      <a class="flex items-center justify-between px-3 py-2 rounded-md bg-slate-800 text-white">Inbox <span class="bg-indigo-500 text-white text-xs px-2 rounded-full">12</span></a>
+      <a class="px-3 py-2 rounded-md hover:bg-slate-800">Starred</a>
+      <a class="px-3 py-2 rounded-md hover:bg-slate-800">Sent</a>
+      <a class="px-3 py-2 rounded-md hover:bg-slate-800">Drafts</a>
+      <a class="px-3 py-2 rounded-md hover:bg-slate-800">Archive</a>
+      <a class="px-3 py-2 rounded-md hover:bg-slate-800">Trash</a>
+    </nav>
+  </aside>
+  <main class="flex-1 bg-white flex flex-col">
+    <header class="h-16 border-b border-slate-200 flex items-center justify-between px-6">
+      <h1 class="text-xl font-semibold text-slate-800">Inbox</h1>
+      <span class="text-sm text-slate-500">March 14, 2026</span>
+    </header>
+    <ul class="flex-1 divide-y divide-slate-100 overflow-hidden">
+      <li class="flex items-center gap-4 px-6 py-4 hover:bg-slate-50">
+        <div class="w-10 h-10 rounded-full bg-rose-200 text-rose-700 flex items-center justify-center font-semibold">AL</div>
+        <div class="flex-1 min-w-0"><p class="font-semibold text-slate-800">Amelia Lawson</p><p class="text-sm text-slate-500 truncate">Q1 budget review — can we sync before Friday?</p></div>
+        <span class="text-xs text-slate-400">9:42 AM</span>
+      </li>
+      <li class="flex items-center gap-4 px-6 py-4 hover:bg-slate-50">
+        <div class="w-10 h-10 rounded-full bg-emerald-200 text-emerald-700 flex items-center justify-center font-semibold">TK</div>
+        <div class="flex-1 min-w-0"><p class="font-semibold text-slate-800">Theo Knight</p><p class="text-sm text-slate-500 truncate">Re: Onboarding deck feedback attached</p></div>
+        <span class="text-xs text-slate-400">8:17 AM</span>
+      </li>
+      <li class="flex items-center gap-4 px-6 py-4 hover:bg-slate-50">
+        <div class="w-10 h-10 rounded-full bg-amber-200 text-amber-700 flex items-center justify-center font-semibold">RP</div>
+        <div class="flex-1 min-w-0"><p class="font-medium text-slate-700">Rhea Patel</p><p class="text-sm text-slate-500 truncate">Invoice #4821 is ready for download</p></div>
+        <span class="text-xs text-slate-400">Yesterday</span>
+      </li>
+      <li class="flex items-center gap-4 px-6 py-4 hover:bg-slate-50">
+        <div class="w-10 h-10 rounded-full bg-sky-200 text-sky-700 flex items-center justify-center font-semibold">DM</div>
+        <div class="flex-1 min-w-0"><p class="font-medium text-slate-700">Diego Morales</p><p class="text-sm text-slate-500 truncate">Lunch next week? I'm free Tuesday</p></div>
+        <span class="text-xs text-slate-400">Mar 12</span>
+      </li>
+      <li class="flex items-center gap-4 px-6 py-4 hover:bg-slate-50">
+        <div class="w-10 h-10 rounded-full bg-violet-200 text-violet-700 flex items-center justify-center font-semibold">SY</div>
+        <div class="flex-1 min-w-0"><p class="font-medium text-slate-700">Sara Yang</p><p class="text-sm text-slate-500 truncate">Design system v2 shipped to staging</p></div>
+        <span class="text-xs text-slate-400">Mar 11</span>
+      </li>
+      <li class="flex items-center gap-4 px-6 py-4 hover:bg-slate-50">
+        <div class="w-10 h-10 rounded-full bg-teal-200 text-teal-700 flex items-center justify-center font-semibold">NB</div>
+        <div class="flex-1 min-w-0"><p class="font-medium text-slate-700">Noah Brooks</p><p class="text-sm text-slate-500 truncate">Weekly report: traffic up 14%</p></div>
+        <span class="text-xs text-slate-400">Mar 10</span>
+      </li>
+    </ul>
+  </main>
+</div>
+</body>
+</html>

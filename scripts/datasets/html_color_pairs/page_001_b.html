@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pricing</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 h-screen w-screen overflow-hidden flex items-center justify-center font-sans">
+  <div class="w-full max-w-6xl px-8">
+    <div class="text-center mb-10">
+      <p class="text-sm font-semibold uppercase tracking-widest text-indigo-600 mb-2">Pricing</p>
+      <h1 class="text-3xl font-bold text-slate-900">Simple plans for every team</h1>
+      <p class="text-slate-500 mt-2">No hidden fees. Cancel anytime.</p>
+    </div>
+    <div class="grid grid-cols-3 gap-6">
+      <div class="bg-white rounded-2xl border border-slate-200 p-7 shadow-sm">
+        <h2 class="text-lg font-semibold text-slate-800">Starter</h2>
+        <p class="text-slate-500 text-sm mt-1">For individuals getting started</p>
+        <p class="mt-5 text-4xl font-bold text-slate-900">$9<span class="text-base font-medium text-slate-400">/mo</span></p>
+        <ul class="mt-6 space-y-3 text-sm text-slate-600">
+          <li>5 projects</li>
+          <li>2 GB storage</li>
+          <li>Community support</li>
+        </ul>
+        <button class="mt-7 w-full rounded-lg bg-slate-100 text-slate-700 font-medium py-2.5 hover:bg-slate-200">Choose Starter</button>
+      </div>
+      <div class="bg-white rounded-2xl border-2 border-indigo-500 p-7 shadow-lg relative">
+        <span class="absolute -top-3 left-1/2 -translate-x-1/2 bg-indigo-600 text-white text-xs font-semibold px-3 py-1 rounded-full">Most popular</span>
+        <h2 class="text-lg font-semibold text-slate-800">Pro</h2>
+        <p class="text-slate-500 text-sm mt-1">For growing teams</p>
+        <p class="mt-5 text-4xl font-bold text-slate-900">$29<span class="text-base font-medium text-slate-400">/mo</span></p>
+        <ul class="mt-6 space-y-3 text-sm text-slate-600">
+          <li>Unlimited projects</li>
+          <li>50 GB storage</li>
+          <li>Priority support</li>
+        </ul>
+        <button data-changed="true" data-region-id="region-1" class="mt-7 w-full rounded-lg bg-emerald-600 text-white font-medium py-2.5 hover:bg-emerald-700">Choose Pro</button>
+      </div>
+      <div class="bg-white rounded-2xl border border-slate-200 p-7 shadow-sm">
+        <h2 class="text-lg font-semibold text-slate-800">Enterprise</h2>
+        <p class="text-slate-500 text-sm mt-1">For large organizations</p>
+        <p class="mt-5 text-4xl font-bold text-slate-900">$99<span class="text-base font-medium text-slate-400">/mo</span></p>
+        <ul class="mt-6 space-y-3 text-sm text-slate-600">
+          <li>SSO &amp; SAML</li>
+          <li>Unlimited storage</li>
+          <li>Dedicated manager</li>
+        </ul>
+        <button class="mt-7 w-full rounded-lg bg-slate-100 text-slate-700 font-medium py-2.5 hover:bg-slate-200">Contact sales</button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

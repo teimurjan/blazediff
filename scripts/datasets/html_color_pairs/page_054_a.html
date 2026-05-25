@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Notifications</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 h-screen flex font-sans">
+  <aside class="w-60 bg-slate-900 flex flex-col p-4">
+    <span class="text-white font-bold text-lg px-2">Pulse</span>
+    <nav class="mt-6 space-y-1 text-sm">
+      <div class="px-3 py-2 rounded-lg text-slate-300">Dashboard</div>
+      <div class="px-3 py-2 rounded-lg text-slate-300">Reports</div>
+      <div class="px-3 py-2 rounded-lg bg-slate-800 text-white font-medium">Notifications</div>
+      <div class="px-3 py-2 rounded-lg text-slate-300">Team</div>
+    </nav>
+  </aside>
+  <main class="flex-1 flex flex-col">
+    <header class="h-14 bg-white border-b border-slate-200 flex items-center px-6">
+      <h1 class="text-base font-semibold text-slate-900">Notifications</h1>
+    </header>
+    <div class="flex-1 flex items-center justify-center">
+      <div class="text-center max-w-sm">
+        <div class="mx-auto w-24 h-24 rounded-full bg-amber-100 flex items-center justify-center mb-5">
+          <div data-changed="true" data-region-id="region-1" class="w-12 h-12 rounded-2xl bg-amber-400"></div>
+        </div>
+        <h2 class="text-lg font-bold text-slate-900">You're all caught up</h2>
+        <p class="text-sm text-slate-500 mt-2">No new notifications right now. We'll let you know when something needs your attention.</p>
+        <button type="button" class="mt-5 text-sm font-semibold text-amber-600">Manage preferences</button>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

@@ -51,6 +51,14 @@ pub struct ClassificationSignals {
     pub sparse_fill: bool,
     pub tiny_region: bool,
     pub edges_correlated: bool,
+    /// Normalized cross-correlation of luminance across the changed pixels.
+    /// High values (~1.0) mean the structural pattern is preserved between
+    /// img1 and img2; near-zero values mean the structure was replaced.
+    pub luminance_ncc: f32,
+    /// Signed asymmetry between img2 and img1 edge density. Positive values
+    /// indicate img2 gained structure (additive), negative values indicate
+    /// img1 lost structure (deletion).
+    pub structure_asymmetry: f32,
     pub confidence: f32,
 }
 

@@ -12,6 +12,76 @@ fn luminance(pixel: u32) -> f32 {
     0.299 * r + 0.587 * g + 0.114 * b
 }
 
+/// Normalized cross-correlation of luminance values between img1 and img2 over
+/// the masked pixels inside `bbox`. Returns a value in `[-1.0, 1.0]` — high
+/// positive values mean the relative luminance pattern is preserved (structure
+/// kept) and the images differ mostly by a smooth recolor; near-zero values
+/// indicate the structure was replaced (content change). Returns `1.0` when
+/// fewer than two masked pixels are available, since NCC is undefined there.
+pub fn compute_luminance_ncc(
+    img1: &Image,
+    img2: &Image,
+    mask: &[bool],
+    bbox: &BoundingBox,
+    width: u32,
+) -> f32 {
+    let pixels1 = img1.as_u32();
+    let pixels2 = img2.as_u32();
+
+    let mut sum1 = 0.0f64;
+    let mut sum2 = 0.0f64;
+    let mut count: u32 = 0;
+
+    for y in bbox.y..bbox.y + bbox.height {
+        for x in bbox.x..bbox.x + bbox.width {
+            let idx = (y * width + x) as usize;
+            if !mask[idx] {
+                continue;
+            }
+            sum1 += luminance(pixels1[idx]) as f64;
+            sum2 += luminance(pixels2[idx]) as f64;
+            count += 1;
+        }
+    }
+
+    if count < 2 {
+        return 1.0;
+    }
+    let mean1 = sum1 / count as f64;
+    let mean2 = sum2 / count as f64;
+
+    let mut cov = 0.0f64;
+    let mut var1 = 0.0f64;
+    let mut var2 = 0.0f64;
+    for y in bbox.y..bbox.y + bbox.height {
+        for x in bbox.x..bbox.x + bbox.width {
+            let idx = (y * width + x) as usize;
+            if !mask[idx] {
+                continue;
+            }
+            let d1 = luminance(pixels1[idx]) as f64 - mean1;
+            let d2 = luminance(pixels2[idx]) as f64 - mean2;
+            cov += d1 * d2;
+            var1 += d1 * d1;
+            var2 += d2 * d2;
+        }
+    }
+
+    let var_eps = 1e-6;
+    if var1 <= var_eps && var2 <= var_eps {
+        // Both images are flat in this region: there is no luminance pattern
+        // to disagree on, so treat the pattern as trivially preserved.
+        return 1.0;
+    }
+    if var1 <= var_eps || var2 <= var_eps {
+        // One image is flat and the other has structure — the pattern is
+        // newly introduced or removed, not recolored, so NCC is zero.
+        return 0.0;
+    }
+    let denom = (var1 * var2).sqrt();
+    (cov / denom).clamp(-1.0, 1.0) as f32
+}
+
 /// Compute edge/gradient statistics for both images at the change region.
 ///
 /// Returns edge_score (img1), edge_score_img2 (img2), and edge_correlation

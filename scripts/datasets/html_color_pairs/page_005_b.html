@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Membership</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config = { theme: { extend: { colors: { brand: '#0d9488' } } } }</script>
+</head>
+<body class="bg-stone-100 h-screen w-screen overflow-hidden flex items-center justify-center font-sans">
+  <div class="w-full max-w-5xl px-8">
+    <div class="grid grid-cols-2 gap-10 items-center">
+      <div>
+        <span class="inline-block bg-brand/10 text-brand text-xs font-semibold px-3 py-1 rounded-full mb-4">Annual membership</span>
+        <h1 class="text-4xl font-bold text-stone-900 leading-tight">One price.<br>Everything unlocked.</h1>
+        <p class="text-stone-600 mt-4 max-w-sm">Get full access to every course, template, and live workshop for a full year.</p>
+        <div class="mt-6 flex items-center gap-3 text-sm text-stone-500">
+          <span class="flex items-center"><span class="text-brand mr-1.5">✓</span>Cancel anytime</span>
+          <span class="flex items-center"><span class="text-brand mr-1.5">✓</span>30-day refund</span>
+        </div>
+      </div>
+      <div class="rounded-2xl bg-white p-8 shadow-xl border border-stone-200">
+        <p class="text-stone-500 text-sm">Total due today</p>
+        <p data-changed="true" data-region-id="region-1" class="mt-1 text-5xl font-extrabold text-indigo-600">$199</p>
+        <p class="text-stone-400 text-sm mt-1 line-through">$348 if billed monthly</p>
+        <ul class="mt-6 space-y-2.5 text-sm text-stone-700">
+          <li class="flex items-center"><span class="text-emerald-500 mr-2">✓</span>120+ on-demand courses</li>
+          <li class="flex items-center"><span class="text-emerald-500 mr-2">✓</span>Monthly live workshops</li>
+          <li class="flex items-center"><span class="text-emerald-500 mr-2">✓</span>Private community access</li>
+          <li class="flex items-center"><span class="text-emerald-500 mr-2">✓</span>Completion certificates</li>
+        </ul>
+        <button class="mt-7 w-full rounded-lg bg-brand text-white font-semibold py-3 hover:opacity-90">Join for a year</button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

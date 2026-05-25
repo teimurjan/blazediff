@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280, height=800">
+<title>Tasks</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+<div class="w-[1280px] h-[800px] p-8">
+  <div class="max-w-3xl mx-auto bg-white rounded-2xl shadow-sm border border-gray-200 h-full flex flex-col">
+    <div class="px-8 py-6 border-b border-gray-100 flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900">Sprint 24 Tasks</h1>
+        <p class="text-sm text-gray-500 mt-1">4 of 12 tasks complete</p>
+      </div>
+      <button data-changed="true" data-region-id="region-1" class="bg-emerald-500 text-white px-5 py-2 rounded-lg font-medium">+ Add Task</button>
+    </div>
+    <div class="px-8 py-3 bg-gray-50 border-b border-gray-100">
+      <div class="w-full bg-gray-200 rounded-full h-2"><div class="bg-emerald-500 h-2 rounded-full w-1/3"></div></div>
+    </div>
+    <ul class="flex-1 divide-y divide-gray-100 px-2">
+      <li class="flex items-center gap-4 px-6 py-4">
+        <span class="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center text-white text-xs">✓</span>
+        <div class="flex-1"><p class="text-gray-400 line-through">Set up CI pipeline</p></div>
+        <span class="text-xs bg-gray-100 text-gray-500 px-2 py-1 rounded">DevOps</span>
+      </li>
+      <li class="flex items-center gap-4 px-6 py-4">
+        <span class="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center text-white text-xs">✓</span>
+        <div class="flex-1"><p class="text-gray-400 line-through">Draft API spec</p></div>
+        <span class="text-xs bg-gray-100 text-gray-500 px-2 py-1 rounded">Backend</span>
+      </li>
+      <li class="flex items-center gap-4 px-6 py-4">
+        <span class="w-5 h-5 rounded-full border-2 border-gray-300"></span>
+        <div class="flex-1"><p class="text-gray-800 font-medium">Implement auth flow</p><p class="text-xs text-gray-400">Due March 18, 2026</p></div>
+        <span class="text-xs bg-rose-100 text-rose-600 px-2 py-1 rounded">High</span>
+      </li>
+      <li class="flex items-center gap-4 px-6 py-4">
+        <span class="w-5 h-5 rounded-full border-2 border-gray-300"></span>
+        <div class="flex-1"><p class="text-gray-800 font-medium">Write integration tests</p><p class="text-xs text-gray-400">Due March 20, 2026</p></div>
+        <span class="text-xs bg-amber-100 text-amber-600 px-2 py-1 rounded">Medium</span>
+      </li>
+      <li class="flex items-center gap-4 px-6 py-4">
+        <span class="w-5 h-5 rounded-full border-2 border-gray-300"></span>
+        <div class="flex-1"><p class="text-gray-800 font-medium">Review PR #218</p><p class="text-xs text-gray-400">Due March 21, 2026</p></div>
+        <span class="text-xs bg-sky-100 text-sky-600 px-2 py-1 rounded">Low</span>
+      </li>
+      <li class="flex items-center gap-4 px-6 py-4">
+        <span class="w-5 h-5 rounded-full border-2 border-gray-300"></span>
+        <div class="flex-1"><p class="text-gray-800 font-medium">Update changelog</p><p class="text-xs text-gray-400">Due March 22, 2026</p></div>
+        <span class="text-xs bg-sky-100 text-sky-600 px-2 py-1 rounded">Low</span>
+      </li>
+    </ul>
+  </div>
+</div>
+</body>
+</html>

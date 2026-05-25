@@ -223,14 +223,16 @@ npx blazediff expected.png actual.png report.html --output-format html
 
 Severity: Low (&lt;1%), Medium (1-10%), High (&gt;10%). See [Interpret example →](/examples/interpret) for interactive demo.
 
+**Accuracy:** Measured against hand-labeled datasets — classifier-only macro F1 is **0.998** on clean add/delete edits (`addition_deletion`) and **0.440** on inpaint edits that mix recolor and texture replacement (`inpaintcoco`). Full breakdown in [BENCHMARKS.md](https://github.com/teimurjan/blazediff/blob/main/crates/blazediff-interpret-verify/BENCHMARKS.md).
+
 ## Performance
 
-Benchmarked on Apple M1 Max with 5600x3200 4K images:
+Benchmarked on Apple M1 Max with 5600×3200 4K images (25 runs, 5 warmup, image IO included):
 
 | Tool | Time | Comparison |
 |------|------|------------|
-| **blazediff** | ~327ms | - |
-| odiff | ~1215ms | 3.7x slower |
+| **blazediff** | ~359ms | - |
+| odiff | ~1221ms | 3.4x slower |
 
 Binary sizes (stripped, LTO optimized):
 

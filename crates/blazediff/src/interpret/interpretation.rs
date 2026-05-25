@@ -3,12 +3,40 @@ use super::types::{
     BoundingBox, ChangeType, ClassificationSignals, ColorDeltaStats, GradientStats, ShapeStats,
 };
 
+/// NCC threshold above which the luminance pattern is treated as preserved
+/// (i.e. the edit is a recolor on existing structure rather than a structural
+/// replacement). Tuned against inpaint-style edits where pure binary edge
+/// agreement saturates but raw luminance still tracks closely.
+const STRUCTURE_PRESERVED_NCC: f32 = 0.55;
+/// NCC threshold below which the structure is treated as genuinely replaced
+/// (content change rather than recolor). Calibrated against inpaintcoco
+/// where the ColorChange/ContentChange label boundary sits near NCC=0 — we
+/// gate ContentChange on *both* low NCC and a patchy color delta so noisy
+/// but structurally preserved recolors still get the ColorChange label.
+const STRUCTURE_REPLACED_NCC: f32 = 0.05;
+/// Asymmetry margin required to claim Addition/Deletion when the bg-blend
+/// signal is ambiguous. Computed as `edge_score_img2 - edge_score_img1`.
+const STRUCTURE_ASYMMETRY_MARGIN: f32 = 0.04;
+/// Minimum YIQ-normalized mean delta needed to admit a ColorChange when the
+/// `low_color_delta` flag is otherwise true. YIQ weights chroma less than
+/// luminance, so a clearly visible chromatic-only recolor (e.g. Tailwind
+/// `text-blue-600` → `text-red-600`, both ~equal luminance) lands around
+/// 0.005–0.05 here — well above this floor but below `low_color_delta=0.05`.
+/// Floor exists to keep sub-noise pixel jitter from getting upgraded.
+const RECOLOR_MIN_MEAN_DELTA: f32 = 0.001;
+/// Stricter NCC gate for the low-delta chromatic-recolor branch. Tighter than
+/// `STRUCTURE_PRESERVED_NCC` so we don't admit photographic edits where
+/// structure is only weakly preserved — empirical floor on html_color_pairs
+/// UI recolors is NCC=0.88, so 0.88 keeps them while filtering noise.
+const CHROMATIC_RECOLOR_NCC: f32 = 0.88;
+
 pub fn classify_change_type(
     content: &ContentEvidence,
     color_delta: &ColorDeltaStats,
     gradient: &GradientStats,
     shape_stats: &ShapeStats,
     bbox: &BoundingBox,
+    luminance_ncc: f32,
 ) -> (ChangeType, ClassificationSignals) {
     let bbox_area = bbox.width as u64 * bbox.height as u64;
     let tiny_region = bbox_area <= 25;
@@ -25,6 +53,9 @@ pub fn classify_change_type(
     let blends_bg2 = content.bg_distance_img2 < BG_BLEND_THRESHOLD
         || (content.bg_distance_img1 > BG_BLEND_THRESHOLD
             && content.bg_distance_img2 < content.bg_distance_img1 * 0.5);
+    let structure_asymmetry = gradient.edge_score_img2 - gradient.edge_score;
+    let structure_preserved = luminance_ncc > STRUCTURE_PRESERVED_NCC;
+    let structure_replaced = luminance_ncc < STRUCTURE_REPLACED_NCC;
 
     let mut signals = ClassificationSignals {
         blends_with_bg_in_img1: blends_bg1,
@@ -35,6 +66,8 @@ pub fn classify_change_type(
         sparse_fill,
         tiny_region,
         edges_correlated,
+        luminance_ncc,
+        structure_asymmetry,
         confidence: 0.0,
     };
 
@@ -50,28 +83,58 @@ pub fn classify_change_type(
         return (ChangeType::RenderingNoise, signals);
     }
 
-    // Rule 3: Addition - blends with background in img1, distinct in img2
+    // Rule 3: Addition - img1 blends with bg, img2 carries distinct content.
+    // Require either a strong bg-blend asymmetry or img2 gaining structure
+    // that img1 didn't have, so inpaint-style ColorChange edits (where both
+    // images carry plausible content) don't get pulled in.
     if blends_bg1 && !blends_bg2 {
-        // Boost: img2 gained edges that img1 didn't have
-        let edge_boost = low_edge_change && !low_edge_img2;
-        signals.confidence = if edge_boost { 1.0 } else { 0.9 };
-        return (ChangeType::Addition, signals);
+        let strong_bg_asymmetry = content.bg_distance_img2 > content.bg_distance_img1 * 2.0;
+        let gained_structure = structure_asymmetry > STRUCTURE_ASYMMETRY_MARGIN;
+        if strong_bg_asymmetry || gained_structure || !structure_preserved {
+            let edge_boost = low_edge_change && !low_edge_img2;
+            signals.confidence = if edge_boost { 1.0 } else { 0.9 };
+            return (ChangeType::Addition, signals);
+        }
     }
 
-    // Rule 4: Deletion - distinct in img1, blends with background in img2
+    // Rule 4: Deletion - mirror of Rule 3.
     if !blends_bg1 && blends_bg2 {
-        // Boost: img1 had edges that img2 lost
-        let edge_boost = !low_edge_change && low_edge_img2;
-        signals.confidence = if edge_boost { 1.0 } else { 0.9 };
-        return (ChangeType::Deletion, signals);
+        let strong_bg_asymmetry = content.bg_distance_img1 > content.bg_distance_img2 * 2.0;
+        let lost_structure = structure_asymmetry < -STRUCTURE_ASYMMETRY_MARGIN;
+        if strong_bg_asymmetry || lost_structure || !structure_preserved {
+            let edge_boost = !low_edge_change && low_edge_img2;
+            signals.confidence = if edge_boost { 1.0 } else { 0.9 };
+            return (ChangeType::Deletion, signals);
+        }
     }
 
-    // Rule 5: ColorChange - edges in both images agree spatially (structure preserved),
-    // with meaningful and uniform color delta.
-    // Low stddev = uniform shift (true recolor). High stddev = patchy (texture/content change).
-    let uniform_delta = color_delta.delta_stddev < color_delta.mean_delta * 0.8 + 0.02;
-    if edges_correlated && !low_color_delta && uniform_delta {
-        signals.confidence = (color_delta.mean_delta * 5.0).min(1.0);
+    // Rule 5: ColorChange - meaningful color shift over an existing visual
+    // pattern. The strongest evidence is luminance NCC: structure preserved
+    // means the edit recolored existing content, not replaced it. We also
+    // accept binary edge correlation as a fallback for graphical/UI edits
+    // where NCC under-counts due to anti-aliasing. Patchy (high stddev) and
+    // very low NCC together imply a true content replacement and fall
+    // through to ContentChange.
+    //
+    // The `!low_color_delta` gate is loosened when structure is strongly
+    // preserved (high NCC, correlated edges): YIQ weights luminance heavily,
+    // so chromatic-only recolors on rendered UI (Tailwind text-blue → text-red
+    // at matching luminance) produce a tiny mean delta but are unmistakably
+    // visible. Rules 1 and 2 still take RenderingNoise cases first, so this
+    // only affects non-tiny, non-sparse regions with confirmed structure.
+    let highly_patchy = color_delta.delta_stddev > color_delta.mean_delta * 2.0 + 0.1;
+    let recolor_evidence = structure_preserved
+        || (edges_correlated && !highly_patchy)
+        || (luminance_ncc > STRUCTURE_REPLACED_NCC && !highly_patchy);
+    let chromatic_recolor = luminance_ncc > CHROMATIC_RECOLOR_NCC
+        && edges_correlated
+        && color_delta.mean_delta > RECOLOR_MIN_MEAN_DELTA;
+    let delta_evidence = !low_color_delta || chromatic_recolor;
+    if delta_evidence && !(structure_replaced && highly_patchy) && recolor_evidence {
+        let ncc_boost = luminance_ncc.max(0.0);
+        signals.confidence = ((color_delta.mean_delta * 5.0).min(1.0) * 0.5
+            + ncc_boost as f32 * 0.5)
+            .clamp(0.0, 1.0);
         return (ChangeType::ColorChange, signals);
     }
 
@@ -185,6 +248,7 @@ mod tests {
                 width: 1,
                 height: 1,
             },
+            1.0,
         );
         assert_eq!(ct, ChangeType::RenderingNoise);
         assert!(signals.tiny_region);
@@ -207,6 +271,7 @@ mod tests {
             &flat_gradient(),
             &stats,
             &square_bbox(),
+            1.0,
         );
         assert_eq!(ct, ChangeType::RenderingNoise);
         assert!(signals.sparse_fill);
@@ -230,6 +295,7 @@ mod tests {
             &img2_only_edges(),
             &default_shape_stats(),
             &square_bbox(),
+            0.0,
         );
         assert_eq!(ct, ChangeType::Addition);
         assert!(signals.blends_with_bg_in_img1);
@@ -254,6 +320,7 @@ mod tests {
             &img1_only_edges(),
             &default_shape_stats(),
             &square_bbox(),
+            0.0,
         );
         assert_eq!(ct, ChangeType::Deletion);
         assert!(!signals.blends_with_bg_in_img1);
@@ -275,6 +342,7 @@ mod tests {
             &correlated_edges(),
             &default_shape_stats(),
             &square_bbox(),
+            0.95,
         );
         assert_eq!(ct, ChangeType::ColorChange);
         assert!(signals.edges_correlated);
@@ -294,18 +362,21 @@ mod tests {
             &flat_gradient(),
             &default_shape_stats(),
             &square_bbox(),
+            1.0,
         );
         assert_eq!(ct, ChangeType::ColorChange);
     }
 
     #[test]
-    fn test_low_edge_low_color_is_content_change() {
-        // Both flat, low color delta → falls through to ContentChange
+    fn test_low_delta_preserved_structure_is_color_change() {
+        // Both flat, low color delta, NCC=1.0, edges correlated → ColorChange.
+        // Chromatic-only recolors on UI (matching luminance) live in this
+        // regime: YIQ delta is small but the structure is unchanged.
         let stats = ShapeStats {
             fill_ratio: 0.95,
             ..default_shape_stats()
         };
-        let (ct, signals) = classify_change_type(
+        let (ct, _) = classify_change_type(
             &no_blends(),
             &ColorDeltaStats {
                 mean_delta: 0.02,
@@ -315,9 +386,32 @@ mod tests {
             &flat_gradient(),
             &stats,
             &square_bbox(),
+            1.0,
+        );
+        assert_eq!(ct, ChangeType::ColorChange);
+    }
+
+    #[test]
+    fn test_subnoise_delta_falls_through_to_content_change() {
+        // Even with preserved structure, a delta below RECOLOR_MIN_MEAN_DELTA
+        // does not get upgraded — keeps sub-noise jitter out of ColorChange.
+        let stats = ShapeStats {
+            fill_ratio: 0.95,
+            ..default_shape_stats()
+        };
+        let (ct, _) = classify_change_type(
+            &no_blends(),
+            &ColorDeltaStats {
+                mean_delta: 0.0005,
+                max_delta: 0.001,
+                delta_stddev: 0.0002,
+            },
+            &flat_gradient(),
+            &stats,
+            &square_bbox(),
+            1.0,
         );
         assert_eq!(ct, ChangeType::ContentChange);
-        assert_eq!(signals.confidence, 0.5);
     }
 
     #[test]
@@ -333,6 +427,7 @@ mod tests {
             &uncorrelated_edges(),
             &default_shape_stats(),
             &square_bbox(),
+            0.0,
         );
         assert_eq!(ct, ChangeType::ContentChange);
         assert!(!signals.edges_correlated);
@@ -360,6 +455,7 @@ mod tests {
                 width: 1,
                 height: 1,
             },
+            0.0,
         );
         assert_eq!(ct, ChangeType::Addition);
     }

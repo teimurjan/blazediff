@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280, height=800">
+<title>Remove member</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="w-[1280px] h-[800px] overflow-hidden">
+<div class="relative w-[1280px] h-[800px] bg-stone-100">
+<div class="absolute inset-0 p-12">
+<div class="text-xl font-bold text-stone-800">Team &middot; Engineering</div>
+<div class="mt-8 grid grid-cols-2 gap-6">
+<div class="h-40 rounded-2xl bg-white shadow-sm border border-stone-200"></div>
+<div class="h-40 rounded-2xl bg-white shadow-sm border border-stone-200"></div>
+</div>
+</div>
+<div class="absolute inset-0 bg-stone-900/60 flex items-center justify-center">
+<div class="w-[500px] rounded-2xl bg-white shadow-2xl">
+<div class="px-7 py-6 flex items-center gap-4 border-b border-stone-100">
+<div data-changed="true" data-region-id="region-1" class="flex items-center justify-center w-12 h-12 rounded-full bg-cyan-100 text-cyan-600 font-bold text-lg">JD</div>
+<div>
+<h2 class="text-lg font-semibold text-stone-900">Remove Jordan Diaz?</h2>
+<p class="text-sm text-stone-500">jordan.diaz@company.com</p>
+</div>
+</div>
+<div class="px-7 py-6">
+<p class="text-sm leading-relaxed text-stone-600">Jordan will immediately lose access to all repositories, pipelines, and shared secrets in this workspace. Their open pull requests will remain but become unassigned.</p>
+</div>
+<div class="px-7 py-4 bg-stone-50 rounded-b-2xl flex justify-end gap-3">
+<button class="px-4 py-2 rounded-lg text-sm font-medium text-stone-700 bg-white border border-stone-300">Cancel</button>
+<button data-changed="true" data-region-id="region-2" class="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-amber-600">Remove member</button>
+</div>
+</div>
+</div>
+</div>
+</body>
+</html>

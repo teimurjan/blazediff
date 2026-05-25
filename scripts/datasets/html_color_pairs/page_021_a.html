@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Create Account</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 h-screen flex items-center justify-center font-sans">
+  <div class="w-full max-w-md bg-white rounded-2xl shadow-xl border border-slate-200 p-8">
+    <div class="text-center mb-6">
+      <h1 class="text-2xl font-bold text-slate-900">Create your account</h1>
+      <p class="text-sm text-slate-500 mt-1">Start your 14-day free trial. No card required.</p>
+    </div>
+    <form class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Full name</label>
+        <input type="text" value="Ava Thompson" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 focus:ring-2 focus:ring-indigo-500">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Work email</label>
+        <input type="email" value="ava@company.com" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 focus:ring-2 focus:ring-indigo-500">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Password</label>
+        <input type="password" value="............" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 focus:ring-2 focus:ring-indigo-500">
+        <p class="text-xs text-slate-400 mt-1">Must be at least 8 characters.</p>
+      </div>
+      <button type="button" data-changed="true" data-region-id="region-1" class="w-full bg-indigo-600 text-white font-semibold py-2.5 rounded-lg hover:bg-indigo-700">Create account</button>
+    </form>
+    <p class="text-center text-xs text-slate-500 mt-5">Already have an account? <span class="text-indigo-600 font-medium">Sign in</span></p>
+  </div>
+</body>
+</html>

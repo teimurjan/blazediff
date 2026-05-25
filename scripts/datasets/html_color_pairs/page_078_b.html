@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cohort LMS</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 h-screen w-screen overflow-hidden font-sans">
+  <div class="flex flex-col h-full">
+    <header class="h-16 bg-rose-600 text-white flex items-center px-8 gap-8 shrink-0">
+      <span class="font-bold text-lg">Cohort</span>
+      <nav class="flex gap-1 text-sm">
+        <a data-changed="true" data-region-id="region-1" class="bg-sky-800 rounded-md px-4 py-2 font-medium">Courses</a>
+        <a class="rounded-md px-4 py-2 hover:bg-rose-500">Assignments</a>
+        <a class="rounded-md px-4 py-2 hover:bg-rose-500">Grades</a>
+        <a class="rounded-md px-4 py-2 hover:bg-rose-500">Calendar</a>
+      </nav>
+      <div class="ml-auto text-sm text-rose-200">March 14, 2026</div>
+    </header>
+    <main class="flex-1 p-10 overflow-hidden">
+      <h1 class="text-2xl font-bold text-slate-900">My Courses</h1>
+      <p class="text-slate-500 mt-1">Spring semester · 4 active courses</p>
+      <div class="grid grid-cols-3 gap-6 mt-8">
+        <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+          <div class="h-24 bg-gradient-to-r from-rose-500 to-pink-600"></div>
+          <div class="p-5">
+            <p class="font-semibold text-slate-900">Data Structures</p>
+            <p class="text-sm text-slate-500 mt-1">Prof. Hale · CS 261</p>
+            <div class="mt-4 h-1.5 rounded-full bg-slate-100"><div class="h-1.5 rounded-full bg-rose-500 w-3/4"></div></div>
+            <p class="text-xs text-slate-400 mt-2">75% complete</p>
+          </div>
+        </div>
+        <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+          <div class="h-24 bg-gradient-to-r from-sky-500 to-indigo-600"></div>
+          <div class="p-5">
+            <p class="font-semibold text-slate-900">Linear Algebra</p>
+            <p class="text-sm text-slate-500 mt-1">Prof. Ortiz · MATH 220</p>
+            <div class="mt-4 h-1.5 rounded-full bg-slate-100"><div class="h-1.5 rounded-full bg-sky-500 w-1/2"></div></div>
+            <p class="text-xs text-slate-400 mt-2">50% complete</p>
+          </div>
+        </div>
+        <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+          <div class="h-24 bg-gradient-to-r from-emerald-500 to-teal-600"></div>
+          <div class="p-5">
+            <p class="font-semibold text-slate-900">World History</p>
+            <p class="text-sm text-slate-500 mt-1">Prof. Lim · HIST 105</p>
+            <div class="mt-4 h-1.5 rounded-full bg-slate-100"><div class="h-1.5 rounded-full bg-emerald-500 w-1/3"></div></div>
+            <p class="text-xs text-slate-400 mt-2">33% complete</p>
+          </div>
+        </div>
+      </div>
+      <button data-changed="true" data-region-id="region-2" class="mt-8 rounded-lg bg-sky-600 text-white font-medium px-5 py-2.5">Browse catalog</button>
+    </main>
+  </div>
+</body>
+</html>

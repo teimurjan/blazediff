@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Checkout Review</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-cyan-50 h-screen flex items-center justify-center font-sans">
+  <div class="w-full max-w-2xl bg-white rounded-2xl shadow-lg p-8">
+    <div class="flex items-center gap-3 mb-6">
+      <span data-changed="true" data-region-id="region-1" class="flex items-center justify-center w-9 h-9 rounded-full bg-rose-600 text-white font-bold">3</span>
+      <h1 class="text-xl font-bold text-gray-900">Review &amp; confirm</h1>
+    </div>
+    <div class="grid grid-cols-2 gap-6 mb-6">
+      <div class="border border-gray-200 rounded-xl p-4">
+        <p class="text-xs uppercase text-gray-400 font-semibold mb-1">Ship to</p>
+        <p class="text-sm text-gray-800">Priya Nair</p>
+        <p class="text-sm text-gray-600">88 Birch Lane, Austin, TX 73301</p>
+      </div>
+      <div class="border border-gray-200 rounded-xl p-4">
+        <p class="text-xs uppercase text-gray-400 font-semibold mb-1">Payment</p>
+        <p class="text-sm text-gray-800">Mastercard •••• 8890</p>
+        <p class="text-sm text-gray-600">Expires 09 / 29</p>
+      </div>
+    </div>
+    <div class="space-y-2 text-sm mb-6">
+      <div class="flex justify-between text-gray-700"><span>Subtotal</span><span>$129.00</span></div>
+      <div class="flex justify-between text-gray-700"><span>Tax</span><span>$10.32</span></div>
+      <div class="flex justify-between text-gray-700"><span>Shipping</span><span>Free</span></div>
+      <div class="flex justify-between font-bold text-gray-900 border-t border-gray-200 pt-2"><span>Total</span><span>$139.32</span></div>
+    </div>
+    <button type="button" data-changed="true" data-region-id="region-2" class="w-full bg-lime-600 text-white font-semibold py-3 rounded-lg hover:bg-lime-700">Place order</button>
+  </div>
+</body>
+</html>

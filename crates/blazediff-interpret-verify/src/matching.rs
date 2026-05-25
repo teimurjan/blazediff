@@ -1,6 +1,6 @@
-use blazediff::interpret::types::{BoundingBox, ChangeRegion, ChangeType};
+use blazediff::interpret::types::{BoundingBox, ChangeRegion};
 
-use crate::types::{CaseResult, GroundTruthRegion, RegionMatch, ValidationCase};
+use crate::types::{GroundTruthRegion, RegionMatch, ValidationCase};
 
 pub fn iou(a: &BoundingBox, b: &BoundingBox) -> f64 {
     let x_overlap = (a.x + a.width).min(b.x + b.width) as f64 - a.x.max(b.x) as f64;
@@ -14,8 +14,6 @@ pub fn iou(a: &BoundingBox, b: &BoundingBox) -> f64 {
     intersection / (area_a + area_b - intersection)
 }
 
-/// Greedy best-IoU matching between predictions and ground truth.
-/// Returns matched pairs, unmatched prediction indices, and unmatched GT indices.
 pub fn match_regions(
     predictions: &[ChangeRegion],
     ground_truth: &[GroundTruthRegion],
@@ -25,107 +23,108 @@ pub fn match_regions(
     let mut matched_pred = vec![false; predictions.len()];
     let mut matched_gt = vec![false; ground_truth.len()];
 
-    // Build IoU matrix and sort by descending IoU
-    let mut pairs: Vec<(usize, usize, f64)> = Vec::new();
+    let mut pairs: Vec<(usize, usize, bool, f64)> = Vec::new();
     for (gi, gt) in ground_truth.iter().enumerate() {
         for (pi, pred) in predictions.iter().enumerate() {
             let score = iou(&gt.bbox, &pred.bbox);
             if score >= iou_threshold {
-                pairs.push((gi, pi, score));
+                pairs.push((gi, pi, gt.expected_type == pred.change_type, score));
             }
         }
     }
-    pairs.sort_by(|a, b| b.2.partial_cmp(&a.2).unwrap_or(std::cmp::Ordering::Equal));
+    pairs.sort_by(|a, b| {
+        b.2.cmp(&a.2)
+            .then_with(|| b.3.partial_cmp(&a.3).unwrap_or(std::cmp::Ordering::Equal))
+    });
 
-    for (gi, pi, score) in pairs {
+    for (gi, pi, _, score) in pairs {
         if matched_gt[gi] || matched_pred[pi] {
             continue;
         }
         matched_gt[gi] = true;
         matched_pred[pi] = true;
         matches.push(RegionMatch {
-            ground_truth_type: ground_truth[gi].change_type,
+            gt_region_id: ground_truth[gi].id.clone(),
+            expected_type: ground_truth[gi].expected_type,
             predicted_type: predictions[pi].change_type,
-            iou: score,
+            source_type: ground_truth[gi].source_type,
+            iou: Some(score),
+            gt_bbox: ground_truth[gi].bbox,
+            predicted_bbox: Some(predictions[pi].bbox),
+            signals: Some(predictions[pi].signals),
+            confidence: Some(predictions[pi].confidence),
+            pair_id: ground_truth[gi].pair_id.clone(),
+            tags: ground_truth[gi].tags.clone(),
         });
     }
 
     let unmatched_pred: Vec<usize> = matched_pred
         .iter()
         .enumerate()
-        .filter(|(_, &m)| !m)
-        .map(|(i, _)| i)
+        .filter(|(_, matched)| !**matched)
+        .map(|(idx, _)| idx)
         .collect();
     let unmatched_gt: Vec<usize> = matched_gt
         .iter()
         .enumerate()
-        .filter(|(_, &m)| !m)
-        .map(|(i, _)| i)
+        .filter(|(_, matched)| !**matched)
+        .map(|(idx, _)| idx)
         .collect();
 
     (matches, unmatched_pred, unmatched_gt)
 }
 
-/// Handle RenderingNoise ground truth specially: absence from predictions = correct.
-/// Returns case result with RenderingNoise GT handled before normal matching.
 pub fn match_case(
     case: &ValidationCase,
     predictions: &[ChangeRegion],
     iou_threshold: f64,
-) -> CaseResult {
-    let mut noise_matches = Vec::new();
-    let mut non_noise_gt: Vec<&GroundTruthRegion> = Vec::new();
+) -> crate::types::CaseResult {
+    let mut resolved_matches = Vec::new();
+    let mut eligible_gt = Vec::new();
 
     for gt in &case.ground_truth {
-        if gt.change_type == ChangeType::RenderingNoise {
-            // Check if any prediction overlaps this noise region
+        if !gt.expect_in_output {
             let overlaps = predictions
                 .iter()
-                .any(|p| iou(&gt.bbox, &p.bbox) >= iou_threshold);
+                .any(|prediction| iou(&gt.bbox, &prediction.bbox) >= iou_threshold);
             if !overlaps {
-                // Correctly filtered - TP for RenderingNoise
-                noise_matches.push(RegionMatch {
-                    ground_truth_type: ChangeType::RenderingNoise,
-                    predicted_type: ChangeType::RenderingNoise,
-                    iou: 1.0,
+                resolved_matches.push(RegionMatch {
+                    gt_region_id: gt.id.clone(),
+                    expected_type: gt.expected_type,
+                    predicted_type: gt.expected_type,
+                    source_type: gt.source_type,
+                    iou: Some(1.0),
+                    gt_bbox: gt.bbox,
+                    predicted_bbox: None,
+                    signals: None,
+                    confidence: None,
+                    pair_id: gt.pair_id.clone(),
+                    tags: gt.tags.clone(),
                 });
-            } else {
-                // Noise leaked through - will be picked up in normal matching
-                non_noise_gt.push(gt);
+                continue;
             }
-        } else {
-            non_noise_gt.push(gt);
         }
+        eligible_gt.push(gt.clone());
     }
 
-    let non_noise_gt_owned: Vec<GroundTruthRegion> = non_noise_gt
-        .into_iter()
-        .map(|gt| GroundTruthRegion {
-            change_type: gt.change_type,
-            bbox: gt.bbox,
-        })
-        .collect();
-
-    let (mut region_matches, unmatched_pred_idx, unmatched_gt_idx) =
-        match_regions(predictions, &non_noise_gt_owned, iou_threshold);
-
-    noise_matches.append(&mut region_matches);
+    let (mut matches, unmatched_pred_idx, unmatched_gt_idx) =
+        match_regions(predictions, &eligible_gt, iou_threshold);
+    resolved_matches.append(&mut matches);
 
     let unmatched_predictions = unmatched_pred_idx
         .into_iter()
-        .map(|i| predictions[i].clone())
+        .map(|idx| predictions[idx].clone())
         .collect();
     let unmatched_ground_truth = unmatched_gt_idx
         .into_iter()
-        .map(|i| GroundTruthRegion {
-            change_type: non_noise_gt_owned[i].change_type,
-            bbox: non_noise_gt_owned[i].bbox,
-        })
+        .map(|idx| eligible_gt[idx].clone())
         .collect();
 
-    CaseResult {
+    crate::types::CaseResult {
         case_name: case.name.clone(),
-        matches: noise_matches,
+        tier: case.tier,
+        case_tags: case.tags.clone(),
+        matches: resolved_matches,
         unmatched_predictions,
         unmatched_ground_truth,
     }

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280, height=800">
+<title>Files</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-zinc-50">
+<div class="w-[1280px] h-[800px] flex flex-col">
+  <header class="h-14 bg-white border-b border-zinc-200 flex items-center px-6 gap-3">
+    <div class="w-7 h-7 rounded bg-blue-600 flex items-center justify-center text-white text-sm font-bold">D</div>
+    <span class="font-semibold text-zinc-800">Drive</span>
+    <span class="text-zinc-400">/</span>
+    <span class="text-zinc-600 text-sm">Projects</span>
+    <span class="text-zinc-400">/</span>
+    <span class="text-zinc-800 text-sm font-medium">Q1 Launch</span>
+  </header>
+  <div class="flex-1 flex">
+    <nav class="w-56 bg-white border-r border-zinc-200 p-3 text-sm text-zinc-600 flex flex-col gap-1">
+      <a class="px-3 py-2 rounded-md bg-blue-50 text-blue-700 font-medium">My Files</a>
+      <a class="px-3 py-2 rounded-md hover:bg-zinc-50">Shared with me</a>
+      <a class="px-3 py-2 rounded-md hover:bg-zinc-50">Recent</a>
+      <a class="px-3 py-2 rounded-md hover:bg-zinc-50">Starred</a>
+      <a class="px-3 py-2 rounded-md hover:bg-zinc-50">Trash</a>
+    </nav>
+    <main class="flex-1 p-6">
+      <div class="bg-white rounded-xl border border-zinc-200 overflow-hidden">
+        <div class="grid grid-cols-12 px-6 py-3 text-xs font-medium text-zinc-500 uppercase border-b border-zinc-100">
+          <span class="col-span-6">Name</span><span class="col-span-2">Owner</span><span class="col-span-2">Modified</span><span class="col-span-2 text-right">Size</span>
+        </div>
+        <ul class="divide-y divide-zinc-100">
+          <li class="grid grid-cols-12 items-center px-6 py-3 hover:bg-zinc-50">
+            <div class="col-span-6 flex items-center gap-3"><div data-changed="true" data-region-id="region-1" class="w-8 h-8 rounded bg-amber-400 flex items-center justify-center text-white text-xs font-bold">F</div><span class="text-sm font-medium text-zinc-800">Brand Assets</span></div>
+            <span class="col-span-2 text-sm text-zinc-500">You</span><span class="col-span-2 text-sm text-zinc-500">Mar 14, 2026</span><span class="col-span-2 text-sm text-zinc-500 text-right">—</span>
+          </li>
+          <li class="grid grid-cols-12 items-center px-6 py-3 hover:bg-zinc-50">
+            <div class="col-span-6 flex items-center gap-3"><div class="w-8 h-8 rounded bg-amber-400 flex items-center justify-center text-white text-xs font-bold">F</div><span class="text-sm font-medium text-zinc-800">Marketing Copy</span></div>
+            <span class="col-span-2 text-sm text-zinc-500">A. Lawson</span><span class="col-span-2 text-sm text-zinc-500">Mar 13, 2026</span><span class="col-span-2 text-sm text-zinc-500 text-right">—</span>
+          </li>
+          <li class="grid grid-cols-12 items-center px-6 py-3 hover:bg-zinc-50">
+            <div class="col-span-6 flex items-center gap-3"><div class="w-8 h-8 rounded bg-red-100 flex items-center justify-center text-red-600 text-xs font-bold">PDF</div><span class="text-sm text-zinc-800">launch-plan.pdf</span></div>
+            <span class="col-span-2 text-sm text-zinc-500">You</span><span class="col-span-2 text-sm text-zinc-500">Mar 12, 2026</span><span class="col-span-2 text-sm text-zinc-500 text-right">2.4 MB</span>
+          </li>
+          <li class="grid grid-cols-12 items-center px-6 py-3 hover:bg-zinc-50">
+            <div class="col-span-6 flex items-center gap-3"><div class="w-8 h-8 rounded bg-green-100 flex items-center justify-center text-green-600 text-xs font-bold">XLS</div><span class="text-sm text-zinc-800">budget-2026.xlsx</span></div>
+            <span class="col-span-2 text-sm text-zinc-500">R. Patel</span><span class="col-span-2 text-sm text-zinc-500">Mar 11, 2026</span><span class="col-span-2 text-sm text-zinc-500 text-right">88 KB</span>
+          </li>
+          <li class="grid grid-cols-12 items-center px-6 py-3 hover:bg-zinc-50">
+            <div class="col-span-6 flex items-center gap-3"><div class="w-8 h-8 rounded bg-blue-100 flex items-center justify-center text-blue-600 text-xs font-bold">DOC</div><span class="text-sm text-zinc-800">press-release.docx</span></div>
+            <span class="col-span-2 text-sm text-zinc-500">You</span><span class="col-span-2 text-sm text-zinc-500">Mar 10, 2026</span><span class="col-span-2 text-sm text-zinc-500 text-right">142 KB</span>
+          </li>
+          <li class="grid grid-cols-12 items-center px-6 py-3 hover:bg-zinc-50">
+            <div class="col-span-6 flex items-center gap-3"><div class="w-8 h-8 rounded bg-purple-100 flex items-center justify-center text-purple-600 text-xs font-bold">FIG</div><span class="text-sm text-zinc-800">hero-mockups.fig</span></div>
+            <span class="col-span-2 text-sm text-zinc-500">S. Yang</span><span class="col-span-2 text-sm text-zinc-500">Mar 9, 2026</span><span class="col-span-2 text-sm text-zinc-500 text-right">5.1 MB</span>
+          </li>
+        </ul>
+      </div>
+    </main>
+  </div>
+</div>
+</body>
+</html>

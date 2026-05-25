@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pulse Music</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-zinc-950 h-screen w-screen overflow-hidden font-sans text-zinc-300">
+  <div class="flex flex-col h-full">
+    <div class="flex flex-1 overflow-hidden">
+      <aside class="w-56 bg-black p-5 flex flex-col gap-6">
+        <span class="text-fuchsia-500 font-bold text-xl">Pulse</span>
+        <nav class="flex flex-col gap-2 text-sm">
+          <a class="px-2 py-2 rounded hover:text-white">Home</a>
+          <a class="px-2 py-2 rounded hover:text-white">Search</a>
+          <a data-changed="true" data-region-id="region-1" class="px-2 py-2 rounded bg-lime-600 text-white font-medium">Your Library</a>
+          <a class="px-2 py-2 rounded hover:text-white">Radio</a>
+        </nav>
+        <div class="mt-auto text-xs text-zinc-600">March 14, 2026</div>
+      </aside>
+      <main class="flex-1 bg-zinc-900 p-8 overflow-hidden">
+        <h1 class="text-3xl font-bold text-white">Your Library</h1>
+        <div class="grid grid-cols-4 gap-5 mt-8">
+          <div class="bg-zinc-800 rounded-lg p-4">
+            <div class="h-28 rounded-md bg-gradient-to-br from-fuchsia-500 to-purple-700"></div>
+            <p class="text-white font-medium mt-3">Liked Songs</p>
+            <p class="text-xs text-zinc-400">312 songs</p>
+          </div>
+          <div class="bg-zinc-800 rounded-lg p-4">
+            <div class="h-28 rounded-md bg-gradient-to-br from-sky-500 to-blue-700"></div>
+            <p class="text-white font-medium mt-3">Focus Flow</p>
+            <p class="text-xs text-zinc-400">Playlist · 48 songs</p>
+          </div>
+          <div class="bg-zinc-800 rounded-lg p-4">
+            <div class="h-28 rounded-md bg-gradient-to-br from-emerald-500 to-teal-700"></div>
+            <p class="text-white font-medium mt-3">Morning Run</p>
+            <p class="text-xs text-zinc-400">Playlist · 27 songs</p>
+          </div>
+          <div class="bg-zinc-800 rounded-lg p-4">
+            <div class="h-28 rounded-md bg-gradient-to-br from-amber-500 to-orange-700"></div>
+            <p class="text-white font-medium mt-3">Throwback</p>
+            <p class="text-xs text-zinc-400">Playlist · 90 songs</p>
+          </div>
+        </div>
+      </main>
+    </div>
+    <footer class="h-20 bg-zinc-900 border-t border-zinc-800 flex items-center px-6 gap-4 shrink-0">
+      <div class="h-12 w-12 rounded bg-fuchsia-700"></div>
+      <div><p class="text-white text-sm font-medium">Midnight City</p><p class="text-xs text-zinc-400">M83</p></div>
+      <div class="ml-auto flex gap-3 text-zinc-400 text-sm"><span>2:14</span><span>/</span><span>4:03</span></div>
+    </footer>
+  </div>
+</body>
+</html>

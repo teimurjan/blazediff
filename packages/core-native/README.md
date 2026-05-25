@@ -2,9 +2,9 @@
 
 <div align="center">
 
-[![npm bundle size](https://img.shields.io/npm/unpacked-size/%40blazediff%2Fcore-native)](https://www.npmjs.com/package/@blazediff/core-native)
-[![NPM Downloads](https://img.shields.io/npm/dy/%40blazediff%2Fcore-native)](https://www.npmjs.com/package/@blazediff/core-native)
-[![Crates.io](https://img.shields.io/crates/v/blazediff.svg)](https://crates.io/crates/blazediff)
+[![npm bundle size](https://img.shields.io/npm/unpacked-size/%40blazediff%2Fcore-native?style=for-the-badge)](https://www.npmjs.com/package/@blazediff/core-native)
+[![NPM Downloads](https://img.shields.io/npm/dy/%40blazediff%2Fcore-native?style=for-the-badge)](https://www.npmjs.com/package/@blazediff/core-native)
+[![Crates.io](https://img.shields.io/crates/v/blazediff.svg?style=for-the-badge)](https://crates.io/crates/blazediff)
 
 </div>
 
@@ -299,12 +299,12 @@ Input images can be mixed formats (e.g., compare PNG to JPEG). Output format is 
 
 ## Performance
 
-Benchmarked on Apple M1 Pro with 5600x3200 4K PNG images:
+Benchmarked on Apple M1 Max (25 runs, 5 warmup, image IO included) against `odiff` on 5600×3200 4K PNG images via `hyperfine`. Full numbers in the root [BENCHMARKS.md](https://github.com/teimurjan/blazediff/blob/main/BENCHMARKS.md).
 
-| Tool | Benchmark Time | vs blazediff |
-|------|------|--------------|
-| **blazediff** | ~327ms | - |
-| odiff | ~1215ms | 3.4x slower |
+| Tool | 4k/1 | 4k/2 | 4k/3 | vs blazediff |
+|------|-----:|-----:|-----:|-------------|
+| **blazediff** | ~359ms | ~452ms | ~506ms | - |
+| odiff | ~1221ms | ~1525ms | ~1750ms | 3.4-3.5x slower |
 
 Binary sizes (stripped, LTO optimized) - **~3x smaller than odiff**:
 

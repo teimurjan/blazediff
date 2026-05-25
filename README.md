@@ -2,12 +2,12 @@
 
 <div align="center">
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-![NPM](https://img.shields.io/badge/NPM-%40blazediff-red?link=https%3A%2F%2Fwww.npmjs.com%2Forg%2Fblazediff)
-[![JSR](https://jsr.io/badges/@blazediff)](https://jsr.io/@blazediff)
-[![Test](https://github.com/teimurjan/blazediff/actions/workflows/test.yml/badge.svg)](https://github.com/teimurjan/blazediff/actions/workflows/test.yml)
-[![Release](https://github.com/teimurjan/blazediff/actions/workflows/release.yml/badge.svg)](https://github.com/teimurjan/blazediff/actions/workflows/release.yml)
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/teimurjan/blazediff)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
+[![NPM](https://img.shields.io/badge/NPM-%40blazediff-red?style=for-the-badge)](https://www.npmjs.com/org/blazediff)
+[![JSR](https://img.shields.io/badge/JSR-%40blazediff-f7df1e?style=for-the-badge&logo=jsr&logoColor=083344)](https://jsr.io/@blazediff)
+[![Test](https://img.shields.io/github/actions/workflow/status/teimurjan/blazediff/test.yml?style=for-the-badge&label=test)](https://github.com/teimurjan/blazediff/actions/workflows/test.yml)
+[![Release](https://img.shields.io/github/actions/workflow/status/teimurjan/blazediff/release.yml?style=for-the-badge&label=release)](https://github.com/teimurjan/blazediff/actions/workflows/release.yml)
+[![Ask DeepWiki](https://img.shields.io/badge/Ask-DeepWiki-blue?style=for-the-badge)](https://deepwiki.com/teimurjan/blazediff)
 
 </div>
 

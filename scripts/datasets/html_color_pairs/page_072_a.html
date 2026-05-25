@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nimbus Mail</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-white h-screen w-screen overflow-hidden font-sans">
+  <div class="flex flex-col h-full">
+    <header class="h-16 bg-indigo-600 text-white flex items-center px-6 gap-8 shrink-0">
+      <span class="font-bold text-lg">Nimbus Mail</span>
+      <nav class="flex gap-1 text-sm">
+        <a data-changed="true" data-region-id="region-1" class="bg-indigo-800 text-white rounded-md px-4 py-2 font-medium">Inbox</a>
+        <a class="rounded-md px-4 py-2 hover:bg-indigo-500">Starred</a>
+        <a class="rounded-md px-4 py-2 hover:bg-indigo-500">Sent</a>
+        <a class="rounded-md px-4 py-2 hover:bg-indigo-500">Drafts</a>
+      </nav>
+      <div class="ml-auto text-sm text-indigo-200">March 14, 2026</div>
+    </header>
+    <div class="flex flex-1 overflow-hidden">
+      <aside class="w-64 border-r border-slate-200 p-5">
+        <button class="w-full rounded-lg bg-indigo-600 text-white font-medium py-2.5">Compose</button>
+        <ul class="mt-6 space-y-1 text-sm text-slate-700">
+          <li class="flex justify-between px-3 py-2 rounded bg-slate-100 font-medium"><span>Primary</span><span class="text-slate-400">24</span></li>
+          <li class="flex justify-between px-3 py-2 rounded hover:bg-slate-50"><span>Social</span><span class="text-slate-400">8</span></li>
+          <li class="flex justify-between px-3 py-2 rounded hover:bg-slate-50"><span>Promotions</span><span class="text-slate-400">132</span></li>
+        </ul>
+      </aside>
+      <main class="flex-1 overflow-hidden">
+        <div class="divide-y divide-slate-100">
+          <div class="flex items-center gap-4 px-6 py-4 bg-indigo-50">
+            <div class="h-2.5 w-2.5 rounded-full bg-indigo-500"></div>
+            <div class="flex-1"><p class="font-semibold text-slate-900">Design Team</p><p class="text-sm text-slate-500">Final mockups ready for review</p></div>
+            <span class="text-xs text-slate-400">9:42 AM</span>
+          </div>
+          <div class="flex items-center gap-4 px-6 py-4">
+            <div class="h-2.5 w-2.5 rounded-full bg-transparent"></div>
+            <div class="flex-1"><p class="font-medium text-slate-700">Billing</p><p class="text-sm text-slate-500">Your invoice for February is available</p></div>
+            <span class="text-xs text-slate-400">8:10 AM</span>
+          </div>
+          <div class="flex items-center gap-4 px-6 py-4">
+            <div class="h-2.5 w-2.5 rounded-full bg-transparent"></div>
+            <div class="flex-1"><p class="font-medium text-slate-700">GitHub</p><p class="text-sm text-slate-500">3 new pull requests need your attention</p></div>
+            <span class="text-xs text-slate-400">Yesterday</span>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+</body>
+</html>
