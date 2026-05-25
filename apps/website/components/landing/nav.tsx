@@ -1,6 +1,7 @@
-import { IconBook, IconBrandGithub } from "@tabler/icons-react";
+import { IconBrandGithub } from "@tabler/icons-react";
 import Image from "next/image";
 import Link from "next/link";
+import MobileMenu from "./mobile-menu";
 
 type Tab = "home" | "agent" | "docs";
 
@@ -17,6 +18,11 @@ const TABS: { id: Tab; label: string; href: string }[] = [
 ];
 
 const GITHUB_URL = "https://github.com/teimurjan/blazediff";
+
+const MOBILE_LINKS = [
+	...TABS,
+	{ id: "github" as const, label: "GITHUB", href: GITHUB_URL, external: true },
+];
 
 export default function LandingNav({
 	activeTab,
@@ -71,22 +77,6 @@ export default function LandingNav({
 				</div>
 
 				<div className="flex items-center gap-3 md:gap-4 shrink-0">
-					<Link
-						href="/docs/core"
-						aria-label="Docs"
-						className="md:hidden text-muted hover:text-fg transition-colors"
-					>
-						<IconBook size={20} />
-					</Link>
-					<a
-						href={GITHUB_URL}
-						target="_blank"
-						rel="noopener noreferrer"
-						aria-label="GitHub"
-						className="md:hidden text-muted hover:text-fg transition-colors"
-					>
-						<IconBrandGithub size={20} />
-					</a>
 					<a
 						href={GITHUB_URL}
 						target="_blank"
@@ -102,6 +92,7 @@ export default function LandingNav({
 					>
 						{ctaLabel}
 					</Link>
+					<MobileMenu activeTab={activeTab} links={MOBILE_LINKS} />
 				</div>
 			</div>
 		</nav>
