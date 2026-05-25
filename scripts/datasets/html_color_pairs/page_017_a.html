@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Campaign Dashboard</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 h-screen overflow-hidden">
+<div class="h-full p-6 flex flex-col gap-5">
+  <header class="flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">Campaign Dashboard</h1>
+      <p class="text-sm text-gray-500">Spring Launch · March 14, 2026</p>
+    </div>
+    <button data-changed="true" data-region-id="region-1" class="bg-orange-500 text-white text-sm font-semibold px-5 py-2.5 rounded-lg shadow">New campaign</button>
+  </header>
+  <div class="grid grid-cols-4 gap-5">
+    <div class="bg-white rounded-xl p-5 shadow-sm">
+      <p class="text-xs text-gray-400">Impressions</p>
+      <p class="text-2xl font-bold text-gray-900 mt-1">2.4M</p>
+      <p class="text-xs text-emerald-600 mt-1">+14% WoW</p>
+    </div>
+    <div class="bg-white rounded-xl p-5 shadow-sm">
+      <p class="text-xs text-gray-400">Clicks</p>
+      <p class="text-2xl font-bold text-gray-900 mt-1">88,210</p>
+      <p class="text-xs text-emerald-600 mt-1">+6% WoW</p>
+    </div>
+    <div class="bg-white rounded-xl p-5 shadow-sm">
+      <p class="text-xs text-gray-400">CTR</p>
+      <p class="text-2xl font-bold text-gray-900 mt-1">3.67%</p>
+      <p class="text-xs text-rose-600 mt-1">-0.2 pts</p>
+    </div>
+    <div class="bg-white rounded-xl p-5 shadow-sm">
+      <p class="text-xs text-gray-400">Spend</p>
+      <p class="text-2xl font-bold text-gray-900 mt-1">$18,940</p>
+      <p class="text-xs text-gray-400 mt-1">of $25K</p>
+    </div>
+  </div>
+  <div class="grid grid-cols-3 gap-5 flex-1">
+    <div class="bg-white rounded-xl p-6 shadow-sm col-span-2 flex flex-col">
+      <h2 class="text-sm font-semibold text-gray-700 mb-4">Clicks by channel</h2>
+      <div class="flex items-end gap-3 flex-1">
+        <div class="flex-1 bg-teal-500 rounded-t h-1/3"></div>
+        <div class="flex-1 bg-teal-500 rounded-t h-1/2"></div>
+        <div class="flex-1 bg-teal-500 rounded-t h-3/4"></div>
+        <div class="flex-1 bg-teal-500 rounded-t h-2/5"></div>
+        <div data-changed="true" data-region-id="region-2" class="flex-1 bg-teal-500 rounded-t h-full"></div>
+        <div class="flex-1 bg-teal-500 rounded-t h-3/5"></div>
+        <div class="flex-1 bg-teal-500 rounded-t h-4/5"></div>
+      </div>
+    </div>
+    <div class="bg-white rounded-xl p-6 shadow-sm flex flex-col">
+      <h2 class="text-sm font-semibold text-gray-700 mb-4">Conversions</h2>
+      <div class="space-y-3 flex-1">
+        <div>
+          <div class="flex justify-between text-xs text-gray-500 mb-1"><span>Search</span><span>1,240</span></div>
+          <div class="h-2.5 bg-gray-100 rounded-full"><div class="h-2.5 bg-blue-500 rounded-full w-full"></div></div>
+        </div>
+        <div>
+          <div class="flex justify-between text-xs text-gray-500 mb-1"><span>Social</span><span>880</span></div>
+          <div class="h-2.5 bg-gray-100 rounded-full"><div class="h-2.5 bg-blue-500 rounded-full w-3/4"></div></div>
+        </div>
+        <div>
+          <div class="flex justify-between text-xs text-gray-500 mb-1"><span>Display</span><span>410</span></div>
+          <div class="h-2.5 bg-gray-100 rounded-full"><div class="h-2.5 bg-blue-500 rounded-full w-2/5"></div></div>
+        </div>
+        <div>
+          <div class="flex justify-between text-xs text-gray-500 mb-1"><span>Email</span><span>305</span></div>
+          <div class="h-2.5 bg-gray-100 rounded-full"><div class="h-2.5 bg-blue-500 rounded-full w-1/4"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

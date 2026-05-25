@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Workspace Setup</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 h-screen flex items-center justify-center font-sans">
+  <div class="w-full max-w-2xl bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+    <div class="px-8 pt-8">
+      <div class="flex items-center justify-between mb-1">
+        <h1 class="text-xl font-bold text-slate-900">Set up your workspace</h1>
+        <span class="text-xs font-medium text-slate-500">Step 2 of 4</span>
+      </div>
+      <div class="flex gap-2 mt-4">
+        <div class="h-1.5 flex-1 rounded-full bg-violet-500"></div>
+        <div data-changed="true" data-region-id="region-1" class="h-1.5 flex-1 rounded-full bg-amber-500"></div>
+        <div class="h-1.5 flex-1 rounded-full bg-slate-200"></div>
+        <div class="h-1.5 flex-1 rounded-full bg-slate-200"></div>
+      </div>
+    </div>
+    <div class="px-8 py-8">
+      <h2 class="text-base font-semibold text-slate-800">Invite your team</h2>
+      <p class="text-sm text-slate-500 mt-1">Add teammates so you can collaborate from day one. You can always invite more later.</p>
+      <div class="mt-5 space-y-3">
+        <div class="flex gap-3">
+          <input type="email" value="jordan@company.com" class="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-900">
+          <select class="px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-600"><option>Admin</option></select>
+        </div>
+        <div class="flex gap-3">
+          <input type="email" value="priya@company.com" class="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-900">
+          <select class="px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-600"><option>Member</option></select>
+        </div>
+        <button type="button" class="text-sm font-medium text-violet-600">+ Add another</button>
+      </div>
+    </div>
+    <div class="px-8 py-4 bg-slate-50 border-t border-slate-200 flex justify-between">
+      <button type="button" class="text-sm font-medium text-slate-500 px-4 py-2">Back</button>
+      <button type="button" class="bg-violet-600 text-white text-sm font-semibold px-5 py-2 rounded-lg">Continue</button>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Revenue Overview</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 h-screen overflow-hidden">
+<div class="h-full p-6 flex flex-col">
+  <header class="flex items-center justify-between mb-6">
+    <div>
+      <h1 class="text-2xl font-bold text-slate-900">Revenue Overview</h1>
+      <p class="text-sm text-slate-500">Fiscal year 2026 · Updated March 14, 2026</p>
+    </div>
+    <button data-changed="true" data-region-id="region-1" class="bg-emerald-600 text-white text-sm font-semibold px-4 py-2 rounded-lg shadow">Export report</button>
+  </header>
+  <div class="grid grid-cols-4 gap-5 mb-6">
+    <div class="bg-white rounded-xl p-5 shadow-sm border border-slate-200">
+      <p class="text-xs uppercase tracking-wide text-slate-400">Total Revenue</p>
+      <p class="text-3xl font-bold text-slate-900 mt-2">$842,019</p>
+      <p class="text-sm text-emerald-600 font-medium mt-1">+8.2% MoM</p>
+    </div>
+    <div class="bg-white rounded-xl p-5 shadow-sm border border-slate-200">
+      <p class="text-xs uppercase tracking-wide text-slate-400">New Customers</p>
+      <p class="text-3xl font-bold text-slate-900 mt-2">1,284</p>
+      <p class="text-sm text-emerald-600 font-medium mt-1">+3.1% MoM</p>
+    </div>
+    <div class="bg-white rounded-xl p-5 shadow-sm border border-slate-200">
+      <p class="text-xs uppercase tracking-wide text-slate-400">Churn Rate</p>
+      <p class="text-3xl font-bold text-slate-900 mt-2">2.4%</p>
+      <p class="text-sm text-rose-600 font-medium mt-1">-0.5% MoM</p>
+    </div>
+    <div class="bg-white rounded-xl p-5 shadow-sm border border-slate-200">
+      <p class="text-xs uppercase tracking-wide text-slate-400">Avg Order Value</p>
+      <p class="text-3xl font-bold text-slate-900 mt-2">$64.18</p>
+      <p class="text-sm text-emerald-600 font-medium mt-1">+1.7% MoM</p>
+    </div>
+  </div>
+  <div class="grid grid-cols-3 gap-5 flex-1">
+    <div class="bg-white rounded-xl p-5 shadow-sm border border-slate-200 col-span-2 flex flex-col">
+      <h2 class="text-sm font-semibold text-slate-700 mb-4">Monthly revenue</h2>
+      <div class="flex items-end gap-3 flex-1">
+        <div class="flex-1 bg-indigo-500 rounded-t h-1/3"></div>
+        <div class="flex-1 bg-indigo-500 rounded-t h-1/2"></div>
+        <div class="flex-1 bg-indigo-500 rounded-t h-2/5"></div>
+        <div class="flex-1 bg-indigo-500 rounded-t h-3/5"></div>
+        <div class="flex-1 bg-indigo-500 rounded-t h-3/4"></div>
+        <div class="flex-1 bg-indigo-500 rounded-t h-2/3"></div>
+        <div class="flex-1 bg-indigo-500 rounded-t h-4/5"></div>
+        <div class="flex-1 bg-indigo-500 rounded-t h-full"></div>
+      </div>
+    </div>
+    <div class="bg-white rounded-xl p-5 shadow-sm border border-slate-200 flex flex-col">
+      <h2 class="text-sm font-semibold text-slate-700 mb-4">Top regions</h2>
+      <div class="space-y-3 flex-1">
+        <div>
+          <div class="flex justify-between text-xs text-slate-500 mb-1"><span>North America</span><span>48%</span></div>
+          <div class="h-2 bg-slate-100 rounded-full"><div class="h-2 bg-emerald-500 rounded-full w-1/2"></div></div>
+        </div>
+        <div>
+          <div class="flex justify-between text-xs text-slate-500 mb-1"><span>Europe</span><span>31%</span></div>
+          <div class="h-2 bg-slate-100 rounded-full"><div class="h-2 bg-emerald-500 rounded-full w-1/3"></div></div>
+        </div>
+        <div>
+          <div class="flex justify-between text-xs text-slate-500 mb-1"><span>Asia Pacific</span><span>16%</span></div>
+          <div class="h-2 bg-slate-100 rounded-full"><div class="h-2 bg-emerald-500 rounded-full w-1/6"></div></div>
+        </div>
+        <div>
+          <div class="flex justify-between text-xs text-slate-500 mb-1"><span>Other</span><span>5%</span></div>
+          <div class="h-2 bg-slate-100 rounded-full"><div class="h-2 bg-emerald-500 rounded-full w-1/12"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

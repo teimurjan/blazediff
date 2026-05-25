@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280, height=800">
+<title>Delete account</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="w-[1280px] h-[800px] overflow-hidden">
+<div class="relative w-[1280px] h-[800px] bg-slate-100">
+<div class="absolute inset-0 p-10">
+<div class="h-14 flex items-center justify-between border-b border-slate-200">
+<div class="text-xl font-bold text-slate-800">Account Settings</div>
+<div class="text-sm text-slate-400">Billing &middot; Security &middot; Members</div>
+</div>
+<div class="mt-8 grid grid-cols-3 gap-6">
+<div class="h-32 rounded-xl bg-white shadow-sm border border-slate-200"></div>
+<div class="h-32 rounded-xl bg-white shadow-sm border border-slate-200"></div>
+<div class="h-32 rounded-xl bg-white shadow-sm border border-slate-200"></div>
+</div>
+</div>
+<div class="absolute inset-0 bg-slate-900/60 flex items-center justify-center">
+<div class="w-[460px] rounded-2xl bg-white shadow-2xl overflow-hidden">
+<div class="px-7 pt-7 pb-5">
+<div class="flex items-center justify-center w-12 h-12 rounded-full bg-rose-100">
+<span class="text-rose-600 text-2xl font-bold">!</span>
+</div>
+<h2 class="mt-5 text-xl font-semibold text-slate-900">Delete your account</h2>
+<p class="mt-2 text-sm leading-relaxed text-slate-500">This action is permanent. All of your projects, data, and billing history from March 14, 2026 onward will be erased. This cannot be undone.</p>
+</div>
+<div class="px-7 py-4 bg-slate-50 flex justify-end gap-3">
+<button class="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 bg-white border border-slate-300">Cancel</button>
+<button data-changed="true" data-region-id="region-1" class="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-rose-600">Delete account</button>
+</div>
+</div>
+</div>
+</div>
+</body>
+</html>

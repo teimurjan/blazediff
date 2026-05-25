@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280, height=800">
+<title>Transactions</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50">
+<div class="w-[1280px] h-[800px] p-8">
+  <div class="bg-white rounded-2xl shadow-sm border border-slate-200 h-full flex flex-col overflow-hidden">
+    <header class="px-8 py-6 border-b border-slate-100 flex items-center justify-between">
+      <div><h1 class="text-xl font-bold text-slate-900">Transactions</h1><p class="text-sm text-slate-500">March 2026 · 6 of 142</p></div>
+      <div class="text-right"><p class="text-sm text-slate-500">Balance</p><p class="text-2xl font-bold text-slate-900">$8,420.55</p></div>
+    </header>
+    <div class="grid grid-cols-12 px-8 py-3 text-xs font-semibold text-slate-400 uppercase border-b border-slate-100">
+      <span class="col-span-6">Merchant</span><span class="col-span-3">Date</span><span class="col-span-3 text-right">Amount</span>
+    </div>
+    <ul class="flex-1 divide-y divide-slate-100">
+      <li class="grid grid-cols-12 items-center px-8 py-4">
+        <div class="col-span-6 flex items-center gap-3"><div class="w-10 h-10 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold">↓</div><div><p class="font-medium text-slate-800">Payroll Deposit</p><p class="text-xs text-slate-400">Acme Corp</p></div></div>
+        <span class="col-span-3 text-sm text-slate-500">Mar 14, 2026</span><span class="col-span-3 text-right font-semibold text-emerald-600">+$3,200.00</span>
+      </li>
+      <li class="grid grid-cols-12 items-center px-8 py-4">
+        <div class="col-span-6 flex items-center gap-3"><div class="w-10 h-10 rounded-lg bg-rose-100 text-rose-600 flex items-center justify-center font-bold">↑</div><div><p class="font-medium text-slate-800">Whole Foods Market</p><p class="text-xs text-slate-400">Groceries</p></div></div>
+        <span class="col-span-3 text-sm text-slate-500">Mar 13, 2026</span><span class="col-span-3 text-right font-semibold text-slate-800">−$84.32</span>
+      </li>
+      <li class="grid grid-cols-12 items-center px-8 py-4">
+        <div class="col-span-6 flex items-center gap-3"><div class="w-10 h-10 rounded-lg bg-rose-100 text-rose-600 flex items-center justify-center font-bold">↑</div><div><p class="font-medium text-slate-800">Spotify Premium</p><p class="text-xs text-slate-400">Subscription</p></div></div>
+        <span class="col-span-3 text-sm text-slate-500">Mar 12, 2026</span><span class="col-span-3 text-right font-semibold text-slate-800">−$12.99</span>
+      </li>
+      <li class="grid grid-cols-12 items-center px-8 py-4">
+        <div class="col-span-6 flex items-center gap-3"><div data-changed="true" data-region-id="region-1" class="w-10 h-10 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center font-bold">↑</div><div><p class="font-medium text-slate-800">Uber</p><p class="text-xs text-slate-400">Transport</p></div></div>
+        <span class="col-span-3 text-sm text-slate-500">Mar 11, 2026</span><span class="col-span-3 text-right font-semibold text-slate-800">−$23.40</span>
+      </li>
+      <li class="grid grid-cols-12 items-center px-8 py-4">
+        <div class="col-span-6 flex items-center gap-3"><div class="w-10 h-10 rounded-lg bg-rose-100 text-rose-600 flex items-center justify-center font-bold">↑</div><div><p class="font-medium text-slate-800">Apple Store</p><p class="text-xs text-slate-400">Electronics</p></div></div>
+        <span class="col-span-3 text-sm text-slate-500">Mar 10, 2026</span><span class="col-span-3 text-right font-semibold text-slate-800">−$199.00</span>
+      </li>
+      <li class="grid grid-cols-12 items-center px-8 py-4">
+        <div class="col-span-6 flex items-center gap-3"><div class="w-10 h-10 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold">↓</div><div><p class="font-medium text-slate-800">Stripe Payout</p><p class="text-xs text-slate-400">Freelance</p></div></div>
+        <span class="col-span-3 text-sm text-slate-500">Mar 9, 2026</span><span class="col-span-3 text-right font-semibold text-emerald-600">+$540.00</span>
+      </li>
+    </ul>
+  </div>
+</div>
+</body>
+</html>

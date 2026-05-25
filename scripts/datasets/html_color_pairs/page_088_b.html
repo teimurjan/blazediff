@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Metrics</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 h-screen w-screen overflow-hidden font-sans flex items-center justify-center">
+  <div class="w-full max-w-5xl px-8">
+    <h1 class="text-2xl font-bold text-slate-900 mb-6">This week at a glance</h1>
+    <div class="grid grid-cols-4 gap-5">
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+        <p class="text-xs font-medium text-slate-400 uppercase tracking-wide">Revenue</p>
+        <p class="text-3xl font-bold text-slate-900 mt-2">$48.2k</p>
+        <span data-changed="true" data-region-id="region-1" class="inline-block mt-3 text-xs font-semibold px-2 py-0.5 rounded-full bg-lime-100 text-lime-700">+12.4%</span>
+      </div>
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+        <p class="text-xs font-medium text-slate-400 uppercase tracking-wide">New users</p>
+        <p class="text-3xl font-bold text-slate-900 mt-2">1,284</p>
+        <span class="inline-block mt-3 text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">+8.1%</span>
+      </div>
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+        <p class="text-xs font-medium text-slate-400 uppercase tracking-wide">Churn</p>
+        <p class="text-3xl font-bold text-slate-900 mt-2">2.3%</p>
+        <span class="inline-block mt-3 text-xs font-semibold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700">+0.4%</span>
+      </div>
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+        <p class="text-xs font-medium text-slate-400 uppercase tracking-wide">Avg session</p>
+        <p class="text-3xl font-bold text-slate-900 mt-2">4m 12s</p>
+        <span data-changed="true" data-region-id="region-2" class="inline-block mt-3 text-xs font-semibold px-2 py-0.5 rounded-full bg-orange-100 text-orange-700">−1.2%</span>
+      </div>
+    </div>
+    <div class="mt-6 bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-sm font-semibold text-slate-700">Top channels</h2>
+        <span class="text-xs text-slate-400">Last 7 days</span>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <span class="text-xs font-medium px-3 py-1 rounded-full bg-indigo-100 text-indigo-700">Organic Search · 42%</span>
+        <span class="text-xs font-medium px-3 py-1 rounded-full bg-sky-100 text-sky-700">Direct · 27%</span>
+        <span class="text-xs font-medium px-3 py-1 rounded-full bg-purple-100 text-purple-700">Referral · 18%</span>
+        <span class="text-xs font-medium px-3 py-1 rounded-full bg-pink-100 text-pink-700">Social · 13%</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Orbit CRM</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 h-screen w-screen overflow-hidden font-sans">
+  <div class="flex h-full">
+    <aside class="w-60 bg-white border-r border-slate-200 flex flex-col py-6 px-3">
+      <div class="flex items-center gap-2 px-3 mb-8">
+        <div class="h-8 w-8 rounded-lg bg-violet-600"></div>
+        <span class="text-slate-900 font-bold text-lg">Orbit</span>
+      </div>
+      <nav class="flex flex-col gap-1 text-sm text-slate-600">
+        <a class="rounded-lg px-3 py-2.5 hover:bg-slate-50">Dashboard</a>
+        <a data-changed="true" data-region-id="region-1" class="rounded-lg bg-amber-500 text-white font-medium px-3 py-2.5">Deals</a>
+        <a class="rounded-lg px-3 py-2.5 hover:bg-slate-50">Contacts</a>
+        <a class="rounded-lg px-3 py-2.5 hover:bg-slate-50">Companies</a>
+        <a class="rounded-lg px-3 py-2.5 hover:bg-slate-50">Tasks</a>
+      </nav>
+    </aside>
+    <main class="flex-1 p-10 overflow-hidden">
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-2xl font-bold text-slate-900">Deals</h1>
+          <p class="text-slate-500 mt-1">Pipeline as of March 14, 2026</p>
+        </div>
+        <button data-changed="true" data-region-id="region-2" class="rounded-lg bg-amber-500 text-white font-medium px-5 py-2.5">New deal</button>
+      </div>
+      <div class="grid grid-cols-3 gap-5 mt-8">
+        <div class="bg-white rounded-xl border border-slate-200 p-5">
+          <p class="text-sm font-semibold text-slate-700">Qualified</p>
+          <p class="text-xs text-slate-400 mb-4">8 deals · $124k</p>
+          <div class="space-y-3">
+            <div class="rounded-lg border border-slate-200 p-3"><p class="text-sm font-medium text-slate-800">Globex renewal</p><p class="text-xs text-slate-500">$42,000</p></div>
+            <div class="rounded-lg border border-slate-200 p-3"><p class="text-sm font-medium text-slate-800">Initech upgrade</p><p class="text-xs text-slate-500">$18,500</p></div>
+          </div>
+        </div>
+        <div class="bg-white rounded-xl border border-slate-200 p-5">
+          <p class="text-sm font-semibold text-slate-700">Proposal</p>
+          <p class="text-xs text-slate-400 mb-4">5 deals · $89k</p>
+          <div class="space-y-3">
+            <div class="rounded-lg border border-slate-200 p-3"><p class="text-sm font-medium text-slate-800">Hooli platform</p><p class="text-xs text-slate-500">$56,000</p></div>
+          </div>
+        </div>
+        <div class="bg-white rounded-xl border border-slate-200 p-5">
+          <p class="text-sm font-semibold text-slate-700">Won</p>
+          <p class="text-xs text-slate-400 mb-4">3 deals · $210k</p>
+          <div class="space-y-3">
+            <div class="rounded-lg border border-slate-200 p-3"><p class="text-sm font-medium text-slate-800">Acme expansion</p><p class="text-xs text-slate-500">$150,000</p></div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

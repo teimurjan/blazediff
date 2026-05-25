@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Compare plans</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-white h-screen w-screen overflow-hidden flex items-center justify-center font-sans">
+  <div class="w-full max-w-5xl px-8">
+    <h1 class="text-2xl font-bold text-slate-900 mb-1">Compare plans</h1>
+    <p class="text-slate-500 mb-6">Everything you need to ship faster.</p>
+    <div class="overflow-hidden rounded-xl border border-slate-200">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="bg-slate-50 text-slate-500">
+            <th class="text-left font-medium px-6 py-4">Feature</th>
+            <th class="font-medium px-6 py-4">Basic</th>
+            <th data-changed="true" data-region-id="region-1" class="font-semibold px-6 py-4 text-rose-600">Team</th>
+            <th class="font-medium px-6 py-4">Business</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100 text-slate-700">
+          <tr>
+            <td class="px-6 py-4">Monthly price</td>
+            <td class="text-center px-6 py-4">$0</td>
+            <td class="text-center px-6 py-4 font-semibold">$24</td>
+            <td class="text-center px-6 py-4">$80</td>
+          </tr>
+          <tr class="bg-slate-50/50">
+            <td class="px-6 py-4">Seats included</td>
+            <td class="text-center px-6 py-4">1</td>
+            <td class="text-center px-6 py-4">10</td>
+            <td class="text-center px-6 py-4">50</td>
+          </tr>
+          <tr>
+            <td class="px-6 py-4">Automation runs</td>
+            <td class="text-center px-6 py-4">100</td>
+            <td class="text-center px-6 py-4">5,000</td>
+            <td class="text-center px-6 py-4">Unlimited</td>
+          </tr>
+          <tr class="bg-slate-50/50">
+            <td class="px-6 py-4">Audit logs</td>
+            <td class="text-center px-6 py-4 text-slate-300">—</td>
+            <td class="text-center px-6 py-4 text-emerald-600 font-bold">✓</td>
+            <td class="text-center px-6 py-4 text-emerald-600 font-bold">✓</td>
+          </tr>
+          <tr>
+            <td class="px-6 py-4">SLA guarantee</td>
+            <td class="text-center px-6 py-4 text-slate-300">—</td>
+            <td class="text-center px-6 py-4 text-slate-300">—</td>
+            <td class="text-center px-6 py-4 text-emerald-600 font-bold">✓</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="text-xs text-slate-400 mt-4">Prices billed annually. Updated March 14, 2026.</p>
+  </div>
+</body>
+</html>

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sprint Board</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 h-screen w-screen overflow-hidden font-sans">
+  <div class="h-full w-full p-8 flex flex-col">
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <h1 class="text-2xl font-bold text-slate-900">Mobile App — Sprint 14</h1>
+        <p class="text-sm text-slate-500 mt-1">March 14, 2026 · 24 issues</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-sm font-medium text-slate-600">Filter</span>
+        <span class="px-3 py-1.5 rounded-lg bg-indigo-600 text-sm font-medium text-white">+ New issue</span>
+      </div>
+    </div>
+    <div class="grid grid-cols-4 gap-5 flex-1 min-h-0">
+      <div class="bg-white rounded-xl border border-slate-200 p-3 flex flex-col">
+        <div class="flex items-center justify-between mb-3 px-1">
+          <h2 class="text-sm font-semibold text-slate-700">Backlog</h2>
+          <span class="text-xs font-medium text-slate-400 bg-slate-100 rounded-full px-2 py-0.5">8</span>
+        </div>
+        <div class="space-y-3 overflow-hidden">
+          <div class="rounded-lg border border-slate-200 p-3 shadow-sm">
+            <span class="inline-block text-xs font-semibold px-2 py-0.5 rounded bg-sky-100 text-sky-700">Feature</span>
+            <p class="text-sm font-medium text-slate-800 mt-2">Add dark mode toggle</p>
+            <p class="text-xs text-slate-400 mt-1">MOB-241</p>
+          </div>
+          <div class="rounded-lg border border-slate-200 p-3 shadow-sm">
+            <span class="inline-block text-xs font-semibold px-2 py-0.5 rounded bg-violet-100 text-violet-700">Chore</span>
+            <p class="text-sm font-medium text-slate-800 mt-2">Upgrade dependencies</p>
+            <p class="text-xs text-slate-400 mt-1">MOB-238</p>
+          </div>
+        </div>
+      </div>
+      <div class="bg-white rounded-xl border border-slate-200 p-3 flex flex-col">
+        <div class="flex items-center justify-between mb-3 px-1">
+          <h2 class="text-sm font-semibold text-slate-700">In Progress</h2>
+          <span class="text-xs font-medium text-slate-400 bg-slate-100 rounded-full px-2 py-0.5">5</span>
+        </div>
+        <div class="space-y-3 overflow-hidden">
+          <div class="rounded-lg border border-slate-200 p-3 shadow-sm">
+            <span data-changed="true" data-region-id="region-1" class="inline-block text-xs font-semibold px-2 py-0.5 rounded bg-orange-100 text-orange-700">Bug</span>
+            <p class="text-sm font-medium text-slate-800 mt-2">Crash on profile save</p>
+            <p class="text-xs text-slate-400 mt-1">MOB-219</p>
+          </div>
+          <div class="rounded-lg border border-slate-200 p-3 shadow-sm">
+            <span class="inline-block text-xs font-semibold px-2 py-0.5 rounded bg-sky-100 text-sky-700">Feature</span>
+            <p class="text-sm font-medium text-slate-800 mt-2">Onboarding carousel</p>
+            <p class="text-xs text-slate-400 mt-1">MOB-225</p>
+          </div>
+        </div>
+      </div>
+      <div class="bg-white rounded-xl border border-slate-200 p-3 flex flex-col">
+        <div class="flex items-center justify-between mb-3 px-1">
+          <h2 class="text-sm font-semibold text-slate-700">Review</h2>
+          <span class="text-xs font-medium text-slate-400 bg-slate-100 rounded-full px-2 py-0.5">3</span>
+        </div>
+        <div class="space-y-3 overflow-hidden">
+          <div class="rounded-lg border border-slate-200 p-3 shadow-sm">
+            <span class="inline-block text-xs font-semibold px-2 py-0.5 rounded bg-amber-100 text-amber-700">Improvement</span>
+            <p class="text-sm font-medium text-slate-800 mt-2">Reduce bundle size</p>
+            <p class="text-xs text-slate-400 mt-1">MOB-201</p>
+          </div>
+        </div>
+      </div>
+      <div class="bg-white rounded-xl border border-slate-200 p-3 flex flex-col">
+        <div class="flex items-center justify-between mb-3 px-1">
+          <h2 class="text-sm font-semibold text-slate-700">Done</h2>
+          <span class="text-xs font-medium text-slate-400 bg-slate-100 rounded-full px-2 py-0.5">8</span>
+        </div>
+        <div class="space-y-3 overflow-hidden">
+          <div class="rounded-lg border border-slate-200 p-3 shadow-sm">
+            <span class="inline-block text-xs font-semibold px-2 py-0.5 rounded bg-emerald-100 text-emerald-700">Done</span>
+            <p class="text-sm font-medium text-slate-800 mt-2">Fix login redirect</p>
+            <p class="text-xs text-slate-400 mt-1">MOB-198</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

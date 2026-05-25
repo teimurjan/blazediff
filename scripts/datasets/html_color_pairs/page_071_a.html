@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Acme Analytics</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 h-screen w-screen overflow-hidden font-sans">
+  <div class="flex h-full">
+    <aside class="w-60 bg-slate-900 text-slate-300 flex flex-col py-6 px-3">
+      <div class="flex items-center gap-2 px-3 mb-8">
+        <div class="h-8 w-8 rounded-lg bg-emerald-500"></div>
+        <span class="text-white font-semibold text-lg">Acme</span>
+      </div>
+      <nav class="flex flex-col gap-1 text-sm">
+        <a data-changed="true" data-region-id="region-1" class="rounded-lg bg-emerald-600 text-white font-medium px-3 py-2.5">Dashboard</a>
+        <a class="rounded-lg px-3 py-2.5 hover:bg-slate-800">Reports</a>
+        <a class="rounded-lg px-3 py-2.5 hover:bg-slate-800">Audiences</a>
+        <a class="rounded-lg px-3 py-2.5 hover:bg-slate-800">Funnels</a>
+        <a class="rounded-lg px-3 py-2.5 hover:bg-slate-800">Settings</a>
+      </nav>
+      <div class="mt-auto px-3 text-xs text-slate-500">v3.2.1 · March 14, 2026</div>
+    </aside>
+    <main class="flex-1 p-10 overflow-hidden">
+      <h1 class="text-2xl font-bold text-slate-900">Dashboard</h1>
+      <p class="text-slate-500 mt-1">Overview of your product metrics for March 14, 2026.</p>
+      <div class="grid grid-cols-3 gap-6 mt-8">
+        <div class="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+          <p class="text-sm text-slate-500">Active users</p>
+          <p class="text-3xl font-bold text-slate-900 mt-2">48,210</p>
+          <p class="text-sm text-emerald-600 mt-1">+12.4% this week</p>
+        </div>
+        <div class="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+          <p class="text-sm text-slate-500">Sessions</p>
+          <p class="text-3xl font-bold text-slate-900 mt-2">126,540</p>
+          <p class="text-sm text-emerald-600 mt-1">+5.1% this week</p>
+        </div>
+        <div class="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+          <p class="text-sm text-slate-500">Conversion</p>
+          <p class="text-3xl font-bold text-slate-900 mt-2">3.82%</p>
+          <p class="text-sm text-rose-600 mt-1">-0.3% this week</p>
+        </div>
+      </div>
+      <div class="bg-white rounded-xl border border-slate-200 p-6 shadow-sm mt-6 h-64">
+        <p class="font-semibold text-slate-800">Weekly traffic</p>
+        <div class="flex items-end gap-3 h-40 mt-6">
+          <div class="flex-1 bg-emerald-200 rounded-t h-full"></div>
+          <div class="flex-1 bg-emerald-300 rounded-t h-3/4"></div>
+          <div class="flex-1 bg-emerald-400 rounded-t h-5/6"></div>
+          <div class="flex-1 bg-emerald-200 rounded-t h-2/3"></div>
+          <div class="flex-1 bg-emerald-300 rounded-t h-full"></div>
+        </div>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Search</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-white h-screen flex flex-col font-sans">
+  <header class="h-16 border-b border-slate-200 flex items-center px-6 gap-4">
+    <span class="text-lg font-bold text-rose-600">Trekk</span>
+    <div class="flex-1 max-w-xl">
+      <div class="flex items-center gap-2 px-3 py-2 border border-slate-300 rounded-lg">
+        <div class="w-4 h-4 rounded-full border-2 border-slate-400"></div>
+        <span class="text-sm text-slate-700">trail running shoes size 14</span>
+      </div>
+    </div>
+    <div class="w-9 h-9 rounded-full bg-slate-200"></div>
+  </header>
+  <main class="flex-1 flex items-center justify-center">
+    <div class="text-center max-w-md">
+      <div class="mx-auto w-28 h-28 rounded-full bg-rose-50 flex items-center justify-center mb-6">
+        <div class="w-14 h-14 rounded-full border-4 border-rose-300 flex items-center justify-center">
+          <div class="w-5 h-5 rounded-sm bg-rose-300 rotate-45"></div>
+        </div>
+      </div>
+      <h1 class="text-xl font-bold text-slate-900">No results for "size 14"</h1>
+      <p class="text-sm text-slate-500 mt-2">We couldn't find any products matching your search. Try a different keyword or remove some filters.</p>
+      <div class="mt-5 flex justify-center gap-3">
+        <button type="button" class="text-sm font-semibold text-slate-600 border border-slate-300 px-4 py-2 rounded-lg">Clear filters</button>
+        <button type="button" data-changed="true" data-region-id="region-1" class="text-sm font-semibold text-white bg-rose-600 px-4 py-2 rounded-lg">Browse all shoes</button>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

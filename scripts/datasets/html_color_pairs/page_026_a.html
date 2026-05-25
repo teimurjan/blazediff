@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Notification Settings</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-emerald-50 h-screen flex items-center justify-center font-sans">
+  <div class="w-full max-w-xl bg-white rounded-2xl shadow-lg p-8">
+    <h1 class="text-xl font-bold text-gray-900 mb-1">Notification preferences</h1>
+    <p class="text-sm text-gray-500 mb-6">Choose how we keep you in the loop.</p>
+    <div class="space-y-5">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-sm font-medium text-gray-800">Product updates</p>
+          <p class="text-xs text-gray-500">New features and improvements.</p>
+        </div>
+        <div data-changed="true" data-region-id="region-1" class="w-11 h-6 rounded-full bg-emerald-500 flex items-center px-1 justify-end">
+          <span class="w-4 h-4 bg-white rounded-full"></span>
+        </div>
+      </div>
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-sm font-medium text-gray-800">Weekly digest</p>
+          <p class="text-xs text-gray-500">A summary every Monday morning.</p>
+        </div>
+        <div class="w-11 h-6 rounded-full bg-gray-300 flex items-center px-1 justify-start">
+          <span class="w-4 h-4 bg-white rounded-full"></span>
+        </div>
+      </div>
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-sm font-medium text-gray-800">Security alerts</p>
+          <p class="text-xs text-gray-500">Important account activity.</p>
+        </div>
+        <div class="w-11 h-6 rounded-full bg-emerald-500 flex items-center px-1 justify-end">
+          <span class="w-4 h-4 bg-white rounded-full"></span>
+        </div>
+      </div>
+      <button type="button" class="mt-4 bg-emerald-600 text-white text-sm font-semibold px-6 py-2.5 rounded-lg">Save preferences</button>
+    </div>
+  </div>
+</body>
+</html>

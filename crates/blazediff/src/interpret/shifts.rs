@@ -2,8 +2,18 @@ use crate::types::Image;
 
 use super::types::{BoundingBox, ChangeRegion, ChangeType};
 
-/// Post-classification pass: match Addition+Deletion pairs with similar
-/// content to reclassify as Shift.
+/// Post-classification pass: match Deletion regions in img1 with structurally
+/// "appearance" regions in img2 (Addition, ContentChange, ColorChange) whose
+/// content is similar enough to be the same object moved to a new location.
+/// When a pair clears the size + luminance match it is re-labelled Shift on
+/// both sides.
+///
+/// Candidate widening: a real shift commonly lands the moved block onto a
+/// destination that visually overlaps the existing scene there, so the
+/// upstream classifier may call the appearance side ContentChange or
+/// ColorChange instead of a clean Addition. We pair against all three.
+/// The luminance match (mean within 0.20, std within 0.15) keeps precision
+/// high — unrelated regions rarely match both statistics.
 pub fn detect_shifts(
     regions: &mut [ChangeRegion],
     img1: &Image,
@@ -17,42 +27,47 @@ pub fn detect_shifts(
         .filter(|(_, r)| r.change_type == ChangeType::Deletion)
         .map(|(i, _)| i)
         .collect();
-    let additions: Vec<usize> = regions
+    let appearances: Vec<usize> = regions
         .iter()
         .enumerate()
-        .filter(|(_, r)| r.change_type == ChangeType::Addition)
+        .filter(|(_, r)| {
+            matches!(
+                r.change_type,
+                ChangeType::Addition | ChangeType::ContentChange | ChangeType::ColorChange
+            )
+        })
         .map(|(i, _)| i)
         .collect();
 
     let mut matched = std::collections::HashSet::new();
 
     for &d in &deletions {
-        for &a in &additions {
+        for &a in &appearances {
             if matched.contains(&d) || matched.contains(&a) {
                 continue;
             }
 
-            // Size similarity within 40%
+            // Size similarity within ~45%
             let w_ratio = regions[d].bbox.width as f64 / regions[a].bbox.width.max(1) as f64;
             let h_ratio = regions[d].bbox.height as f64 / regions[a].bbox.height.max(1) as f64;
-            if !(0.6..=1.67).contains(&w_ratio) || !(0.6..=1.67).contains(&h_ratio) {
+            if !(0.55..=1.82).contains(&w_ratio) || !(0.55..=1.82).contains(&h_ratio) {
                 continue;
             }
 
-            // Pixel count similarity within 50%
+            // Pixel count similarity within ~55%
             let px_ratio = regions[d].pixel_count as f64 / regions[a].pixel_count.max(1) as f64;
-            if !(0.67..=1.5).contains(&px_ratio) {
+            if !(0.65..=1.55).contains(&px_ratio) {
                 continue;
             }
 
-            // Content similarity: compare img1[deletion] with img2[addition]
+            // Content similarity: compare img1[deletion] with img2[appearance]
             let (mean_d, std_d) = luminance_stats(img1, mask, &regions[d].bbox, width);
             let (mean_a, std_a) = luminance_stats(img2, mask, &regions[a].bbox, width);
 
             let mean_diff = (mean_d - mean_a).abs() / 255.0;
             let std_diff = (std_d - std_a).abs() / 255.0;
 
-            if mean_diff < 0.15 && std_diff < 0.10 {
+            if mean_diff < 0.20 && std_diff < 0.15 {
                 matched.insert(d);
                 matched.insert(a);
             }

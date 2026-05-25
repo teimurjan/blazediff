@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Security Center</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 h-screen w-screen overflow-hidden flex items-center justify-center font-sans">
+  <div class="w-full max-w-4xl px-8">
+    <h1 class="text-2xl font-bold text-slate-900 mb-1">Security center</h1>
+    <p class="text-slate-500 mb-6">Alerts requiring your attention</p>
+    <div class="grid grid-cols-2 gap-5">
+      <div class="rounded-2xl bg-white ring-1 ring-rose-200 p-5">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="h-7 w-7 rounded-lg bg-rose-100 text-rose-600 flex items-center justify-center font-bold">!</span>
+          <p class="font-semibold text-rose-700">Suspicious login</p>
+        </div>
+        <p class="text-sm text-slate-600">A sign-in from Lagos, Nigeria was blocked at 03:14 AM.</p>
+      </div>
+      <div data-changed="true" data-region-id="region-1" class="rounded-2xl bg-white ring-1 ring-amber-200 p-5">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="h-7 w-7 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center font-bold">!</span>
+          <p class="font-semibold text-amber-700">Weak password</p>
+        </div>
+        <p class="text-sm text-slate-600">3 team members are using passwords found in known breaches.</p>
+      </div>
+      <div class="rounded-2xl bg-white ring-1 ring-sky-200 p-5">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="h-7 w-7 rounded-lg bg-sky-100 text-sky-600 flex items-center justify-center font-bold">i</span>
+          <p class="font-semibold text-sky-700">New device</p>
+        </div>
+        <p class="text-sm text-slate-600">MacBook Pro was added to your trusted devices list.</p>
+      </div>
+      <div class="rounded-2xl bg-white ring-1 ring-emerald-200 p-5">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="h-7 w-7 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold">&check;</span>
+          <p class="font-semibold text-emerald-700">2FA enabled</p>
+        </div>
+        <p class="text-sm text-slate-600">Two-factor authentication is active for all admins.</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

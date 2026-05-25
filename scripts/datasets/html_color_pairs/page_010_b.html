@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pick a plan</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-br from-indigo-50 to-rose-50 h-screen w-screen overflow-hidden flex items-center justify-center font-sans">
+  <div class="w-full max-w-6xl px-8">
+    <div class="text-center mb-8">
+      <h1 class="text-3xl font-bold text-slate-900">Pick the plan that fits</h1>
+      <p class="text-slate-500 mt-2">Trusted by 12,000+ teams worldwide.</p>
+    </div>
+    <div class="grid grid-cols-3 gap-6">
+      <div class="rounded-2xl bg-white border border-slate-200 p-7 shadow-sm flex flex-col">
+        <span data-changed="true" data-region-id="region-1" class="self-start bg-sky-100 text-sky-700 text-xs font-semibold px-3 py-1 rounded-full">Free forever</span>
+        <h2 class="mt-4 text-lg font-semibold text-slate-800">Personal</h2>
+        <p class="mt-3 text-4xl font-bold text-slate-900">$0</p>
+        <ul class="mt-5 space-y-2.5 text-sm text-slate-600 flex-1">
+          <li class="flex items-center"><span class="text-emerald-500 mr-2">✓</span>1 user</li>
+          <li class="flex items-center"><span class="text-emerald-500 mr-2">✓</span>500 MB storage</li>
+          <li class="flex items-center"><span class="text-emerald-500 mr-2">✓</span>Basic reports</li>
+        </ul>
+        <button class="mt-6 w-full rounded-lg border border-slate-300 text-slate-700 py-2.5 font-medium hover:bg-slate-50">Get started</button>
+      </div>
+      <div class="rounded-2xl bg-slate-900 p-7 shadow-xl flex flex-col">
+        <span class="self-start bg-white/15 text-white text-xs font-semibold px-3 py-1 rounded-full">Popular</span>
+        <h2 class="mt-4 text-lg font-semibold text-white">Studio</h2>
+        <p data-changed="true" data-region-id="region-2" class="mt-3 text-4xl font-bold text-cyan-400">$45</p>
+        <ul class="mt-5 space-y-2.5 text-sm text-slate-300 flex-1">
+          <li class="flex items-center"><span class="text-amber-400 mr-2">✓</span>10 users</li>
+          <li class="flex items-center"><span class="text-amber-400 mr-2">✓</span>100 GB storage</li>
+          <li class="flex items-center"><span class="text-amber-400 mr-2">✓</span>Advanced reports</li>
+        </ul>
+        <button class="mt-6 w-full rounded-lg bg-white text-slate-900 py-2.5 font-semibold hover:bg-slate-100">Choose Studio</button>
+      </div>
+      <div class="rounded-2xl bg-white border border-slate-200 p-7 shadow-sm flex flex-col">
+        <span class="self-start bg-slate-100 text-slate-600 text-xs font-semibold px-3 py-1 rounded-full">Scale up</span>
+        <h2 class="mt-4 text-lg font-semibold text-slate-800">Agency</h2>
+        <p class="mt-3 text-4xl font-bold text-slate-900">$120</p>
+        <ul class="mt-5 space-y-2.5 text-sm text-slate-600 flex-1">
+          <li class="flex items-center"><span class="text-emerald-500 mr-2">✓</span>Unlimited users</li>
+          <li class="flex items-center"><span class="text-emerald-500 mr-2">✓</span>1 TB storage</li>
+          <li class="flex items-center"><span class="text-emerald-500 mr-2">✓</span>White-label</li>
+        </ul>
+        <button data-changed="true" data-region-id="region-3" class="mt-6 w-full rounded-lg bg-indigo-600 text-white py-2.5 font-medium hover:bg-indigo-700">Choose Agency</button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

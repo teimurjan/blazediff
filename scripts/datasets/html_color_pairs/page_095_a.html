@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Billing</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 h-screen w-screen overflow-hidden relative font-sans">
+  <div class="absolute inset-0 px-10 py-10">
+    <h1 class="text-2xl font-bold text-slate-900">Billing &amp; invoices</h1>
+    <p class="text-slate-500 mt-1 mb-6">Review your payment history and update your card.</p>
+    <div class="rounded-xl bg-white border border-slate-200 overflow-hidden max-w-3xl">
+      <div class="grid grid-cols-4 px-5 py-3 text-xs font-semibold uppercase text-slate-400 border-b border-slate-100">
+        <span>Invoice</span><span>Date</span><span>Amount</span><span>Status</span>
+      </div>
+      <div class="grid grid-cols-4 px-5 py-3 text-sm text-slate-700 border-b border-slate-50">
+        <span>#INV-2041</span><span>Mar 1, 2026</span><span>$29.00</span><span class="text-emerald-600 font-medium">Paid</span>
+      </div>
+      <div class="grid grid-cols-4 px-5 py-3 text-sm text-slate-700 border-b border-slate-50">
+        <span>#INV-2018</span><span>Feb 1, 2026</span><span>$29.00</span><span class="text-emerald-600 font-medium">Paid</span>
+      </div>
+      <div class="grid grid-cols-4 px-5 py-3 text-sm text-slate-700">
+        <span>#INV-1994</span><span>Jan 1, 2026</span><span>$29.00</span><span class="text-rose-600 font-medium">Failed</span>
+      </div>
+    </div>
+  </div>
+  <div class="absolute top-6 left-1/2 -translate-x-1/2 w-full max-w-lg px-4">
+    <div data-changed="true" data-region-id="region-1" class="rounded-lg bg-rose-600 text-white shadow-xl px-5 py-4 flex items-center gap-3">
+      <div class="h-9 w-9 flex-none rounded-full bg-rose-500 flex items-center justify-center font-bold">!</div>
+      <div class="flex-1">
+        <p class="text-sm font-semibold">Payment method declined</p>
+        <p class="text-xs text-rose-100 mt-0.5">Your card ending 0199 was declined. Update it to avoid service loss.</p>
+      </div>
+      <button class="rounded-md bg-white text-rose-700 text-xs font-semibold px-3 py-1.5">Update</button>
+    </div>
+  </div>
+</body>
+</html>

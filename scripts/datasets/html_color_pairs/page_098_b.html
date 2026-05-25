@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Project Overview</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-white h-screen w-screen overflow-hidden font-sans flex flex-col">
+  <div class="space-y-px">
+    <div data-changed="true" data-region-id="region-1" class="bg-lime-100 text-lime-900 px-8 py-3 flex items-center gap-3">
+      <span class="font-bold">!</span>
+      <p class="text-sm">Your domain certificate expires in 5 days. Renew before March 18 to avoid downtime.</p>
+    </div>
+    <div class="bg-sky-100 text-sky-900 px-8 py-3 flex items-center gap-3">
+      <span class="font-bold">i</span>
+      <p class="text-sm">A new version of the desktop app (v3.2.0) is ready to install.</p>
+    </div>
+    <div data-changed="true" data-region-id="region-2" class="bg-indigo-100 text-indigo-900 px-8 py-3 flex items-center gap-3">
+      <span class="font-bold">&times;</span>
+      <p class="text-sm">2 background jobs failed in the last hour. Check the worker logs for details.</p>
+    </div>
+  </div>
+  <div class="flex-1 px-8 py-8">
+    <h1 class="text-2xl font-bold text-slate-900">Project overview</h1>
+    <p class="text-slate-500 mt-1">Apollo — production environment</p>
+    <div class="mt-8 grid grid-cols-3 gap-6 max-w-5xl">
+      <div class="rounded-xl border border-slate-200 p-6">
+        <p class="text-sm text-slate-500">Active users</p>
+        <p class="text-3xl font-bold text-slate-900 mt-1">12,480</p>
+      </div>
+      <div class="rounded-xl border border-slate-200 p-6">
+        <p class="text-sm text-slate-500">Requests / min</p>
+        <p class="text-3xl font-bold text-slate-900 mt-1">8,213</p>
+      </div>
+      <div class="rounded-xl border border-slate-200 p-6">
+        <p class="text-sm text-slate-500">Error rate</p>
+        <p class="text-3xl font-bold text-slate-900 mt-1">0.4%</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

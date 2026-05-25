@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Payment Method</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 h-screen flex items-center justify-center font-sans">
+  <div class="w-full max-w-md bg-slate-800 rounded-2xl shadow-2xl p-8">
+    <h1 class="text-xl font-bold text-white mb-1">Add payment method</h1>
+    <p class="text-sm text-slate-400 mb-6">Your card is encrypted and stored securely.</p>
+    <div class="space-y-4">
+      <div data-changed="true" data-region-id="region-1" class="rounded-xl bg-gradient-to-br from-teal-600 to-cyan-600 p-5 text-white">
+        <div class="text-xs uppercase tracking-widest opacity-80">Credit card</div>
+        <div class="text-lg font-mono tracking-widest mt-4">5412 •••• •••• 8890</div>
+        <div class="flex justify-between mt-4 text-sm"><span>J. RIVERA</span><span>12 / 27</span></div>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-300 mb-1">Name on card</label>
+        <input type="text" value="Jordan Rivera" class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-sm text-white">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-300 mb-1">Billing ZIP</label>
+        <input type="text" value="10001" class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-sm text-white">
+      </div>
+      <button type="button" class="w-full bg-indigo-500 text-white font-semibold py-2.5 rounded-lg hover:bg-indigo-400">Save card</button>
+    </div>
+  </div>
+</body>
+</html>

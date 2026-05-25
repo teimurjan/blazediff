@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Checkout</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-zinc-100 h-screen flex items-center justify-center font-sans">
+  <div class="w-full max-w-4xl grid grid-cols-5 gap-6">
+    <div class="col-span-3 bg-white rounded-xl shadow-sm border border-zinc-200 p-7">
+      <h1 class="text-xl font-bold text-zinc-900 mb-5">Checkout</h1>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-zinc-700 mb-1">Email</label>
+          <input type="email" value="dana@mail.com" class="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-zinc-700 mb-1">Card number</label>
+          <input type="text" value="4242 4242 4242 4242" class="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm">
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-zinc-700 mb-1">Expiry</label>
+            <input type="text" value="03 / 28" class="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-zinc-700 mb-1">CVC</label>
+            <input type="text" value="123" class="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm">
+          </div>
+        </div>
+        <button type="button" class="w-full bg-zinc-900 text-white font-semibold py-2.5 rounded-lg">Pay $84.00</button>
+      </div>
+    </div>
+    <div class="col-span-2 bg-white rounded-xl shadow-sm border border-zinc-200 p-7">
+      <h2 class="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">Order summary</h2>
+      <div class="space-y-3 text-sm">
+        <div class="flex justify-between text-zinc-700"><span>Wireless mouse</span><span>$29.00</span></div>
+        <div class="flex justify-between text-zinc-700"><span>USB-C hub</span><span>$48.00</span></div>
+        <div class="flex justify-between text-zinc-700"><span>Shipping</span><span>$7.00</span></div>
+        <div class="border-t border-zinc-200 pt-3 flex justify-between font-bold text-zinc-900"><span>Total</span><span data-changed="true" data-region-id="region-1" class="text-emerald-600">$84.00</span></div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ledger Finance</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 h-screen w-screen overflow-hidden font-sans">
+  <div class="flex h-full">
+    <aside class="w-20 bg-teal-700 flex flex-col items-center py-6 gap-6">
+      <div class="h-9 w-9 rounded-lg bg-white"></div>
+      <nav class="flex flex-col gap-4 text-white">
+        <a data-changed="true" data-region-id="region-1" class="h-11 w-11 rounded-xl bg-teal-900 flex items-center justify-center font-bold">A</a>
+        <a class="h-11 w-11 rounded-xl hover:bg-teal-600 flex items-center justify-center">B</a>
+        <a class="h-11 w-11 rounded-xl hover:bg-teal-600 flex items-center justify-center">C</a>
+        <a class="h-11 w-11 rounded-xl hover:bg-teal-600 flex items-center justify-center">D</a>
+      </nav>
+    </aside>
+    <main class="flex-1 p-10 overflow-hidden">
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-2xl font-bold text-slate-900">Accounts</h1>
+          <p class="text-slate-500 mt-1">Updated March 14, 2026</p>
+        </div>
+        <button class="rounded-lg bg-teal-600 text-white font-medium px-5 py-2.5">Transfer</button>
+      </div>
+      <div class="grid grid-cols-2 gap-6 mt-8">
+        <div class="bg-gradient-to-br from-teal-600 to-emerald-700 rounded-2xl p-7 text-white">
+          <p class="text-teal-100 text-sm">Total balance</p>
+          <p class="text-4xl font-bold mt-2">$84,920.18</p>
+          <p class="text-teal-100 text-sm mt-4">**** **** **** 4821</p>
+        </div>
+        <div class="bg-white rounded-2xl border border-slate-200 p-7">
+          <p class="text-slate-500 text-sm">This month</p>
+          <div class="flex justify-between mt-4"><span class="text-slate-600">Income</span><span class="font-semibold text-emerald-600">+$12,400</span></div>
+          <div class="flex justify-between mt-2"><span class="text-slate-600">Expenses</span><span class="font-semibold text-rose-600">-$5,210</span></div>
+          <div class="flex justify-between mt-2 border-t border-slate-100 pt-3"><span class="text-slate-800 font-medium">Net</span><span class="font-bold text-slate-900">+$7,190</span></div>
+        </div>
+      </div>
+      <div class="bg-white rounded-2xl border border-slate-200 mt-6 divide-y divide-slate-100">
+        <div class="flex justify-between px-6 py-4"><span class="text-slate-700">Spotify</span><span class="text-slate-900 font-medium">-$9.99</span></div>
+        <div class="flex justify-between px-6 py-4"><span class="text-slate-700">Salary</span><span class="text-emerald-600 font-medium">+$6,200.00</span></div>
+        <div class="flex justify-between px-6 py-4"><span class="text-slate-700">Whole Foods</span><span class="text-slate-900 font-medium">-$112.40</span></div>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

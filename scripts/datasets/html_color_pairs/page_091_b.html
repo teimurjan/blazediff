@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Account Notifications</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 h-screen w-screen overflow-hidden flex items-center justify-center font-sans">
+  <div class="w-full max-w-2xl px-8">
+    <h1 class="text-2xl font-bold text-slate-900 mb-1">Account notifications</h1>
+    <p class="text-slate-500 mb-6">Recent activity on your workspace</p>
+    <div class="space-y-4">
+      <div class="flex gap-3 rounded-xl border border-sky-200 bg-sky-50 p-4">
+        <div class="flex h-9 w-9 flex-none items-center justify-center rounded-full bg-sky-100 text-sky-600 font-bold">i</div>
+        <div class="flex-1">
+          <p class="font-semibold text-sky-800">New feature available</p>
+          <p class="text-sm text-sky-700 mt-0.5">Scheduled reports are now in beta for all Pro workspaces.</p>
+        </div>
+        <button class="text-sky-400 hover:text-sky-600 font-bold">&times;</button>
+      </div>
+      <div data-changed="true" data-region-id="region-1" class="flex gap-3 rounded-xl border border-violet-200 bg-violet-50 p-4">
+        <div class="flex h-9 w-9 flex-none items-center justify-center rounded-full bg-violet-100 text-violet-600 font-bold">&check;</div>
+        <div class="flex-1">
+          <p class="font-semibold text-violet-800">Payment received</p>
+          <p class="text-sm text-violet-700 mt-0.5">We charged $29.00 to Visa ending 4242 for your March invoice.</p>
+        </div>
+        <button class="text-violet-400 hover:text-violet-600 font-bold">&times;</button>
+      </div>
+      <div class="flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
+        <div class="flex h-9 w-9 flex-none items-center justify-center rounded-full bg-amber-100 text-amber-600 font-bold">!</div>
+        <div class="flex-1">
+          <p class="font-semibold text-amber-800">Storage almost full</p>
+          <p class="text-sm text-amber-700 mt-0.5">You have used 47.8 GB of 50 GB. Upgrade to avoid interruptions.</p>
+        </div>
+        <button class="text-amber-400 hover:text-amber-600 font-bold">&times;</button>
+      </div>
+      <div class="flex gap-3 rounded-xl border border-rose-200 bg-rose-50 p-4">
+        <div class="flex h-9 w-9 flex-none items-center justify-center rounded-full bg-rose-100 text-rose-600 font-bold">&times;</div>
+        <div class="flex-1">
+          <p class="font-semibold text-rose-800">Sync failed</p>
+          <p class="text-sm text-rose-700 mt-0.5">Could not connect to the GitHub integration. Retry in settings.</p>
+        </div>
+        <button class="text-rose-400 hover:text-rose-600 font-bold">&times;</button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
