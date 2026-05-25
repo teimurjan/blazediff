@@ -1,5 +1,13 @@
 # @blazediff/cli
 
+## 3.2.4
+
+### Patch Changes
+
+- Updated dependencies [351c995]
+  - @blazediff/core-native@4.3.4
+  - @blazediff/core-wasm@4.3.4
+
 ## 3.2.3
 
 ### Patch Changes

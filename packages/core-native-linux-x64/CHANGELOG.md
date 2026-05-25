@@ -1,5 +1,7 @@
 # @blazediff/core-native-linux-x64
 
+## 4.3.4
+
 ## 4.3.3
 
 ### Patch Changes

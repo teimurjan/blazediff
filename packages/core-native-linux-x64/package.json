@@ -1,6 +1,6 @@
 {
 	"name": "@blazediff/core-native-linux-x64",
-	"version": "4.3.3",
+	"version": "4.3.4",
 	"description": "blazediff binary for Linux x64",
 	"main": "blazediff.node",
 	"os": [
