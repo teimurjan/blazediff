@@ -1,17 +1,25 @@
-# BlazeDiff
-
 <div align="center">
 
+<a href="https://blazediff.dev">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/teimurjan/blazediff/main/assets/logo-dark.png">
+    <img alt="Logo'" src="https://raw.githubusercontent.com/teimurjan/blazediff/main/assets/logo-light.png">
+  </picture>
+</a>
+
+------
+
+[![JS OS Awards 2026](https://img.shields.io/badge/JS%20OS%20Awards%202026%20Nominee-f1dd3f?style=for-the-badge)](https://osawards.com/javascript/)
+[![Best of JS](https://img.shields.io/badge/Best_of_JS-%23ffa057?style=for-the-badge)](https://bestofjs.org/projects/blazediff)
+
+[![NPM](https://img.shields.io/badge/npm-%40blazediff-%23ea2039?style=for-the-badge&labelColor=%23555555)](https://www.npmjs.com/org/blazediff)
+[![JSR](https://img.shields.io/badge/JSR-%40blazediff-f7df1e?style=for-the-badge&logo=jsr&labelColor=%23083344)](https://jsr.io/@blazediff)
+[![NPM Downloads](https://img.shields.io/npm/dy/%40blazediff%2Fcore?style=for-the-badge&color=%23b4a0ff)](https://www.npmjs.com/blazediff/core)
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
-[![NPM](https://img.shields.io/badge/NPM-%40blazediff-red?style=for-the-badge)](https://www.npmjs.com/org/blazediff)
-[![JSR](https://img.shields.io/badge/JSR-%40blazediff-f7df1e?style=for-the-badge&logo=jsr&logoColor=083344)](https://jsr.io/@blazediff)
-[![Test](https://img.shields.io/github/actions/workflow/status/teimurjan/blazediff/test.yml?style=for-the-badge&label=test)](https://github.com/teimurjan/blazediff/actions/workflows/test.yml)
-[![Release](https://img.shields.io/github/actions/workflow/status/teimurjan/blazediff/release.yml?style=for-the-badge&label=release)](https://github.com/teimurjan/blazediff/actions/workflows/release.yml)
 [![Ask DeepWiki](https://img.shields.io/badge/Ask-DeepWiki-blue?style=for-the-badge)](https://deepwiki.com/teimurjan/blazediff)
 
 </div>
-
-<div align="center"><img src="./apps/website/public/android-chrome-512x512.png" /></div>
 
 **BlazeDiff** is a high-performance diff ecosystem. Originally built in JavaScript as a pixel-perfect image comparison library that's 1.5x faster than [pixelmatch](https://github.com/mapbox/pixelmatch). Now, BlazeDiff has evolved into a comprehensive suite of blazing-fast diff tools including image comparison, image diff analysis determenistically + agent-in-the-loop verdict, object diffing, perceptual quality metrics, web components, and React components for visualizing differences.
 
@@ -60,7 +68,7 @@ Every package above is available on both registries **except** the test-runner a
 BlazeDiff delivers significant performance improvements across all components:
 
 - **Native (Rust)**: 3-4x faster than odiff, 8x faster than pixelmatch on 4K images
-- **WebAssembly (wasm32 + v128 SIMD)**: ~58% faster than pixelmatch on average, up to ~5x on 4K (browser, edge, any wasm host)
+ge, up to ~5x on 4K (browser, edge, any wasm host)
 - **Image Pixel-by-Pixel (JS)**: ~50% faster than pixelmatch (up to 88% on identical images)
 - **SSIM**: ~25% faster than ssim.js, ~70% faster with Hitchhiker's SSIM
 - **Object Diff**: ~55% faster than microdiff (up to 96% on identical arrays)
