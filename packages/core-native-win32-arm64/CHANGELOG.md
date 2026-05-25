@@ -1,5 +1,7 @@
 # @blazediff/core-native-win32-arm64
 
+## 4.3.4
+
 ## 4.3.3
 
 ### Patch Changes

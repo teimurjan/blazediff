@@ -1,5 +1,11 @@
 # @blazediff/core-native
 
+## 4.3.4
+
+### Patch Changes
+
+- 351c995: Speed up interpret & improve verification pipeline
+
 ## 4.3.3
 
 ## 4.3.2
