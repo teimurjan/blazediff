@@ -2,6 +2,7 @@ import { spawn } from "node:child_process";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { resolvePlaywrightCli } from "../browsers";
 
 export class CodegenError extends Error {
 	constructor(message: string) {
@@ -29,9 +30,11 @@ export async function runCodegen(
 	const tmp = await mkdtemp(path.join(tmpdir(), "blazediff-codegen-"));
 	const scriptPath = path.join(tmp, "recording.js");
 
-	const command = opts.command ?? "npx";
+	// Run the bundled playwright CLI directly via node — `npx playwright` fails
+	// in workspaces where playwright isn't linked into the local node_modules/.bin.
+	const command = opts.command ?? process.execPath;
 	const args = opts.args ?? [
-		"playwright",
+		resolvePlaywrightCli(),
 		"codegen",
 		"--target=javascript",
 		`--output=${scriptPath}`,

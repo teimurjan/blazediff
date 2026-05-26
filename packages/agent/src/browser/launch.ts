@@ -210,6 +210,13 @@ export async function applyMaskOverlays(
 ): Promise<void> {
 	const selectors = [DEFAULT_MASK_SELECTOR, ...masks];
 	await page.evaluate((selectors) => {
+		// Clear overlays from a prior shot so re-masking after a harness
+		// interaction reflects the current DOM rather than stale positions.
+		for (const stale of Array.from(
+			document.querySelectorAll("[data-blazediff-mask]"),
+		)) {
+			stale.remove();
+		}
 		for (const sel of selectors) {
 			for (const el of Array.from(
 				document.querySelectorAll<HTMLElement>(sel),

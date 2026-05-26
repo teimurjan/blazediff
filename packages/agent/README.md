@@ -51,7 +51,7 @@ Commit `.blazediff/` (config + manifest + baselines). All commands accept `--jso
   <tr><td><code>rewrite &lt;id...&gt;</code></td><td>Re-baseline existing entries (also <code>--failed</code> / <code>--all</code>). Cleans stale <code>actual/</code>, <code>judgments/</code>, <code>summary.md</code>, <code>checkpoints/</code> for the rewritten ids.</td></tr>
   <tr><td><code>diff &lt;id&gt;</code></td><td>Re-diff one entry without re-screenshotting</td></tr>
   <tr><td><code>manifest</code></td><td>Inspect / list manifest entries</td></tr>
-  <tr><td><code>auth init</code></td><td>Record a login harness via Playwright codegen, rewrite credentials to env-var refs, write <code>.blazediff/auth.js</code></td></tr>
+  <tr><td><code>auth init</code></td><td>Record a login harness via Playwright codegen, rewrite credentials to env-var refs, write <code>.blazediff/harnesses/auth.js</code></td></tr>
   <tr><td><code>serve-status</code></td><td>Start / stop / probe the dev server</td></tr>
   <tr><td><code>browsers install</code></td><td>Install bundled Playwright Chromium</td></tr>
   <tr><td><code>reset --yes</code></td><td>Wipe <code>.blazediff/</code></td></tr>
@@ -96,23 +96,47 @@ Every non-match routes through the configured judge. With `--judge host` the jud
   "devServer": { "command": "pnpm dev", "port": 3000, "readyTimeoutMs": 60000 },
   "framework": "next",
   "packageManager": "pnpm",
-  "baseUrl": "http://127.0.0.1:3000",
-  "auth": { "harness": ".blazediff/auth.js", "loginUrl": "http://127.0.0.1:3000/login" }
+  "baseUrl": "http://127.0.0.1:3000"
 }
 ```
 
-The `auth` block is added by `blazediff-agent auth init` — omit it on projects without auth-gated routes.
-
 `.blazediff/manifest.json` is written by `capture`; don't edit it directly.
 
-## Auth-protected routes
+## Harnesses
 
-Capture routes behind a login flow without exposing credentials to the LLM.
-Run `blazediff-agent auth init` once to record a login harness via Playwright
-codegen — the email/password you type get rewritten into env-var references
-before the file is saved. Mark entries with `auth: "<persona>"` (defaults to
-`"default"`), set `BLAZEDIFF_AUTH_<PERSONA>_EMAIL` and `..._PASSWORD`, and
-`check` does the rest. Full walkthrough: [Auth-protected routes][auth-docs].
+A harness is a pluggable script in `.blazediff/harnesses/<name>.js`, attached to
+an entry via `harnesses: [{ name, params? }]`. A **setup** harness runs before
+navigation (e.g. login); an **interact** harness (the default) runs after the
+base screenshot and may drive the page and emit extra named screenshots — each
+becomes its own baseline entry (`<id>__<name>`). Harnesses default-export a
+`Harness` and are ESM `.js`/`.mjs` (TypeScript is not auto-transpiled):
+
+```js
+/** @type {import("@blazediff/agent").Harness} */
+export default {
+  async run({ page, screenshot }) {
+    await page.getByRole("button", { name: "More options" }).click();
+    await screenshot("menu"); // -> baseline "<entry>__menu"
+  },
+};
+```
+
+### Auth-protected routes
+
+Login is a `phase:"setup"` harness. For a simple form login, the agent writes
+`.blazediff/harnesses/auth.js` directly — a `goto(/login)` → fill from
+`process.env.BLAZEDIFF_AUTH_<PERSONA>_EMAIL` / `..._PASSWORD` → submit → assert it
+left `/login`. No credentials ever live in the file, only env refs. For flows it
+can't author (OAuth/SSO, MFA, captcha), `blazediff-agent auth init` records the
+login interactively via Playwright codegen and rewrites the typed creds to env
+refs.
+
+Attach it with `"harnesses": [{ "name": "auth", "params": { "persona": "default" } }]`,
+then put `BLAZEDIFF_AUTH_<PERSONA>_EMAIL` / `..._PASSWORD` in an env file the CLI
+auto-loads from the target dir — `.blazediff/.env[.local]` (blazediff-scoped,
+auto-gitignored) or the project-root `.env[.local]` — or export them. Real env
+wins; `.blazediff/` files beat the root. `check` does the rest.
+Full walkthrough: [Auth-protected routes][auth-docs].
 
 [auth-docs]: https://blazediff.dev/docs/agent#auth-protected-routes
 

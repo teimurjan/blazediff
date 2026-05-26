@@ -6,3 +6,5 @@ dev-server.log
 dev-server.pid
 *.tmp
 checkpoints/
+.env
+.env.local

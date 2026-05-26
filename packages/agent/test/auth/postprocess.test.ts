@@ -84,11 +84,13 @@ describe("postprocessCodegen", () => {
 		expect(result.warnings.join("\n")).toMatch(/no password field detected/);
 	});
 
-	it("embeds the persona name into the generated harness default", () => {
+	it("generates a default-exported setup harness with the persona fallback", () => {
 		const result = postprocessCodegen(CODEGEN_ATTRIBUTE, {
 			persona: "qa",
 			loginUrl: "http://localhost:3000/login",
 		});
-		expect(result.source).toContain('persona = "qa"');
+		expect(result.source).toContain("export default {");
+		expect(result.source).toContain('phase: "setup"');
+		expect(result.source).toContain('params.persona ?? "qa"');
 	});
 });

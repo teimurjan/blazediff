@@ -5,7 +5,7 @@ import type { Command } from "commander";
 import { runCodegen } from "../../auth/codegen";
 import { DEFAULT_PERSONA, envVarsForPersona } from "../../auth/env";
 import { postprocessCodegen } from "../../auth/postprocess";
-import { loadConfig, saveConfig } from "../../config";
+import { loadConfig } from "../../config";
 import { paths } from "../../paths";
 import type { AgentConfig } from "../../types";
 import type { Output } from "../output";
@@ -36,7 +36,6 @@ function looksLikeProduction(url: string): boolean {
 
 function resolveLoginUrl(opts: InitOpts, config: AgentConfig | null): string {
 	if (opts.loginUrl) return opts.loginUrl;
-	if (config?.auth?.loginUrl) return config.auth.loginUrl;
 	const baseUrl = config?.baseUrl;
 	if (!baseUrl) {
 		throw new Error(
@@ -54,15 +53,15 @@ export function registerAuth(program: Command, out: Output): void {
 	cmd
 		.command("init")
 		.description(
-			"record an interactive login via playwright codegen and write .blazediff/auth.js",
+			"record an interactive login via playwright codegen and write a login harness to .blazediff/harnesses/auth.js",
 		)
 		.option("--persona <name>", "persona name", DEFAULT_PERSONA)
 		.option("--login-url <url>", "URL of the login form")
 		.option("--allow-production", "skip the non-prod URL guard")
-		.option("--force", "overwrite an existing .blazediff/auth.js")
+		.option("--force", "overwrite an existing .blazediff/harnesses/auth.js")
 		.option(
 			"--output <path>",
-			"override the harness output path (default: .blazediff/auth.js)",
+			"override the harness output path (default: .blazediff/harnesses/auth.js)",
 		)
 		.action(async (opts: InitOpts) => {
 			const config = await loadConfig();
@@ -78,7 +77,7 @@ export function registerAuth(program: Command, out: Output): void {
 				? path.isAbsolute(opts.output)
 					? opts.output
 					: path.join(process.cwd(), opts.output)
-				: path.join(paths().root, "auth.js");
+				: paths().authHarness;
 
 			if (existsSync(harnessPath) && !opts.force) {
 				throw new Error(`refusing to overwrite ${harnessPath} (use --force).`);
@@ -113,17 +112,8 @@ export function registerAuth(program: Command, out: Output): void {
 			}).catch(() => {});
 
 			const harnessRelative =
-				path.relative(process.cwd(), harnessPath) || "auth.js";
-			const nextConfig: AgentConfig = config
-				? {
-						...config,
-						auth: { harness: harnessRelative, loginUrl },
-					}
-				: {
-						devServer: null,
-						auth: { harness: harnessRelative, loginUrl },
-					};
-			await saveConfig(nextConfig);
+				path.relative(process.cwd(), harnessPath) || "harnesses/auth.js";
+			const harnessName = path.basename(harnessPath).replace(/\.[^.]+$/, "");
 
 			const { email, password } = envVarsForPersona(opts.persona);
 			for (const w of processed.warnings) {
@@ -133,13 +123,15 @@ export function registerAuth(program: Command, out: Output): void {
 				`wrote ${harnessPath}`,
 				`  persona: ${opts.persona}`,
 				`  loginUrl: ${loginUrl}`,
-				`  set ${email} and ${password} in your environment to run captures`,
+				`  set ${email} and ${password} in your environment or .blazediff/.env (auto-loaded + gitignored)`,
+				`  attach it to an entry, e.g. harnesses: [{ "name": "${harnessName}", "params": { "persona": "${opts.persona}" } }]`,
 			].join("\n");
 
 			out.emit(
 				{
 					ok: true,
 					harness: harnessRelative,
+					harnessName,
 					loginUrl,
 					persona: opts.persona,
 					envVars: { email, password },

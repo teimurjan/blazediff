@@ -4,11 +4,10 @@ import path from "node:path";
 import { Command, END, Send, START, StateGraph } from "@langchain/langgraph";
 import { closeBrowser } from "../browser/launch";
 import { ensureGitignore } from "../cli/gitignore";
-import { loadConfig } from "../config";
 import { defaultConcurrency } from "../defaults";
 import type { Verdict } from "../diff/verdict";
 import { type JudgeBackend, writeJudgments } from "../judge";
-import { loadManifest } from "../manifest";
+import { isDerived, loadManifest } from "../manifest";
 import { paths } from "../paths";
 import { writeJunit } from "../report/junit";
 import { writeSummaryMarkdown } from "../report/markdown";
@@ -20,7 +19,12 @@ import { makeDiffNode } from "./nodes/diff";
 import { judgeNode } from "./nodes/judge";
 import { loadNode } from "./nodes/load";
 import { Semaphore } from "./semaphore";
-import { BranchState, GraphState, type GraphStateType } from "./state";
+import {
+	BranchState,
+	CaptureState,
+	GraphState,
+	type GraphStateType,
+} from "./state";
 
 export type ResumeMap = Record<string, Verdict>;
 
@@ -60,23 +64,32 @@ export function threadIdFor(cwd: string): string {
 		.slice(0, 16);
 }
 
-function buildBranchGraph(
-	captureSemaphore: Semaphore,
-	diffSemaphore: Semaphore,
-) {
-	// Per-entry pipeline. Each Send invocation runs this subgraph against an
-	// isolated copy of BranchState, so capture/diff outputs never collide
-	// between branches. Only `results` is shared by name with the parent
-	// schema, so the final 1-element array bubbles up via the append reducer.
-	return new StateGraph(BranchState)
+function buildCaptureGraph(captureSemaphore: Semaphore) {
+	// Per-base-entry capture. Each Send runs the base entry's harnesses and
+	// emits its base + sub-shots into the shared `captured` channel.
+	return new StateGraph(CaptureState)
 		.addNode("capture", makeCaptureNode(captureSemaphore))
+		.addEdge(START, "capture")
+		.addEdge("capture", END)
+		.compile();
+}
+
+function buildBranchGraph(diffSemaphore: Semaphore) {
+	// Per-screenshot diff + judge. Capture already ran; the Send payload carries
+	// the captureOutput. Only `results` bubbles up via the append reducer.
+	return new StateGraph(BranchState)
 		.addNode("diff", makeDiffNode(diffSemaphore))
 		.addNode("judge", judgeNode)
-		.addEdge(START, "capture")
-		.addEdge("capture", "diff")
+		.addEdge(START, "diff")
 		.addEdge("diff", "judge")
 		.addEdge("judge", END)
 		.compile();
+}
+
+// No-op join node: runs once after every capture branch completes, so its
+// conditional edges can fan a diff/judge branch out per captured screenshot.
+function dispatchNode(): Partial<GraphStateType> {
+	return {};
 }
 
 function buildGraph(
@@ -84,16 +97,40 @@ function buildGraph(
 	diffSemaphore: Semaphore,
 	checkpointer: FsCheckpointSaver,
 ) {
-	const branch = buildBranchGraph(captureSemaphore, diffSemaphore);
+	const captureBranch = buildCaptureGraph(captureSemaphore);
+	const branch = buildBranchGraph(diffSemaphore);
 	return new StateGraph(GraphState)
 		.addNode("load", loadNode)
+		.addNode("capture", captureBranch)
+		.addNode("dispatch", dispatchNode)
 		.addNode("branch", branch)
 		.addEdge(START, "load")
 		.addConditionalEdges(
 			"load",
 			(state: GraphStateType) =>
-				state.entries.map(
-					(entry) => new Send("branch", { entry, options: state.options }),
+				state.entries
+					.filter((entry) => !isDerived(entry))
+					.map(
+						(entry) =>
+							new Send("capture", {
+								entry,
+								children: state.entries.filter((e) => e.parent === entry.id),
+								options: state.options,
+							}),
+					),
+			["capture"],
+		)
+		.addEdge("capture", "dispatch")
+		.addConditionalEdges(
+			"dispatch",
+			(state: GraphStateType) =>
+				state.captured.map(
+					(c) =>
+						new Send("branch", {
+							entry: c.entry,
+							captureOutput: c.output,
+							options: state.options,
+						}),
 				),
 			["branch"],
 		)
@@ -198,7 +235,6 @@ export async function runGraph(opts: RunOptions): Promise<CheckReport> {
 		await checkpointer.deleteThread(threadId);
 	}
 
-	const config = await loadConfig(cwd);
 	const input = opts.resume
 		? new Command({ resume: opts.resume })
 		: {
@@ -210,7 +246,6 @@ export async function runGraph(opts: RunOptions): Promise<CheckReport> {
 					emitDiffPng: opts.emitDiffPng ?? true,
 					judge: opts.judge ?? "none",
 					baselinesDir,
-					auth: config?.auth,
 				},
 			};
 

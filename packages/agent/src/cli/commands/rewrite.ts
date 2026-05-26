@@ -4,7 +4,7 @@ import path from "node:path";
 import type { Command } from "commander";
 import { type CaptureRouteInput, runCaptures } from "../../captures";
 import { loadConfig, resolveBaseUrl } from "../../config";
-import { loadManifest } from "../../manifest";
+import { childrenOf, isDerived, loadManifest } from "../../manifest";
 import { paths } from "../../paths";
 import type { Manifest } from "../../types";
 import type { Output } from "../output";
@@ -43,6 +43,23 @@ async function cleanupAfterRewrite(
 		rm(p.summary, { force: true }),
 		rm(p.checkpoints, { recursive: true, force: true }),
 	]);
+}
+
+// Targets may name derived sub-entries; you can't re-shoot a child without
+// re-running its parent's harness, so collapse to base ids and pull in every
+// sibling child (they're regenerated together).
+function expandToBaseTargets(
+	manifest: Manifest,
+	targets: Set<string>,
+): Set<string> {
+	const byId = new Map(manifest.entries.map((e) => [e.id, e]));
+	const base = new Set<string>();
+	for (const id of targets) {
+		const entry = byId.get(id);
+		if (!entry) continue;
+		base.add(isDerived(entry) && entry.parent ? entry.parent : id);
+	}
+	return base;
 }
 
 async function resolveTargets(
@@ -105,8 +122,9 @@ export function registerRewrite(program: Command, out: Output): void {
 				return;
 			}
 
+			const baseTargets = expandToBaseTargets(manifest, targets);
 			const routes: CaptureRouteInput[] = manifest.entries
-				.filter((e) => targets.has(e.id))
+				.filter((e) => !isDerived(e) && baseTargets.has(e.id))
 				.map((e) => ({
 					id: e.id,
 					url: e.url,
@@ -114,6 +132,7 @@ export function registerRewrite(program: Command, out: Output): void {
 					viewport: e.viewport,
 					waitFor: e.waitFor,
 					fullPage: e.fullPage,
+					harnesses: e.harnesses,
 				}));
 
 			const report = await runCaptures({
@@ -125,7 +144,15 @@ export function registerRewrite(program: Command, out: Output): void {
 
 			const succeededIds = report.results.filter((r) => r.ok).map((r) => r.id);
 			if (succeededIds.length > 0) {
-				await cleanupAfterRewrite(succeededIds, Boolean(opts.all));
+				// Children are regenerated alongside their base, so their stale
+				// artifacts must be cleaned too.
+				const childIds = succeededIds.flatMap((id) =>
+					childrenOf(manifest, id).map((c) => c.id),
+				);
+				await cleanupAfterRewrite(
+					[...succeededIds, ...childIds],
+					Boolean(opts.all),
+				);
 			}
 
 			const failureLines = report.results

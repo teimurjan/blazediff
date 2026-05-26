@@ -1,14 +1,8 @@
 import type { Command } from "commander";
-import {
-	formatMissingEnv,
-	personasFromManifest,
-	validatePersonas,
-} from "../../auth/env";
 import { loadConfig, resolveBaseUrl } from "../../config";
 import { DEFAULT_THRESHOLD } from "../../defaults";
 import { type RunEvent, runGraph } from "../../graph";
 import { applyJudgments } from "../../judge";
-import { loadManifest } from "../../manifest";
 import { paths } from "../../paths";
 import { failureLines, parseJudge, slimReport } from "../check-output";
 import type { Output } from "../output";
@@ -131,15 +125,6 @@ export function registerCheck(program: Command, out: Output): void {
 				);
 				if (report.failed > 0) process.exitCode = 1;
 				return;
-			}
-
-			const manifest = await loadManifest();
-			if (manifest) {
-				const personas = personasFromManifest(manifest);
-				const missing = validatePersonas(personas);
-				if (missing.length > 0) {
-					throw new Error(formatMissingEnv(missing));
-				}
 			}
 
 			const baseUrl = resolveBaseUrl(await loadConfig(), opts.baseUrl);

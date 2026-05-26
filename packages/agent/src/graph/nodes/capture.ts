@@ -1,56 +1,66 @@
 import path from "node:path";
-import { LEGACY_REQUIRED } from "../../auth/env";
-import { AuthHarnessError } from "../../auth/harness";
-import { AuthConfigMissingError, buildAuthHook } from "../../auth/hook";
-import { type CaptureAuth, captureScreenshot } from "../../browser/capture";
+import { captureScreenshot } from "../../browser/capture";
+import { normalizeHarnessRefs, resolveHarnesses } from "../../captures";
 import { DEFAULT_FULL_PAGE } from "../../defaults";
-import { isEntryStale } from "../../manifest";
+import { HarnessError } from "../../harness/loader";
+import { isEntryStale, subNameOf } from "../../manifest";
+import type { ManifestEntry } from "../../types";
 import type { Semaphore } from "../semaphore";
-import type { BranchStateType } from "../state";
+import type { CapturedEntry, CaptureOutput, CaptureStateType } from "../state";
 import { errorResult, staleResult } from "./results";
 
-let legacyAuthHinted = false;
-
-function maybePrintLegacyHint(): void {
-	if (legacyAuthHinted) return;
-	legacyAuthHinted = true;
-	process.stderr.write(
-		'blazediff: manifest entries with auth: "required" are treated as persona "default" — please migrate.\n',
-	);
+function asCaptured(
+	entry: ManifestEntry,
+	output: CaptureOutput,
+): CapturedEntry {
+	return { entry, output };
 }
 
 export function makeCaptureNode(semaphore: Semaphore) {
 	return async function captureNode(
-		state: BranchStateType,
-	): Promise<Partial<BranchStateType>> {
+		state: CaptureStateType,
+	): Promise<Partial<CaptureStateType>> {
 		const entry = state.entry;
 		const options = state.options;
 		if (!entry || !options) {
 			throw new Error("captureNode: entry or options missing");
 		}
+		const children = state.children;
 
 		if (isEntryStale(entry)) {
 			return {
-				captureOutput: { id: entry.id, skipResult: staleResult(entry) },
+				captured: [
+					asCaptured(entry, {
+						id: entry.id,
+						skipResult: staleResult(entry),
+					}),
+					...children.map((c) =>
+						asCaptured(c, { id: c.id, skipResult: staleResult(c) }),
+					),
+				],
 			};
 		}
 
-		let auth: CaptureAuth | undefined;
-		if (entry.auth !== null) {
-			if (entry.auth === LEGACY_REQUIRED) maybePrintLegacyHint();
-			try {
-				auth = buildAuthHook(entry.auth, options.auth, options.cwd);
-			} catch (err) {
-				if (err instanceof AuthConfigMissingError) {
-					return {
-						captureOutput: {
-							id: entry.id,
-							skipResult: errorResult(entry, err.message),
-						},
-					};
-				}
-				throw err;
-			}
+		const failAll = (message: string): Partial<CaptureStateType> => ({
+			captured: [
+				asCaptured(entry, {
+					id: entry.id,
+					skipResult: errorResult(entry, message),
+				}),
+				...children.map((c) =>
+					asCaptured(c, { id: c.id, skipResult: errorResult(c, message) }),
+				),
+			],
+		});
+
+		let harnesses: Awaited<ReturnType<typeof resolveHarnesses>>;
+		try {
+			harnesses = await resolveHarnesses(
+				normalizeHarnessRefs(entry.harnesses),
+				options.cwd,
+			);
+		} catch (err) {
+			return failAll(`harness: ${(err as Error).message}`);
 		}
 
 		const baselinePath = path.join(options.baselinesDir, `${entry.id}.png`);
@@ -68,25 +78,51 @@ export function makeCaptureNode(semaphore: Semaphore) {
 						mode: "actual",
 					},
 					options.cwd,
-					auth,
+					harnesses,
 				),
 			);
 
-			return {
-				captureOutput: {
+			const items: CapturedEntry[] = [
+				asCaptured(entry, {
 					id: entry.id,
 					captureOutputPath: capture.outputPath,
 					baselinePath,
-				},
-			};
+				}),
+			];
+			const subByName = new Map(
+				(capture.subCaptures ?? []).map((s) => [s.name, s]),
+			);
+			for (const child of children) {
+				const name = subNameOf(child);
+				const sub = name ? subByName.get(name) : undefined;
+				const childBaseline = path.join(
+					options.baselinesDir,
+					`${child.id}.png`,
+				);
+				if (sub) {
+					items.push(
+						asCaptured(child, {
+							id: child.id,
+							captureOutputPath: sub.outputPath,
+							baselinePath: childBaseline,
+						}),
+					);
+				} else {
+					items.push(
+						asCaptured(child, {
+							id: child.id,
+							skipResult: errorResult(
+								child,
+								`harness did not produce screenshot "${name ?? child.id}"`,
+							),
+						}),
+					);
+				}
+			}
+			return { captured: items };
 		} catch (err) {
-			if (err instanceof AuthHarnessError) {
-				return {
-					captureOutput: {
-						id: entry.id,
-						skipResult: errorResult(entry, `auth: ${err.message}`),
-					},
-				};
+			if (err instanceof HarnessError) {
+				return failAll(`harness: ${err.message}`);
 			}
 			throw err;
 		}
