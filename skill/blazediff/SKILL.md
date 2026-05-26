@@ -68,35 +68,81 @@ When the user asks to wipe blazediff's state and start over (manifest stale beyo
    - Remix / SvelteKit / Astro: walk `app/routes` or `src/routes`.
 
    If the framework is unknown or the router source is opaque, call `blazediff-agent --cwd "$TARGET" discover --json`. That command does a BFS crawl from the configured `baseUrl` (depth 2, up to 50 routes), reads `.next/routes-manifest.json` if present, and reads `/sitemap.xml`. It's a fallback for when source-walking fails.
-5. **Filter.** Drop `/api/*`, dynamic segments without sample data, redirects/404s. For auth-gated routes, set `auth: "<persona>"` on the entry (defaults to `"default"`) — they're captured the same as public routes once the harness is in place. See **auth** below.
+5. **Filter.** Drop `/api/*`, dynamic segments without sample data, redirects/404s. For routes that need login or any pre-screenshot interaction, attach a harness via `harnesses: [...]` on the entry. See **harnesses** below.
 6. **Capture in one call.** Build a JSON array of route entries and pipe it through stdin:
    ```
    cat <<'EOF' | blazediff-agent --cwd "$TARGET" capture --stdin --mode baseline --json
    [
      {"id":"home","url":"/","mask":[".timestamp"]},
      {"id":"pricing","url":"/pricing"},
-     {"id":"dashboard","url":"/dashboard","auth":"default"}
+     {"id":"dashboard","url":"/dashboard","harnesses":[{"name":"auth","params":{"persona":"default"}}]}
    ]
    EOF
    ```
-   Entries: `{ id, url, mask?, viewport?, waitFor?, fullPage?, auth?, mode? }`. Only `id` and `url` required. `auth` is `null | "<persona>"`; legacy `"required"` is silently treated as `"default"`. Manifest entries are written automatically (pass `--no-manifest` to skip).
+   Entries: `{ id, url, mask?, viewport?, waitFor?, fullPage?, harnesses?, mode? }`. Only `id` and `url` required. `harnesses` is an ordered list of `{ name, params? }` (or bare `"name"` strings) resolving to `.blazediff/harnesses/<name>.js`. Manifest entries are written automatically (pass `--no-manifest` to skip).
    - `id`: semantic kebab-case (`home`, `pricing`, `docs-getting-started`), not URL slug.
    - `mask`: CSS selectors for unstable regions (timestamps, randomized IDs, avatars, "X ago" times, carousels, third-party iframes). Omit if none. The agent always masks `[data-blazediff-agent-mask]` automatically, so prefer tagging the source element when you can edit it. See `MASKING.md` for full guidance.
 7. **Teardown — ALWAYS run, even on error.** If `config.devServer` is non-null, run `blazediff-agent --cwd "$TARGET" serve-status --kill --json` as the very last step regardless of capture success/failure. The CLI kills by tracked PID first, then falls back to whatever process is listening on the configured port — so it cleans up stale dev servers from prior crashed runs too. If the kill returns `stopped: false`, no server was running; that's fine. Wrap your capture call so this step runs even if capture failed mid-list (shell `trap`, try/finally in the host agent's flow, etc.).
 8. **Final summary line.** Suggest `git add .blazediff/ && git commit`.
 
-## auth (protected routes)
-Auth-gated entries run a per-project login harness before each capture. Credentials live only in env vars — never in the LLM, manifest, or harness file.
+## harnesses
+A harness is a pluggable script in `.blazediff/harnesses/<name>.js` attached to an entry via `harnesses: [{ name, params? }]`. There are two phases:
+- **setup** — runs before navigation (establish a session, e.g. login). Login is just a setup harness.
+- **interact** (default) — runs after the base screenshot; drives the page and may emit extra named screenshots.
 
-1. **Does the project already have a harness?** Check for `.blazediff/auth.js` + `auth` block in `.blazediff/config.json`. If yes, skip to step 3.
-2. **One-time setup (interactive).** Tell the user to run `blazediff-agent --cwd "$TARGET" auth init --persona default --login-url <login URL>`. This opens Playwright codegen; they log in once, close the window, and the agent rewrites the typed email/password to `process.env.BLAZEDIFF_AUTH_<PERSONA>_EMAIL` / `..._PASSWORD` before writing `.blazediff/auth.js`. **Do not run `auth init` yourself in non-interactive contexts — it requires a human to drive the recorder.**
-3. **Per entry.** Set `auth: "<persona>"` on the entry (use `"default"` unless the user specifies a different persona). Legacy `auth: "required"` works as an alias for `"default"`.
-4. **Env vars.** Before `capture --mode baseline` or `check`, both `BLAZEDIFF_AUTH_<PERSONA>_EMAIL` and `..._PASSWORD` must be exported for every persona referenced in the manifest. `check` fails fast (no browser launch) if any are missing and tells you which.
-5. **Don't try to author a harness yourself.** Form-field identification is a security-relevant decision and must stay outside the LLM. Always route the user through `auth init`.
+Each harness is an ESM module that default-exports a `Harness`. TypeScript is **not** auto-transpiled — write `.js`/`.mjs` and use the JSDoc `@type` annotation for intellisense:
+```js
+/** @type {import("@blazediff/agent").Harness} */
+export default {
+  // phase defaults to "interact": runs AFTER the base screenshot.
+  async run({ page, screenshot }) {
+    await page.getByRole("button", { name: "More options" }).click();
+    await screenshot("menu");   // -> a sub-baseline with id "<entry>__menu"
+  },
+};
+```
+Attach it: `{"id":"weather","url":"/weather","harnesses":["weather-menu"]}`. The base shot `weather` fires automatically; every `screenshot("menu")` becomes its own manifest/baseline/diff entry `weather__menu`.
+
+Rules:
+- You may author **interaction** harnesses directly (you know Playwright). Keep them deterministic — prefer role/label/test-id selectors, no `nth-child`. Stability + masks are re-applied before each sub-shot automatically. Screenshot names must be alphanumeric/kebab (no `__`, spaces, or slashes).
+- To re-baseline a multi-shot entry, `rewrite <parent-id>` — it re-runs the harness and regenerates every child.
+
+### login harness
+Login is just a `phase:"setup"` harness. Credentials live only in env vars — never in the LLM, manifest, or harness file (the harness references `process.env.BLAZEDIFF_AUTH_*`, nothing else).
+
+1. **Already present?** If `.blazediff/harnesses/auth.js` exists, skip to step 4. (Legacy `.blazediff/auth.js` from before the harness change must be regenerated.)
+2. **Author it directly — preferred when creds are available.** If creds are in the env / `.blazediff/.env` (or the user can supply them), **write the harness yourself; do not make the user run `auth init`.** Identify the login form's email / password / submit selectors by reading the `/login` route's source component (prefer `name=` / `type=` / `id=` / role-based selectors; avoid `nth-child`), or by snapshotting the live page. Write `.blazediff/harnesses/auth.js`:
+   ```js
+   /** @type {import("@blazediff/agent").Harness<{ persona?: string }>} */
+   export default {
+     phase: "setup", // runs before navigation; must NOT call screenshot()
+     async run({ page, params }) {
+       const upper = (params.persona ?? "default").toUpperCase().replace(/[^A-Z0-9]/g, "_");
+       const email = process.env[`BLAZEDIFF_AUTH_${upper}_EMAIL`];
+       const password = process.env[`BLAZEDIFF_AUTH_${upper}_PASSWORD`];
+       if (!email || !password) throw new Error(`missing BLAZEDIFF_AUTH_${upper}_EMAIL / _PASSWORD`);
+       await page.goto("<LOGIN URL>");
+       await page.locator('input[name="email"]').fill(email);
+       await page.locator('input[name="password"]').fill(password);
+       await Promise.all([
+         page.waitForURL((u) => !u.pathname.startsWith("/login")),
+         page.getByRole("button", { name: /sign in|log in/i }).click(),
+       ]);
+       if (new URL(page.url()).pathname === new URL("<LOGIN URL>").pathname) {
+         throw new Error("login did not leave /login — check selectors/redirect");
+       }
+     },
+   };
+   ```
+   Never inline real credentials — only `process.env.BLAZEDIFF_AUTH_*` references.
+3. **Fallback: interactive recorder.** Only when you can't reduce login to fill-fields-and-submit — OAuth/SSO, captcha, MFA, multi-step — tell the user to run `blazediff-agent --cwd "$TARGET" auth init --persona default --login-url <login URL>` (opens Playwright codegen; they log in once; typed creds are rewritten to env-var refs and written to `.blazediff/harnesses/auth.js`). You can't drive the recorder yourself.
+4. **Per entry.** Add `{ "name": "auth", "params": { "persona": "<persona>" } }` to the entry's `harnesses` (use `"default"` unless the user specifies otherwise).
+5. **Env vars.** The harness reads `BLAZEDIFF_AUTH_<PERSONA>_EMAIL` / `..._PASSWORD` at capture time. The CLI auto-loads env files from `--cwd`: `.blazediff/.env[.local]` (blazediff-scoped, auto-gitignored) then the project-root `.env[.local]`; real exported env wins, and `.blazediff/` files beat the app root. Drop creds in `.blazediff/.env`. If the user hasn't supplied any, ask for them — don't invent placeholders.
 
 ## Hard rules
 - Never `--mode baseline` an existing manifest entry without explicit user request.
 - Never edit `.blazediff/manifest.json` directly.
+- Author login and interaction harnesses directly under `.blazediff/harnesses/` when you can (login: simple form, creds via env). Use `auth init` only for flows you can't author (OAuth/SSO/MFA/captcha). Never write real credentials into a harness file — env refs only.
 - In CI (`CI=1` or no TTY), only `check` is allowed.
 - A route that times out is logged once in the result array and skipped — never block the run.
 - Never leave a dev server running after authoring exits. Teardown is mandatory on every exit path (success, capture failure, user interrupt). If you can't run teardown for some reason, tell the user the port number to kill manually.

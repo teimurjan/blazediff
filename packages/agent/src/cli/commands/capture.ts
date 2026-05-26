@@ -24,6 +24,7 @@ interface Opts {
 	mode: "baseline" | "actual";
 	baseUrl?: string;
 	manifest: boolean;
+	harness?: string[];
 }
 
 async function resolveRoutes(opts: Opts): Promise<CaptureRouteInput[]> {
@@ -59,6 +60,7 @@ async function resolveRoutes(opts: Opts): Promise<CaptureRouteInput[]> {
 			mask: parseMaskList(opts.mask),
 			waitFor: parseWaitFor(opts.waitFor),
 			fullPage: opts.fullPage,
+			harnesses: opts.harness,
 		},
 	];
 }
@@ -91,6 +93,11 @@ export function registerCapture(program: Command, out: Output): void {
 			"baseline",
 		)
 		.option("--base-url <url>", "override base URL")
+		.option(
+			"--harness <name>",
+			"attach a harness to the inline single route (repeatable; pass params via --routes/--stdin JSON)",
+			(value: string, prev: string[] = []) => [...prev, value],
+		)
 		.option(
 			"--no-manifest",
 			"do not write manifest entries (baseline mode only)",

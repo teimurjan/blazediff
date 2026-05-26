@@ -1,6 +1,6 @@
 {
 	"version": 1,
-	"configHash": "sha256:c5e273ab441a26a16ac5450bd5043c8d337073e0af1c40e3a7dd62bb2735550e",
+	"configHash": "sha256:550fc04bd446bd9dcf4e2c334b716372b6cb0601bbd1e8da70435522b41b25ad",
 	"stabilityHooksVersion": 1,
 	"entries": [
 		{
@@ -10,14 +10,13 @@
 				"width": 1280,
 				"height": 800
 			},
-			"auth": null,
 			"waitFor": ["networkidle", "fonts"],
 			"mask": [],
 			"fullPage": true,
 			"baselinePath": ".blazediff/baselines/about.png",
-			"captureHash": "sha256:836d6d1c21c6a17136759b8a36e5a80cc322ae3e730cd00e5a5f4ea2037c7865",
+			"captureHash": "sha256:c71f307a3b037b416b45beb8c18ca939699445b0d705703182af2876d886be87",
 			"createdBy": "agent",
-			"createdAt": "2026-05-22"
+			"createdAt": "2026-05-26"
 		},
 		{
 			"id": "analytics",
@@ -26,14 +25,21 @@
 				"width": 1280,
 				"height": 800
 			},
-			"auth": "default",
+			"harnesses": [
+				{
+					"name": "auth",
+					"params": {
+						"persona": "default"
+					}
+				}
+			],
 			"waitFor": ["networkidle", "fonts"],
 			"mask": [],
 			"fullPage": true,
 			"baselinePath": ".blazediff/baselines/analytics.png",
-			"captureHash": "sha256:d67db6d6909e20c45540fb38ec05d7148445ecfd8cd5cf6a4fb2dae195509bc4",
+			"captureHash": "sha256:309d7a9fa103b1566398eafe8923f7728a0fa1a81402b6cd15f2bea82a6f166d",
 			"createdBy": "agent",
-			"createdAt": "2026-05-22"
+			"createdAt": "2026-05-26"
 		},
 		{
 			"id": "billing",
@@ -42,14 +48,21 @@
 				"width": 1280,
 				"height": 800
 			},
-			"auth": "default",
+			"harnesses": [
+				{
+					"name": "auth",
+					"params": {
+						"persona": "default"
+					}
+				}
+			],
 			"waitFor": ["networkidle", "fonts"],
 			"mask": [],
 			"fullPage": true,
 			"baselinePath": ".blazediff/baselines/billing.png",
-			"captureHash": "sha256:4f58d2b375762d6acef00bb40d6f3d93c26c43a75b75c45b865d50a7522dc872",
+			"captureHash": "sha256:9fc61d5815069107c09b4a11127951cfcca2a1e5cdd87ba91df476c5e4c3ad5f",
 			"createdBy": "agent",
-			"createdAt": "2026-05-22"
+			"createdAt": "2026-05-26"
 		},
 		{
 			"id": "dashboard",
@@ -58,14 +71,21 @@
 				"width": 1280,
 				"height": 800
 			},
-			"auth": "default",
+			"harnesses": [
+				{
+					"name": "auth",
+					"params": {
+						"persona": "default"
+					}
+				}
+			],
 			"waitFor": ["networkidle", "fonts"],
 			"mask": [],
 			"fullPage": true,
 			"baselinePath": ".blazediff/baselines/dashboard.png",
-			"captureHash": "sha256:c9868dd8ae483d8f11e13c5afce18b44d8131adf605bbc296946e5eafb4c1708",
+			"captureHash": "sha256:a595f2c809c14163c7ec717a6adaa48814ee2e0058dea29155689234cd9eb624",
 			"createdBy": "agent",
-			"createdAt": "2026-05-22"
+			"createdAt": "2026-05-26"
 		},
 		{
 			"id": "home",
@@ -74,14 +94,13 @@
 				"width": 1280,
 				"height": 800
 			},
-			"auth": null,
 			"waitFor": ["networkidle", "fonts"],
 			"mask": [],
 			"fullPage": true,
 			"baselinePath": ".blazediff/baselines/home.png",
-			"captureHash": "sha256:0139db28f8e97643ea66c981d42b947ef2ce2f241732e1f64b31657bf376a871",
+			"captureHash": "sha256:f4c036f0eb2f076e83b675dc21398017f2e823d6e45028fa2c50933a646008bd",
 			"createdBy": "agent",
-			"createdAt": "2026-05-22"
+			"createdAt": "2026-05-26"
 		},
 		{
 			"id": "profile",
@@ -90,14 +109,21 @@
 				"width": 1280,
 				"height": 800
 			},
-			"auth": "default",
+			"harnesses": [
+				{
+					"name": "auth",
+					"params": {
+						"persona": "default"
+					}
+				}
+			],
 			"waitFor": ["networkidle", "fonts"],
 			"mask": [],
 			"fullPage": true,
 			"baselinePath": ".blazediff/baselines/profile.png",
-			"captureHash": "sha256:e431bdcd03341ccbe76ec931a9b2e13a42cb519431e5c4fd127227fffef33368",
+			"captureHash": "sha256:f3306cea868bea249be287e7c815db1ed514094e7e58488d9c946a1a61395b88",
 			"createdBy": "agent",
-			"createdAt": "2026-05-22"
+			"createdAt": "2026-05-26"
 		},
 		{
 			"id": "projects",
@@ -106,14 +132,21 @@
 				"width": 1280,
 				"height": 800
 			},
-			"auth": "default",
+			"harnesses": [
+				{
+					"name": "auth",
+					"params": {
+						"persona": "default"
+					}
+				}
+			],
 			"waitFor": ["networkidle", "fonts"],
 			"mask": [],
 			"fullPage": true,
 			"baselinePath": ".blazediff/baselines/projects.png",
-			"captureHash": "sha256:f516755574b7fc06a064aa677374d465274232b0363c353e24945469a34a23ae",
+			"captureHash": "sha256:0f847dd3cc92ab8d6ca8ba999a07be57b8a89b266ba06b20a1a57251ea151e44",
 			"createdBy": "agent",
-			"createdAt": "2026-05-22"
+			"createdAt": "2026-05-26"
 		},
 		{
 			"id": "reports",
@@ -122,14 +155,21 @@
 				"width": 1280,
 				"height": 800
 			},
-			"auth": "default",
+			"harnesses": [
+				{
+					"name": "auth",
+					"params": {
+						"persona": "default"
+					}
+				}
+			],
 			"waitFor": ["networkidle", "fonts"],
 			"mask": [],
 			"fullPage": true,
 			"baselinePath": ".blazediff/baselines/reports.png",
-			"captureHash": "sha256:adee2464ba819ff559802d0ce8be1e0641ee03e71c647212348e071a116ecd7b",
+			"captureHash": "sha256:c168d930d434f1badc23a11b7dddc3a29acd6008e841509581287c26b3b26752",
 			"createdBy": "agent",
-			"createdAt": "2026-05-22"
+			"createdAt": "2026-05-26"
 		},
 		{
 			"id": "settings",
@@ -138,14 +178,21 @@
 				"width": 1280,
 				"height": 800
 			},
-			"auth": "default",
+			"harnesses": [
+				{
+					"name": "auth",
+					"params": {
+						"persona": "default"
+					}
+				}
+			],
 			"waitFor": ["networkidle", "fonts"],
 			"mask": [],
 			"fullPage": true,
 			"baselinePath": ".blazediff/baselines/settings.png",
-			"captureHash": "sha256:8378787dcaab059ccfb1e07de928759e059083c2dbb2d86ac62b20253fd8eb74",
+			"captureHash": "sha256:44ab718e7f52e8a9aae1ba0fa46647261c4012504b1e3cb89488f47e2bb3f04d",
 			"createdBy": "agent",
-			"createdAt": "2026-05-22"
+			"createdAt": "2026-05-26"
 		},
 		{
 			"id": "team",
@@ -154,14 +201,21 @@
 				"width": 1280,
 				"height": 800
 			},
-			"auth": "default",
+			"harnesses": [
+				{
+					"name": "auth",
+					"params": {
+						"persona": "default"
+					}
+				}
+			],
 			"waitFor": ["networkidle", "fonts"],
 			"mask": [],
 			"fullPage": true,
 			"baselinePath": ".blazediff/baselines/team.png",
-			"captureHash": "sha256:437de3a7f0c99d05180afa007890f1633633f13bd6a950d7ce79630d007225ac",
+			"captureHash": "sha256:9aa10e2218e7ef8f8922adef65229082776be59e0b25244c33ed412ea918149c",
 			"createdBy": "agent",
-			"createdAt": "2026-05-22"
+			"createdAt": "2026-05-26"
 		}
 	]
 }

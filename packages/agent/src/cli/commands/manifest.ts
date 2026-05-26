@@ -17,7 +17,7 @@ interface AddOpts {
 	mask: string;
 	waitFor: string;
 	fullPage: boolean;
-	auth: string;
+	harness?: string[];
 	createdBy: "agent" | "human";
 }
 
@@ -34,9 +34,9 @@ export function registerManifest(program: Command, out: Output): void {
 		.option("--wait-for <list>", "wait list", "networkidle,fonts")
 		.option("--no-full-page", "viewport-only (default: full page)")
 		.option(
-			"--auth <persona|none>",
-			'persona name for auth-gated capture (e.g. "default"); "none" to skip auth',
-			"none",
+			"--harness <name>",
+			"harness to attach (repeatable; resolves to .blazediff/harnesses/<name>.js). Use the capture JSON to pass params.",
+			(value: string, prev: string[] = []) => [...prev, value],
 		)
 		.option("--created-by <agent|human>", "provenance", "agent")
 		.action(async (id: string, opts: AddOpts) => {
@@ -52,7 +52,7 @@ export function registerManifest(program: Command, out: Output): void {
 				mask: parseMaskList(opts.mask),
 				waitFor: parseWaitFor(opts.waitFor),
 				fullPage: opts.fullPage,
-				auth: opts.auth === "none" || opts.auth === "" ? null : opts.auth,
+				harnesses: opts.harness?.map((name) => ({ name })),
 				createdBy: opts.createdBy,
 			});
 			await saveManifest(addOrReplaceEntry(manifest, entry));

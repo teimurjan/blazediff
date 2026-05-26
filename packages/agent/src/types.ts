@@ -1,7 +1,38 @@
 import type { BoundingBox } from "@blazediff/core-native";
+import type { Browser, BrowserContext, Page } from "playwright";
 import type { Verdict } from "./diff/verdict";
 
 export const STABILITY_HOOKS_VERSION = 1;
+
+/**
+ * Context handed to a harness. `params` is intentionally generic — a harness
+ * author types it to whatever the harness needs (e.g. `{ persona: string }`
+ * for a login harness). `screenshot(name)` emits a named sub-screenshot that
+ * becomes its own baseline entry (`<entryId>__<name>`).
+ */
+export interface HarnessContext<P = Record<string, unknown>> {
+	page: Page;
+	browser: Browser;
+	context: BrowserContext;
+	params: P;
+	screenshot(name: string): Promise<void>;
+}
+
+/**
+ * A pluggable script run before/around a screenshot. `setup` harnesses run
+ * before navigation (establish session, e.g. login); `interact` harnesses run
+ * after the base screenshot and may drive the page + emit named screenshots.
+ */
+export interface Harness<P = Record<string, unknown>> {
+	phase?: "setup" | "interact";
+	run(ctx: HarnessContext<P>): Promise<void>;
+}
+
+/** Per-entry reference to a harness file under `.blazediff/harnesses/<name>.js`. */
+export interface HarnessRef {
+	name: string;
+	params?: Record<string, unknown>;
+}
 
 export interface RegionSummary {
 	bbox: BoundingBox;
@@ -27,10 +58,13 @@ export interface ManifestEntry {
 	id: string;
 	url: string;
 	viewport: Viewport;
-	auth: null | string;
+	harnesses?: HarnessRef[];
 	waitFor: WaitFor[];
 	mask: string[];
 	fullPage?: boolean;
+	/** Set on sub-entries produced by a harness `screenshot(name)` call. */
+	parent?: string;
+	derived?: boolean;
 	baselinePath: string;
 	captureHash: string;
 	createdBy: "agent" | "human";
@@ -51,17 +85,11 @@ export interface DevServerConfig {
 	readyTimeoutMs?: number;
 }
 
-export interface AgentAuthConfig {
-	harness: string;
-	loginUrl: string;
-}
-
 export interface AgentConfig {
 	devServer: DevServerConfig | null;
 	framework?: string;
 	packageManager?: "npm" | "pnpm" | "yarn" | "bun";
 	baseUrl?: string;
-	auth?: AgentAuthConfig;
 }
 
 export interface CaptureOptions {

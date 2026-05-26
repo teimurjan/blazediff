@@ -10,14 +10,13 @@
 				"width": 1280,
 				"height": 800
 			},
-			"auth": null,
 			"waitFor": ["networkidle", "fonts"],
 			"mask": [],
 			"fullPage": true,
 			"baselinePath": ".blazediff/baselines/agent.png",
-			"captureHash": "sha256:bc4ba75dbc100d4f6c355ad0417421afc85995988ee16ae1407b72cb1fa67176",
+			"captureHash": "sha256:d332142ef86998f67e36377bf0aa7b55be0c0be98d7f4686b4b7ccf9ae3d96a7",
 			"createdBy": "agent",
-			"createdAt": "2026-05-12"
+			"createdAt": "2026-05-26"
 		},
 		{
 			"id": "docs",
@@ -26,14 +25,13 @@
 				"width": 1280,
 				"height": 800
 			},
-			"auth": null,
 			"waitFor": ["networkidle", "fonts"],
 			"mask": [],
 			"fullPage": true,
 			"baselinePath": ".blazediff/baselines/docs.png",
-			"captureHash": "sha256:8b6509c834abd925d09c270fffcaffb18d03b72d4d9a96b86580411271cc71fa",
+			"captureHash": "sha256:44152de87f20d27887931284b8b55e0260d2995d16492bf0760be93f1487c964",
 			"createdBy": "agent",
-			"createdAt": "2026-05-12"
+			"createdAt": "2026-05-26"
 		},
 		{
 			"id": "docs-bun",
@@ -42,14 +40,13 @@
 				"width": 1280,
 				"height": 800
 			},
-			"auth": null,
 			"waitFor": ["networkidle", "fonts"],
 			"mask": [],
 			"fullPage": true,
 			"baselinePath": ".blazediff/baselines/docs-bun.png",
-			"captureHash": "sha256:6ed428b0399389775e8adafb1948abd0b95627e3fbc54bb10c3e8df55cbe7bed",
+			"captureHash": "sha256:26236fb79ebfffd9609809c97db604f95d403fb76319be2740335a4984d2aa4c",
 			"createdBy": "agent",
-			"createdAt": "2026-05-12"
+			"createdAt": "2026-05-26"
 		},
 		{
 			"id": "docs-cli",
@@ -58,14 +55,13 @@
 				"width": 1280,
 				"height": 800
 			},
-			"auth": null,
 			"waitFor": ["networkidle", "fonts"],
 			"mask": [],
 			"fullPage": true,
 			"baselinePath": ".blazediff/baselines/docs-cli.png",
-			"captureHash": "sha256:bded8c7cbb5a0b44ca16911574897dc7fd9c30617a0b1c9f16587ca193100082",
+			"captureHash": "sha256:2e5ab96a36bc85c48fcd1fed30a286e9c2ba0321486f1d520dc641b87dd10ed2",
 			"createdBy": "agent",
-			"createdAt": "2026-05-12"
+			"createdAt": "2026-05-26"
 		},
 		{
 			"id": "docs-core",
@@ -74,14 +70,13 @@
 				"width": 1280,
 				"height": 800
 			},
-			"auth": null,
 			"waitFor": ["networkidle", "fonts"],
 			"mask": [],
 			"fullPage": true,
 			"baselinePath": ".blazediff/baselines/docs-core.png",
-			"captureHash": "sha256:93561962f9fb7c9af625b72d57e158bfe69f1bbfbb7a6834a18c162f56140003",
+			"captureHash": "sha256:e08c5bdef656498de772b12e57a74dc400245399e373e9dc695ad12d802821c7",
 			"createdBy": "agent",
-			"createdAt": "2026-05-12"
+			"createdAt": "2026-05-26"
 		},
 		{
 			"id": "docs-core-native",
@@ -90,14 +85,13 @@
 				"width": 1280,
 				"height": 800
 			},
-			"auth": null,
 			"waitFor": ["networkidle", "fonts"],
 			"mask": [],
 			"fullPage": true,
 			"baselinePath": ".blazediff/baselines/docs-core-native.png",
-			"captureHash": "sha256:64792069ef53063976fae5faa68f88481fb4c73c34e4424b0b98daeef89e3f59",
+			"captureHash": "sha256:9816f1851e28bba1ce0d7625435b444b23d89fbbf1aa1b490c1d8ca58705ca3f",
 			"createdBy": "agent",
-			"createdAt": "2026-05-12"
+			"createdAt": "2026-05-26"
 		},
 		{
 			"id": "docs-gmsd",
@@ -106,14 +100,13 @@
 				"width": 1280,
 				"height": 800
 			},
-			"auth": null,
 			"waitFor": ["networkidle", "fonts"],
 			"mask": [],
 			"fullPage": true,
 			"baselinePath": ".blazediff/baselines/docs-gmsd.png",
-			"captureHash": "sha256:3557230c5cfe2bfbb7f047f8cbcdb351ae19064a06ddb7e603ce75b88aa828c5",
+			"captureHash": "sha256:d0660d9c6e3b82e75e356175cc8acbbdd0e58ee9d14b84e62569c8392bb6e5d1",
 			"createdBy": "agent",
-			"createdAt": "2026-05-12"
+			"createdAt": "2026-05-26"
 		},
 		{
 			"id": "docs-jest",
@@ -122,14 +115,13 @@
 				"width": 1280,
 				"height": 800
 			},
-			"auth": null,
 			"waitFor": ["networkidle", "fonts"],
 			"mask": [],
 			"fullPage": true,
 			"baselinePath": ".blazediff/baselines/docs-jest.png",
-			"captureHash": "sha256:8c18db016e3ec08f993a324a90aa7b4c44a5b9e9953b1db48f71c91b0721b3ae",
+			"captureHash": "sha256:67de0654348bec93a4de5cf980026f5b0f63e1af8572c576304d918b90456e95",
 			"createdBy": "agent",
-			"createdAt": "2026-05-12"
+			"createdAt": "2026-05-26"
 		},
 		{
 			"id": "docs-matcher",
@@ -138,14 +130,13 @@
 				"width": 1280,
 				"height": 800
 			},
-			"auth": null,
 			"waitFor": ["networkidle", "fonts"],
 			"mask": [],
 			"fullPage": true,
 			"baselinePath": ".blazediff/baselines/docs-matcher.png",
-			"captureHash": "sha256:4e4ac9c1e57d1dd725505320c68afd990813597d55e7f769cbe1ff2631d4e25f",
+			"captureHash": "sha256:1871a0b2bb7940ec776dbb3c87517b0405e45849cbaa3f4cd3a7e16437b3f9df",
 			"createdBy": "agent",
-			"createdAt": "2026-05-12"
+			"createdAt": "2026-05-26"
 		},
 		{
 			"id": "docs-object",
@@ -154,14 +145,13 @@
 				"width": 1280,
 				"height": 800
 			},
-			"auth": null,
 			"waitFor": ["networkidle", "fonts"],
 			"mask": [],
 			"fullPage": true,
 			"baselinePath": ".blazediff/baselines/docs-object.png",
-			"captureHash": "sha256:0f2cb6a2823e79e78615b315fb4d3696a6d6b2f00b393404cb38f3a1c6aceed9",
+			"captureHash": "sha256:89e81dc974704f7735a19c5fd5874de915d0d6eb47c23a60d62d901846127a82",
 			"createdBy": "agent",
-			"createdAt": "2026-05-12"
+			"createdAt": "2026-05-26"
 		},
 		{
 			"id": "docs-python",
@@ -170,14 +160,13 @@
 				"width": 1280,
 				"height": 800
 			},
-			"auth": null,
 			"waitFor": ["networkidle", "fonts"],
 			"mask": [],
 			"fullPage": true,
 			"baselinePath": ".blazediff/baselines/docs-python.png",
-			"captureHash": "sha256:0a0080d6651b8981f765621a028979fb5409a707f91ab88984c27a307ebcd24d",
+			"captureHash": "sha256:23f210a8bf0bedf4b5ca825adad8bebfddf835730d1f4a99355bcc84dd3d62bd",
 			"createdBy": "agent",
-			"createdAt": "2026-05-12"
+			"createdAt": "2026-05-26"
 		},
 		{
 			"id": "docs-react",
@@ -186,14 +175,13 @@
 				"width": 1280,
 				"height": 800
 			},
-			"auth": null,
 			"waitFor": ["networkidle", "fonts"],
 			"mask": [],
 			"fullPage": true,
 			"baselinePath": ".blazediff/baselines/docs-react.png",
-			"captureHash": "sha256:5aefe3cdc0d4e7a64e0c8b65a1f3047e6174faa5e277a4857b371e5913db5037",
+			"captureHash": "sha256:3d815106d1d2e150dee82434eda23782dd716ccdb2dd2eb05af335334da238c1",
 			"createdBy": "agent",
-			"createdAt": "2026-05-12"
+			"createdAt": "2026-05-26"
 		},
 		{
 			"id": "docs-rust",
@@ -202,14 +190,13 @@
 				"width": 1280,
 				"height": 800
 			},
-			"auth": null,
 			"waitFor": ["networkidle", "fonts"],
 			"mask": [],
 			"fullPage": true,
 			"baselinePath": ".blazediff/baselines/docs-rust.png",
-			"captureHash": "sha256:8936260a188e00f4b02e6aef377164d33006ef2a4c9e8000fce64754fd8438a8",
+			"captureHash": "sha256:c4448cca19aad1298bdc03ab219eda551c20058b125f06c59ecec6ca9b050c2d",
 			"createdBy": "agent",
-			"createdAt": "2026-05-12"
+			"createdAt": "2026-05-26"
 		},
 		{
 			"id": "docs-ssim",
@@ -218,14 +205,13 @@
 				"width": 1280,
 				"height": 800
 			},
-			"auth": null,
 			"waitFor": ["networkidle", "fonts"],
 			"mask": [],
 			"fullPage": true,
 			"baselinePath": ".blazediff/baselines/docs-ssim.png",
-			"captureHash": "sha256:679b9c34f7e260465d461282714c9563c0230155ca6f6b81b35f62f3916a762d",
+			"captureHash": "sha256:8d2f15c3f772d2f65a22cf6e6860dbadbfb5ac127a77bc3881b1905c6d0b5ec4",
 			"createdBy": "agent",
-			"createdAt": "2026-05-12"
+			"createdAt": "2026-05-26"
 		},
 		{
 			"id": "docs-ui",
@@ -234,14 +220,13 @@
 				"width": 1280,
 				"height": 800
 			},
-			"auth": null,
 			"waitFor": ["networkidle", "fonts"],
 			"mask": [],
 			"fullPage": true,
 			"baselinePath": ".blazediff/baselines/docs-ui.png",
-			"captureHash": "sha256:64f6317dfbdc2b98a54dcba28b2fccb579692e8f3f9510565d02481ec15a9676",
+			"captureHash": "sha256:3f2e0da155a21f622e5c823998c7d57ec8c1e2c644b56ca26291d843d8419329",
 			"createdBy": "agent",
-			"createdAt": "2026-05-12"
+			"createdAt": "2026-05-26"
 		},
 		{
 			"id": "docs-vitest",
@@ -250,14 +235,13 @@
 				"width": 1280,
 				"height": 800
 			},
-			"auth": null,
 			"waitFor": ["networkidle", "fonts"],
 			"mask": [],
 			"fullPage": true,
 			"baselinePath": ".blazediff/baselines/docs-vitest.png",
-			"captureHash": "sha256:d3eae99dd45e720cc9dc3857fd8549ed28b203a4f1029ec5421242a641d61f43",
+			"captureHash": "sha256:64eb7b493ca09f85acb2b079e97c6cf7d262ff06cf64f6726d26c517e5115517",
 			"createdBy": "agent",
-			"createdAt": "2026-05-12"
+			"createdAt": "2026-05-26"
 		},
 		{
 			"id": "examples",
@@ -266,14 +250,13 @@
 				"width": 1280,
 				"height": 800
 			},
-			"auth": null,
 			"waitFor": ["networkidle", "fonts"],
 			"mask": [],
 			"fullPage": true,
 			"baselinePath": ".blazediff/baselines/examples.png",
-			"captureHash": "sha256:d1b65269aff90bec8515163321c45c41c4ca10d4bba786a44814e3f2d5384be7",
+			"captureHash": "sha256:2e8a5f313aef6a16681916de39494780cd865e0589f8394886e3a14e0cd29009",
 			"createdBy": "agent",
-			"createdAt": "2026-05-12"
+			"createdAt": "2026-05-26"
 		},
 		{
 			"id": "examples-image-comparison",
@@ -282,14 +265,13 @@
 				"width": 1280,
 				"height": 800
 			},
-			"auth": null,
 			"waitFor": ["networkidle", "fonts"],
 			"mask": [],
 			"fullPage": true,
 			"baselinePath": ".blazediff/baselines/examples-image-comparison.png",
-			"captureHash": "sha256:610051e7b6eb8a589708db9d11e9586dddfeb21cdb596da469a276e5e2c54257",
+			"captureHash": "sha256:8e9e97c2dc4a5ea7022edd5adf219542857538c5a4839a86268ad27653b831a9",
 			"createdBy": "agent",
-			"createdAt": "2026-05-12"
+			"createdAt": "2026-05-26"
 		},
 		{
 			"id": "examples-interpret",
@@ -298,14 +280,13 @@
 				"width": 1280,
 				"height": 800
 			},
-			"auth": null,
 			"waitFor": ["networkidle", "fonts"],
 			"mask": [],
 			"fullPage": true,
 			"baselinePath": ".blazediff/baselines/examples-interpret.png",
-			"captureHash": "sha256:70dfde05373facb9ae2d56c205eabc2c834818f4205edf35cea6d3e1c0925485",
+			"captureHash": "sha256:d228d99aacea87457b5f37e883b3620e44310c38bf030d70005c17bd5f0f2dc9",
 			"createdBy": "agent",
-			"createdAt": "2026-05-12"
+			"createdAt": "2026-05-26"
 		},
 		{
 			"id": "examples-object-comparison",
@@ -314,14 +295,13 @@
 				"width": 1280,
 				"height": 800
 			},
-			"auth": null,
 			"waitFor": ["networkidle", "fonts"],
 			"mask": [],
 			"fullPage": true,
 			"baselinePath": ".blazediff/baselines/examples-object-comparison.png",
-			"captureHash": "sha256:357fe31ffdc1445addd87c7a9d4c87ebb8cc3abb5371b44f6a75988927a6d968",
+			"captureHash": "sha256:c10c538e655904d8dd9683a2d99dc17fd8f6bccc352e245b71b40448c3b752cb",
 			"createdBy": "agent",
-			"createdAt": "2026-05-12"
+			"createdAt": "2026-05-26"
 		},
 		{
 			"id": "examples-react",
@@ -330,14 +310,13 @@
 				"width": 1280,
 				"height": 800
 			},
-			"auth": null,
 			"waitFor": ["networkidle", "fonts"],
 			"mask": ["iframe"],
 			"fullPage": true,
 			"baselinePath": ".blazediff/baselines/examples-react.png",
-			"captureHash": "sha256:b0657c613a1d4a5dfdc2fa533d6d2c265c39ff97945550e67f623e0ca014e687",
+			"captureHash": "sha256:b84c791329755d46faf3b235464d5cfeaba448dd8ab454684f9915a7cc0cbf8d",
 			"createdBy": "agent",
-			"createdAt": "2026-05-12"
+			"createdAt": "2026-05-26"
 		},
 		{
 			"id": "examples-web-components",
@@ -346,14 +325,13 @@
 				"width": 1280,
 				"height": 800
 			},
-			"auth": null,
 			"waitFor": ["networkidle", "fonts"],
 			"mask": ["iframe"],
 			"fullPage": true,
 			"baselinePath": ".blazediff/baselines/examples-web-components.png",
-			"captureHash": "sha256:84be8a2fe0acb8449ff3a7e6b1b7c93f31ee644afcc7e5d13683cbc8f09effdc",
+			"captureHash": "sha256:277a7c5c98824366a5cc45711102b67f74b3f71334198e08ee4c5585da93282f",
 			"createdBy": "agent",
-			"createdAt": "2026-05-12"
+			"createdAt": "2026-05-26"
 		},
 		{
 			"id": "home",
@@ -362,14 +340,13 @@
 				"width": 1280,
 				"height": 800
 			},
-			"auth": null,
 			"waitFor": ["networkidle", "fonts"],
 			"mask": [],
 			"fullPage": true,
 			"baselinePath": ".blazediff/baselines/home.png",
-			"captureHash": "sha256:0139db28f8e97643ea66c981d42b947ef2ce2f241732e1f64b31657bf376a871",
+			"captureHash": "sha256:f4c036f0eb2f076e83b675dc21398017f2e823d6e45028fa2c50933a646008bd",
 			"createdBy": "agent",
-			"createdAt": "2026-05-12"
+			"createdAt": "2026-05-26"
 		}
 	]
 }

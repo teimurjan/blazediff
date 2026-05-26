@@ -13,7 +13,7 @@ export interface BrowsersInstallResult {
 	cliPath: string;
 }
 
-function resolvePlaywrightCli(): string {
+export function resolvePlaywrightCli(): string {
 	const require_ = createRequire(import.meta.url);
 	// playwright exposes its CLI at lib/cli or cli.js; resolve via its package.json then locate.
 	const pkgJson = require_.resolve("playwright/package.json");

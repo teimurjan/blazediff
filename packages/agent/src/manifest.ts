@@ -9,6 +9,7 @@ import {
 } from "./defaults";
 import { paths } from "./paths";
 import {
+	type HarnessRef,
 	type Manifest,
 	type ManifestEntry,
 	STABILITY_HOOKS_VERSION,
@@ -23,7 +24,10 @@ export interface EntryInput {
 	mask?: string[];
 	waitFor?: WaitFor[];
 	fullPage?: boolean;
-	auth?: null | string;
+	harnesses?: HarnessRef[];
+	parent?: string;
+	derived?: boolean;
+	subName?: string;
 	createdBy?: "agent" | "human";
 }
 
@@ -32,8 +36,25 @@ interface HashInput {
 	viewport: Viewport;
 	mask: string[];
 	waitFor: WaitFor[];
-	auth: null | string;
+	harnesses: HarnessRef[];
 	fullPage: boolean;
+	subName?: string;
+}
+
+// Serialize harness refs for hashing. Harness *order* is significant (setup
+// before interact, and array order within a phase), so it's preserved — only
+// each ref's params object is key-sorted for stability.
+function serializeHarnesses(harnesses: HarnessRef[]): string {
+	return JSON.stringify(
+		harnesses.map((h) => ({
+			name: h.name,
+			params: h.params
+				? Object.fromEntries(
+						Object.entries(h.params).sort(([a], [b]) => a.localeCompare(b)),
+					)
+				: undefined,
+		})),
+	);
 }
 
 export async function loadManifest(
@@ -68,8 +89,9 @@ function hashMaterial(input: HashInput): string {
 		viewport: input.viewport,
 		mask: [...input.mask].sort(),
 		waitFor: input.waitFor,
-		auth: input.auth,
+		harnesses: serializeHarnesses(input.harnesses),
 		fullPage: input.fullPage,
+		subName: input.subName ?? null,
 		hooks: STABILITY_HOOKS_VERSION,
 	};
 	return `sha256:${createHash("sha256").update(JSON.stringify(material)).digest("hex")}`;
@@ -79,24 +101,27 @@ export function makeEntry(input: EntryInput): ManifestEntry {
 	const viewport = input.viewport ?? DEFAULT_VIEWPORT;
 	const waitFor = input.waitFor ?? DEFAULT_WAIT_FOR;
 	const mask = input.mask ?? [];
-	const auth = input.auth ?? null;
+	const harnesses = input.harnesses ?? [];
 	const fullPage = input.fullPage ?? DEFAULT_FULL_PAGE;
 	return {
 		id: input.id,
 		url: input.url,
 		viewport,
-		auth,
+		harnesses: harnesses.length > 0 ? harnesses : undefined,
 		waitFor,
 		mask,
 		fullPage,
+		parent: input.parent,
+		derived: input.derived || undefined,
 		baselinePath: path.posix.join(".blazediff", "baselines", `${input.id}.png`),
 		captureHash: hashMaterial({
 			url: input.url,
 			viewport,
 			mask,
 			waitFor,
-			auth,
+			harnesses,
 			fullPage,
+			subName: input.subName,
 		}),
 		createdBy: input.createdBy ?? "agent",
 		createdAt: new Date().toISOString().slice(0, 10),
@@ -125,14 +150,43 @@ export function findEntry(
 	return manifest.entries.find((e) => e.id === id);
 }
 
+export function isDerived(entry: ManifestEntry): boolean {
+	return (
+		entry.derived === true || (entry.parent != null && entry.id.includes("__"))
+	);
+}
+
+/** The sub-screenshot name encoded in a derived entry id (`parent__name`). */
+export function subNameOf(entry: ManifestEntry): string | undefined {
+	if (!isDerived(entry)) return undefined;
+	const idx = entry.id.indexOf("__");
+	return idx === -1 ? undefined : entry.id.slice(idx + 2);
+}
+
+export function childrenOf(
+	manifest: Manifest,
+	parentId: string,
+): ManifestEntry[] {
+	return manifest.entries.filter((e) => e.parent === parentId);
+}
+
+/** Derived entries whose parent base entry no longer exists in the manifest. */
+export function findOrphanedSubEntries(manifest: Manifest): ManifestEntry[] {
+	const ids = new Set(manifest.entries.map((e) => e.id));
+	return manifest.entries.filter(
+		(e) => isDerived(e) && e.parent != null && !ids.has(e.parent),
+	);
+}
+
 export function isEntryStale(entry: ManifestEntry): boolean {
 	const recomputed = hashMaterial({
 		url: entry.url,
 		viewport: entry.viewport,
 		mask: entry.mask,
 		waitFor: entry.waitFor,
-		auth: entry.auth,
+		harnesses: entry.harnesses ?? [],
 		fullPage: entry.fullPage ?? DEFAULT_FULL_PAGE,
+		subName: subNameOf(entry),
 	});
 	return recomputed !== entry.captureHash;
 }

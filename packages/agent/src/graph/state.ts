@@ -2,7 +2,6 @@ import { Annotation } from "@langchain/langgraph";
 import type { DiffOutcome } from "../diff";
 import type { JudgeBackend } from "../judge";
 import type {
-	AgentAuthConfig,
 	CheckReport,
 	CheckResult,
 	Manifest,
@@ -17,7 +16,6 @@ export interface GraphOptions {
 	emitDiffPng: boolean;
 	judge: JudgeBackend;
 	baselinesDir: string;
-	auth?: AgentAuthConfig;
 }
 
 export interface CaptureOutput {
@@ -25,6 +23,14 @@ export interface CaptureOutput {
 	captureOutputPath?: string;
 	baselinePath?: string;
 	skipResult?: CheckResult;
+}
+
+// One screenshot (base or harness-derived sub-shot) ready to diff+judge. The
+// capture phase emits these into the shared `captured` channel; the dispatch
+// node fans one diff/judge branch out per item.
+export interface CapturedEntry {
+	entry: ManifestEntry;
+	output: CaptureOutput;
 }
 
 export interface DiffOutput {
@@ -40,10 +46,34 @@ const resultsChannel = Annotation<CheckResult[]>({
 	default: () => [],
 });
 
-// Per-entry pipeline state. Each Send-fanned branch runs the capture → diff →
-// judge subgraph against its own copy of this state — intermediate channels
-// (captureOutput, diffOutput) never race because they live inside the branch.
-// Only `results` is shared with the parent and merges via the append reducer.
+const capturedChannel = Annotation<CapturedEntry[]>({
+	reducer: (acc, next) => [...acc, ...next],
+	default: () => [],
+});
+
+// Per-base-entry capture state. Each Send-fanned invocation runs the harnesses
+// for one base entry and writes its base + sub-shots into the shared `captured`
+// channel, which the parent graph aggregates.
+export const CaptureState = Annotation.Root({
+	entry: Annotation<ManifestEntry | undefined>({
+		reducer: (_, next) => next,
+		default: () => undefined,
+	}),
+	children: Annotation<ManifestEntry[]>({
+		reducer: (_, next) => next,
+		default: () => [],
+	}),
+	options: Annotation<GraphOptions | undefined>({
+		reducer: (acc, next) => next ?? acc,
+		default: () => undefined,
+	}),
+	captured: capturedChannel,
+});
+
+export type CaptureStateType = typeof CaptureState.State;
+
+// Per-screenshot diff/judge state. Capture already happened, so the branch
+// receives a captureOutput via the Send payload and only diffs + judges.
 export const BranchState = Annotation.Root({
 	entry: Annotation<ManifestEntry | undefined>({
 		reducer: (_, next) => next,
@@ -66,9 +96,8 @@ export const BranchState = Annotation.Root({
 
 export type BranchStateType = typeof BranchState.State;
 
-// Top-level state. `results` is shared with `BranchState` by name, so each
-// branch's emitted result appends into this channel automatically when the
-// subgraph node returns.
+// Top-level state. `captured` and `results` are shared by name with the
+// subgraph states, so their appends bubble up automatically.
 export const GraphState = Annotation.Root({
 	options: Annotation<GraphOptions | undefined>({
 		reducer: (acc, next) => next ?? acc,
@@ -78,6 +107,7 @@ export const GraphState = Annotation.Root({
 		reducer: (acc, next) => next ?? acc,
 		default: () => [],
 	}),
+	captured: capturedChannel,
 	results: resultsChannel,
 	manifest: Annotation<Manifest | undefined>({
 		reducer: (acc, next) => next ?? acc,

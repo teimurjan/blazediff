@@ -13,6 +13,7 @@ export type { DiffOptions, DiffOutcome } from "./diff";
 export { diffEntry } from "./diff";
 export type { Verdict, VerdictAction, VerdictLabel } from "./diff/verdict";
 export { discover } from "./discover";
+export { loadEnvFiles } from "./dotenv";
 export type {
 	CheckOptions,
 	ResumeMap,
@@ -21,6 +22,12 @@ export type {
 	RunOptions,
 } from "./graph";
 export { resumeGraph, runCheck, runGraph, threadIdFor } from "./graph";
+export {
+	assertLeftLoginPage,
+	HarnessError,
+	loadHarness,
+	resolveHarnessFile,
+} from "./harness/loader";
 export type {
 	ApplyJudgmentsResult,
 	Judge,

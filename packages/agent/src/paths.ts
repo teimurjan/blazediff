@@ -8,6 +8,8 @@ export const paths = (cwd: string = process.cwd()) => {
 		root,
 		config: path.join(root, "config.json"),
 		manifest: path.join(root, "manifest.json"),
+		harnesses: path.join(root, "harnesses"),
+		authHarness: path.join(root, "harnesses", "auth.js"),
 		baselines: path.join(root, "baselines"),
 		actual: path.join(root, "actual"),
 		judgments: path.join(root, "judgments"),

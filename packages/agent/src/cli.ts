@@ -15,6 +15,7 @@ import { registerRewrite } from "./cli/commands/rewrite";
 import { registerServeStatus } from "./cli/commands/serve-status";
 import { applyCwdFromArgv, maybeDefaultToCheck } from "./cli/cwd";
 import { makeOutput, type RootOpts } from "./cli/output";
+import { loadEnvFiles } from "./dotenv";
 
 function buildProgram(): Command {
 	const program = new Command()
@@ -51,6 +52,9 @@ async function main(): Promise<void> {
 		process.exitCode = 1;
 		return;
 	}
+
+	// cwd is now the target dir; load its .env so harnesses see secrets.
+	loadEnvFiles();
 
 	maybeDefaultToCheck();
 	const program = buildProgram();

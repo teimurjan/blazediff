@@ -1,9 +1,9 @@
-import { buildAuthHook } from "./auth/hook";
-import { captureScreenshot } from "./browser/capture";
+import { captureScreenshot, type ResolvedHarness } from "./browser/capture";
 import { closeBrowser } from "./browser/launch";
 import { configHash, loadConfig } from "./config";
 import { defaultConcurrency } from "./defaults";
 import { Semaphore } from "./graph/semaphore";
+import { loadHarness, resolveHarnessFile } from "./harness/loader";
 import {
 	addOrReplaceEntry,
 	emptyManifest,
@@ -11,7 +11,13 @@ import {
 	makeEntry,
 	saveManifest,
 } from "./manifest";
-import type { AgentConfig, Manifest, Viewport, WaitFor } from "./types";
+import type {
+	AgentConfig,
+	HarnessRef,
+	Manifest,
+	Viewport,
+	WaitFor,
+} from "./types";
 
 export interface CaptureRouteInput {
 	id: string;
@@ -20,8 +26,27 @@ export interface CaptureRouteInput {
 	viewport?: Viewport;
 	waitFor?: WaitFor[];
 	fullPage?: boolean;
-	auth?: null | string;
+	harnesses?: (string | HarnessRef)[];
 	mode?: "baseline" | "actual";
+}
+
+export function normalizeHarnessRefs(
+	refs: (string | HarnessRef)[] | undefined,
+): HarnessRef[] {
+	if (!refs) return [];
+	return refs.map((ref) => (typeof ref === "string" ? { name: ref } : ref));
+}
+
+export async function resolveHarnesses(
+	refs: HarnessRef[],
+	cwd: string,
+): Promise<ResolvedHarness[]> {
+	return Promise.all(
+		refs.map(async (ref) => ({
+			harness: await loadHarness(resolveHarnessFile(ref.name, cwd)),
+			params: ref.params ?? {},
+		})),
+	);
 }
 
 export interface RunCapturesOptions {
@@ -40,6 +65,7 @@ export interface CaptureRouteResult {
 	ok: boolean;
 	outputPath?: string;
 	bytes?: number;
+	subCaptures?: string[];
 	error?: string;
 }
 
@@ -112,10 +138,8 @@ export async function runCaptures(
 				semaphore.run(async () => {
 					const mode = r.mode ?? defaultMode;
 					try {
-						const auth =
-							r.auth != null
-								? buildAuthHook(r.auth, config?.auth, cwd)
-								: undefined;
+						const refs = normalizeHarnessRefs(r.harnesses);
+						const harnesses = await resolveHarnesses(refs, cwd);
 						const shot = await captureScreenshot(
 							opts.baseUrl,
 							{
@@ -128,7 +152,7 @@ export async function runCaptures(
 								mode,
 							},
 							cwd,
-							auth,
+							harnesses,
 						);
 						slot[i] = {
 							id: r.id,
@@ -137,21 +161,41 @@ export async function runCaptures(
 							ok: true,
 							outputPath: shot.outputPath,
 							bytes: shot.bytes,
+							subCaptures: shot.subCaptures?.map((s) => s.name),
 						};
 						if (mode === "baseline" && manifest) {
+							const shared = {
+								url: r.url,
+								viewport: r.viewport,
+								mask: r.mask,
+								waitFor: r.waitFor,
+								fullPage: r.fullPage,
+								harnesses: refs.length > 0 ? refs : undefined,
+							};
+							// Drop any prior derived entries for this base so sub-shots the
+							// harness no longer emits don't linger as orphans.
+							manifest = {
+								...manifest,
+								entries: manifest.entries.filter((e) => e.parent !== r.id),
+							};
 							manifest = addOrReplaceEntry(
 								manifest,
-								makeEntry({
-									id: r.id,
-									url: r.url,
-									viewport: r.viewport,
-									mask: r.mask,
-									waitFor: r.waitFor,
-									fullPage: r.fullPage,
-									auth: r.auth ?? null,
-								}),
+								makeEntry({ id: r.id, ...shared }),
 							);
 							manifestUpdates += 1;
+							for (const sub of shot.subCaptures ?? []) {
+								manifest = addOrReplaceEntry(
+									manifest,
+									makeEntry({
+										id: `${r.id}__${sub.name}`,
+										...shared,
+										parent: r.id,
+										derived: true,
+										subName: sub.name,
+									}),
+								);
+								manifestUpdates += 1;
+							}
 						}
 					} catch (err) {
 						slot[i] = {
