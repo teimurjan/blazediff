@@ -1,5 +1,11 @@
 # @blazediff/agent
 
+## 0.3.0
+
+### Minor Changes
+
+- 398bb07: Made harnesses generic
+
 ## 0.2.1
 
 ### Patch Changes
