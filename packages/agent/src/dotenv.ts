@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
-import { parseEnv } from "node:util";
+import * as util from "node:util";
 import { paths } from "./paths";
 
 // Candidate files in precedence order (first to set a key wins). The
@@ -18,8 +18,10 @@ function envFiles(cwd: string): string[] {
 }
 
 function parse(content: string): Record<string, string> {
-	if (typeof parseEnv === "function") {
-		return parseEnv(content) as Record<string, string>;
+	// Namespace import + feature-detect: a named `{ parseEnv }` import would throw
+	// at module load on Node versions that don't export it, before this guard.
+	if (typeof util.parseEnv === "function") {
+		return util.parseEnv(content) as Record<string, string>;
 	}
 	// Minimal fallback for Node without util.parseEnv: KEY=VALUE lines.
 	const out: Record<string, string> = {};

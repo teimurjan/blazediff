@@ -41,19 +41,19 @@ interface HashInput {
 	subName?: string;
 }
 
-/** Stable serialization of harness refs (order- and key-independent). */
+// Serialize harness refs for hashing. Harness *order* is significant (setup
+// before interact, and array order within a phase), so it's preserved — only
+// each ref's params object is key-sorted for stability.
 function serializeHarnesses(harnesses: HarnessRef[]): string {
 	return JSON.stringify(
-		[...harnesses]
-			.map((h) => ({
-				name: h.name,
-				params: h.params
-					? Object.fromEntries(
-							Object.entries(h.params).sort(([a], [b]) => a.localeCompare(b)),
-						)
-					: undefined,
-			}))
-			.sort((a, b) => a.name.localeCompare(b.name)),
+		harnesses.map((h) => ({
+			name: h.name,
+			params: h.params
+				? Object.fromEntries(
+						Object.entries(h.params).sort(([a], [b]) => a.localeCompare(b)),
+					)
+				: undefined,
+		})),
 	);
 }
 

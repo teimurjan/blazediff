@@ -39,7 +39,21 @@ describe("makeEntry derived entries", () => {
 		expect(a.captureHash).not.toBe(b.captureHash);
 	});
 
-	it("is order- and key-independent for harness params", () => {
+	it("is sensitive to harness order (execution order matters)", () => {
+		const a = makeEntry({
+			id: "x",
+			url: "/x",
+			harnesses: [{ name: "auth" }, { name: "menu" }],
+		});
+		const b = makeEntry({
+			id: "x",
+			url: "/x",
+			harnesses: [{ name: "menu" }, { name: "auth" }],
+		});
+		expect(a.captureHash).not.toBe(b.captureHash);
+	});
+
+	it("is key-order-independent for harness params", () => {
 		const a = makeEntry({
 			id: "x",
 			url: "/x",
