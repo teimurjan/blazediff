@@ -1,5 +1,7 @@
 # @blazediff/bin-darwin-arm64
 
+## 5.0.0
+
 ## 4.3.4
 
 ## 4.3.3

@@ -1,5 +1,17 @@
 # @blazediff/cli
 
+## 4.0.0
+
+### Major Changes
+
+- fc369d6: Drop the HTML diff output format. Removes `--output-format` from `blazediff-cli`, `outputFormat` from `@blazediff/core-native`'s `BlazeDiffOptions` and `@blazediff/matcher`'s `MatcherOptions`, and the embedded `html_report` module from the rust crate. The interpret report is now produced by `@blazediff/agent`'s review webapp instead of being inlined into the diff path. README docs for `bun`/`jest`/`vitest` are synced to match.
+
+### Patch Changes
+
+- Updated dependencies [fc369d6]
+  - @blazediff/core-native@5.0.0
+  - @blazediff/core-wasm@5.0.0
+
 ## 3.2.4
 
 ### Patch Changes

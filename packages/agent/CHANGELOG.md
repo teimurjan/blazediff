@@ -1,5 +1,16 @@
 # @blazediff/agent
 
+## 0.4.0
+
+### Minor Changes
+
+- fc369d6: Add `review` webapp (Vite + node SSR; replaces `summary.html`), local Moondream/Qwen judge with serialized per-test progress, two-phase capture→dispatch graph, and generic harness loader. The `auth` subcommand is folded into `harness record`.
+
+### Patch Changes
+
+- Updated dependencies [fc369d6]
+  - @blazediff/core-native@5.0.0
+
 ## 0.3.0
 
 ### Minor Changes
