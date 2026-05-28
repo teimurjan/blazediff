@@ -1,12 +1,12 @@
-import { access, readdir, readFile, stat } from "node:fs/promises";
+import { readdir, stat } from "node:fs/promises";
 import path from "node:path";
 import type { Verdict, VerdictAction, VerdictLabel } from "../diff/verdict";
 import { type RunEvent, resumeGraph, threadIdFor } from "../graph";
-import { FsCheckpointSaver } from "../graph/checkpoint";
 import { loadManifest } from "../manifest";
 import { paths } from "../paths";
-import { writeSummaryMarkdown } from "../report/markdown";
+import { writeReport } from "../report/json";
 import type { CheckReport, CheckResult, ManifestEntry } from "../types";
+import { fileExists, readJsonOrNull } from "../util/fs-json";
 import type { JudgmentRequest } from "./persist";
 import type { VerdictFile } from "./types";
 
@@ -67,23 +67,6 @@ function parseVerdict(raw: unknown): VerdictFile | null {
 		rationale: typeof r.rationale === "string" ? r.rationale : undefined,
 		confidence: typeof r.confidence === "number" ? r.confidence : undefined,
 	};
-}
-
-async function fileExists(p: string): Promise<boolean> {
-	try {
-		await access(p);
-		return true;
-	} catch {
-		return false;
-	}
-}
-
-async function readJsonOrNull<T>(file: string): Promise<T | null> {
-	try {
-		return JSON.parse(await readFile(file, "utf8")) as T;
-	} catch {
-		return null;
-	}
 }
 
 interface DirRead {
@@ -215,7 +198,8 @@ async function reconstructFromDisk(
 		pendingJudgments,
 		results,
 	};
-	await writeSummaryMarkdown(report, cwd);
+	// This path only runs after host-judge deferrals, so entries carry real verdicts.
+	await writeReport(report, cwd);
 	return report;
 }
 
@@ -230,11 +214,9 @@ async function hasCheckpoint(cwd: string, threadId: string): Promise<boolean> {
 }
 
 export async function applyJudgments(
-	opts: ApplyJudgmentsOptions | string = process.cwd(),
+	opts: ApplyJudgmentsOptions = {},
 ): Promise<ApplyJudgmentsResult> {
-	const options: ApplyJudgmentsOptions =
-		typeof opts === "string" ? { cwd: opts } : opts;
-	const cwd = options.cwd ?? process.cwd();
+	const cwd = opts.cwd ?? process.cwd();
 	const manifest = await loadManifest(cwd);
 	if (!manifest) {
 		throw new Error(
@@ -270,17 +252,15 @@ export async function applyJudgments(
 		return { report, applied, missing, invalid };
 	}
 
+	// resumeGraph (via runGraph) deletes the checkpoint thread itself on
+	// successful completion when no interrupts remain; no cleanup needed here.
 	const report = await resumeGraph({
 		cwd,
 		verdicts,
 		threadId,
-		onEvent: options.onEvent,
-		junitPath: options.junitPath,
+		onEvent: opts.onEvent,
+		junitPath: opts.junitPath,
 	});
-
-	await new FsCheckpointSaver(paths(cwd).checkpoints)
-		.deleteThread(threadId)
-		.catch(() => undefined);
 
 	return { report, applied, missing, invalid };
 }

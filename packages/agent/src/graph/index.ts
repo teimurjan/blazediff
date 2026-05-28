@@ -1,24 +1,24 @@
 import { createHash } from "node:crypto";
-import { availableParallelism, cpus } from "node:os";
 import path from "node:path";
 import { Command, END, Send, START, StateGraph } from "@langchain/langgraph";
 import { closeBrowser } from "../browser/launch";
 import { ensureGitignore } from "../cli/gitignore";
-import { defaultConcurrency } from "../defaults";
+import { cpuCores, defaultConcurrency } from "../defaults";
 import type { Verdict } from "../diff/verdict";
-import { type JudgeBackend, writeJudgments } from "../judge";
+import { type JudgeBackend, resolveJudge, writeJudgments } from "../judge";
 import { isDerived, loadManifest } from "../manifest";
 import { paths } from "../paths";
+import { writeReport } from "../report/json";
 import { writeJunit } from "../report/junit";
-import { writeSummaryMarkdown } from "../report/markdown";
 import type { CheckReport, CheckResult, Manifest } from "../types";
 import { FsCheckpointSaver } from "./checkpoint";
+import { setEventSink } from "./events";
 import type { JudgmentInterrupt } from "./interrupt";
 import { makeCaptureNode } from "./nodes/capture";
 import { makeDiffNode } from "./nodes/diff";
 import { judgeNode } from "./nodes/judge";
 import { loadNode } from "./nodes/load";
-import { Semaphore } from "./semaphore";
+import { createSemaphore, type Semaphore } from "./semaphore";
 import {
 	BranchState,
 	CaptureState,
@@ -29,7 +29,9 @@ import {
 export type ResumeMap = Record<string, Verdict>;
 
 export type RunEvent =
+	| { type: "captured"; entryId: string }
 	| { type: "result"; result: CheckResult }
+	| { type: "judging"; entryId: string; url: string }
 	| { type: "interrupt"; interrupt: JudgmentInterrupt }
 	| { type: "report"; report: CheckReport };
 
@@ -47,15 +49,6 @@ export interface RunOptions {
 }
 
 export type CheckOptions = RunOptions;
-
-function cpuParallelism(): number {
-	const cores =
-		typeof availableParallelism === "function"
-			? availableParallelism()
-			: cpus().length;
-	if (!cores || !Number.isFinite(cores)) return 2;
-	return Math.max(2, cores);
-}
 
 export function threadIdFor(cwd: string): string {
 	return createHash("sha1")
@@ -76,7 +69,9 @@ function buildCaptureGraph(captureSemaphore: Semaphore) {
 
 function buildBranchGraph(diffSemaphore: Semaphore) {
 	// Per-screenshot diff + judge. Capture already ran; the Send payload carries
-	// the captureOutput. Only `results` bubbles up via the append reducer.
+	// the captureOutput. Only `results` bubbles up via the append reducer. The
+	// judge no longer needs an outer semaphore — each backend paces itself
+	// (local pipelines vision/classifier internally, host is just file IO).
 	return new StateGraph(BranchState)
 		.addNode("diff", makeDiffNode(diffSemaphore))
 		.addNode("judge", judgeNode)
@@ -86,9 +81,14 @@ function buildBranchGraph(diffSemaphore: Semaphore) {
 		.compile();
 }
 
-// No-op join node: runs once after every capture branch completes, so its
-// conditional edges can fan a diff/judge branch out per captured screenshot.
-function dispatchNode(): Partial<GraphStateType> {
+// Join node: runs once after every capture branch completes (before any
+// diff/judge branch fans out). It warms the judge so model weights stream in as
+// their own visible phase, between capture and judging, rather than stalling the
+// first test silently.
+async function dispatchNode(
+	state: GraphStateType,
+): Promise<Partial<GraphStateType>> {
+	if (state.options) await resolveJudge(state.options.judge).warmup?.();
 	return {};
 }
 
@@ -175,10 +175,10 @@ async function streamGraph(
 			const part = partial as Partial<GraphStateType> | undefined;
 			if (!part) continue;
 			if (part.results) {
-				for (const r of part.results) {
-					collect.results.push(r);
-					onEvent?.({ type: "result", result: r });
-				}
+				// `result` is emitted out-of-band from the judge node so it lands
+				// before the next semaphore acquirer's "judging" line — see
+				// makeJudgeNode. Stream updates only feed the collected report here.
+				for (const r of part.results) collect.results.push(r);
 			}
 			if (part.manifest) collect.manifest = part.manifest;
 			if (part.report) {
@@ -216,7 +216,7 @@ async function buildPartialReport(
 	if (manifest) {
 		await writeJudgments({ report, manifest, cwd });
 	}
-	await writeSummaryMarkdown(report, cwd);
+	await writeReport(report, cwd);
 	await ensureGitignore(cwd);
 	return report;
 }
@@ -224,8 +224,8 @@ async function buildPartialReport(
 export async function runGraph(opts: RunOptions): Promise<CheckReport> {
 	const cwd = opts.cwd ?? process.cwd();
 	const concurrency = opts.concurrency ?? defaultConcurrency();
-	const captureSemaphore = new Semaphore(concurrency);
-	const diffSemaphore = new Semaphore(cpuParallelism());
+	const captureSemaphore = createSemaphore(concurrency);
+	const diffSemaphore = createSemaphore(cpuCores());
 	const baselinesDir = paths(cwd).baselines;
 	const checkpointer = new FsCheckpointSaver(paths(cwd).checkpoints);
 	const graph = buildGraph(captureSemaphore, diffSemaphore, checkpointer);
@@ -250,9 +250,11 @@ export async function runGraph(opts: RunOptions): Promise<CheckReport> {
 			};
 
 	let collect: StreamCollect;
+	setEventSink(opts.onEvent);
 	try {
 		collect = await streamGraph(graph, input, threadId, opts.onEvent);
 	} finally {
+		setEventSink(undefined);
 		await closeBrowser();
 	}
 

@@ -104,16 +104,6 @@ export default async function main(): Promise<void> {
 				case "--interpret":
 					options.interpret = true;
 					break;
-				case "--output-format":
-					if (nextArg === "png" || nextArg === "html") {
-						options.outputFormat = nextArg;
-						i++;
-					} else {
-						throw new Error(
-							`Invalid output format: ${nextArg}. Must be "png" or "html"`,
-						);
-					}
-					break;
 				default:
 					console.error(`Unknown option: ${arg}`);
 					printUsage();

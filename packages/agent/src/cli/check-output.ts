@@ -16,9 +16,9 @@ export function slimResult(r: CheckResult) {
 	};
 }
 
-export function slimReport(report: CheckReport, summaryPath: string) {
+export function slimReport(report: CheckReport, reportPath: string) {
 	return {
-		summaryPath,
+		reportPath,
 		createdAt: report.createdAt,
 		totalEntries: report.totalEntries,
 		passed: report.passed,
@@ -28,33 +28,12 @@ export function slimReport(report: CheckReport, summaryPath: string) {
 	};
 }
 
-export function failureLines(results: CheckResult[]): string[] {
-	return results
-		.filter((r) => r.status !== "pass")
-		.flatMap((r) => {
-			const lines: string[] = [];
-			const prefix = r.status === "needs-judgment" ? "?" : "✗";
-			if (r.verdict) {
-				lines.push(
-					`  ${prefix} ${r.id}  [${r.verdict.label}]  ${r.verdict.headline}`,
-				);
-				lines.push(`      → ${r.verdict.action}`);
-			} else {
-				const detail =
-					typeof r.diffPercentage === "number"
-						? `${r.status} (${r.diffPercentage.toFixed(3)}%)`
-						: r.status;
-				lines.push(`  ${prefix} ${r.id}: ${detail}`);
-			}
-			if (r.status === "needs-judgment" && r.message) {
-				lines.push(`      ${r.message}`);
-			}
-			if (r.diffPath) lines.push(`      diff: ${r.diffPath}`);
-			return lines;
-		});
-}
-
 export function parseJudge(input: string): JudgeBackend {
-	if (input === "host" || input === "none") return input;
-	throw new Error(`unknown --judge backend: ${input} (expected: host | none)`);
+	// Accept the pre-rename "moondream" name so existing configs keep working.
+	const aliased = input === "moondream" ? "local" : input;
+	if (aliased === "host" || aliased === "none" || aliased === "local")
+		return aliased;
+	throw new Error(
+		`unknown --judge backend: ${input} (expected: host | none | local)`,
+	);
 }

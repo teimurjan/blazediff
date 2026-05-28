@@ -79,6 +79,8 @@ export function failResult(
 		diffPercentage: outcome.diffPercentage,
 		severity: outcome.interpretation?.severity,
 		regions: outcome.interpretation?.regions?.map(narrowRegion),
+		width: outcome.interpretation?.width,
+		height: outcome.interpretation?.height,
 		verdict,
 		diffPath: outcome.diffPath,
 		baselinePath,

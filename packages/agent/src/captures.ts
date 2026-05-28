@@ -2,7 +2,7 @@ import { captureScreenshot, type ResolvedHarness } from "./browser/capture";
 import { closeBrowser } from "./browser/launch";
 import { configHash, loadConfig } from "./config";
 import { defaultConcurrency } from "./defaults";
-import { Semaphore } from "./graph/semaphore";
+import { createSemaphore } from "./graph/semaphore";
 import { loadHarness, resolveHarnessFile } from "./harness/loader";
 import {
 	addOrReplaceEntry,
@@ -15,6 +15,7 @@ import type {
 	AgentConfig,
 	HarnessRef,
 	Manifest,
+	ManifestEntry,
 	Viewport,
 	WaitFor,
 } from "./types";
@@ -130,7 +131,18 @@ export async function runCaptures(
 	// Browser contexts are pooled per-viewport, so concurrent screenshots are
 	// safe; results land in indexed slots to preserve input order.
 	const slot: CaptureRouteResult[] = new Array(valid.length);
-	const semaphore = new Semaphore(opts.concurrency ?? defaultConcurrency());
+	// Pending manifest updates collected per-slot during the parallel phase.
+	// Folding into `manifest` happens *after* Promise.all so concurrent branches
+	// can't race on the read-modify-write of the manifest variable.
+	interface PendingUpdate {
+		baseId: string;
+		baseEntry: ManifestEntry;
+		derivedEntries: ManifestEntry[];
+	}
+	const pendingUpdates: (PendingUpdate | null)[] = new Array(valid.length).fill(
+		null,
+	);
+	const semaphore = createSemaphore(opts.concurrency ?? defaultConcurrency());
 
 	try {
 		await Promise.all(
@@ -172,20 +184,10 @@ export async function runCaptures(
 								fullPage: r.fullPage,
 								harnesses: refs.length > 0 ? refs : undefined,
 							};
-							// Drop any prior derived entries for this base so sub-shots the
-							// harness no longer emits don't linger as orphans.
-							manifest = {
-								...manifest,
-								entries: manifest.entries.filter((e) => e.parent !== r.id),
-							};
-							manifest = addOrReplaceEntry(
-								manifest,
-								makeEntry({ id: r.id, ...shared }),
-							);
-							manifestUpdates += 1;
-							for (const sub of shot.subCaptures ?? []) {
-								manifest = addOrReplaceEntry(
-									manifest,
+							pendingUpdates[i] = {
+								baseId: r.id,
+								baseEntry: makeEntry({ id: r.id, ...shared }),
+								derivedEntries: (shot.subCaptures ?? []).map((sub) =>
 									makeEntry({
 										id: `${r.id}__${sub.name}`,
 										...shared,
@@ -193,9 +195,8 @@ export async function runCaptures(
 										derived: true,
 										subName: sub.name,
 									}),
-								);
-								manifestUpdates += 1;
-							}
+								),
+							};
 						}
 					} catch (err) {
 						slot[i] = {
@@ -210,7 +211,28 @@ export async function runCaptures(
 			),
 		);
 		for (const r of slot) results.push(r);
-		if (manifest && manifestUpdates > 0) await saveManifest(manifest, cwd);
+
+		// Single-threaded fold of pending updates. Iteration order matches input
+		// order (slot index), so behavior is deterministic regardless of capture
+		// completion order.
+		if (manifest) {
+			for (const update of pendingUpdates) {
+				if (!update) continue;
+				// Drop any prior derived entries for this base so sub-shots the
+				// harness no longer emits don't linger as orphans.
+				manifest = {
+					...manifest,
+					entries: manifest.entries.filter((e) => e.parent !== update.baseId),
+				};
+				manifest = addOrReplaceEntry(manifest, update.baseEntry);
+				manifestUpdates += 1;
+				for (const derived of update.derivedEntries) {
+					manifest = addOrReplaceEntry(manifest, derived);
+					manifestUpdates += 1;
+				}
+			}
+			if (manifestUpdates > 0) await saveManifest(manifest, cwd);
+		}
 	} finally {
 		await closeBrowser();
 	}

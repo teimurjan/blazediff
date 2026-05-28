@@ -1,4 +1,5 @@
-import { hostHarnessJudge } from "./host-harness";
+import { codingAgentHostJudge } from "./coding-agent-host";
+import { localJudge } from "./local";
 import { noneJudge } from "./none";
 import type { Judge, JudgeBackend } from "./types";
 
@@ -20,6 +21,8 @@ export function resolveJudge(backend: JudgeBackend): Judge {
 		case "none":
 			return noneJudge;
 		case "host":
-			return hostHarnessJudge;
+			return codingAgentHostJudge;
+		case "local":
+			return localJudge;
 	}
 }

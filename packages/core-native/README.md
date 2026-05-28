@@ -108,12 +108,6 @@ Compare two images (PNG or JPEG) and generate a diff image. Format is auto-detec
     <td>false</td>
     <td>Run structured interpretation after diff - adds <code>interpretation</code> to the result with detected change regions, classification, and a human-readable summary</td>
   </tr>
-  <tr>
-    <td><code>outputFormat</code></td>
-    <td>"png" | "html"</td>
-    <td>"png"</td>
-    <td>Output format for diff. Use <code>"html"</code> to generate an interpret report (implies <code>interpret: true</code>)</td>
-  </tr>
 </table>
 
 ### interpret(image1Path, image2Path, options?)

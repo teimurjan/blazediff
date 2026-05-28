@@ -2,11 +2,15 @@ import type { Command } from "commander";
 import { loadConfig, resolveBaseUrl } from "../../config";
 import { DEFAULT_THRESHOLD } from "../../defaults";
 import { type RunEvent, runGraph } from "../../graph";
-import { applyJudgments } from "../../judge";
+import { type ApplyJudgmentsResult, applyJudgments } from "../../judge";
 import { paths } from "../../paths";
-import { failureLines, parseJudge, slimReport } from "../check-output";
+import type { CheckReport } from "../../types";
+import { parseJudge, slimReport } from "../check-output";
 import type { Output } from "../output";
 import { parsePositiveInteger, parseThreshold } from "../parsers";
+import { failureBlock, summaryLine } from "../render/check";
+import { createProgress } from "../render/progress";
+import { relPath } from "../render/theme";
 
 interface Opts {
 	baseUrl?: string;
@@ -14,55 +18,75 @@ interface Opts {
 	concurrency?: string;
 	diffPng: boolean;
 	junit?: string;
-	judge: string;
+	judge?: string;
 	applyJudgments?: boolean;
-}
-
-function glyphFor(status: string): string {
-	switch (status) {
-		case "pass":
-			return "✓";
-		case "needs-judgment":
-			return "?";
-		case "stale-baseline":
-		case "missing-baseline":
-			return "!";
-		default:
-			return "✗";
-	}
 }
 
 function makeProgressReporter(out: Output) {
 	if (out.isJson() || out.isQuiet()) return undefined;
-	let done = 0;
-	let total = 0;
-	const counter = () => (total > 0 ? `[${done}/${total}]` : `[${done}]`);
-	return (event: RunEvent) => {
-		if (event.type === "report") {
-			total = event.report.totalEntries;
-			return;
-		}
-		if (event.type === "result") {
-			done += 1;
-			const r = event.result;
-			const detail =
-				r.status === "fail" && typeof r.diffPercentage === "number"
-					? `  (${r.diffPercentage.toFixed(3)}%)`
-					: r.status !== "pass" && r.message
-						? `  (${r.message})`
-						: "";
-			process.stderr.write(
-				`${counter()} ${glyphFor(r.status)} ${r.id}${detail}\n`,
-			);
-			return;
-		}
-		if (event.type === "interrupt") {
-			done += 1;
-			process.stderr.write(
-				`${counter()} ? ${event.interrupt.entryId}  (awaiting judgment)\n`,
-			);
-		}
-	};
+	const view = createProgress();
+	return (event: RunEvent) => view.emit(event);
+}
+
+/** Compose the human-readable output for `--apply-judgments`. */
+function buildApplyHuman(r: ApplyJudgmentsResult, reportPath: string): string {
+	if (
+		r.applied.length === 0 &&
+		r.missing.length === 0 &&
+		r.invalid.length === 0
+	) {
+		return `no judgments to apply\n  report: ${relPath(reportPath)}`;
+	}
+	return [
+		`applied ${r.applied.length} judgment(s)`,
+		r.missing.length
+			? `  ${r.missing.length} pending without judgment: ${r.missing.join(", ")}`
+			: undefined,
+		r.invalid.length
+			? `  ${r.invalid.length} invalid judgment file(s): ${r.invalid.join(", ")}`
+			: undefined,
+		`  ${r.report.passed}/${r.report.totalEntries} passed (${r.report.failed} failed, ${r.report.pendingJudgments} pending)`,
+		`  report: ${relPath(reportPath)}`,
+	]
+		.filter(Boolean)
+		.join("\n");
+}
+
+/**
+ * Compose the human-readable output for a normal `check` run. Layout is flat
+ * (no nested indents): summary headline, one line per verdict-group failure,
+ * then the report path and footer hints — matching the structure the failure
+ * summary actually needs.
+ */
+function buildCheckHuman(
+	report: CheckReport,
+	reportPath: string,
+	judgmentsPath: string,
+): string {
+	const summary = summaryLine(report);
+	if (report.failed === 0 && report.pendingJudgments === 0) {
+		return `${summary}\nreport: ${relPath(reportPath)}`;
+	}
+	const reviewHint =
+		report.failed > 0 || report.pendingJudgments > 0
+			? "run `blazediff-agent review` to review interactively"
+			: undefined;
+	return [
+		summary,
+		...failureBlock(report.results),
+		`report: ${relPath(reportPath)}`,
+		report.pendingJudgments > 0
+			? `pending: ${relPath(judgmentsPath)}/ - host writes <id>/verdict.json, then re-run check --apply-judgments`
+			: undefined,
+		reviewHint,
+	]
+		.filter(Boolean)
+		.join("\n");
+}
+
+/** 1 when the run has hard failures; undefined keeps the inherited success exit. */
+function exitCodeFor(report: CheckReport): number | undefined {
+	return report.failed > 0 ? 1 : undefined;
 }
 
 export function registerCheck(program: Command, out: Output): void {
@@ -83,51 +107,36 @@ export function registerCheck(program: Command, out: Output): void {
 		.option("--junit <path>", "write JUnit XML to this path (default: skipped)")
 		.option(
 			"--judge <backend>",
-			"judge backend for ambiguous diffs (host | none)",
-			"none",
+			"judge backend for ambiguous diffs (host | none | local). default: config.judge, else none",
 		)
 		.option(
 			"--apply-judgments",
 			"resume the suspended graph using .blazediff/judgments/<id>/verdict.json files",
 		)
 		.action(async (opts: Opts) => {
+			const reportPath = paths().report;
 			if (opts.applyJudgments) {
-				const { report, applied, missing, invalid } = await applyJudgments({
+				const result = await applyJudgments({
 					onEvent: makeProgressReporter(out),
 					junitPath: opts.junit,
 				});
-				const summaryPath = paths().summary;
-				const human =
-					applied.length === 0 && missing.length === 0 && invalid.length === 0
-						? `no judgments to apply\n  summary: ${summaryPath}`
-						: [
-								`applied ${applied.length} judgment(s)`,
-								missing.length
-									? `  ${missing.length} pending without judgment: ${missing.join(", ")}`
-									: undefined,
-								invalid.length
-									? `  ${invalid.length} invalid judgment file(s): ${invalid.join(", ")}`
-									: undefined,
-								`  ${report.passed}/${report.totalEntries} passed (${report.failed} failed, ${report.pendingJudgments} pending)`,
-								`  summary: ${summaryPath}`,
-							]
-								.filter(Boolean)
-								.join("\n");
 				out.emit(
 					{
 						ok: true,
-						applied,
-						missing,
-						invalid,
-						...slimReport(report, summaryPath),
+						applied: result.applied,
+						missing: result.missing,
+						invalid: result.invalid,
+						...slimReport(result.report, reportPath),
 					},
-					human,
+					buildApplyHuman(result, reportPath),
 				);
-				if (report.failed > 0) process.exitCode = 1;
+				const code = exitCodeFor(result.report);
+				if (code !== undefined) process.exitCode = code;
 				return;
 			}
 
-			const baseUrl = resolveBaseUrl(await loadConfig(), opts.baseUrl);
+			const config = await loadConfig();
+			const baseUrl = resolveBaseUrl(config, opts.baseUrl);
 			const report = await runGraph({
 				baseUrl,
 				threshold: parseThreshold(opts.threshold),
@@ -136,33 +145,15 @@ export function registerCheck(program: Command, out: Output): void {
 					: undefined,
 				emitDiffPng: opts.diffPng,
 				junitPath: opts.junit,
-				judge: parseJudge(opts.judge),
+				judge: parseJudge(opts.judge ?? config?.judge ?? "none"),
 				onEvent: makeProgressReporter(out),
 			});
 
-			const summaryPath = paths().summary;
-			const summary =
-				report.pendingJudgments > 0
-					? `${report.passed}/${report.totalEntries} passed (${report.failed} failed, ${report.pendingJudgments} pending judgment)`
-					: report.failed === 0
-						? `${report.passed}/${report.totalEntries} passed`
-						: `${report.passed}/${report.totalEntries} passed (${report.failed} failed)`;
-
-			const human =
-				report.failed === 0 && report.pendingJudgments === 0
-					? `${summary}\n  summary: ${summaryPath}`
-					: [
-							`${summary}:`,
-							...failureLines(report.results),
-							`  summary: ${summaryPath}`,
-							report.pendingJudgments > 0
-								? `  pending: ${paths().judgments}/ - host writes <id>/verdict.json, then re-run check --apply-judgments`
-								: undefined,
-						]
-							.filter(Boolean)
-							.join("\n");
-
-			out.emit(slimReport(report, summaryPath), human);
-			if (report.failed > 0) process.exitCode = 1;
+			out.emit(
+				slimReport(report, reportPath),
+				buildCheckHuman(report, reportPath, paths().judgments),
+			);
+			const code = exitCodeFor(report);
+			if (code !== undefined) process.exitCode = code;
 		});
 }

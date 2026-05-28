@@ -1,0 +1,82 @@
+{
+	"version": 1,
+	"configHash": "sha256:a0318e940b3cabbf973f27dee3c27dd25fab729f35754181263e8743852d1e44",
+	"stabilityHooksVersion": 1,
+	"entries": [
+		{
+			"id": "changelog",
+			"url": "/changelog",
+			"viewport": {
+				"width": 1280,
+				"height": 800
+			},
+			"waitFor": ["networkidle", "fonts"],
+			"mask": [],
+			"fullPage": true,
+			"baselinePath": ".blazediff/baselines/changelog.png",
+			"captureHash": "sha256:d62d617d86efb4186fe02cd6f811cea0bcb5cb8bd95ee293cfd4bba039f5e029",
+			"createdBy": "agent",
+			"createdAt": "2026-05-26"
+		},
+		{
+			"id": "docs",
+			"url": "/docs",
+			"viewport": {
+				"width": 1280,
+				"height": 800
+			},
+			"waitFor": ["networkidle", "fonts"],
+			"mask": [],
+			"fullPage": true,
+			"baselinePath": ".blazediff/baselines/docs.png",
+			"captureHash": "sha256:44152de87f20d27887931284b8b55e0260d2995d16492bf0760be93f1487c964",
+			"createdBy": "agent",
+			"createdAt": "2026-05-26"
+		},
+		{
+			"id": "home",
+			"url": "/",
+			"viewport": {
+				"width": 1280,
+				"height": 800
+			},
+			"waitFor": ["networkidle", "fonts"],
+			"mask": [],
+			"fullPage": true,
+			"baselinePath": ".blazediff/baselines/home.png",
+			"captureHash": "sha256:f4c036f0eb2f076e83b675dc21398017f2e823d6e45028fa2c50933a646008bd",
+			"createdBy": "agent",
+			"createdAt": "2026-05-26"
+		},
+		{
+			"id": "pricing",
+			"url": "/pricing",
+			"viewport": {
+				"width": 1280,
+				"height": 800
+			},
+			"waitFor": ["networkidle", "fonts"],
+			"mask": [],
+			"fullPage": true,
+			"baselinePath": ".blazediff/baselines/pricing.png",
+			"captureHash": "sha256:ac0db8ec24ce0a937e1f337d6f39e2d9edb76fa74181d3224f8c97edb056d23b",
+			"createdBy": "agent",
+			"createdAt": "2026-05-26"
+		},
+		{
+			"id": "status",
+			"url": "/status",
+			"viewport": {
+				"width": 1280,
+				"height": 800
+			},
+			"waitFor": ["networkidle", "fonts"],
+			"mask": [],
+			"fullPage": true,
+			"baselinePath": ".blazediff/baselines/status.png",
+			"captureHash": "sha256:834e8f5a8e7ace6b505be2b99325be09116e5445f065f3e170eb770b423975a1",
+			"createdBy": "agent",
+			"createdAt": "2026-05-26"
+		}
+	]
+}

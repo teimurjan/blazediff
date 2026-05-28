@@ -1,18 +1,19 @@
-import { existsSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { lstat, mkdir, unlink, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { HARNESSES, type Harness, type HarnessInfo } from "./harnesses";
 import { loadSkillFiles, type SkillFile, skillBodyOnly } from "./skill-loader";
+import { STACKS, type Stack, type StackInfo } from "./stacks";
 
 export type InstallStatus =
 	| "created"
 	| "updated"
 	| "unchanged"
-	| "skipped-exists";
+	| "skipped-exists"
+	| "configured";
 
 export interface InstallResult {
-	harness: Harness;
-	path: string;
+	stack: Stack;
+	path?: string;
 	status: InstallStatus;
 }
 
@@ -70,19 +71,26 @@ function combineStatuses(statuses: InstallStatus[]): InstallStatus {
 	return "unchanged";
 }
 
-export async function installHarness(
-	harness: Harness,
+export async function installStack(
+	stack: Stack,
 	cwd: string,
 	opts: { force?: boolean } = {},
 ): Promise<InstallResult> {
-	const info: HarnessInfo = HARNESSES[harness];
-	const target = info.target(cwd);
+	const info: StackInfo = STACKS[stack];
+
+	// Local-judge stacks (moondream) install no skill file; onboarding wires the
+	// judge backend into config instead (see the onboard command).
+	if (info.kind === "local-judge") {
+		return { stack, status: "configured" };
+	}
+
+	const target = info.target?.(cwd);
 	const files = loadSkillFiles();
 
 	if (info.format === "cursor-rule") {
 		const content = renderCursorRule(files);
 		const status = await writeIfChanged(target, content, opts.force);
-		return { harness, path: target, status };
+		return { stack, path: target, status };
 	}
 
 	const targetDir = dirname(target);
@@ -96,5 +104,5 @@ export async function installHarness(
 		);
 		statuses.push(status);
 	}
-	return { harness, path: target, status: combineStatuses(statuses) };
+	return { stack, path: target, status: combineStatuses(statuses) };
 }

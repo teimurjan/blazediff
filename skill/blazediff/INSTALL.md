@@ -30,7 +30,7 @@ Paste this file into any coding agent (Claude Code, Codex, Cursor, …) and tell
    - **Codex (user-global):** `~/.codex/prompts/blazediff.md` — Codex CLI looks here for slash-command prompts
    - **Cursor (project-scope):** `<project>/.cursor/rules/blazediff.mdc` with the right frontmatter
 
-   If detection finds nothing and stdout is a TTY, the command prompts. Force a specific subset with `--harness claude,codex,cursor` (or `--harness all`). Pass `--force` to overwrite an existing playbook file.
+   If detection finds nothing and stdout is a TTY, the command prompts. Force a specific subset with `--stack claude,codex,cursor` (or `--stack all`). Pass `--force` to overwrite an existing playbook file. To judge diffs locally instead of with a host agent, use `--stack local` (installs no skill file; sets `config.judge: "local"` — a two-step Moondream + Qwen pipeline).
 
    Idempotent — re-runs report `unchanged` when the on-disk content already matches.
 

@@ -38,5 +38,23 @@
 				"organizeImports": "on"
 			}
 		}
-	}
+	},
+	"overrides": [
+		{
+			"includes": ["packages/agent/src/review/client/**"],
+			"linter": {
+				"rules": {
+					"a11y": {
+						"useButtonType": "off",
+						"noStaticElementInteractions": "off",
+						"useKeyWithClickEvents": "off",
+						"noSvgWithoutTitle": "off"
+					},
+					"suspicious": {
+						"noArrayIndexKey": "off"
+					}
+				}
+			}
+		}
+	]
 }
