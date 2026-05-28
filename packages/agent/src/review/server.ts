@@ -13,7 +13,6 @@ import { loadConfig } from "../config";
 import { DEFAULT_THRESHOLD } from "../defaults";
 import { paths } from "../paths";
 import { readReport } from "../report/json";
-import { isPortOpen } from "../server/lifecycle";
 import { approveEntry, rejectEntry } from "./actions";
 import { toReviewPayload } from "./map";
 
@@ -233,8 +232,12 @@ async function serveStatic(
 		file = path.join(CLIENT_DIR, "index.html");
 	}
 	if (!existsSync(file)) {
+		// The SPA ships inside the package; missing files mean a broken install
+		// (or a contributor running from source without `pnpm build`).
 		res.writeHead(500, { "content-type": "text/plain" });
-		res.end("review client not built — run `pnpm build` in @blazediff/agent");
+		res.end(
+			"review client missing from @blazediff/agent — try reinstalling the package (contributors: run `pnpm build` in packages/agent)",
+		);
 		return;
 	}
 	streamFile(res, file);
@@ -268,9 +271,6 @@ export async function startReviewServer(
 ): Promise<ReviewServerHandle> {
 	const { cwd, host } = opts;
 
-	let port = opts.port;
-	for (let i = 0; i < 20 && (await isPortOpen(port, host)); i++) port++;
-
 	const server: Server = createServer((req, res) => {
 		const url = new URL(req.url ?? "/", `http://${host}:${port}`);
 		void handleApi(req, res, cwd, url).then((handled) => {
@@ -278,10 +278,32 @@ export async function startReviewServer(
 		});
 	});
 
-	await new Promise<void>((resolve, reject) => {
-		server.once("error", reject);
-		server.listen(port, host, resolve);
-	});
+	// Bind-and-retry on EADDRINUSE rather than probe-then-bind: the probe has
+	// a TOCTOU race where another process can grab the port between the check
+	// and `listen`. Walking up to 20 ports matches the old probe budget.
+	let port = opts.port;
+	for (let attempt = 0; attempt < 20; attempt++) {
+		try {
+			await new Promise<void>((resolve, reject) => {
+				const onError = (err: NodeJS.ErrnoException) => {
+					server.off("listening", onListening);
+					reject(err);
+				};
+				const onListening = () => {
+					server.off("error", onError);
+					resolve();
+				};
+				server.once("error", onError);
+				server.once("listening", onListening);
+				server.listen(port, host);
+			});
+			break;
+		} catch (err) {
+			if ((err as NodeJS.ErrnoException).code !== "EADDRINUSE") throw err;
+			if (attempt === 19) throw err;
+			port++;
+		}
+	}
 
 	const url = `http://${host}:${port}`;
 	if (opts.open) openBrowser(url);

@@ -1,13 +1,13 @@
 # `@blazediff/agent-moondream-spa-example`
 
 A small Vite + React SPA used as the live test target for
-[`@blazediff/agent`](../../packages/agent)'s **local Moondream judge**. Five
-public routes (`/`, `/pricing`, `/docs`, `/changelog`, `/status`), no auth — the
-point here is the judge backend, not the capture flow.
+[`@blazediff/agent`](../../packages/agent)'s **local judge** (Moondream +
+Qwen). Five public routes (`/`, `/pricing`, `/docs`, `/changelog`, `/status`),
+no auth — the point here is the judge backend, not the capture flow.
 
 Unlike the [auth example](../agent-auth-spa-example) (which defers judging to a
 host coding agent), this package's `.blazediff/config.json` sets
-`"judge": "moondream"`, so `check` classifies any visual diff **locally** with
+`"judge": "local"`, so `check` classifies any visual diff **locally** with
 Moondream 2 — no host round-trip, no `interrupt()`.
 
 ## Run it
@@ -31,7 +31,7 @@ dev server running on port 5273:
 pnpm --filter @blazediff/agent-moondream-spa-example check
 ```
 
-`check` reads `config.judge: "moondream"`, captures all 5 routes, and diffs them
+`check` reads `config.judge: "local"`, captures all 5 routes, and diffs them
 against the baselines. On a clean run it reports `5/5 passed` and **never loads
 the model** — Moondream only spins up when a region actually differs. The model
 loads once on the first ambiguous diff and is reused for the rest of the run.
@@ -41,7 +41,7 @@ To see the judge fire, tweak a page (e.g. change a heading in
 `Xenova/moondream2` weights, then the judge labels the diff
 `regression-likely` / `intentional-likely` / `noise-likely` inline.
 
-You can override the backend per run with `--judge none|host|moondream`.
+You can override the backend per run with `--judge none|host|local`.
 
 ## Re-generate baselines
 
@@ -66,7 +66,7 @@ src/
 ├── pages/                  # Home, Pricing, Docs, Changelog, Status, NotFound
 └── styles.css              # Tailwind v4 entry
 .blazediff/
-├── config.json             # devServer + baseUrl + judge: "moondream"
+├── config.json             # devServer + baseUrl + judge: "local"
 ├── manifest.json           # 5 public entries (no harnesses)
 └── baselines/              # 5 committed PNGs
 ```

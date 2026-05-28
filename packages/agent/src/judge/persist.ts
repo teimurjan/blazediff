@@ -46,7 +46,7 @@ const HOST_INSTRUCTIONS = [
 	"Decide whether the change is a regression, an intentional UI change, or rendering noise.",
 	"Write your decision to `verdict.json` (next to this `request.json`) with shape:",
 	'  { "id": string, "verdict": { "label": "regression-likely" | "intentional-likely" | "noise-likely", "headline": string, "rationale": string[], "action": "investigate" | "rewrite-if-intended" | "ignore-or-rewrite" }, "rationale": string, "confidence": number }',
-	"Then re-run `blazediff-agent check --apply-judgments --json` to regenerate summary.html.",
+	"Then re-run `blazediff-agent check --apply-judgments --json` to regenerate report.json.",
 ].join("\n");
 
 function relTo(cwd: string, abs?: string): string | undefined {

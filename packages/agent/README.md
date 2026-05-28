@@ -48,7 +48,7 @@ Commit `.blazediff/` (config + manifest + baselines). All commands accept `--jso
   <tr><td><code>discover</code></td><td>BFS-crawl routes from <code>baseUrl</code></td></tr>
   <tr><td><code>capture --stdin</code></td><td>Screenshot routes from stdin JSON, write baselines/actuals</td></tr>
   <tr><td><code>check</code></td><td>Re-capture, diff against baseline, emit <code>CheckReport</code>. Judge backend defaults to <code>config.judge</code> (set by <code>onboard</code>), overridable with <code>--judge host|none|local</code>. <code>--judge host</code> suspends on the first ambiguous entry (<code>--apply-judgments</code> resumes once verdicts are written); <code>--judge local</code> judges inline with local models (Moondream describes, Qwen classifies) — no host round-trip.</td></tr>
-  <tr><td><code>rewrite &lt;id...&gt;</code></td><td>Re-baseline existing entries (also <code>--failed</code> / <code>--all</code>). Cleans stale <code>actual/</code>, <code>judgments/</code>, <code>summary.md</code>, <code>checkpoints/</code> for the rewritten ids.</td></tr>
+  <tr><td><code>rewrite &lt;id...&gt;</code></td><td>Re-baseline existing entries (also <code>--failed</code> / <code>--all</code>). Cleans stale <code>actual/</code>, <code>judgments/</code>, <code>report.json</code>, <code>checkpoints/</code> for the rewritten ids.</td></tr>
   <tr><td><code>diff &lt;id&gt;</code></td><td>Re-diff one entry without re-screenshotting</td></tr>
   <tr><td><code>manifest</code></td><td>Inspect / list manifest entries</td></tr>
   <tr><td><code>harness record &lt;name&gt;</code></td><td>Record an interaction via Playwright codegen into <code>.blazediff/harnesses/&lt;name&gt;.js</code>. <code>--login</code> rewrites typed credentials to env-var refs</td></tr>
