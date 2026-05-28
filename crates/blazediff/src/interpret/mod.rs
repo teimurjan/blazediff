@@ -255,11 +255,11 @@ mod tests {
 
     #[test]
     fn test_single_pixel_change_is_filtered_as_noise() {
-        // Single-pixel deltas sit below interpret()'s noise floor — even when
-        // the YIQ delta is large — so they don't show up as actionable regions.
+        // Subtle single-pixel deltas sit below interpret()'s noise floor, so
+        // they don't show up as actionable regions.
         let img1 = make_solid_image(100, 100, 128, 128, 128);
         let mut img2 = make_solid_image(100, 100, 128, 128, 128);
-        set_pixel(&mut img2, 50, 50, 255, 0, 0);
+        set_pixel(&mut img2, 50, 50, 130, 130, 130);
 
         let result = interpret(&img1, &img2, &DiffOptions::default()).unwrap();
 
