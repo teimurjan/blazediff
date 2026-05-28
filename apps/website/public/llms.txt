@@ -8,7 +8,7 @@
 ## Performance
 
 - **Native (Rust)**: 3-4x faster than odiff, 8x faster than pixelmatch on 4K images
-- **WebAssembly (wasm32 + v128 SIMD)**: ~58% faster than pixelmatch on average, up to ~5x on 4K (browser, edge, any wasm host)
+ge, up to ~5x on 4K (browser, edge, any wasm host)
 - **Image Pixel-by-Pixel (JS)**: ~50% faster than pixelmatch (up to 88% on identical images)
 - **SSIM**: ~25% faster than ssim.js, ~70% faster with Hitchhiker's SSIM
 - **Object Diff**: ~55% faster than microdiff (up to 96% on identical arrays)
@@ -845,21 +845,24 @@ blazediff-agent browsers install                  # install if missing
 
 ## Onboard a coding agent
 
-`blazediff-agent onboard` installs the BlazeDiff playbook into whatever coding-agent harness lives in your project. Run once per project.
+`blazediff-agent onboard` installs the BlazeDiff playbook into whatever coding-agent stack lives in your project. Run once per project.
 
 ```sh
 # Auto-detect (Claude Code, Codex, Cursor)
 blazediff-agent onboard --json
 
 # Explicit
-blazediff-agent onboard --harness codex
-blazediff-agent onboard --harness claude,codex
-blazediff-agent onboard --harness all
+blazediff-agent onboard --stack codex
+blazediff-agent onboard --stack claude,codex
+blazediff-agent onboard --stack all
+
+# No coding agent — install the local (Moondream + Qwen) judge
+blazediff-agent onboard --stack local
 ```
 
-Per harness:
+Per stack:
 
-| Harness | Target | Scope | Detection signal |
+| Stack | Target | Scope | Detection signal |
 |---|---|---|---|
 | Claude Code | `<project>/.claude/skills/blazediff/SKILL.md` | project | `CLAUDE.md` or `.claude/` |
 | Codex | `~/.codex/skills/blazediff/SKILL.md` | user-global | `AGENTS.md`, `.codex/`, or `~/.codex/` |
@@ -964,14 +967,15 @@ Deletes the entire `.blazediff/` directory (config, manifest, baselines, actual,
 
 | Command | Purpose |
 |---|---|
-| `onboard` | Install the playbook into the detected coding-agent harness (Claude Code, Codex, Cursor) |
+| `onboard` | Install the playbook into the detected coding-agent stack (Claude Code, Codex, Cursor) |
 | `init` | Detect framework/dev-script, write `.blazediff/config.json` + `.gitignore` |
 | `discover` | BFS-crawl routes from `baseUrl` (depth 2, ≤50 routes) as a fallback when source-walking fails |
 | `capture --stdin` | Read a JSON array of routes from stdin, screenshot each, write baselines/actuals + manifest |
 | `check` | Re-capture every manifest entry, diff against baseline, emit `CheckReport`. Uses LangGraph for per-entry parallelism; suspends on ambiguous entries when `--judge host` and resumes via `--apply-judgments` |
 | `rewrite <id...>` | Re-baseline existing manifest entries (mask/viewport/waitFor preserved) |
 | `diff <id>` | Re-diff one entry against its actual capture without re-screenshotting |
-| `manifest` | Inspect / list manifest entries |
+| `manifest` | Inspect / list manifest entries (`add --harness <name>` to attach a harness) |
+| `auth init` | Record a login flow via Playwright codegen into `.blazediff/harnesses/auth.js` (fallback for OAuth/SSO/MFA; simple forms are authored directly) |
 | `serve-status` | `--detach` / `--kill` / `--status` against the configured dev server |
 | `browsers install` | Install bundled Playwright Chromium |
 | `reset --yes` | Wipe `.blazediff/` |
@@ -1076,15 +1080,11 @@ Re-run `check` to confirm the entry now passes.
   },
   "framework": "next",
   "packageManager": "pnpm",
-  "baseUrl": "http://127.0.0.1:3000",
-  "auth": {
-    "harness": ".blazediff/auth.js",
-    "loginUrl": "http://127.0.0.1:3000/login"
-  }
+  "baseUrl": "http://127.0.0.1:3000"
 }
 ```
 
-The `auth` block is added by `blazediff-agent auth init` and only needed for projects with auth-gated routes — see [Auth-protected routes](#auth-protected-routes) below.
+Per-route behavior (login, interactions) lives in **harnesses**, not config — see [Harnesses](#harnesses) below.
 
 Omit `devServer` to point the agent at an already-running URL (set `baseUrl` directly):
 
@@ -1102,57 +1102,136 @@ blazediff-agent init --url https://staging.example.com --json
   viewport: { width: number; height: number };
   waitFor: ("networkidle" | "fonts" | string)[];
   fullPage: boolean;
-  auth: null | string;          // persona name; null = public route
+  harnesses?: { name: string; params?: Record<string, unknown> }[];
+  parent?: string;              // set on sub-entries from screenshot(name)
+  derived?: boolean;
 }
 ```
 
-## Auth-protected routes
+## Harnesses
 
-Routes behind a login flow capture through a per-project harness. Credentials
-live in environment variables — never in the harness file, the manifest, or
-LLM context.
+A **harness** is a pluggable script in `.blazediff/harnesses/<name>.js`, attached
+to an entry via its `harnesses: [{ name, params? }]` list. Login is just one kind
+of harness — anything that drives the page before or around a screenshot is the
+same concept.
 
-**One-time setup.** From your project root, with the dev server running:
+A harness is an ESM module (`.js` / `.mjs` — TypeScript is not auto-transpiled)
+that default-exports a `Harness`. Two phases:
+
+- **`setup`** — runs before navigation (establish a session, e.g. login).
+- **`interact`** (default) — runs after the base screenshot; drives the page and
+  may emit extra named screenshots via `screenshot(name)`. Each becomes its own
+  baseline entry, id `<entry>__<name>`.
+
+```ts
+export interface HarnessContext<P = Record<string, unknown>> {
+  page: import("playwright").Page;
+  browser: import("playwright").Browser;
+  context: import("playwright").BrowserContext;
+  params: P;                            // e.g. { persona: "default" }
+  screenshot(name: string): Promise<void>;
+}
+export interface Harness<P = Record<string, unknown>> {
+  phase?: "setup" | "interact";
+  run(ctx: HarnessContext<P>): Promise<void>;
+}
+```
+
+### Interaction harnesses
+
+For a test that needs the page driven mid-flow (open a menu, switch a tab, then
+shoot again), write an interact harness and attach it by name:
+
+```js
+// .blazediff/harnesses/weather-menu.js
+/** @type {import("@blazediff/agent").Harness} */
+export default {
+  async run({ page, screenshot }) {
+    await page.getByRole("button", { name: "More options" }).click();
+    await screenshot("menu"); // -> baseline "weather__menu"
+  },
+};
+```
+
+```json
+{ "id": "weather", "url": "/weather", "harnesses": ["weather-menu"] }
+```
+
+The base shot `weather` fires automatically; every `screenshot("menu")` becomes
+its own manifest/baseline/diff entry. To re-baseline a multi-shot entry,
+`rewrite <parent-id>` re-runs the harness and regenerates all children.
+
+### Login harness
+
+Routes behind a login flow capture through a `setup` harness. Credentials live
+in environment variables — never in the harness file, the manifest, or LLM
+context (the harness only references `process.env.BLAZEDIFF_AUTH_*`).
+
+For a plain email/password form the agent **writes the harness directly** — it
+identifies the form fields from the login route source or a DOM snapshot and
+emits `.blazediff/harnesses/auth.js`:
+
+```js
+/** @type {import("@blazediff/agent").Harness<{ persona?: string }>} */
+export default {
+  phase: "setup",
+  async run({ page, params }) {
+    const upper = (params.persona ?? "default").toUpperCase().replace(/[^A-Z0-9]/g, "_");
+    const email = process.env[`BLAZEDIFF_AUTH_${upper}_EMAIL`];
+    const password = process.env[`BLAZEDIFF_AUTH_${upper}_PASSWORD`];
+    if (!email || !password) throw new Error(`missing BLAZEDIFF_AUTH_${upper}_EMAIL / _PASSWORD`);
+    await page.goto("http://127.0.0.1:3000/login");
+    await page.locator('input[name="email"]').fill(email);
+    await page.locator('input[name="password"]').fill(password);
+    await Promise.all([
+      page.waitForURL((u) => !u.pathname.startsWith("/login")),
+      page.getByRole("button", { name: /sign in|log in/i }).click(),
+    ]);
+  },
+};
+```
+
+For flows that can't be reduced to fill-and-submit — OAuth/SSO, magic links,
+MFA, captcha — record it interactively instead:
 
 ```sh
 blazediff-agent auth init --persona default --login-url http://127.0.0.1:3000/login
 ```
 
-This opens a Playwright recorder. Log in once. When you close the window, the
-agent post-processes the recording, swaps the email/password you typed for
-`process.env.BLAZEDIFF_AUTH_<PERSONA>_EMAIL` / `..._PASSWORD`, and writes
-`.blazediff/auth.js`. The file is short (~30 lines), reviewable, and meant to
-be committed.
+This opens a Playwright recorder; log in once, and on close the agent swaps the
+typed email/password for `process.env.BLAZEDIFF_AUTH_<PERSONA>_*` and writes the
+same `.blazediff/harnesses/auth.js`.
 
-**Per-entry.** Mark an entry's `auth` field with the persona name (use
-`"default"` for the common case):
+**Per-entry.** Add the harness to the entry's `harnesses` list:
 
-```sh
-blazediff-agent manifest add dashboard --url /dashboard --auth default
+```json
+{ "id": "dashboard", "url": "/dashboard",
+  "harnesses": [{ "name": "auth", "params": { "persona": "default" } }] }
 ```
 
-**At capture / check time.** Set the env vars before running:
+**Credentials.** The CLI auto-loads env files from `--cwd` —
+`.blazediff/.env[.local]` (blazediff-scoped, auto-gitignored) then the
+project-root `.env[.local]` — before any harness runs. Real exported env vars
+win; `.blazediff/` files beat the root. So just drop them in `.blazediff/.env`:
 
 ```sh
-export BLAZEDIFF_AUTH_DEFAULT_EMAIL='you@example.com'
-export BLAZEDIFF_AUTH_DEFAULT_PASSWORD='hunter2'
+printf 'BLAZEDIFF_AUTH_DEFAULT_EMAIL=you@example.com\nBLAZEDIFF_AUTH_DEFAULT_PASSWORD=hunter2\n' \
+  > .blazediff/.env
 blazediff-agent check
 ```
 
-`check` fails fast if any persona referenced in the manifest is missing its
-env vars, before any browser launches.
+The harness throws a clear error at capture time if its vars are missing.
 
-**Multiple personas.** Re-run `auth init --persona admin` to record another
-flow into the same `.blazediff/auth.js` (the file is a single module taking
-`persona` as an argument). Each persona maps to its own env-var pair.
+**Multiple personas.** Use a different `params.persona` per entry; each maps to
+its own `BLAZEDIFF_AUTH_<PERSONA>_*` pair. One harness file serves them all.
 
-**What's not supported in v0.2.** OAuth, SSO, magic links, MFA — the recorder
-expects a password form. `storageState` reuse is not yet implemented; every
-auth-gated capture re-runs the harness in a fresh browser context.
+**Note.** Every harness-gated capture runs in a fresh browser context
+(`storageState` reuse is not yet implemented), so a setup harness re-runs per
+entry.
 
 **Working reference.** [`examples/agent-auth-spa-example`](https://github.com/teimurjan/blazediff/tree/main/examples/agent-auth-spa-example)
 in the repo is a Vite + React SPA with 2 public and 8 auth-gated routes. It
-ships a hand-authored `.blazediff/auth.js` and committed baselines, so you can
+ships a `.blazediff/harnesses/auth.js` and committed baselines, so you can
 clone the repo and run `pnpm --filter @blazediff/agent-auth-spa-example check`
 to see the full flow pass 10/10.
 
@@ -1167,8 +1246,8 @@ In CI (`CI=1` or no TTY), only `check` is allowed. `init` / `capture` / `rewrite
 - run: npx blazediff-agent browsers install
 - run: npx blazediff-agent --cwd apps/website check --json
   env:
-    # Only needed if any manifest entry has `auth: "<persona>"`.
-    # Add one pair per persona referenced in the manifest.
+    # Only needed if any entry uses a login harness. One pair per persona.
+    # (In CI, set these as secrets rather than committing .blazediff/.env.)
     BLAZEDIFF_AUTH_DEFAULT_EMAIL: ${{ secrets.BLAZEDIFF_AUTH_DEFAULT_EMAIL }}
     BLAZEDIFF_AUTH_DEFAULT_PASSWORD: ${{ secrets.BLAZEDIFF_AUTH_DEFAULT_PASSWORD }}
 ```
@@ -1253,7 +1332,6 @@ Compares two images (PNG, JPEG, or QOI) and generates a diff image. Format is au
 | `antialiasing`     | `boolean` | `false` | Enable anti-aliasing detection                           |
 | `diffMask`         | `boolean` | `false` | Output only differences with transparent background      |
 | `interpret`        | `boolean` | `false` | Run structured interpretation (region detection + classification) |
-| `outputFormat`     | `"png" \| "html"` | `"png"` | Output format - `"html"` generates an interactive interpret report |
 
 #### Return Types
 
@@ -1265,7 +1343,7 @@ type BlazeDiffResult =
   | { match: false; reason: "file-not-exists"; file: string };
 ```
 
-When `interpret: true` or `outputFormat: "html"`, the result includes an `interpretation` field with structured analysis.
+When `interpret: true`, the result includes an `interpretation` field with structured analysis.
 
 > **Info:** **Threshold Guidelines:** - `0.0` - Exact match only - `0.05` - Strict comparison - `0.1` - Default balanced comparison - `0.2` - Lenient comparison
 
@@ -1393,11 +1471,6 @@ console.log(result.summary);
 // Via compare()
 const diff = await compare('expected.png', 'actual.png', 'diff.png', {
   interpret: true,
-});
-
-// Interactive HTML report
-await compare('expected.png', 'actual.png', 'report.html', {
-  outputFormat: 'html',
 });
 ```
 

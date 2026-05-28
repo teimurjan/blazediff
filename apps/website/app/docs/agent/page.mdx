@@ -33,21 +33,24 @@ blazediff-agent browsers install                  # install if missing
 
 ## Onboard a coding agent
 
-`blazediff-agent onboard` installs the BlazeDiff playbook into whatever coding-agent harness lives in your project. Run once per project.
+`blazediff-agent onboard` installs the BlazeDiff playbook into whatever coding-agent stack lives in your project. Run once per project.
 
 ```sh
 # Auto-detect (Claude Code, Codex, Cursor)
 blazediff-agent onboard --json
 
 # Explicit
-blazediff-agent onboard --harness codex
-blazediff-agent onboard --harness claude,codex
-blazediff-agent onboard --harness all
+blazediff-agent onboard --stack codex
+blazediff-agent onboard --stack claude,codex
+blazediff-agent onboard --stack all
+
+# No coding agent — install the local (Moondream + Qwen) judge
+blazediff-agent onboard --stack local
 ```
 
-Per harness:
+Per stack:
 
-| Harness | Target | Scope | Detection signal |
+| Stack | Target | Scope | Detection signal |
 |---|---|---|---|
 | Claude Code | `<project>/.claude/skills/blazediff/SKILL.md` | project | `CLAUDE.md` or `.claude/` |
 | Codex | `~/.codex/skills/blazediff/SKILL.md` | user-global | `AGENTS.md`, `.codex/`, or `~/.codex/` |
@@ -170,7 +173,7 @@ Deletes the entire `.blazediff/` directory (config, manifest, baselines, actual,
 
 | Command | Purpose |
 |---|---|
-| `onboard` | Install the playbook into the detected coding-agent harness (Claude Code, Codex, Cursor) |
+| `onboard` | Install the playbook into the detected coding-agent stack (Claude Code, Codex, Cursor) |
 | `init` | Detect framework/dev-script, write `.blazediff/config.json` + `.gitignore` |
 | `discover` | BFS-crawl routes from `baseUrl` (depth 2, ≤50 routes) as a fallback when source-walking fails |
 | `capture --stdin` | Read a JSON array of routes from stdin, screenshot each, write baselines/actuals + manifest |

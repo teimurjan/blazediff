@@ -6,9 +6,9 @@
 		"typecheck": "tsc --noEmit",
 		"dev": "next dev --turbopack",
 		"prebuild": "node scripts/generate-interpret-data.mjs && node scripts/generate-llms-txt.mjs",
-		"gen:launch-hero": "node scripts/generate-launch-hero.mjs",
-		"gen:launch-problem": "node scripts/generate-launch-problem.mjs",
-		"gen:launch-verdict": "node scripts/generate-launch-verdict.mjs",
+		"generate:launch-hero": "node scripts/generate-launch-hero.mjs",
+		"generate:launch-problem": "node scripts/generate-launch-problem.mjs",
+		"generate:launch-verdict": "node scripts/generate-launch-verdict.mjs",
 		"build": "next build && pnpm postbuild",
 		"start": "next start",
 		"postbuild": "pagefind --site .next/server/app --output-path public/_pagefind && cp -r ./public/_pagefind ./out"
