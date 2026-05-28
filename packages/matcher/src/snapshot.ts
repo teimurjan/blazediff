@@ -64,10 +64,7 @@ function getSnapshotPaths(
 	const identifier =
 		options.snapshotIdentifier ?? generateSnapshotIdentifier(testContext);
 
-	const diffExt =
-		options.method === "core-native" && options.outputFormat === "html"
-			? "html"
-			: "png";
+	const diffExt = options.method === "core-native" ? "html" : "png";
 
 	return {
 		snapshotDir,

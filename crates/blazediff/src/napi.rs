@@ -4,9 +4,8 @@
 //! without spawning child processes.
 
 use crate::{
-    diff, interpret::html_report::generate_html_report, interpret::interpret,
-    interpret::types as itypes, load_jpeg, load_jpegs, load_png, load_pngs, save_jpeg,
-    save_png_with_compression, DiffError, DiffOptions, Image,
+    diff, interpret::interpret, interpret::types as itypes, load_jpeg, load_jpegs, load_png,
+    load_pngs, save_jpeg, save_png_with_compression, DiffError, DiffOptions, Image,
 };
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
@@ -101,8 +100,6 @@ pub struct NapiDiffOptions {
     pub quality: Option<u8>,
     /// Run structured interpretation instead of raw diff
     pub interpret: Option<bool>,
-    /// Output format for diff: "png" (default) or "html" (interpret report)
-    pub output_format: Option<String>,
 }
 
 /// Result of image comparison
@@ -137,7 +134,6 @@ pub fn compare(
         compression: None,
         quality: None,
         interpret: None,
-        output_format: None,
     });
 
     let threshold = opts.threshold.unwrap_or(0.1);
@@ -145,8 +141,7 @@ pub fn compare(
     let diff_mask = opts.diff_mask.unwrap_or(false);
     let compression = opts.compression.unwrap_or(0);
     let quality = opts.quality.unwrap_or(90);
-    let output_format = opts.output_format.as_deref().unwrap_or("png");
-    let run_interpret = opts.interpret.unwrap_or(false) || output_format == "html";
+    let run_interpret = opts.interpret.unwrap_or(false);
 
     // Load images
     let (img1, img2) = load_images(&base_path, &compare_path).map_err(|e| {
@@ -179,20 +174,6 @@ pub fn compare(
     if run_interpret {
         let result = interpret(&img1, &img2, &diff_options)
             .map_err(|e| Error::new(Status::GenericFailure, format!("Interpret failed: {}", e)))?;
-
-        // Generate HTML report if requested
-        if output_format == "html" {
-            if let Some(ref output_path) = diff_output {
-                generate_html_report(&result, &base_path, &compare_path, output_path).map_err(
-                    |e| {
-                        Error::new(
-                            Status::GenericFailure,
-                            format!("Failed to write HTML report: {}", e),
-                        )
-                    },
-                )?;
-            }
-        }
 
         let is_identical = result.total_regions == 0;
         let diff_count = result.diff_count;

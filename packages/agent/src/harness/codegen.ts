@@ -12,7 +12,8 @@ export class CodegenError extends Error {
 }
 
 export interface RunCodegenOptions {
-	loginUrl: string;
+	/** Page to open the recorder against (login form, or any flow's entry URL). */
+	url: string;
 	cwd?: string;
 	command?: string;
 	args?: string[];
@@ -38,7 +39,7 @@ export async function runCodegen(
 		"codegen",
 		"--target=javascript",
 		`--output=${scriptPath}`,
-		opts.loginUrl,
+		opts.url,
 	];
 
 	await new Promise<void>((resolve, reject) => {

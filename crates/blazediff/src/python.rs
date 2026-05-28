@@ -4,9 +4,9 @@
 //! to Python via maturin-built wheels.
 
 use crate::{
-    diff, interpret::html_report::generate_html_report, interpret::interpret as run_interpret_fn,
-    interpret::types as itypes, load_jpeg, load_jpegs, load_png, load_pngs, save_jpeg,
-    save_png_with_compression, DiffError, DiffOptions, Image,
+    diff, interpret::interpret as run_interpret_fn, interpret::types as itypes, load_jpeg,
+    load_jpegs, load_png, load_pngs, save_jpeg, save_png_with_compression, DiffError, DiffOptions,
+    Image,
 };
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
@@ -262,7 +262,6 @@ fn convert_region(r: &itypes::ChangeRegion) -> PyChangeRegion {
     compression=None,
     quality=None,
     interpret=None,
-    output_format=None,
 ))]
 #[allow(clippy::too_many_arguments)]
 fn compare(
@@ -275,15 +274,13 @@ fn compare(
     compression: Option<u8>,
     quality: Option<u8>,
     interpret: Option<bool>,
-    output_format: Option<&str>,
 ) -> PyResult<PyDiffResult> {
     let threshold = threshold.unwrap_or(0.1);
     let antialiasing = antialiasing.unwrap_or(false);
     let diff_mask = diff_mask.unwrap_or(false);
     let compression = compression.unwrap_or(0);
     let quality = quality.unwrap_or(90);
-    let output_format = output_format.unwrap_or("png");
-    let run_interpret = interpret.unwrap_or(false) || output_format == "html";
+    let run_interpret = interpret.unwrap_or(false);
 
     let (img1, img2) = load_images(base_path, compare_path)
         .map_err(|e| PyValueError::new_err(format!("Failed to load images: {}", e)))?;
@@ -309,14 +306,6 @@ fn compare(
     if run_interpret {
         let result = run_interpret_fn(&img1, &img2, &diff_options)
             .map_err(|e| PyValueError::new_err(format!("Interpret failed: {}", e)))?;
-
-        if output_format == "html" {
-            if let Some(output_path) = diff_output {
-                generate_html_report(&result, base_path, compare_path, output_path).map_err(
-                    |e| PyValueError::new_err(format!("Failed to write HTML report: {}", e)),
-                )?;
-            }
-        }
 
         let is_identical = result.total_regions == 0;
         let diff_count = result.diff_count;

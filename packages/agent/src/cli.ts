@@ -1,16 +1,17 @@
 import { Command } from "commander";
 import pkgJson from "../package.json";
 import { closeBrowser } from "./browser/launch";
-import { registerAuth } from "./cli/commands/auth";
 import { registerBrowsers } from "./cli/commands/browsers";
 import { registerCapture } from "./cli/commands/capture";
 import { registerCheck } from "./cli/commands/check";
 import { registerDiff } from "./cli/commands/diff";
 import { registerDiscover } from "./cli/commands/discover";
+import { registerHarness } from "./cli/commands/harness";
 import { registerInit } from "./cli/commands/init";
 import { registerManifest } from "./cli/commands/manifest";
 import { registerOnboard } from "./cli/commands/onboard";
 import { registerReset } from "./cli/commands/reset";
+import { registerReview } from "./cli/commands/review";
 import { registerRewrite } from "./cli/commands/rewrite";
 import { registerServeStatus } from "./cli/commands/serve-status";
 import { applyCwdFromArgv, maybeDefaultToCheck } from "./cli/cwd";
@@ -36,9 +37,10 @@ function buildProgram(): Command {
 	registerBrowsers(program, out);
 	registerDiff(program, out);
 	registerManifest(program, out);
-	registerAuth(program, out);
+	registerHarness(program, out);
 	registerCheck(program, out);
 	registerRewrite(program, out);
+	registerReview(program, out);
 	registerReset(program, out);
 
 	return program;

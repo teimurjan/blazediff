@@ -24,6 +24,7 @@
 		"@blazediff/matcher-examples",
 		"@blazediff/website",
 		"@blazediff/video",
-		"@blazediff/agent-auth-spa-example"
+		"@blazediff/agent-auth-spa-example",
+		"@blazediff/agent-moondream-spa-example"
 	]
 }

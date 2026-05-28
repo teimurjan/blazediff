@@ -38,8 +38,19 @@ const contextPool = new Map<string, BrowserContext[]>();
 export async function getBrowser(): Promise<Browser> {
 	if (cachedBrowser?.isConnected()) return cachedBrowser;
 	if (launchInFlight) return launchInFlight;
+	// handleSIGINT/SIGTERM/SIGHUP default to true in Playwright — when the user
+	// hits Ctrl+C, Playwright traps the signal and runs a multi-second graceful
+	// browser teardown before letting Node exit. The Chromium child is in the
+	// same process group as us, so the terminal already sends the signal to it
+	// directly; opting out here makes Ctrl+C exit immediately.
 	launchInFlight = chromium
-		.launch({ headless: true, args: CHROMIUM_FLAGS })
+		.launch({
+			headless: true,
+			args: CHROMIUM_FLAGS,
+			handleSIGINT: false,
+			handleSIGTERM: false,
+			handleSIGHUP: false,
+		})
 		.then((b) => {
 			cachedBrowser = b;
 			return b;

@@ -21,8 +21,6 @@ export interface BlazeDiffOptions {
 	quality?: number;
 	/** Run structured interpretation after raw pixel diff */
 	interpret?: boolean;
-	/** Output format for diff: "png" (default) or "html" (interpret report) */
-	outputFormat?: "png" | "html";
 }
 
 export type BlazeDiffResult =
@@ -61,7 +59,6 @@ interface NapiDiffOptions {
 	compression?: number;
 	quality?: number;
 	interpret?: boolean;
-	outputFormat?: string;
 }
 
 // ─── Interpret types ─────────────────────────────────────────────────────────
@@ -275,7 +272,6 @@ function convertToNapiOptions(options?: BlazeDiffOptions): NapiDiffOptions {
 		compression: options?.compression,
 		quality: options?.quality,
 		interpret: options?.interpret,
-		outputFormat: options?.outputFormat,
 	};
 }
 
@@ -339,7 +335,7 @@ function getBinaryPathInternal(): string {
 
 function buildArgs(diffOutput?: string, options?: BlazeDiffOptions): string[] {
 	const args: string[] = [];
-	const useInterpret = options?.interpret || options?.outputFormat === "html";
+	const useInterpret = options?.interpret ?? false;
 
 	if (diffOutput) args.push(diffOutput);
 	if (useInterpret) args.push("--interpret");
@@ -394,7 +390,7 @@ async function execFileCompare(
 	const binaryPath = getBinaryPathInternal();
 	const args = [basePath, comparePath, ...buildArgs(diffOutput, options)];
 
-	if (options?.interpret || options?.outputFormat === "html") {
+	if (options?.interpret) {
 		return execFileInterpretCompare(binaryPath, args, basePath, comparePath);
 	}
 

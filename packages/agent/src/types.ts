@@ -1,6 +1,7 @@
 import type { BoundingBox } from "@blazediff/core-native";
 import type { Browser, BrowserContext, Page } from "playwright";
 import type { Verdict } from "./diff/verdict";
+import type { JudgeBackend } from "./judge/types";
 
 export const STABILITY_HOOKS_VERSION = 1;
 
@@ -90,6 +91,8 @@ export interface AgentConfig {
 	framework?: string;
 	packageManager?: "npm" | "pnpm" | "yarn" | "bun";
 	baseUrl?: string;
+	/** default judge backend for `check`, set by `onboard --stack` */
+	judge?: JudgeBackend;
 }
 
 export interface CaptureOptions {
@@ -130,9 +133,14 @@ export interface CheckResult {
 	diffPercentage?: number;
 	severity?: string;
 	regions?: RegionSummary[];
+	/** Natural pixel dimensions of the compared image (for region overlay scaling). */
+	width?: number;
+	height?: number;
 	verdict?: Verdict;
 	diffPath?: string;
 	actualPath?: string;
 	baselinePath?: string;
 	message?: string;
+	/** Human decision recorded by `review` (re-baselined or confirmed regression). */
+	review?: "approved" | "rejected";
 }

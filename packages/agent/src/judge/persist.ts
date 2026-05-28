@@ -1,11 +1,4 @@
-import {
-	access,
-	mkdir,
-	readdir,
-	readFile,
-	rm,
-	writeFile,
-} from "node:fs/promises";
+import { mkdir, readdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { Verdict } from "../diff/verdict";
 import { paths } from "../paths";
@@ -16,6 +9,7 @@ import type {
 	ManifestEntry,
 	RegionSummary,
 } from "../types";
+import { fileExists, readJsonOrNull } from "../util/fs-json";
 import type { VerdictFile } from "./types";
 
 export interface JudgmentRequest {
@@ -52,7 +46,7 @@ const HOST_INSTRUCTIONS = [
 	"Decide whether the change is a regression, an intentional UI change, or rendering noise.",
 	"Write your decision to `verdict.json` (next to this `request.json`) with shape:",
 	'  { "id": string, "verdict": { "label": "regression-likely" | "intentional-likely" | "noise-likely", "headline": string, "rationale": string[], "action": "investigate" | "rewrite-if-intended" | "ignore-or-rewrite" }, "rationale": string, "confidence": number }',
-	"Then re-run `blazediff-agent check --apply-judgments --json` to regenerate summary.md.",
+	"Then re-run `blazediff-agent check --apply-judgments --json` to regenerate summary.html.",
 ].join("\n");
 
 function relTo(cwd: string, abs?: string): string | undefined {
@@ -63,26 +57,17 @@ function relTo(cwd: string, abs?: string): string | undefined {
 export function signatureOf(r: CheckResult): string {
 	const pct =
 		typeof r.diffPercentage === "number" ? r.diffPercentage.toFixed(4) : "?";
-	const regions = r.regions?.length ?? 0;
 	const severity = r.severity ?? "?";
-	return `${r.status}|diff:${pct}|regions:${regions}|severity:${severity}`;
-}
-
-async function fileExists(p: string): Promise<boolean> {
-	try {
-		await access(p);
-		return true;
-	} catch {
-		return false;
-	}
-}
-
-async function readJsonOrNull<T>(file: string): Promise<T | null> {
-	try {
-		return JSON.parse(await readFile(file, "utf8")) as T;
-	} catch {
-		return null;
-	}
+	// Hash the regions' essential shape so a re-classification (same count,
+	// different type/size) invalidates a prior verdict. Sort first to make
+	// signatures order-insensitive — the same regions in a different order are
+	// the same diff and should reuse the verdict.
+	const regions = (r.regions ?? [])
+		.map((reg) => `${reg.changeType}:${reg.pixelCount}`)
+		.sort()
+		.join(",");
+	const regionsKey = regions ? `[${regions}]` : "0";
+	return `${r.status}|diff:${pct}|regions:${regionsKey}|severity:${severity}`;
 }
 
 function entryById(manifest: Manifest, id: string): ManifestEntry | undefined {

@@ -1,0 +1,14 @@
+{
+	"extends": "../../tsconfig.bundler.json",
+	"compilerOptions": {
+		"composite": true,
+		"module": "ESNext",
+		"moduleResolution": "bundler",
+		"allowSyntheticDefaultImports": true,
+		"noEmit": false,
+		"emitDeclarationOnly": false,
+		"outDir": "./node_modules/.tmp",
+		"rootDir": "."
+	},
+	"include": ["vite.config.ts"]
+}

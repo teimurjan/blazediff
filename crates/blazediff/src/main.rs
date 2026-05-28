@@ -11,10 +11,8 @@
 //!   2 - Error
 
 use blazediff::{
-    diff,
-    interpret::{html_report::generate_html_report, interpret},
-    load_jpeg, load_jpegs, load_png, load_pngs, load_qoi, load_qois, save_jpeg,
-    save_png_with_compression, save_qoi, DiffError, DiffOptions, Image,
+    diff, interpret::interpret, load_jpeg, load_jpegs, load_png, load_pngs, load_qoi, load_qois,
+    save_jpeg, save_png_with_compression, save_qoi, DiffError, DiffOptions, Image,
 };
 use clap::Parser;
 use rayon::prelude::*;
@@ -239,27 +237,7 @@ fn run_interpret(args: &Args, img1: &Image, img2: &Image, options: &DiffOptions)
         }
     };
 
-    if let Some(output_path) = &args.output {
-        let is_html = Path::new(output_path)
-            .extension()
-            .and_then(|ext| ext.to_str())
-            .is_some_and(|ext| ext.eq_ignore_ascii_case("html"));
-
-        if !is_html {
-            output_error(
-                args,
-                "Unsupported output path. Only `.html` output is currently supported for --interpret.",
-            );
-            return ExitCode::from(2);
-        }
-
-        if let Err(e) = generate_html_report(&result, &args.image1, &args.image2, output_path) {
-            output_error(args, &format!("Failed to write report: {e}"));
-            return ExitCode::from(2);
-        }
-
-        eprintln!("Wrote HTML report to {output_path}");
-    } else if args.output_format == "json" {
+    if args.output_format == "json" {
         println!("{}", serde_json::to_string_pretty(&result).unwrap());
     } else {
         println!("{}", result.summary);

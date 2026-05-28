@@ -42,7 +42,7 @@ export async function loadHarness(harnessFile: string): Promise<Harness> {
 		: path.resolve(process.cwd(), harnessFile);
 	if (!existsSync(absolute)) {
 		throw new HarnessError(
-			`harness not found at ${absolute}. Author one under .blazediff/harnesses/ (or run \`blazediff-agent auth init\` for a login harness).`,
+			`harness not found at ${absolute}. Author one under .blazediff/harnesses/ (or run \`blazediff-agent harness record <name>\` to record one).`,
 		);
 	}
 	const cached = moduleCache.get(absolute);
@@ -51,7 +51,9 @@ export async function loadHarness(harnessFile: string): Promise<Harness> {
 	const loading = (async () => {
 		let mod: Record<string, unknown>;
 		try {
-			mod = (await import(url)) as Record<string, unknown>;
+			// Fully-dynamic runtime path (a user-authored harness); keep bundlers
+			// and vitest's SSR runner from trying to resolve it at analysis time.
+			mod = (await import(/* @vite-ignore */ url)) as Record<string, unknown>;
 		} catch (err) {
 			throw new HarnessError(
 				`failed to load harness at ${absolute}: ${(err as Error).message}`,
@@ -62,7 +64,7 @@ export async function loadHarness(harnessFile: string): Promise<Harness> {
 		if (!harness || typeof harness.run !== "function") {
 			if (typeof mod.login === "function") {
 				throw new HarnessError(
-					`legacy auth harness detected at ${absolute} (exports \`login\`). Re-run \`blazediff-agent auth init\` to regenerate it as a harness.`,
+					`legacy auth harness detected at ${absolute} (exports \`login\`). Re-run \`blazediff-agent harness record auth --login\` to regenerate it as a harness.`,
 				);
 			}
 			throw new HarnessError(

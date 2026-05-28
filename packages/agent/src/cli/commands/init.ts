@@ -111,7 +111,11 @@ export function registerInit(program: Command, out: Output): void {
 				return;
 			}
 
-			const config = await buildConfig(opts);
+			const built = await buildConfig(opts);
+			// preserve a judge backend chosen via `onboard --stack` across re-init
+			const config: AgentConfig = existing?.judge
+				? { ...built, judge: existing.judge }
+				: built;
 			await saveConfig(config);
 			await ensureGitignore(process.cwd());
 

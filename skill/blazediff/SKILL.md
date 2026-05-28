@@ -111,7 +111,7 @@ Rules:
 Login is just a `phase:"setup"` harness. Credentials live only in env vars — never in the LLM, manifest, or harness file (the harness references `process.env.BLAZEDIFF_AUTH_*`, nothing else).
 
 1. **Already present?** If `.blazediff/harnesses/auth.js` exists, skip to step 4. (Legacy `.blazediff/auth.js` from before the harness change must be regenerated.)
-2. **Author it directly — preferred when creds are available.** If creds are in the env / `.blazediff/.env` (or the user can supply them), **write the harness yourself; do not make the user run `auth init`.** Identify the login form's email / password / submit selectors by reading the `/login` route's source component (prefer `name=` / `type=` / `id=` / role-based selectors; avoid `nth-child`), or by snapshotting the live page. Write `.blazediff/harnesses/auth.js`:
+2. **Author it directly — preferred when creds are available.** If creds are in the env / `.blazediff/.env` (or the user can supply them), **write the harness yourself; do not make the user run `harness record`.** Identify the login form's email / password / submit selectors by reading the `/login` route's source component (prefer `name=` / `type=` / `id=` / role-based selectors; avoid `nth-child`), or by snapshotting the live page. Write `.blazediff/harnesses/auth.js`:
    ```js
    /** @type {import("@blazediff/agent").Harness<{ persona?: string }>} */
    export default {
@@ -135,14 +135,14 @@ Login is just a `phase:"setup"` harness. Credentials live only in env vars — n
    };
    ```
    Never inline real credentials — only `process.env.BLAZEDIFF_AUTH_*` references.
-3. **Fallback: interactive recorder.** Only when you can't reduce login to fill-fields-and-submit — OAuth/SSO, captcha, MFA, multi-step — tell the user to run `blazediff-agent --cwd "$TARGET" auth init --persona default --login-url <login URL>` (opens Playwright codegen; they log in once; typed creds are rewritten to env-var refs and written to `.blazediff/harnesses/auth.js`). You can't drive the recorder yourself.
+3. **Fallback: interactive recorder.** Only when you can't reduce login to fill-fields-and-submit — OAuth/SSO, captcha, MFA, multi-step — tell the user to run `blazediff-agent --cwd "$TARGET" harness record auth --login --persona default --url <login URL>` (opens Playwright codegen; they log in once; typed creds are rewritten to env-var refs and written to `.blazediff/harnesses/auth.js`). You can't drive the recorder yourself.
 4. **Per entry.** Add `{ "name": "auth", "params": { "persona": "<persona>" } }` to the entry's `harnesses` (use `"default"` unless the user specifies otherwise).
 5. **Env vars.** The harness reads `BLAZEDIFF_AUTH_<PERSONA>_EMAIL` / `..._PASSWORD` at capture time. The CLI auto-loads env files from `--cwd`: `.blazediff/.env[.local]` (blazediff-scoped, auto-gitignored) then the project-root `.env[.local]`; real exported env wins, and `.blazediff/` files beat the app root. Drop creds in `.blazediff/.env`. If the user hasn't supplied any, ask for them — don't invent placeholders.
 
 ## Hard rules
 - Never `--mode baseline` an existing manifest entry without explicit user request.
 - Never edit `.blazediff/manifest.json` directly.
-- Author login and interaction harnesses directly under `.blazediff/harnesses/` when you can (login: simple form, creds via env). Use `auth init` only for flows you can't author (OAuth/SSO/MFA/captcha). Never write real credentials into a harness file — env refs only.
+- Author login and interaction harnesses directly under `.blazediff/harnesses/` when you can (login: simple form, creds via env). Use `harness record` only for flows you can't author (OAuth/SSO/MFA/captcha). Never write real credentials into a harness file — env refs only.
 - In CI (`CI=1` or no TTY), only `check` is allowed.
 - A route that times out is logged once in the result array and skipped — never block the run.
 - Never leave a dev server running after authoring exits. Teardown is mandatory on every exit path (success, capture failure, user interrupt). If you can't run teardown for some reason, tell the user the port number to kill manually.

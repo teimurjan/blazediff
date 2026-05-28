@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { envVarsForPersona } from "../../src/auth/env";
+import { envVarsForPersona } from "../../src/harness/template";
 
 describe("envVarsForPersona", () => {
 	it("uppercases the persona and uses the BLAZEDIFF_AUTH_ prefix", () => {

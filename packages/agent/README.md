@@ -43,15 +43,15 @@ Commit `.blazediff/` (config + manifest + baselines). All commands accept `--jso
 
 <table>
   <tr><th width="200">Command</th><th>Description</th></tr>
-  <tr><td><code>onboard</code></td><td>Install the playbook into Claude Code / Codex / Cursor</td></tr>
+  <tr><td><code>onboard</code></td><td>Install the playbook for your stack: Claude Code / Codex / Cursor, or <code>local</code> for a local (Moondream + Qwen) judge</td></tr>
   <tr><td><code>init</code></td><td>Detect framework, write <code>.blazediff/config.json</code></td></tr>
   <tr><td><code>discover</code></td><td>BFS-crawl routes from <code>baseUrl</code></td></tr>
   <tr><td><code>capture --stdin</code></td><td>Screenshot routes from stdin JSON, write baselines/actuals</td></tr>
-  <tr><td><code>check</code></td><td>Re-capture, diff against baseline, emit <code>CheckReport</code>. <code>--judge host</code> suspends on the first ambiguous entry; <code>--apply-judgments</code> resumes from <code>.blazediff/checkpoints/</code> once verdicts are written.</td></tr>
+  <tr><td><code>check</code></td><td>Re-capture, diff against baseline, emit <code>CheckReport</code>. Judge backend defaults to <code>config.judge</code> (set by <code>onboard</code>), overridable with <code>--judge host|none|local</code>. <code>--judge host</code> suspends on the first ambiguous entry (<code>--apply-judgments</code> resumes once verdicts are written); <code>--judge local</code> judges inline with local models (Moondream describes, Qwen classifies) — no host round-trip.</td></tr>
   <tr><td><code>rewrite &lt;id...&gt;</code></td><td>Re-baseline existing entries (also <code>--failed</code> / <code>--all</code>). Cleans stale <code>actual/</code>, <code>judgments/</code>, <code>summary.md</code>, <code>checkpoints/</code> for the rewritten ids.</td></tr>
   <tr><td><code>diff &lt;id&gt;</code></td><td>Re-diff one entry without re-screenshotting</td></tr>
   <tr><td><code>manifest</code></td><td>Inspect / list manifest entries</td></tr>
-  <tr><td><code>auth init</code></td><td>Record a login harness via Playwright codegen, rewrite credentials to env-var refs, write <code>.blazediff/harnesses/auth.js</code></td></tr>
+  <tr><td><code>harness record &lt;name&gt;</code></td><td>Record an interaction via Playwright codegen into <code>.blazediff/harnesses/&lt;name&gt;.js</code>. <code>--login</code> rewrites typed credentials to env-var refs</td></tr>
   <tr><td><code>serve-status</code></td><td>Start / stop / probe the dev server</td></tr>
   <tr><td><code>browsers install</code></td><td>Install bundled Playwright Chromium</td></tr>
   <tr><td><code>reset --yes</code></td><td>Wipe <code>.blazediff/</code></td></tr>
@@ -62,15 +62,24 @@ Pass `--cwd <abs-path>` to target a sub-package in a monorepo.
 ## Onboarding
 
 ```bash
-blazediff-agent onboard                    # auto-detect harness
-blazediff-agent onboard --harness codex    # explicit
-blazediff-agent onboard --harness all
+blazediff-agent onboard                    # auto-detect coding-agent stack
+blazediff-agent onboard --stack codex      # explicit
+blazediff-agent onboard --stack all        # claude + codex + cursor
+blazediff-agent onboard --stack local      # local judge, no host agent (Moondream + Qwen)
 ```
 
-Writes:
+For coding-agent stacks, writes the playbook and sets `config.judge: "host"`:
 - Claude Code → `<project>/.claude/skills/blazediff/SKILL.md`
 - Codex → `~/.codex/skills/blazediff/SKILL.md`
 - Cursor → `<project>/.cursor/rules/blazediff.mdc`
+
+`--stack local` writes no skill file. It sets `config.judge: "local"` so `check`
+judges diffs locally in two steps: Moondream 2 describes the change, then
+Qwen3.5-0.8B classifies it using that description plus the deterministic
+`interpret` summary (both via the optional peer dependency
+`@huggingface/transformers`; install it with `npm i @huggingface/transformers`).
+Each model loads once on the first judgment and is reused for the rest of the run.
+`local` cannot be combined with the coding-agent stacks.
 
 ## Masking
 
@@ -123,13 +132,13 @@ export default {
 
 ### Auth-protected routes
 
-Login is a `phase:"setup"` harness. For a simple form login, the agent writes
+Login is just a `phase:"setup"` harness. For a simple form login, the agent writes
 `.blazediff/harnesses/auth.js` directly — a `goto(/login)` → fill from
 `process.env.BLAZEDIFF_AUTH_<PERSONA>_EMAIL` / `..._PASSWORD` → submit → assert it
 left `/login`. No credentials ever live in the file, only env refs. For flows it
-can't author (OAuth/SSO, MFA, captcha), `blazediff-agent auth init` records the
-login interactively via Playwright codegen and rewrites the typed creds to env
-refs.
+can't author (OAuth/SSO, MFA, captcha), `blazediff-agent harness record auth --login`
+records the login interactively via Playwright codegen and rewrites the typed creds
+to env refs.
 
 Attach it with `"harnesses": [{ "name": "auth", "params": { "persona": "default" } }]`,
 then put `BLAZEDIFF_AUTH_<PERSONA>_EMAIL` / `..._PASSWORD` in an env file the CLI

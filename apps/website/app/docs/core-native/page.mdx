@@ -60,7 +60,6 @@ Compares two images (PNG, JPEG, or QOI) and generates a diff image. Format is au
 | `antialiasing`     | `boolean` | `false` | Enable anti-aliasing detection                           |
 | `diffMask`         | `boolean` | `false` | Output only differences with transparent background      |
 | `interpret`        | `boolean` | `false` | Run structured interpretation (region detection + classification) |
-| `outputFormat`     | `"png" \| "html"` | `"png"` | Output format - `"html"` generates an interactive interpret report |
 
 #### Return Types
 
@@ -72,7 +71,7 @@ type BlazeDiffResult =
   | { match: false; reason: "file-not-exists"; file: string };
 ```
 
-When `interpret: true` or `outputFormat: "html"`, the result includes an `interpretation` field with structured analysis.
+When `interpret: true`, the result includes an `interpretation` field with structured analysis.
 
 <Callout type="info">
   **Threshold Guidelines:**
@@ -208,11 +207,6 @@ console.log(result.summary);
 // Via compare()
 const diff = await compare('expected.png', 'actual.png', 'diff.png', {
   interpret: true,
-});
-
-// Interactive HTML report
-await compare('expected.png', 'actual.png', 'report.html', {
-  outputFormat: 'html',
 });
 ```
 

@@ -8,7 +8,7 @@ async function tryPrepareTiles(
 	input: JudgeInput,
 	entryDir: string,
 ): Promise<TilePrepResult | null> {
-	if (!input.regions || input.regions.length === 0 || !input.diffPath) {
+	if (!input.regions || input.regions.length === 0) {
 		return null;
 	}
 	try {
@@ -28,9 +28,12 @@ async function tryPrepareTiles(
 	}
 }
 
-export const hostHarnessJudge: Judge = {
+export const codingAgentHostJudge: Judge = {
 	name: "host",
 	async judge(input: JudgeInput, cwd: string): Promise<JudgeOutput> {
+		// Host has no internal queue (just file IO + an interrupt), so "start" is
+		// immediate. Local's onJudgingStart fires later, gated by its vision sem.
+		input.onJudgingStart?.();
 		const p = paths(cwd);
 		const entryDir = path.join(p.judgments, input.entry.id);
 		await mkdir(entryDir, { recursive: true });

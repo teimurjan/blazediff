@@ -34,8 +34,6 @@ export async function compareCoreNative(
 	const result = await compare(received, baseline, diffOutputPath, {
 		threshold: options.threshold,
 		antialiasing: options.antialiasing,
-		interpret: options.outputFormat === "html",
-		outputFormat: options.outputFormat,
 	});
 
 	if (result.match) {

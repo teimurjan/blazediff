@@ -41,32 +41,41 @@ export interface DiffOutput {
 	skipResult?: CheckResult;
 }
 
-const resultsChannel = Annotation<CheckResult[]>({
-	reducer: (acc, next) => [...acc, ...next],
-	default: () => [],
-});
+// "Latest wins" channel: overwrite on each update, default to undefined.
+const latest = <T>() =>
+	Annotation<T | undefined>({
+		reducer: (acc, next) => next ?? acc,
+		default: () => undefined,
+	});
 
-const capturedChannel = Annotation<CapturedEntry[]>({
-	reducer: (acc, next) => [...acc, ...next],
-	default: () => [],
-});
+// "Append" channel: concatenate each branch's contribution, default to empty.
+const appendList = <T>() =>
+	Annotation<T[]>({
+		reducer: (acc, next) => [...acc, ...next],
+		default: () => [],
+	});
+
+// "Replace" channel: each write replaces, but null/undefined keeps the prior
+// value. Used for non-optional list channels seeded once by the load node.
+const replaceList = <T>() =>
+	Annotation<T[]>({
+		reducer: (acc, next) => next ?? acc,
+		default: () => [],
+	});
+
+const resultsChannel = appendList<CheckResult>();
+const capturedChannel = appendList<CapturedEntry>();
 
 // Per-base-entry capture state. Each Send-fanned invocation runs the harnesses
 // for one base entry and writes its base + sub-shots into the shared `captured`
 // channel, which the parent graph aggregates.
 export const CaptureState = Annotation.Root({
-	entry: Annotation<ManifestEntry | undefined>({
-		reducer: (_, next) => next,
-		default: () => undefined,
-	}),
+	entry: latest<ManifestEntry>(),
 	children: Annotation<ManifestEntry[]>({
 		reducer: (_, next) => next,
 		default: () => [],
 	}),
-	options: Annotation<GraphOptions | undefined>({
-		reducer: (acc, next) => next ?? acc,
-		default: () => undefined,
-	}),
+	options: latest<GraphOptions>(),
 	captured: capturedChannel,
 });
 
@@ -75,22 +84,10 @@ export type CaptureStateType = typeof CaptureState.State;
 // Per-screenshot diff/judge state. Capture already happened, so the branch
 // receives a captureOutput via the Send payload and only diffs + judges.
 export const BranchState = Annotation.Root({
-	entry: Annotation<ManifestEntry | undefined>({
-		reducer: (_, next) => next,
-		default: () => undefined,
-	}),
-	options: Annotation<GraphOptions | undefined>({
-		reducer: (acc, next) => next ?? acc,
-		default: () => undefined,
-	}),
-	captureOutput: Annotation<CaptureOutput | undefined>({
-		reducer: (_, next) => next,
-		default: () => undefined,
-	}),
-	diffOutput: Annotation<DiffOutput | undefined>({
-		reducer: (_, next) => next,
-		default: () => undefined,
-	}),
+	entry: latest<ManifestEntry>(),
+	options: latest<GraphOptions>(),
+	captureOutput: latest<CaptureOutput>(),
+	diffOutput: latest<DiffOutput>(),
 	results: resultsChannel,
 });
 
@@ -99,24 +96,12 @@ export type BranchStateType = typeof BranchState.State;
 // Top-level state. `captured` and `results` are shared by name with the
 // subgraph states, so their appends bubble up automatically.
 export const GraphState = Annotation.Root({
-	options: Annotation<GraphOptions | undefined>({
-		reducer: (acc, next) => next ?? acc,
-		default: () => undefined,
-	}),
-	entries: Annotation<ManifestEntry[]>({
-		reducer: (acc, next) => next ?? acc,
-		default: () => [],
-	}),
+	options: latest<GraphOptions>(),
+	entries: replaceList<ManifestEntry>(),
 	captured: capturedChannel,
 	results: resultsChannel,
-	manifest: Annotation<Manifest | undefined>({
-		reducer: (acc, next) => next ?? acc,
-		default: () => undefined,
-	}),
-	report: Annotation<CheckReport | undefined>({
-		reducer: (acc, next) => next ?? acc,
-		default: () => undefined,
-	}),
+	manifest: latest<Manifest>(),
+	report: latest<CheckReport>(),
 });
 
 export type GraphStateType = typeof GraphState.State;

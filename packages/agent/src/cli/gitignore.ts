@@ -7,14 +7,19 @@ const ENTRIES = [
 	"actual/",
 	"judgments/",
 	"checkpoints/",
-	"summary.md",
+	"report.json",
 	"dev-server.log",
 	"dev-server.pid",
 	".env",
 	".env.local",
 	"*.tmp",
 ];
-const STALE_ENTRIES = new Set(["diffs/", "pending-judgments/", "report.json"]);
+const STALE_ENTRIES = new Set([
+	"diffs/",
+	"pending-judgments/",
+	"summary.html",
+	"summary.md",
+]);
 const HEADER =
 	"# blazediff: generated artifacts (committed: config.json, manifest.json, baselines/, harnesses/)\n";
 

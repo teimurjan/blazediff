@@ -1,0 +1,11 @@
+{
+	"devServer": {
+		"command": "pnpm dev",
+		"port": 5273,
+		"readyTimeoutMs": 60000
+	},
+	"framework": "vite-react",
+	"packageManager": "pnpm",
+	"baseUrl": "http://127.0.0.1:5273",
+	"judge": "moondream"
+}

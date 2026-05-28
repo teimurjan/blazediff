@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
-import { readFile } from "node:fs/promises";
 import path from "node:path";
 import type { DiscoveredRoute } from "../types";
+import { readJsonOrNull } from "../util/fs-json";
 
 interface RoutesManifest {
 	staticRoutes?: Array<{ page: string }>;
@@ -11,15 +11,6 @@ interface RoutesManifest {
 type AppPathsManifest = Record<string, string>;
 
 const DYNAMIC_SEGMENT = /\[[^\]]+\]/;
-
-async function readJson<T>(file: string): Promise<T | null> {
-	if (!existsSync(file)) return null;
-	try {
-		return JSON.parse(await readFile(file, "utf8")) as T;
-	} catch {
-		return null;
-	}
-}
 
 function isPublicRoute(route: string): boolean {
 	if (DYNAMIC_SEGMENT.test(route)) return false;
@@ -41,14 +32,14 @@ export async function discoverFromNextManifest(
 		out.push({ url, source: "next-manifest" });
 	};
 
-	const routes = await readJson<RoutesManifest>(
+	const routes = await readJsonOrNull<RoutesManifest>(
 		path.join(nextDir, "routes-manifest.json"),
 	);
 	for (const r of routes?.staticRoutes ?? []) {
 		if (isPublicRoute(r.page)) add(r.page);
 	}
 
-	const appPaths = await readJson<AppPathsManifest>(
+	const appPaths = await readJsonOrNull<AppPathsManifest>(
 		path.join(nextDir, "server", "app-paths-manifest.json"),
 	);
 	for (const route of Object.keys(appPaths ?? {})) {

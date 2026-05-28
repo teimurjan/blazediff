@@ -7,7 +7,6 @@
 mod color_delta;
 mod content_analysis;
 mod gradient;
-pub mod html_report;
 mod interpretation;
 mod region;
 mod severity;
@@ -39,20 +38,6 @@ use types::{ChangeRegion, ChangeType, InterpretResult};
 /// a perceptual delta of ~0.017 — filters near-identical pixels without
 /// throwing away genuine edits.
 const REFINE_DELTA_FLOOR_SQ: f32 = 100.0;
-
-/// Minimum changed-pixel count for a region to be reported by `interpret()`.
-/// Scales with image area so dense screenshots and large photos use the same
-/// signal-to-noise ratio, with an absolute floor that catches isolated
-/// sub-pixel deltas left behind by the diff stage.
-fn noise_pixel_floor(width: u32, height: u32) -> u32 {
-    let area = width as u64 * height as u64;
-    // ~0.07% of total pixels: ~180 px on 512², ~700 px on 1024². Calibrated
-    // against the addition_deletion/inpaintcoco corpora where every GT edit
-    // covers tens of thousands of changed pixels, so this only ever lands
-    // on JPEG-ringing or anti-aliasing fragments.
-    let scaled = (area / 1_400) as u32;
-    scaled.max(24)
-}
 
 /// Refine a coarse mask down to the actually-changed pixels inside the given
 /// bboxes. Pixels marked true in `input_mask` but with a tiny YIQ delta between
@@ -232,15 +217,7 @@ pub fn interpret(
 
     detect_shifts(&mut regions, img1, img2, &mask, width);
 
-    // Drop noise: explicit RenderingNoise labels plus tiny components that
-    // survive the diff threshold (e.g. JPEG ringing along real edits, isolated
-    // sub-pixel deltas the morph close didn't merge). The pixel-count floor
-    // is adaptive — a few stray pixels are noise on a 1024² photo but might
-    // be a meaningful edit on a 64² icon — and the absolute floor of 24
-    // catches the long tail of stray-pixel components without endangering
-    // anything that's actually a visible change.
-    let noise_floor = noise_pixel_floor(width, height);
-    regions.retain(|r| r.change_type != ChangeType::RenderingNoise && r.pixel_count >= noise_floor);
+    regions.retain(|r| r.change_type != ChangeType::RenderingNoise);
 
     let severity = classify_severity(diff_result.diff_percentage);
     let summary = build_summary(&regions, &severity, diff_result.diff_percentage);

@@ -1,0 +1,30 @@
+{
+	"name": "@blazediff/agent-moondream-spa-example",
+	"version": "0.0.1",
+	"private": true,
+	"description": "Live test target for @blazediff/agent's local Moondream judge. Vite + React SPA with 5 public routes and config.judge set to moondream.",
+	"type": "module",
+	"scripts": {
+		"dev": "vite",
+		"build": "vite build",
+		"preview": "vite preview --port 5273",
+		"typecheck": "tsc --noEmit",
+		"check": "blazediff-agent check"
+	},
+	"dependencies": {
+		"react": "^19.1.1",
+		"react-dom": "^19.1.1",
+		"react-router-dom": "^7.1.1"
+	},
+	"devDependencies": {
+		"@blazediff/agent": "workspace:*",
+		"@huggingface/transformers": "^4.2.0",
+		"@tailwindcss/vite": "^4.1.13",
+		"@types/react": "^19",
+		"@types/react-dom": "^19",
+		"@vitejs/plugin-react": "^4.3.4",
+		"tailwindcss": "^4.1.13",
+		"typescript": "^5.9.2",
+		"vite": "^6.0.7"
+	}
+}

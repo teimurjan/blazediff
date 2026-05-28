@@ -5,6 +5,7 @@ import { DEFAULT_FULL_PAGE } from "../../defaults";
 import { HarnessError } from "../../harness/loader";
 import { isEntryStale, subNameOf } from "../../manifest";
 import type { ManifestEntry } from "../../types";
+import { emitEvent } from "../events";
 import type { Semaphore } from "../semaphore";
 import type { CapturedEntry, CaptureOutput, CaptureStateType } from "../state";
 import { errorResult, staleResult } from "./results";
@@ -118,6 +119,10 @@ export function makeCaptureNode(semaphore: Semaphore) {
 						}),
 					);
 				}
+			}
+			for (const item of items) {
+				if (item.output.captureOutputPath)
+					emitEvent({ type: "captured", entryId: item.entry.id });
 			}
 			return { captured: items };
 		} catch (err) {

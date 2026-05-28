@@ -40,4 +40,13 @@ export type {
 export { applyJudgments, resolveJudge } from "./judge";
 export { loadManifest, saveManifest } from "./manifest";
 export { paths } from "./paths";
+export { readReport, writeReport } from "./report/json";
+export { approveEntry, rejectEntry } from "./review/actions";
+export type {
+	ReviewEntry,
+	ReviewPayload,
+	ReviewRegion,
+	ReviewRunMeta,
+	ReviewStatus,
+} from "./review/types";
 export * from "./types";

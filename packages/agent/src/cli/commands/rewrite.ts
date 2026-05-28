@@ -17,7 +17,7 @@ interface Opts {
 
 // Artifacts from the previous check (actual screenshots, diff PNGs, judgment
 // folders) describe a comparison against the OLD baseline. Once that baseline
-// is rewritten, those artifacts are stale; summary.md + the suspended graph
+// is rewritten, those artifacts are stale; report.json + the suspended graph
 // checkpoint are stale regardless of which ids were rewritten.
 async function cleanupAfterRewrite(
 	rewrittenIds: string[],
@@ -29,7 +29,7 @@ async function cleanupAfterRewrite(
 			rm(p.actual, { recursive: true, force: true }),
 			rm(p.judgments, { recursive: true, force: true }),
 			rm(p.checkpoints, { recursive: true, force: true }),
-			rm(p.summary, { force: true }),
+			rm(p.report, { force: true }),
 		]);
 		return;
 	}
@@ -40,7 +40,7 @@ async function cleanupAfterRewrite(
 	]);
 	await Promise.all([
 		...perId,
-		rm(p.summary, { force: true }),
+		rm(p.report, { force: true }),
 		rm(p.checkpoints, { recursive: true, force: true }),
 	]);
 }
