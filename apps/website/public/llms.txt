@@ -885,8 +885,9 @@ The skill detects whether you're authoring (no `.blazediff/manifest.json`) or ch
 ### Author baselines
 
 ```bash
-# 1. Setup: config from your dev script + Chromium + playbook (interactive)
-blazediff-agent onboard
+# 1. Setup: config from your dev script + Chromium + playbook
+#    (--no-capture: baselines are captured explicitly in step 3 below)
+blazediff-agent onboard --no-capture
 
 # 2. Start the configured dev server (waits up to 60s for the port)
 blazediff-agent serve-status --detach --json

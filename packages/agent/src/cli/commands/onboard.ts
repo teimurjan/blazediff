@@ -270,11 +270,14 @@ export function registerOnboard(program: Command, out: Output): void {
 				lines.push(suggestOtherStacks(installed.map((r) => r.stack)));
 			}
 
-			// 4. Capture baselines (interactive offer / --yes)
+			// 4. Capture baselines (interactive offer / --yes). Requires the
+			// browser step to have actually run — when it's skipped we can't be
+			// sure Chromium is present, so don't risk a failing capture.
 			let capture: CaptureSummary | null = null;
 			const canCapture =
 				opts.capture !== false &&
 				chromium.installed &&
+				!chromium.skipped &&
 				Boolean(config?.baseUrl);
 			const wantCapture =
 				canCapture &&
