@@ -56,20 +56,21 @@ When the user asks to wipe blazediff's state and start over (manifest stale beyo
 - Then re-run the full **authoring** flow below. Do not call `reset` without explicit user request — it discards committed baselines.
 
 ## authoring
-1. **Config.**
-   - User points at a URL ("test https://blazediff.dev", "server's running on :3001") → `blazediff-agent --cwd "$TARGET" init --url <url> --json`.
-   - Local app, dev script ambiguous or wrong → `init --dev-command "<cmd>" --port <n> --json`.
-   - Local app, single obvious dev script → `init --json`. On error or ambiguity, the CLI lists candidates; pick one with `--dev-script <name>`.
-2. **Chromium.** `blazediff-agent browsers install --check --json`. If `installed: false`, run `blazediff-agent browsers install`. This uses the bundled playwright — no sudo, no `npx playwright install --with-deps`. (On Linux, OS-level deps for chromium may still need `npx playwright install-deps chromium` if the run fails on missing libs; tell the user.)
-3. **Dev server.** If `config.devServer` is non-null, run `blazediff-agent --cwd "$TARGET" serve-status --detach --json`. **Expect this to wait up to 60s** for the port to open before returning. Do not background or poll it.
-4. **Discover routes.** Prefer reading the router source directly:
+1. **Setup (config + Chromium).** One `onboard --json` call writes `.blazediff/config.json` and ensures bundled Chromium (no prompts under `--json`; no capture step):
+   - User points at a URL ("test https://blazediff.dev", "server's running on :3001") → `blazediff-agent --cwd "$TARGET" onboard --url <url> --json`.
+   - Local app, dev script ambiguous or wrong → `onboard --dev-command "<cmd>" --port <n> --json`.
+   - Local app, single obvious dev script → `onboard --json`. When multiple dev scripts exist, non-interactive picks the highest-priority one (`dev`); override with `--dev-script <name>`.
+
+   Chromium uses the bundled playwright — no sudo, no `npx playwright install --with-deps`. (On Linux, OS-level deps may still need `npx playwright install-deps chromium` if a run fails on missing libs; tell the user.) Skip either step with `--no-browsers`.
+2. **Dev server.** If `config.devServer` is non-null, run `blazediff-agent --cwd "$TARGET" serve-status --detach --json`. **Expect this to wait up to 60s** for the port to open before returning. Do not background or poll it.
+3. **Discover routes.** Prefer reading the router source directly:
    - Next.js: `app/**/page.{tsx,jsx,mdx}` + `pages/**/*.{tsx,jsx}` (skip `api/`, `_app`, `_document`, `_error`).
    - Vite + react-router: parse `<Route path=...>` in `router.{ts,tsx}`.
    - Remix / SvelteKit / Astro: walk `app/routes` or `src/routes`.
 
    If the framework is unknown or the router source is opaque, call `blazediff-agent --cwd "$TARGET" discover --json`. That command does a BFS crawl from the configured `baseUrl` (depth 2, up to 50 routes), reads `.next/routes-manifest.json` if present, and reads `/sitemap.xml`. It's a fallback for when source-walking fails.
-5. **Filter.** Drop `/api/*`, dynamic segments without sample data, redirects/404s. For routes that need login or any pre-screenshot interaction, attach a harness via `harnesses: [...]` on the entry. See **harnesses** below.
-6. **Capture in one call.** Build a JSON array of route entries and pipe it through stdin:
+4. **Filter.** Drop `/api/*`, dynamic segments without sample data, redirects/404s. For routes that need login or any pre-screenshot interaction, attach a harness via `harnesses: [...]` on the entry. See **harnesses** below.
+5. **Capture in one call.** Build a JSON array of route entries and pipe it through stdin:
    ```
    cat <<'EOF' | blazediff-agent --cwd "$TARGET" capture --stdin --mode baseline --json
    [

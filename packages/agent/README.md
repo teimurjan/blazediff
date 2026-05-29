@@ -24,27 +24,26 @@ Visual regression testing your coding agent can judge. Discovers routes, screens
 npm install --save-dev @blazediff/agent
 ```
 
-First run prompts to install bundled Chromium.
-
 ## Quickstart
 
 ```bash
-blazediff-agent init                       # write .blazediff/config.json
-blazediff-agent browsers install           # ensure chromium
-echo '[{"id":"home","url":"/"}]' \
-  | blazediff-agent capture --stdin --mode baseline
-blazediff-agent check --judge host         # CI
-blazediff-agent rewrite home               # accept intentional change
+blazediff-agent onboard                    # interactive: config + chromium + playbook + baselines
+blazediff-agent check --judge host         # CI: re-capture, diff, judge
+blazediff-agent rewrite home               # accept an intentional change
 ```
 
-Commit `.blazediff/` (config + manifest + baselines). All commands accept `--json`.
+`onboard` writes `.blazediff/config.json`, installs bundled Chromium, installs the
+playbook for your coding agent, and offers to capture baselines on the spot. The
+second command (`check`, or `capture` if you declined the baseline offer) starts
+capturing. Commit `.blazediff/` (config + manifest + baselines). All commands
+accept `--json`; under `--json`/CI, `onboard` runs non-interactively (no prompts,
+no capture) — a scriptable config + chromium step.
 
 ## Commands
 
 <table>
   <tr><th width="200">Command</th><th>Description</th></tr>
-  <tr><td><code>onboard</code></td><td>Install the playbook for your stack: Claude Code / Codex / Cursor, or <code>local</code> for a local (Moondream + Qwen) judge</td></tr>
-  <tr><td><code>init</code></td><td>Detect framework, write <code>.blazediff/config.json</code></td></tr>
+  <tr><td><code>onboard</code></td><td>Interactive setup: write <code>.blazediff/config.json</code>, install Chromium, install the playbook for your stack (Claude Code / Codex / Cursor, or <code>local</code> for a Moondream + Qwen judge), and optionally capture baselines</td></tr>
   <tr><td><code>discover</code></td><td>BFS-crawl routes from <code>baseUrl</code></td></tr>
   <tr><td><code>capture --stdin</code></td><td>Screenshot routes from stdin JSON, write baselines/actuals</td></tr>
   <tr><td><code>check</code></td><td>Re-capture, diff against baseline, emit <code>CheckReport</code>. Judge backend defaults to <code>config.judge</code> (set by <code>onboard</code>), overridable with <code>--judge host|none|local</code>. <code>--judge host</code> suspends on the first ambiguous entry (<code>--apply-judgments</code> resumes once verdicts are written); <code>--judge local</code> judges inline with local models (Moondream describes, Qwen classifies) — no host round-trip.</td></tr>
@@ -59,14 +58,20 @@ Commit `.blazediff/` (config + manifest + baselines). All commands accept `--jso
 
 Pass `--cwd <abs-path>` to target a sub-package in a monorepo.
 
-## Onboarding
+## Onboard options
+
+`onboard` auto-detects your coding agent; override or scope the playbook with `--stack`:
 
 ```bash
-blazediff-agent onboard                    # auto-detect coding-agent stack
 blazediff-agent onboard --stack codex      # explicit
 blazediff-agent onboard --stack all        # claude + codex + cursor
 blazediff-agent onboard --stack local      # local judge, no host agent (Moondream + Qwen)
+blazediff-agent onboard --no-browsers --no-capture   # config + playbook only
 ```
+
+Other flags: `--url <baseUrl>` (external/running server), `--dev-command <cmd>` /
+`--port <n>` / `--dev-script <name>` (override detection), `--yes` (accept prompts),
+`--force` (rewrite config + playbook).
 
 For coding-agent stacks, writes the playbook and sets `config.judge: "host"`:
 - Claude Code → `<project>/.claude/skills/blazediff/SKILL.md`
