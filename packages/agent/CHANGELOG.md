@@ -1,5 +1,11 @@
 # @blazediff/agent
 
+## 0.5.0
+
+### Minor Changes
+
+- 6d094c9: Fold setup into one onboard command
+
 ## 0.4.0
 
 ### Minor Changes
