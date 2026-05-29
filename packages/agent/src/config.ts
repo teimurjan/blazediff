@@ -33,5 +33,7 @@ export function resolveBaseUrl(
 	if (override) return override;
 	if (config?.baseUrl) return config.baseUrl;
 	if (config?.devServer) return `http://127.0.0.1:${config.devServer.port}`;
-	throw new Error("no baseUrl: pass --base-url or run `blazediff-agent init`");
+	throw new Error(
+		"no baseUrl: pass --base-url or run `blazediff-agent onboard`",
+	);
 }

@@ -7,7 +7,6 @@ import { registerCheck } from "./cli/commands/check";
 import { registerDiff } from "./cli/commands/diff";
 import { registerDiscover } from "./cli/commands/discover";
 import { registerHarness } from "./cli/commands/harness";
-import { registerInit } from "./cli/commands/init";
 import { registerManifest } from "./cli/commands/manifest";
 import { registerOnboard } from "./cli/commands/onboard";
 import { registerReset } from "./cli/commands/reset";
@@ -30,7 +29,6 @@ function buildProgram(): Command {
 	const out = makeOutput(() => program.opts() as RootOpts);
 
 	registerOnboard(program, out);
-	registerInit(program, out);
 	registerDiscover(program, out);
 	registerServeStatus(program, out);
 	registerCapture(program, out);

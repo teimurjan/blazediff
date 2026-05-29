@@ -42,7 +42,7 @@ export function registerManifest(program: Command, out: Output): void {
 		.action(async (id: string, opts: AddOpts) => {
 			const config = await loadConfig();
 			if (!config)
-				throw new Error("no config. Run `blazediff-agent init` first.");
+				throw new Error("no config. Run `blazediff-agent onboard` first.");
 			const manifest =
 				(await loadManifest()) ?? emptyManifest(configHash(config));
 			const entry = makeEntry({

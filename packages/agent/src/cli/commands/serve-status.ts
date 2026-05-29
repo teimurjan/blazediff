@@ -27,7 +27,7 @@ export function registerServeStatus(program: Command, out: Output): void {
 			const config = await loadConfig();
 			if (!config) {
 				throw new Error(
-					"no .blazediff/config.json. Run `blazediff-agent init` first.",
+					"no .blazediff/config.json. Run `blazediff-agent onboard` first.",
 				);
 			}
 			if (!config.devServer) {

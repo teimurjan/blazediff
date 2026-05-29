@@ -47,7 +47,7 @@ function resolveUrl(opts: RecordOpts, config: AgentConfig | null): string {
 	const baseUrl = config?.baseUrl;
 	if (!baseUrl) {
 		throw new Error(
-			"no recording URL: pass --url <url> or run `blazediff-agent init` first.",
+			"no recording URL: pass --url <url> or run `blazediff-agent onboard` first.",
 		);
 	}
 	return opts.login ? new URL("/login", baseUrl).toString() : baseUrl;

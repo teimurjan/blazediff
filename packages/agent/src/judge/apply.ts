@@ -169,7 +169,7 @@ async function reconstructFromDisk(
 	const manifest = await loadManifest(cwd);
 	if (!manifest) {
 		throw new Error(
-			`no manifest at ${paths(cwd).manifest}. Run \`blazediff-agent init\` first.`,
+			`no manifest at ${paths(cwd).manifest}. Run \`blazediff-agent onboard\` first.`,
 		);
 	}
 	const dirById = new Map(dirs.map((d) => [d.id, d]));
@@ -220,7 +220,7 @@ export async function applyJudgments(
 	const manifest = await loadManifest(cwd);
 	if (!manifest) {
 		throw new Error(
-			`no manifest at ${paths(cwd).manifest}. Run \`blazediff-agent init\` first.`,
+			`no manifest at ${paths(cwd).manifest}. Run \`blazediff-agent onboard\` first.`,
 		);
 	}
 

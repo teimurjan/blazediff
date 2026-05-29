@@ -76,16 +76,14 @@ The skill detects whether you're authoring (no `.blazediff/manifest.json`) or ch
 ### Author baselines
 
 ```bash
-# 1. Generate config from your dev script
-blazediff-agent init --json
+# 1. Setup: config from your dev script + Chromium + playbook
+#    (--no-capture: baselines are captured explicitly in step 3 below)
+blazediff-agent onboard --no-capture
 
-# 2. Ensure Chromium is installed
-blazediff-agent browsers install --check --json
-
-# 3. Start the configured dev server (waits up to 60s for the port)
+# 2. Start the configured dev server (waits up to 60s for the port)
 blazediff-agent serve-status --detach --json
 
-# 4. Capture baselines in one call - pipe a JSON list of routes
+# 3. Capture baselines in one call - pipe a JSON list of routes
 cat <<'EOF' | blazediff-agent capture --stdin --mode baseline --json
 [
   {"id": "home", "url": "/", "mask": [".timestamp"]},
@@ -93,7 +91,7 @@ cat <<'EOF' | blazediff-agent capture --stdin --mode baseline --json
 ]
 EOF
 
-# 5. Stop the dev server (mandatory teardown)
+# 4. Stop the dev server (mandatory teardown)
 blazediff-agent serve-status --kill --json
 ```
 
@@ -173,8 +171,7 @@ Deletes the entire `.blazediff/` directory (config, manifest, baselines, actual,
 
 | Command | Purpose |
 |---|---|
-| `onboard` | Install the playbook into the detected coding-agent stack (Claude Code, Codex, Cursor) |
-| `init` | Detect framework/dev-script, write `.blazediff/config.json` + `.gitignore` |
+| `onboard` | Interactive setup: write `.blazediff/config.json` + `.gitignore`, install Chromium, install the playbook into the detected coding-agent stack (Claude Code, Codex, Cursor, or `--stack local`), and optionally capture baselines |
 | `discover` | BFS-crawl routes from `baseUrl` (depth 2, ≤50 routes) as a fallback when source-walking fails |
 | `capture --stdin` | Read a JSON array of routes from stdin, screenshot each, write baselines/actuals + manifest |
 | `check` | Re-capture every manifest entry, diff against baseline, emit `CheckReport`. Uses LangGraph for per-entry parallelism; suspends on ambiguous entries when `--judge host` and resumes via `--apply-judgments` |
@@ -277,7 +274,7 @@ Re-run `check` to confirm the entry now passes.
 
 ## Configuration
 
-`.blazediff/config.json` is written by `init` and committed:
+`.blazediff/config.json` is written by `onboard` and committed:
 
 ```json
 {
@@ -297,7 +294,7 @@ Per-route behavior (login, interactions) lives in **harnesses**, not config — 
 Omit `devServer` to point the agent at an already-running URL (set `baseUrl` directly):
 
 ```sh
-blazediff-agent init --url https://staging.example.com --json
+blazediff-agent onboard --url https://staging.example.com --json
 ```
 
 `.blazediff/manifest.json` is written by `capture` - **never edit it directly**. Each entry holds:
@@ -445,7 +442,7 @@ to see the full flow pass 10/10.
 
 ## CI
 
-In CI (`CI=1` or no TTY), only `check` is allowed. `init` / `capture` / `rewrite` / `reset` are explicitly blocked - authoring belongs at the developer's machine.
+In CI (`CI=1` or no TTY), only `check` is allowed. `onboard` / `capture` / `rewrite` / `reset` are explicitly blocked - authoring belongs at the developer's machine.
 
 ### GitHub Actions
 

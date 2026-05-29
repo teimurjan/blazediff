@@ -11,7 +11,7 @@ export async function loadNode(
 	const manifest = await loadManifest(state.options.cwd);
 	if (!manifest) {
 		throw new Error(
-			`no manifest found at ${paths(state.options.cwd).manifest}. Run \`blazediff init\` then \`/blazediff\` (or capture manually) first.`,
+			`no manifest found at ${paths(state.options.cwd).manifest}. Run \`blazediff-agent onboard\` then \`/blazediff\` (or capture manually) first.`,
 		);
 	}
 	return { entries: manifest.entries, manifest };
