@@ -70,6 +70,12 @@ export async function crawlRoutes(
 					waitUntil: "domcontentloaded",
 					timeout: 15_000,
 				});
+				// On hydrated SPAs the nav renders after JS, so domcontentloaded alone
+				// can surface zero links. Let the network settle before reading hrefs;
+				// fall back to the loaded DOM if it never goes idle.
+				await page
+					.waitForLoadState("networkidle", { timeout: 5_000 })
+					.catch(() => {});
 				const hrefs = await page.evaluate(() =>
 					Array.from(
 						document.querySelectorAll<HTMLAnchorElement>("a[href]"),
