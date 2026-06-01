@@ -107,7 +107,7 @@ export interface CaptureOptions {
 
 export interface DiscoveredRoute {
 	url: string;
-	source: "next-manifest" | "sitemap" | "crawl";
+	source: "crawl";
 	auth?: string;
 }
 
