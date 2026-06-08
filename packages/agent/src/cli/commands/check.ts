@@ -1,16 +1,17 @@
 import type { Command } from "commander";
 import { loadConfig, resolveBaseUrl } from "../../config";
-import { DEFAULT_THRESHOLD } from "../../defaults";
+import { DEFAULT_READY_TIMEOUT_MS, DEFAULT_THRESHOLD } from "../../defaults";
 import { type RunEvent, runGraph } from "../../graph";
 import { type ApplyJudgmentsResult, applyJudgments } from "../../judge";
 import { paths } from "../../paths";
-import type { CheckReport } from "../../types";
+import { isPortOpen, startServer } from "../../server/lifecycle";
+import type { AgentConfig, CheckReport } from "../../types";
 import { parseJudge, slimReport } from "../check-output";
 import type { Output } from "../output";
 import { parsePositiveInteger, parseThreshold } from "../parsers";
 import { failureBlock, summaryLine } from "../render/check";
 import { createProgress } from "../render/progress";
-import { relPath } from "../render/theme";
+import { dim, relPath } from "../render/theme";
 
 interface Opts {
 	baseUrl?: string;
@@ -89,6 +90,30 @@ function exitCodeFor(report: CheckReport): number | undefined {
 	return report.failed > 0 ? 1 : undefined;
 }
 
+/**
+ * Start the configured dev server if it isn't already up, then leave it running
+ * so repeated local `check` runs attach to a warm server. Skipped for an
+ * external base URL (no `devServer`). Tear down with `serve-status --kill`.
+ */
+async function ensureDevServer(
+	config: AgentConfig | null,
+	out: Output,
+): Promise<void> {
+	const port = config?.devServer?.port;
+	if (!config?.devServer || !port || (await isPortOpen(port))) return;
+
+	await startServer({
+		command: config.devServer.command,
+		port,
+		readyTimeoutMs: config.devServer.readyTimeoutMs ?? DEFAULT_READY_TIMEOUT_MS,
+	});
+	if (!out.isQuiet()) {
+		process.stderr.write(
+			`${dim(`dev server started on :${port} (serve-status --kill to stop)`)}\n`,
+		);
+	}
+}
+
 export function registerCheck(program: Command, out: Output): void {
 	program
 		.command("check")
@@ -137,6 +162,7 @@ export function registerCheck(program: Command, out: Output): void {
 
 			const config = await loadConfig();
 			const baseUrl = resolveBaseUrl(config, opts.baseUrl);
+			if (!opts.baseUrl) await ensureDevServer(config, out);
 			const report = await runGraph({
 				baseUrl,
 				threshold: parseThreshold(opts.threshold),
