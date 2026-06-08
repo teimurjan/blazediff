@@ -80,7 +80,7 @@ export interface CoreOptions {
 export function diff(
 	image1: Image["data"],
 	image2: Image["data"],
-	output: Image["data"] | undefined,
+	output: Image["data"] | null | undefined,
 	width: number,
 	height: number,
 	{
@@ -149,7 +149,7 @@ export function diff(
 	// very large sparse-diff images (where Pass 1's early per-block exit
 	// avoids ~all of Pass 2). Both variants use the same inlined-colorDelta
 	// / unsigned-distance hot loop.
-	if (output === undefined) {
+	if (output == null) {
 		if (len < 8_000_000 || len >= 30_000_000) {
 			return diffCountOnlyBlocked(
 				image1,

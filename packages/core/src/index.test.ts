@@ -350,6 +350,19 @@ describe("diff", () => {
 			expect(result).toBe(1);
 		});
 
+		it("should treat null output like undefined (count-only)", () => {
+			const img1 = createTestImage(3, 3, [128, 128, 128, 255]);
+			const img2 = createTestImage(3, 3, [128, 128, 128, 255]);
+			img2[16] = 0;
+			img2[17] = 0;
+			img2[18] = 0;
+			// pixelmatch accepts `null` for the output to mean "count only";
+			// this must not throw "Cannot read properties of null".
+			expect(diff(img1, img2, null, 3, 3)).toBe(
+				diff(img1, img2, undefined, 3, 3),
+			);
+		});
+
 		it("should write diffColor for different pixels", () => {
 			const img1 = createTestImage(2, 2, [0, 0, 0, 255]);
 			const img2 = createTestImage(2, 2, [255, 255, 255, 255]);
