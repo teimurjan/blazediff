@@ -1,5 +1,11 @@
 # @blazediff/agent
 
+## 0.7.0
+
+### Minor Changes
+
+- b279520: Added dev server start on check if not running
+
 ## 0.6.0
 
 ### Minor Changes
