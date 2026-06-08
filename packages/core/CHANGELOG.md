@@ -1,5 +1,11 @@
 # @blazediff/core
 
+## 1.9.3
+
+### Patch Changes
+
+- 87cf7cc: Fix crash when `null` is passed as the output buffer. `diff` now treats `null` and `undefined` identically (count-only), matching pixelmatch's API.
+
 ## 1.9.2
 
 ### Patch Changes

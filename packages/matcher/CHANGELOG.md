@@ -1,5 +1,12 @@
 # @blazediff/matcher
 
+## 2.0.1
+
+### Patch Changes
+
+- Updated dependencies [87cf7cc]
+  - @blazediff/core@1.9.3
+
 ## 2.0.0
 
 ### Major Changes
