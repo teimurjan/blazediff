@@ -81,6 +81,7 @@ export function mountSwipe(
 
 	const percentFromClientX = (clientX: number) => {
 		const rect = container.getBoundingClientRect();
+		if (rect.width === 0) return 0;
 		return ((clientX - rect.left) / rect.width) * 100;
 	};
 

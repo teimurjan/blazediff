@@ -3,6 +3,7 @@ import type React from "react";
 import { useCallback, useEffect, useRef } from "react";
 import type { SwipeModeProps } from "./types";
 import { useEngine } from "./useEngine";
+import { useLatestRef } from "./useLatestRef";
 
 const sharedImageStyle: React.CSSProperties = {
 	width: "100%",
@@ -26,11 +27,13 @@ export const SwipeMode: React.FC<SwipeModeProps> = ({
 	const [engine, state] = useEngine(() => createSwipeEngine(50));
 	const containerRef = useRef<HTMLDivElement>(null);
 	const isFirstPosition = useRef(true);
+	const onPositionChangeRef = useLatestRef(onPositionChange);
 
 	const percentFromClientX = useCallback((clientX: number) => {
 		const el = containerRef.current;
 		if (!el) return 0;
 		const rect = el.getBoundingClientRect();
+		if (rect.width === 0) return 0;
 		return ((clientX - rect.left) / rect.width) * 100;
 	}, []);
 
@@ -54,14 +57,13 @@ export const SwipeMode: React.FC<SwipeModeProps> = ({
 		};
 	}, [state.isDragging, engine, percentFromClientX]);
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: fire only on position change, skip initial
 	useEffect(() => {
 		if (isFirstPosition.current) {
 			isFirstPosition.current = false;
 			return;
 		}
-		onPositionChange?.(state.position);
-	}, [state.position]);
+		onPositionChangeRef.current?.(state.position);
+	}, [state.position, onPositionChangeRef]);
 
 	return (
 		<div className={className}>

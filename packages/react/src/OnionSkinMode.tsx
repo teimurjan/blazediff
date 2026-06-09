@@ -3,6 +3,7 @@ import type React from "react";
 import { useEffect, useRef } from "react";
 import type { OnionSkinModeProps } from "./types";
 import { useEngine } from "./useEngine";
+import { useLatestRef } from "./useLatestRef";
 
 export const OnionSkinMode: React.FC<OnionSkinModeProps> = ({
 	src1,
@@ -24,6 +25,9 @@ export const OnionSkinMode: React.FC<OnionSkinModeProps> = ({
 		createOnionSkinEngine({ src1, src2 }, opacity),
 	);
 	const isFirstOpacity = useRef(true);
+	const onOpacityChangeRef = useLatestRef(onOpacityChange);
+	const onImagesLoadedRef = useLatestRef(onImagesLoaded);
+	const onLoadErrorRef = useLatestRef(onLoadError);
 
 	useEffect(() => {
 		engine.setConfig({ src1, src2 });
@@ -33,21 +37,20 @@ export const OnionSkinMode: React.FC<OnionSkinModeProps> = ({
 		engine.actions.setOpacity(opacity);
 	}, [engine, opacity]);
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: fire only on opacity change, skip initial
 	useEffect(() => {
 		if (isFirstOpacity.current) {
 			isFirstOpacity.current = false;
 			return;
 		}
-		onOpacityChange?.(state.opacity);
-	}, [state.opacity]);
+		onOpacityChangeRef.current?.(state.opacity);
+	}, [state.opacity, onOpacityChangeRef]);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: fire once per status transition
 	useEffect(() => {
 		if (state.status === "ready" && state.dims1 && state.dims2) {
-			onImagesLoaded?.({ image1: state.dims1, image2: state.dims2 });
+			onImagesLoadedRef.current?.({ image1: state.dims1, image2: state.dims2 });
 		} else if (state.status === "error") {
-			onLoadError?.(state.error);
+			onLoadErrorRef.current?.(state.error);
 		}
 	}, [state.status]);
 

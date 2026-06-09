@@ -21,7 +21,7 @@
 
 </div>
 
-**BlazeDiff** is a high-performance diff ecosystem. Originally built in JavaScript as a pixel-perfect image comparison library that's 1.5x faster than [pixelmatch](https://github.com/mapbox/pixelmatch). Now, BlazeDiff has evolved into a comprehensive suite of blazing-fast diff tools including image comparison, image diff analysis determenistically + agent-in-the-loop verdict, object diffing, perceptual quality metrics, framework-agnostic UI renderers, and React components for visualizing differences.
+**BlazeDiff** is a high-performance diff ecosystem. Originally built in JavaScript as a pixel-perfect image comparison library that's 1.5x faster than [pixelmatch](https://github.com/mapbox/pixelmatch). Now, BlazeDiff has evolved into a comprehensive suite of blazing-fast diff tools including image comparison, image diff analysis deterministically + agent-in-the-loop verdict, object diffing, perceptual quality metrics, framework-agnostic UI renderers, and React components for visualizing differences.
 
 ## Available Packages
 

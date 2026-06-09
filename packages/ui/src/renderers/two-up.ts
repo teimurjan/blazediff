@@ -23,8 +23,11 @@ export function mountTwoUp(
 
 	const img1 = createElement("img", { className: opts.imageClassName });
 	const img2 = createElement("img", { className: opts.imageClassName });
-	img1.crossOrigin = "anonymous";
-	img2.crossOrigin = "anonymous";
+	// Respect opts.crossOrigin (null disables); default to "anonymous" when unset.
+	const crossOrigin =
+		opts.crossOrigin === undefined ? "anonymous" : opts.crossOrigin;
+	img1.crossOrigin = crossOrigin;
+	img2.crossOrigin = crossOrigin;
 	img1.alt = "";
 	img2.alt = "";
 	img1.src = opts.src1;

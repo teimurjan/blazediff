@@ -3,6 +3,7 @@ import type React from "react";
 import { useEffect, useRef } from "react";
 import type { DifferenceModeProps } from "./types";
 import { useEngine } from "./useEngine";
+import { useLatestRef } from "./useLatestRef";
 
 export const DifferenceMode: React.FC<DifferenceModeProps> = ({
 	src1,
@@ -20,6 +21,8 @@ export const DifferenceMode: React.FC<DifferenceModeProps> = ({
 		createDifferenceEngine({ src1, src2, threshold, includeAA, alpha }),
 	);
 	const canvasRef = useRef<HTMLCanvasElement>(null);
+	const onDiffCompleteRef = useLatestRef(onDiffComplete);
+	const onDiffErrorRef = useLatestRef(onDiffError);
 
 	useEffect(() => {
 		engine.setConfig({ src1, src2, threshold, includeAA, alpha });
@@ -45,13 +48,13 @@ export const DifferenceMode: React.FC<DifferenceModeProps> = ({
 	// biome-ignore lint/correctness/useExhaustiveDependencies: fire once per status transition
 	useEffect(() => {
 		if (state.status === "ready" && state.diff) {
-			onDiffComplete?.({
+			onDiffCompleteRef.current?.({
 				diffCount: state.diff.diffCount,
 				totalPixels: state.diff.totalPixels,
 				percentage: state.diff.percentage,
 			});
 		} else if (state.status === "error") {
-			onDiffError?.(state.error);
+			onDiffErrorRef.current?.(state.error);
 		}
 	}, [state.status]);
 

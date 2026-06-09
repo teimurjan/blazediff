@@ -1,4 +1,4 @@
-/** Sets `element.className` from an optional class string (no-op when undefined). */
+/** Sets `element.className` from an optional class string, clearing it when undefined. */
 export function applyClassName(
 	element: HTMLElement,
 	className: string | undefined,

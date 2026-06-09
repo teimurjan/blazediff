@@ -23,8 +23,11 @@ export function mountOnionSkin(
 		className: opts.imageClassName,
 		style: { position: "absolute", top: "0", left: "0" },
 	});
-	img1.crossOrigin = "anonymous";
-	img2.crossOrigin = "anonymous";
+	// Respect opts.crossOrigin (null disables); default to "anonymous" when unset.
+	const crossOrigin =
+		opts.crossOrigin === undefined ? "anonymous" : opts.crossOrigin;
+	img1.crossOrigin = crossOrigin;
+	img2.crossOrigin = crossOrigin;
 	img1.alt = "";
 	img2.alt = "";
 	img1.src = opts.src1;
