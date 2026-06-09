@@ -14,7 +14,11 @@ interface LandingNavProps {
 const TABS: { id: Tab; label: string; href: string }[] = [
 	{ id: "home", label: "HOME", href: "/" },
 	{ id: "agent", label: "AGENT", href: "/agent" },
-	{ id: "docs", label: "DOCS", href: "/docs/core" },
+	{
+		id: "docs",
+		label: "DOCS",
+		href: "/docs/pixel-comparison/vanilla-javascript",
+	},
 ];
 
 const GITHUB_URL = "https://github.com/teimurjan/blazediff";

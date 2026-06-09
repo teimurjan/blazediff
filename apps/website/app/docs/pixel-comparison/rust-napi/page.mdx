@@ -1,0 +1,83 @@
+# Pixel-by-pixel Comparison - Rust + N-API in Node
+
+import { Tabs } from "nextra/components";
+import DiffImageComparison from "../../../../components/diff-image-comparison";
+
+The fastest path: native Rust compiled to a Node addon via N-API, ~3-4× faster
+than odiff. `@blazediff/core-native` works on **file paths** - it decodes PNG,
+JPEG, and QOI itself (in parallel) and can write the diff image straight to disk.
+Reach for it in Node test runners and CI where you have files and want maximum
+throughput.
+
+## Installation
+
+```bash npm2yarn
+npm install @blazediff/core-native
+```
+
+## Examples
+
+<Tabs items={['Basic Comparison', 'Custom Threshold', 'Write Diff Image']}>
+  <Tabs.Tab>
+
+    <DiffImageComparison
+      fixtureA="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3a.png"
+      fixtureB="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3b.png"
+    />
+
+```ts
+import { compare } from "@blazediff/core-native";
+
+const result = await compare("3a.png", "3b.png");
+
+if (result.match) {
+  console.log("identical");
+} else if (result.reason === "pixel-diff") {
+  console.log(`${result.diffCount} pixels differ (${result.diffPercentage.toFixed(2)}%)`);
+} else if (result.reason === "layout-diff") {
+  console.log("dimensions differ");
+}
+```
+
+  </Tabs.Tab>
+
+  <Tabs.Tab>
+
+    <DiffImageComparison
+      fixtureA="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3a.png"
+      fixtureB="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3b.png"
+      options={{ threshold: 0.5 }}
+    />
+
+```ts
+import { compare } from "@blazediff/core-native";
+
+const result = await compare("3a.png", "3b.png", undefined, {
+  threshold: 0.5,
+  antialiasing: true,
+});
+```
+
+  </Tabs.Tab>
+
+  <Tabs.Tab>
+
+    <DiffImageComparison
+      fixtureA="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3a.png"
+      fixtureB="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3b.png"
+    />
+
+```ts
+import { compare } from "@blazediff/core-native";
+
+// Pass an output path to render the diff visualization to disk.
+// Format is inferred from the extension (PNG, JPEG, QOI).
+const result = await compare("3a.png", "3b.png", "diff.png");
+```
+
+  </Tabs.Tab>
+</Tabs>
+
+Want a verdict on *what* changed, not just how many pixels? Pass `interpret: true`
+or use the dedicated [Image Difference Analysis →](/docs/difference-analysis)
+example. Full options in the [API reference →](/apis/core-native).

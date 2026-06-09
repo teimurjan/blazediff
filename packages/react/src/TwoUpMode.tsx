@@ -1,7 +1,9 @@
+import { createTwoUpEngine } from "@blazediff/ui/engine";
 import type React from "react";
-import { useEffect, useRef } from "react";
-import "@blazediff/ui/two-up-mode";
+import { useEffect } from "react";
 import type { TwoUpModeProps } from "./types";
+import { useEngine } from "./useEngine";
+import { useLatestRef } from "./useLatestRef";
 
 export const TwoUpMode: React.FC<TwoUpModeProps> = ({
 	src1,
@@ -15,49 +17,48 @@ export const TwoUpMode: React.FC<TwoUpModeProps> = ({
 	onImagesLoaded,
 	onLoadError,
 }) => {
-	const ref = useRef<HTMLElement>(null);
+	const [engine, state] = useEngine(() => createTwoUpEngine({ src1, src2 }));
+	const onImagesLoadedRef = useLatestRef(onImagesLoaded);
+	const onLoadErrorRef = useLatestRef(onLoadError);
 
 	useEffect(() => {
-		const element = ref.current;
-		if (!element) return;
+		engine.setConfig({ src1, src2 });
+	}, [engine, src1, src2]);
 
-		const handleImagesLoaded = (e: CustomEvent) => {
-			onImagesLoaded?.(e.detail);
-		};
-
-		const handleLoadError = (e: CustomEvent) => {
-			onLoadError?.(e.detail.error);
-		};
-
-		element.addEventListener(
-			"images-loaded",
-			handleImagesLoaded as EventListener,
-		);
-		element.addEventListener("load-error", handleLoadError as EventListener);
-
-		return () => {
-			element.removeEventListener(
-				"images-loaded",
-				handleImagesLoaded as EventListener,
-			);
-			element.removeEventListener(
-				"load-error",
-				handleLoadError as EventListener,
-			);
-		};
-	}, [onImagesLoaded, onLoadError]);
+	// biome-ignore lint/correctness/useExhaustiveDependencies: fire once per status transition
+	useEffect(() => {
+		if (state.status === "ready" && state.dims1 && state.dims2) {
+			onImagesLoadedRef.current?.({ image1: state.dims1, image2: state.dims2 });
+		} else if (state.status === "error") {
+			onLoadErrorRef.current?.(state.error);
+		}
+	}, [state.status]);
 
 	return (
-		<blazediff-twoup
-			ref={ref}
-			className={className}
-			src1={src1}
-			src2={src2}
-			class-container={containerClassName}
-			class-container-inner={containerInnerClassName}
-			class-panel={panelClassName}
-			class-image={imageClassName}
-			class-dimension-info={dimensionInfoClassName}
-		/>
+		<div className={className}>
+			<div className={containerClassName}>
+				<div className={containerInnerClassName} style={{ display: "flex" }}>
+					<div className={panelClassName}>
+						<img
+							className={imageClassName}
+							src={src1}
+							crossOrigin="anonymous"
+							alt=""
+						/>
+					</div>
+					<div className={panelClassName}>
+						<img
+							className={imageClassName}
+							src={src2}
+							crossOrigin="anonymous"
+							alt=""
+						/>
+					</div>
+				</div>
+				<div className={dimensionInfoClassName}>
+					{state.dimensionLabel ?? ""}
+				</div>
+			</div>
+		</div>
 	);
 };

@@ -43,18 +43,31 @@ export function registerDiscover(program: Command, out: Output): void {
 			"group size at which template sampling kicks in",
 			String(DEFAULT_SAMPLE_THRESHOLD),
 		)
-		.action(async (opts: Opts) => {
-			const baseUrl = resolveBaseUrl(await loadConfig(), opts.baseUrl);
+		.action(async (opts: Opts, command: Command) => {
+			const config = await loadConfig();
+			const baseUrl = resolveBaseUrl(config, opts.baseUrl);
+			// Precedence per setting: explicit CLI flag > config.discovery > default.
+			const fromCli = (name: string) =>
+				command.getOptionValueSource(name) === "cli";
+			const d = config?.discovery;
+
+			const maxRoutes = fromCli("maxRoutes")
+				? Number(opts.maxRoutes)
+				: (d?.maxRoutes ?? Number(opts.maxRoutes));
+			const sampleOn = fromCli("sampleTemplates")
+				? opts.sampleTemplates
+				: (d?.sampleTemplates ?? true);
+			const threshold = fromCli("sampleThreshold")
+				? posInt(opts.sampleThreshold, DEFAULT_SAMPLE_THRESHOLD)
+				: (d?.sampleThreshold ?? DEFAULT_SAMPLE_THRESHOLD);
+			const samples = fromCli("samplesPerTemplate")
+				? posInt(opts.samplesPerTemplate, DEFAULT_SAMPLES_PER_TEMPLATE)
+				: (d?.samplesPerTemplate ?? DEFAULT_SAMPLES_PER_TEMPLATE);
+
 			const routes = await discover({
 				baseUrl,
-				maxRoutes: Number(opts.maxRoutes),
-				sampleTemplates: opts.sampleTemplates && {
-					threshold: posInt(opts.sampleThreshold, DEFAULT_SAMPLE_THRESHOLD),
-					samples: posInt(
-						opts.samplesPerTemplate,
-						DEFAULT_SAMPLES_PER_TEMPLATE,
-					),
-				},
+				maxRoutes,
+				sampleTemplates: sampleOn && { threshold, samples },
 			});
 			await closeBrowser();
 			out.emit(

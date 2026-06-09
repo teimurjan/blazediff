@@ -19,7 +19,7 @@
 
 pub mod antialiasing;
 pub mod diff;
-#[cfg(feature = "io")]
+#[cfg(feature = "interpret")]
 pub mod interpret;
 #[cfg(feature = "io")]
 pub mod io;

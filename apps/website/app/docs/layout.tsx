@@ -1,6 +1,6 @@
 import NextraShell from "../../components/landing/nextra-shell";
 
-export default function DocsLayout({
+export default function ExamplesLayout({
 	children,
 }: {
 	children: React.ReactNode;

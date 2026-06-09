@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
 
-export default function DocsPage() {
-	redirect("/docs/core");
+export default function ExamplesPage() {
+	redirect("/docs/pixel-comparison/vanilla-javascript");
 }

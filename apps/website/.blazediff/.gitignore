@@ -1,10 +1,10 @@
 # blazediff: generated artifacts (committed: config.json, manifest.json, baselines/)
 actual/
 judgments/
-summary.md
+checkpoints/
+report.json
 dev-server.log
 dev-server.pid
-*.tmp
-checkpoints/
 .env
 .env.local
+*.tmp

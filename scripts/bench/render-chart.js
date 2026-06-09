@@ -274,7 +274,7 @@ function loadMarkdownLatencies(mdPath, sectionHeading, columnIndex) {
 	const map = new Map();
 	const trRe = /<tr>([\s\S]*?)<\/tr>/g;
 	let tr;
-	// biome-ignore lint/suspicious/noAssignInExpressions: <explanation>
+	// biome-ignore lint/suspicious/noAssignInExpressions: regex exec loop
 	while ((tr = trRe.exec(tableMatch[0])) !== null) {
 		const tds = [...tr[1].matchAll(/<td>([\s\S]*?)<\/td>/g)].map((c) =>
 			c[1].trim(),

@@ -33,67 +33,67 @@ const PACKAGES: {
 }[] = [
 	{
 		name: "@blazediff/core",
-		href: "/docs/core",
+		href: "/apis/core",
 		blurb:
 			"Pure-JS pixel diff with two-pass block optimization. ~1.5x faster than pixelmatch with identical accuracy.",
 		tier: "foundation",
 	},
 	{
 		name: "@blazediff/core-native",
-		href: "/docs/core-native",
+		href: "/apis/core-native",
 		blurb:
 			"SIMD-accelerated Rust binary. 3 to 4x faster than odiff, up to 8x faster than pixelmatch on 4K.",
 		tier: "foundation",
 	},
 	{
 		name: "@blazediff/core-wasm",
-		href: "/docs/core-wasm",
+		href: "/apis/core-wasm",
 		blurb:
 			"Same Rust algorithm, wasm32 v128 SIMD. ~5x faster than pixelmatch on 4K. Browser, edge, any wasm host.",
 		tier: "foundation",
 	},
 	{
 		name: "@blazediff/ssim",
-		href: "/docs/ssim",
+		href: "/apis/ssim",
 		blurb:
 			"SSIM (Structural Similarity Index) for CI visual testing. ~25% faster than ssim.js; Hitchhiker variant ~70% faster.",
 		tier: "metrics",
 	},
 	{
 		name: "@blazediff/gmsd",
-		href: "/docs/gmsd",
+		href: "/apis/gmsd",
 		blurb:
 			"GMSD (Gradient Magnitude Similarity Deviation) metric for CI visual testing. Single-threaded, allocation-free hot path.",
 		tier: "metrics",
 	},
 	{
 		name: "@blazediff/object",
-		href: "/docs/object",
+		href: "/apis/object",
 		blurb:
 			"Object comparison with path tracking, cycle detection, and CREATE/REMOVE/CHANGE types. ~55% faster than microdiff.",
 		tier: "metrics",
 	},
 	{
 		name: "@blazediff/jest",
-		href: "/docs/jest",
+		href: "/apis/jest",
 		blurb: "Jest matcher for visual regression testing.",
 		tier: "harness",
 	},
 	{
 		name: "@blazediff/vitest",
-		href: "/docs/vitest",
+		href: "/apis/vitest",
 		blurb: "Vitest matcher for visual regression testing.",
 		tier: "harness",
 	},
 	{
 		name: "@blazediff/bun",
-		href: "/docs/bun",
+		href: "/apis/bun",
 		blurb: "Bun test matcher for visual regression testing.",
 		tier: "harness",
 	},
 	{
 		name: "@blazediff/matcher",
-		href: "/docs/matcher",
+		href: "/apis/matcher",
 		blurb: "Core matcher logic for visual regression testing.",
 		tier: "harness",
 	},
@@ -106,19 +106,19 @@ const PACKAGES: {
 	},
 	{
 		name: "@blazediff/cli",
-		href: "/docs/cli",
+		href: "/apis/cli",
 		blurb: "Command-line interface for image comparison.",
 		tier: "surfaces",
 	},
 	{
 		name: "@blazediff/ui",
-		href: "/docs/ui",
-		blurb: "Unstyled web components for displaying image differences.",
+		href: "/apis/ui",
+		blurb: "Headless engine and unstyled renderers for image-diff UIs.",
 		tier: "surfaces",
 	},
 	{
 		name: "@blazediff/react",
-		href: "/docs/react",
+		href: "/apis/react",
 		blurb: "React components for image comparison.",
 		tier: "surfaces",
 	},
@@ -224,7 +224,7 @@ const BENCHMARK_GROUPS = [
 
 export default function Home() {
 	return (
-		<LandingShell activeTab="home" ctaLabel="GET STARTED" ctaHref="/docs/core">
+		<LandingShell activeTab="home" ctaLabel="GET STARTED" ctaHref="/apis/core">
 			<Hero
 				left={
 					<>
@@ -331,11 +331,13 @@ export default function Home() {
 
 			<Section>
 				<div className="flex flex-col md:flex-row gap-4">
-					<CtaLink href="/docs/core" variant="primary">
+					<CtaLink href="/apis/core" variant="primary">
 						READ DOCS
 					</CtaLink>
 					<CtaLink href="/agent">TRY THE AGENT →</CtaLink>
-					<CtaLink href="/examples/image-comparison">BROWSE EXAMPLES</CtaLink>
+					<CtaLink href="/docs/pixel-comparison/vanilla-javascript">
+						BROWSE EXAMPLES
+					</CtaLink>
 					<CtaLink href="https://github.com/teimurjan/blazediff" external>
 						GITHUB
 					</CtaLink>

@@ -1,7 +1,9 @@
+import { createOnionSkinEngine, normalizedOpacity } from "@blazediff/ui/engine";
 import type React from "react";
 import { useEffect, useRef } from "react";
-import "@blazediff/ui/onion-skin-mode";
 import type { OnionSkinModeProps } from "./types";
+import { useEngine } from "./useEngine";
+import { useLatestRef } from "./useLatestRef";
 
 export const OnionSkinMode: React.FC<OnionSkinModeProps> = ({
 	src1,
@@ -19,64 +21,80 @@ export const OnionSkinMode: React.FC<OnionSkinModeProps> = ({
 	onImagesLoaded,
 	onLoadError,
 }) => {
-	const ref = useRef<HTMLElement>(null);
+	const [engine, state] = useEngine(() =>
+		createOnionSkinEngine({ src1, src2 }, opacity),
+	);
+	const isFirstOpacity = useRef(true);
+	const onOpacityChangeRef = useLatestRef(onOpacityChange);
+	const onImagesLoadedRef = useLatestRef(onImagesLoaded);
+	const onLoadErrorRef = useLatestRef(onLoadError);
 
 	useEffect(() => {
-		const element = ref.current;
-		if (!element) return;
+		engine.setConfig({ src1, src2 });
+	}, [engine, src1, src2]);
 
-		const handleOpacityChange = (e: CustomEvent) => {
-			onOpacityChange?.(e.detail.opacity);
-		};
+	useEffect(() => {
+		engine.actions.setOpacity(opacity);
+	}, [engine, opacity]);
 
-		const handleImagesLoaded = (e: CustomEvent) => {
-			onImagesLoaded?.(e.detail);
-		};
+	useEffect(() => {
+		if (isFirstOpacity.current) {
+			isFirstOpacity.current = false;
+			return;
+		}
+		onOpacityChangeRef.current?.(state.opacity);
+	}, [state.opacity, onOpacityChangeRef]);
 
-		const handleLoadError = (e: CustomEvent) => {
-			onLoadError?.(e.detail.error);
-		};
-
-		element.addEventListener(
-			"opacity-change",
-			handleOpacityChange as EventListener,
-		);
-		element.addEventListener(
-			"images-loaded",
-			handleImagesLoaded as EventListener,
-		);
-		element.addEventListener("load-error", handleLoadError as EventListener);
-
-		return () => {
-			element.removeEventListener(
-				"opacity-change",
-				handleOpacityChange as EventListener,
-			);
-			element.removeEventListener(
-				"images-loaded",
-				handleImagesLoaded as EventListener,
-			);
-			element.removeEventListener(
-				"load-error",
-				handleLoadError as EventListener,
-			);
-		};
-	}, [onOpacityChange, onImagesLoaded, onLoadError]);
+	// biome-ignore lint/correctness/useExhaustiveDependencies: fire once per status transition
+	useEffect(() => {
+		if (state.status === "ready" && state.dims1 && state.dims2) {
+			onImagesLoadedRef.current?.({ image1: state.dims1, image2: state.dims2 });
+		} else if (state.status === "error") {
+			onLoadErrorRef.current?.(state.error);
+		}
+	}, [state.status]);
 
 	return (
-		<blazediff-onionskin
-			ref={ref}
-			className={className}
-			src1={src1}
-			src2={src2}
-			opacity={String(opacity)}
-			class-container={containerClassName}
-			class-image-container={imageContainerClassName}
-			class-image={imageClassName}
-			class-slider-container={sliderContainerClassName}
-			class-slider={sliderClassName}
-			class-slider-label={sliderLabelClassName}
-			text-slider-label={sliderLabelText}
-		/>
+		<div className={className}>
+			<div className={containerClassName}>
+				<div
+					className={imageContainerClassName}
+					style={{ position: "relative" }}
+				>
+					<img
+						className={imageClassName}
+						src={src1}
+						crossOrigin="anonymous"
+						alt=""
+					/>
+					<img
+						className={imageClassName}
+						src={src2}
+						crossOrigin="anonymous"
+						alt=""
+						style={{
+							position: "absolute",
+							top: 0,
+							left: 0,
+							opacity: normalizedOpacity(state.opacity),
+						}}
+					/>
+				</div>
+				<div className={sliderContainerClassName}>
+					{/* biome-ignore lint/a11y/noLabelWithoutControl: range input is the next sibling */}
+					<label className={sliderLabelClassName}>
+						{sliderLabelText ?? "Opacity:"}
+					</label>
+					<input
+						className={sliderClassName}
+						type="range"
+						min={0}
+						max={100}
+						value={state.opacity}
+						onChange={(e) => engine.actions.setOpacity(Number(e.target.value))}
+					/>
+				</div>
+			</div>
+		</div>
 	);
 };

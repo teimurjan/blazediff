@@ -1,0 +1,106 @@
+# Pixel-by-pixel Comparison - Rust + WASM in JavaScript
+
+import { Tabs } from "nextra/components";
+import DiffImageComparison from "../../../../components/diff-image-comparison";
+
+The same diff core, compiled to WebAssembly with SIMD. `@blazediff/core-wasm` runs
+in browsers, Workers, Deno, Bun, and edge runtimes - ~58% faster than pixelmatch
+from a 32KB binary. Reach for it when you want native-grade speed in the browser
+without a native dependency. The API takes pre-decoded RGBA buffers, so you decode
+images yourself with `createImageBitmap` + a canvas (or the `ImageDecoder` API).
+
+## Installation
+
+```bash npm2yarn
+npm install @blazediff/core-wasm
+```
+
+## Decoding images to RGBA
+
+```ts
+async function loadRgba(url: string) {
+  const bitmap = await createImageBitmap(await (await fetch(url)).blob());
+  const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+  const ctx = canvas.getContext("2d")!;
+  ctx.drawImage(bitmap, 0, 0);
+  const { data, width, height } = ctx.getImageData(0, 0, bitmap.width, bitmap.height);
+  return { data: new Uint8Array(data.buffer), width, height };
+}
+```
+
+## Examples
+
+<Tabs items={['Basic Comparison', 'Custom Threshold', 'Diff Mask']}>
+  <Tabs.Tab>
+
+    <DiffImageComparison
+      fixtureA="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3a.png"
+      fixtureB="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3b.png"
+    />
+
+```ts
+import { initBlazediff, diff } from "@blazediff/core-wasm";
+
+await initBlazediff(); // loads the sibling .wasm; call once
+
+const a = await loadRgba("3a.png");
+const b = await loadRgba("3b.png");
+const output = new Uint8Array(a.width * a.height * 4);
+
+const diffCount = await diff(a.data, b.data, a.width, a.height, output);
+```
+
+  </Tabs.Tab>
+
+  <Tabs.Tab>
+
+    <DiffImageComparison
+      fixtureA="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3a.png"
+      fixtureB="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3b.png"
+      options={{ threshold: 0.5 }}
+    />
+
+```ts
+import { initBlazediff, diff } from "@blazediff/core-wasm";
+
+await initBlazediff();
+
+const a = await loadRgba("3a.png");
+const b = await loadRgba("3b.png");
+const output = new Uint8Array(a.width * a.height * 4);
+
+const diffCount = await diff(a.data, b.data, a.width, a.height, output, {
+  threshold: 0.5,
+});
+```
+
+  </Tabs.Tab>
+
+  <Tabs.Tab>
+
+    <DiffImageComparison
+      fixtureA="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3a.png"
+      fixtureB="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3b.png"
+    />
+
+```ts
+import { initBlazediff, diff } from "@blazediff/core-wasm";
+
+await initBlazediff();
+
+const a = await loadRgba("3a.png");
+const b = await loadRgba("3b.png");
+const output = new Uint8Array(a.width * a.height * 4);
+
+// diffMask renders changes on a transparent background instead of grayscale
+const diffCount = await diff(a.data, b.data, a.width, a.height, output, {
+  diffMask: true,
+});
+```
+
+  </Tabs.Tab>
+</Tabs>
+
+Loading the `.wasm` from a CDN, a bundler, or the filesystem? `initBlazediff`
+accepts a `URL`, `Response`, or raw bytes - see the
+[full API reference →](/apis/core-wasm).

@@ -52,6 +52,15 @@ export async function crawlRoutes(
 	const visited = new Set<string>(["/"]);
 	const queue: QueueItem[] = [{ url: "/", depth: 0 }];
 	const discovered: DiscoveredRoute[] = [];
+	// Final post-redirect paths already recorded, so distinct links that 301 to
+	// the same page collapse to one route instead of one per redirecting href.
+	const recorded = new Set<string>();
+
+	const record = (path: string): void => {
+		if (recorded.has(path)) return;
+		recorded.add(path);
+		discovered.push({ url: path, source: "crawl" });
+	};
 
 	const handle = await acquireStableContext(CRAWL_VIEWPORT);
 
@@ -60,36 +69,52 @@ export async function crawlRoutes(
 			const item = queue.shift();
 			if (!item) return;
 			if (discovered.length >= maxRoutes) return;
-			discovered.push({ url: item.url, source: "crawl" });
 
-			if (item.depth >= maxDepth) continue;
 			const page = await handle.context.newPage();
+			const requested = new URL(item.url, base).toString();
+			// Fall back to the requested path if navigation never resolves a URL.
+			let finalPath = item.url;
+			let resolved = requested;
+			let hrefs: string[] = [];
 			try {
-				const target = new URL(item.url, base).toString();
-				await page.goto(target, {
+				await page.goto(requested, {
 					waitUntil: "domcontentloaded",
 					timeout: 15_000,
 				});
-				// On hydrated SPAs the nav renders after JS, so domcontentloaded alone
-				// can surface zero links. Let the network settle before reading hrefs;
-				// fall back to the loaded DOM if it never goes idle.
-				await page
-					.waitForLoadState("networkidle", { timeout: 5_000 })
-					.catch(() => {});
-				const hrefs = await page.evaluate(() =>
-					Array.from(
-						document.querySelectorAll<HTMLAnchorElement>("a[href]"),
-					).map((a) => a.getAttribute("href") ?? ""),
-				);
-				for (const p of extractInternalLinks(base, target, hrefs)) {
-					if (visited.has(p)) continue;
-					visited.add(p);
-					queue.push({ url: p, depth: item.depth + 1 });
+				// Record the settled URL, not the queued href: a link to a redirect
+				// (e.g. /docs/core -> /apis/core) must be filed under its destination,
+				// otherwise the route id names a path the screenshot never shows.
+				const finalUrl = new URL(page.url());
+				if (finalUrl.origin === base.origin) {
+					resolved = finalUrl.toString();
+					finalPath = finalUrl.pathname + finalUrl.search;
+				}
+				if (item.depth < maxDepth) {
+					// On hydrated SPAs the nav renders after JS, so domcontentloaded
+					// alone can surface zero links. Let the network settle before reading
+					// hrefs; fall back to the loaded DOM if it never goes idle.
+					await page
+						.waitForLoadState("networkidle", { timeout: 5_000 })
+						.catch(() => {});
+					hrefs = await page.evaluate(() =>
+						Array.from(
+							document.querySelectorAll<HTMLAnchorElement>("a[href]"),
+						).map((a) => a.getAttribute("href") ?? ""),
+					);
 				}
 			} catch {
 				// page-level error - skip and continue crawl
 			} finally {
 				await page.close().catch(() => {});
+			}
+
+			record(finalPath);
+
+			if (item.depth >= maxDepth) continue;
+			for (const p of extractInternalLinks(base, resolved, hrefs)) {
+				if (visited.has(p)) continue;
+				visited.add(p);
+				queue.push({ url: p, depth: item.depth + 1 });
 			}
 		}
 	};

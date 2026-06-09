@@ -7,8 +7,14 @@
 
 </div>
 
+Headless engine and a framework-agnostic renderer for building image-diff UIs, with four comparison modes: swipe, difference, two-up, and onion skin.
 
-Unstyled web components for displaying image differences with multiple comparison modes: swipe, difference, two-up, and onion skin.
+The package has two layers:
+
+- **`@blazediff/ui`** — a tiny pure-JS renderer. `mount*` functions create the DOM, wire events, and update it for you. No web components, no framework.
+- **`@blazediff/ui/engine`** — the headless engine. All state, calculations, and handlers live here with zero rendering, so you can drive any framework (React, Vue, Svelte, …) from it. Browser APIs only; the sole dependency is `@blazediff/core`.
+
+> Using React? Reach for [`@blazediff/react`](https://www.npmjs.com/package/@blazediff/react) — it renders from this engine for you.
 
 ## Installation
 
@@ -16,222 +22,150 @@ Unstyled web components for displaying image differences with multiple compariso
 npm install @blazediff/ui
 ```
 
-## Usage
+## Renderer
+
+Every mode exposes a `mount*(target, options)` function. It appends the UI into `target` and returns a handle:
+
+```ts
+interface MountHandle<Options> {
+  update(options: Partial<Options>): void; // change sources/options in place
+  destroy(): void; // remove DOM + listeners, abort in-flight loads
+}
+```
+
+Layout needed for a mode to function (overlay, side-by-side, etc.) is built in — classes are purely for theming.
 
 ### Swipe Mode
 
-The swipe mode allows users to drag a divider to compare two images side by side.
+Drag a divider to compare two images.
 
-```html
-<script type="module">
-  import '@blazediff/ui';
-</script>
+```ts
+import { mountSwipe } from "@blazediff/ui";
 
-<blazediff-swipe
-  src1="path/to/image1.png"
-  src2="path/to/image2.png"
-  alt1="Before"
-  alt2="After"
-  class-container="swipe-container"
-  class-image1="image-before"
-  class-image2="image-after"
-  class-divider="divider"
-></blazediff-swipe>
+const handle = mountSwipe(document.getElementById("app")!, {
+  src1: "before.png",
+  src2: "after.png",
+  alt1: "Before",
+  alt2: "After",
+  onPositionChange: (position) => console.log(position), // 0–100
+});
 ```
 
-#### Attributes
-
-- `src1`: URL of the first image (before)
-- `src2`: URL of the second image (after)
-- `alt1`: Alt text for the first image (default: "Before")
-- `alt2`: Alt text for the second image (default: "After")
-- `class-container`: CSS class for the container element
-- `class-image1`: CSS class for the first image
-- `class-image2`: CSS class for the second image
-- `class-divider`: CSS class for the divider
-
-#### Events
-
-- `position-change`: Fired when the divider position changes
-  - `detail.position`: The divider position as a percentage (0-100)
+**Options:** `src1`, `src2`, `alt1` (`"Before"`), `alt2` (`"After"`), `initialPosition` (`50`), `className`, `containerClassName`, `image1ClassName`, `image2ClassName`, `dividerClassName`, `onPositionChange(position)`.
 
 ### Difference Mode
 
-The difference mode uses the blazediff algorithm to highlight pixel differences between two images.
+Highlights pixel differences using the BlazeDiff algorithm and paints them to a canvas.
 
-```html
-<script type="module">
-  import '@blazediff/ui';
-</script>
+```ts
+import { mountDifference } from "@blazediff/ui";
 
-<blazediff-difference
-  src1="path/to/image1.png"
-  src2="path/to/image2.png"
-  threshold="0.1"
-  include-aa="false"
-  alpha="0.1"
-  class-container="diff-container"
-  class-canvas="diff-canvas"
-></blazediff-difference>
+mountDifference(document.getElementById("app")!, {
+  src1: "before.png",
+  src2: "after.png",
+  threshold: 0.1,
+  includeAA: false,
+  alpha: 0.1,
+  onDiffComplete: ({ diffCount, totalPixels, percentage }) =>
+    console.log(diffCount, percentage),
+  onDiffError: (error) => console.error(error),
+});
 ```
 
-#### Attributes
-
-- `src1`: URL of the first image
-- `src2`: URL of the second image
-- `threshold`: Matching threshold (0-1, default: 0.1)
-- `include-aa`: Include anti-aliasing in diff ("true"/"false", default: "false")
-- `alpha`: Blending factor for unchanged pixels (0-1, default: 0.1)
-- `class-container`: CSS class for the container element
-- `class-canvas`: CSS class for the canvas element
-
-#### Events
-
-- `diff-complete`: Fired when the diff calculation is complete
-  - `detail.diffCount`: Number of different pixels
-  - `detail.totalPixels`: Total number of pixels
-  - `detail.percentage`: Percentage of different pixels
-- `diff-error`: Fired when an error occurs
-  - `detail.error`: The error object
+**Options:** `src1`, `src2`, `threshold` (`0.1`), `includeAA` (`false`), `alpha` (`0.1`), `crossOrigin` (`"anonymous"`), `className`, `containerClassName`, `canvasClassName`, `onDiffComplete({ diffCount, totalPixels, percentage })`, `onDiffError(error)`.
 
 ### Two-Up Mode
 
-The two-up mode displays two images side by side for quick comparison, with automatic dimension change detection.
+Two images side by side, with automatic dimension-change detection.
 
-```html
-<script type="module">
-  import '@blazediff/ui';
-</script>
+```ts
+import { mountTwoUp } from "@blazediff/ui";
 
-<blazediff-twoup
-  src1="path/to/image1.png"
-  src2="path/to/image2.png"
-  class-container="twoup-container"
-  class-container-inner="twoup-inner"
-  class-panel="twoup-panel"
-  class-image="twoup-image"
-  class-dimension-info="dimension-info"
-></blazediff-twoup>
+mountTwoUp(document.getElementById("app")!, {
+  src1: "before.png",
+  src2: "after.png",
+  onImagesLoaded: ({ image1, image2 }) => console.log(image1, image2),
+  onLoadError: (error) => console.error(error),
+});
 ```
 
-#### Attributes
-
-- `src1`: URL of the first image
-- `src2`: URL of the second image
-- `class-container`: CSS class for the outer container
-- `class-container-inner`: CSS class for the inner container holding the panels
-- `class-panel`: CSS class for each image panel
-- `class-image`: CSS class for the images
-- `class-dimension-info`: CSS class for the dimension info display
-
-#### Events
-
-- `images-loaded`: Fired when both images are loaded
-  - `detail.image1`: Object with width and height of first image
-  - `detail.image2`: Object with width and height of second image
-- `load-error`: Fired when an error occurs loading images
-  - `detail.error`: The error object
+**Options:** `src1`, `src2`, `crossOrigin` (`"anonymous"`), `className`, `containerClassName`, `containerInnerClassName`, `panelClassName`, `imageClassName`, `dimensionInfoClassName`, `onImagesLoaded({ image1, image2 })`, `onLoadError(error)`.
 
 ### Onion Skin Mode
 
-The onion skin mode overlays two images with adjustable opacity, perfect for detecting small pixel shifts.
+Overlays two images with an adjustable-opacity slider — great for spotting small pixel shifts.
 
-```html
-<script type="module">
-  import '@blazediff/ui';
-</script>
+```ts
+import { mountOnionSkin } from "@blazediff/ui";
 
-<blazediff-onionskin
-  src1="path/to/image1.png"
-  src2="path/to/image2.png"
-  opacity="50"
-  class-container="onionskin-container"
-  class-image-container="onionskin-images"
-  class-image="onionskin-image"
-  class-slider-container="slider-container"
-  class-slider="opacity-slider"
-  class-slider-label="slider-label"
-></blazediff-onionskin>
+mountOnionSkin(document.getElementById("app")!, {
+  src1: "before.png",
+  src2: "after.png",
+  opacity: 50,
+  sliderLabelText: "Opacity:",
+  onOpacityChange: (opacity) => console.log(opacity), // 0–100
+});
 ```
 
-#### Attributes
-
-- `src1`: URL of the first image (bottom layer)
-- `src2`: URL of the second image (top layer)
-- `opacity`: Initial opacity of the top image (0-100, default: 50)
-- `class-container`: CSS class for the main container
-- `class-image-container`: CSS class for the image container
-- `class-image`: CSS class for the images
-- `class-slider-container`: CSS class for the slider container
-- `class-slider`: CSS class for the opacity slider
-- `class-slider-label`: CSS class for the slider label
-
-#### Events
-
-- `opacity-change`: Fired when the opacity slider changes
-  - `detail.opacity`: The opacity value (0-100)
-- `images-loaded`: Fired when both images are loaded
-  - `detail.image1`: Object with width and height of first image
-  - `detail.image2`: Object with width and height of second image
-- `load-error`: Fired when an error occurs loading images
-  - `detail.error`: The error object
+**Options:** `src1`, `src2`, `opacity` (`50`), `crossOrigin` (`"anonymous"`), `sliderLabelText` (`"Opacity:"`), `className`, `containerClassName`, `imageContainerClassName`, `imageClassName`, `sliderContainerClassName`, `sliderClassName`, `sliderLabelClassName`, `onOpacityChange(opacity)`, `onImagesLoaded({ image1, image2 })`, `onLoadError(error)`.
 
 ## Styling
 
-All components are unstyled by default. You can apply your own styles using the `class-*` attributes:
+Renderers are unstyled beyond the layout each mode needs. Pass any class strings via the `*ClassName` options — Tailwind, CSS modules, plain CSS, anything:
 
-```css
-.swipe-container {
-  width: 100%;
-  height: 500px;
-}
+```ts
+mountSwipe(target, {
+  src1,
+  src2,
+  containerClassName: "h-[500px] w-full",
+  dividerClassName: "w-1 bg-blue-500",
+});
+```
 
-.divider {
-  background-color: #3b82f6;
-  width: 4px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-}
+## Headless engine
 
-.diff-container {
-  display: flex;
-  justify-content: center;
-}
+When you need full control — or you're wiring up a framework other than React — drive the engine directly from `@blazediff/ui/engine`. Each factory returns a controller:
 
-.diff-canvas {
-  max-width: 100%;
-  height: auto;
+```ts
+interface Engine<State, Config, Actions> {
+  getState(): State;
+  subscribe(listener: () => void): () => void;
+  setConfig(config: Partial<Config>): void; // reloads only on real changes
+  actions: Actions;
+  destroy(): void;
 }
 ```
 
-## Example with Event Handling
+```ts
+import { createSwipeEngine } from "@blazediff/ui/engine";
 
-```html
-<blazediff-swipe
-  id="swipe-viewer"
-  src1="image1.png"
-  src2="image2.png"
-></blazediff-swipe>
+const engine = createSwipeEngine(50);
+const unsubscribe = engine.subscribe(() => {
+  const { position, isDragging } = engine.getState();
+  // render position (0–100) however your framework wants
+});
 
-<script>
-  const viewer = document.getElementById('swipe-viewer');
-  viewer.addEventListener('position-change', (e) => {
-    console.log('Position:', e.detail.position);
-  });
-</script>
+// feed it the already-computed percentage; the engine clamps + guards dragging
+engine.actions.start(40);
+engine.actions.move(55);
+engine.actions.end();
+
+unsubscribe();
+engine.destroy();
 ```
 
-```html
-<blazediff-difference
-  id="diff-viewer"
-  src1="image1.png"
-  src2="image2.png"
-></blazediff-difference>
+Factories and helpers:
 
-<script>
-  const viewer = document.getElementById('diff-viewer');
-  viewer.addEventListener('diff-complete', (e) => {
-    console.log('Diff pixels:', e.detail.diffCount);
-    console.log('Diff percentage:', e.detail.percentage + '%');
-  });
-</script>
-```
+- `createDifferenceEngine(config)` — state `{ status, diff?: { output, width, height, diffCount, totalPixels, percentage }, error? }`. Computes the diff buffer; you paint it.
+- `createSwipeEngine(initialPosition = 50)` — state `{ position, isDragging }`; actions `start`/`move`/`end`/`setPosition` (positions are 0–100 percentages).
+- `createTwoUpEngine(config)` — state `{ status, dims1, dims2, dimensionLabel, changed, error }`.
+- `createOnionSkinEngine(config, initialOpacity = 50)` — state `{ status, opacity, dims1, dims2, error }`; action `setOpacity`.
+- Helpers: `formatDimensionLabel`, `normalizedOpacity`, `loadImageElement`, `getImageData`, `createStore`.
+
+The engine uses browser APIs (`Image`, a throwaway `<canvas>` for pixel extraction) but never touches the surface you render to — that boundary is what keeps it framework-agnostic.
+
+## Links
+
+- [GitHub Repository](https://github.com/teimurjan/blazediff)
+- [NPM Package](https://www.npmjs.com/package/@blazediff/ui)
+- [Examples →](https://blazediff.dev/examples/vanilla-components)

@@ -1,15 +1,20 @@
-import type { Meta, StoryObj } from "@storybook/web-components-vite";
-import "../src/onion-skin-mode";
+import type { Meta, StoryObj } from "@storybook/html-vite";
+import { mountOnionSkin } from "../src";
 import { FIXTURE_1_A, FIXTURE_1_B } from "./fixtures";
 
 const meta: Meta = {
 	title: "Onion Skin Mode",
 	render: (args) => {
-		const element = document.createElement("blazediff-onionskin");
-		element.setAttribute("src1", args.src1);
-		element.setAttribute("src2", args.src2);
-		if (args.opacity !== undefined)
-			element.setAttribute("opacity", String(args.opacity));
+		const element = document.createElement("div");
+		mountOnionSkin(element, {
+			src1: args.src1,
+			src2: args.src2,
+			opacity: args.opacity,
+			containerClassName: "flex flex-col-reverse items-center",
+			sliderContainerClassName: "flex items-center gap-2 mb-2",
+			imageContainerClassName: "w-80",
+			sliderLabelText: "Opacity",
+		});
 		return element;
 	},
 };

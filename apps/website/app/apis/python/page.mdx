@@ -1,0 +1,174 @@
+# blazediff (Python)
+
+import { Callout } from "nextra/components";
+
+PyO3 bindings to the same Rust core that powers `@blazediff/core-native`. **3-4x faster** than [odiff](https://github.com/dmtrKovalenko/odiff), shipped as `abi3` wheels for CPython ≥ 3.8 across macOS, Linux, and Windows.
+
+[View Detailed Benchmarks](https://github.com/teimurjan/blazediff/blob/main/BENCHMARKS.md)
+
+## Installation
+
+```sh
+pip install blazediff
+```
+
+`uv pip install blazediff` and `poetry add blazediff` work identically. Pre-built wheels are published for:
+
+- macOS ARM64 (Apple Silicon) & x86_64 (Intel)
+- Linux ARM64 & x86_64 (manylinux 2.17)
+- Windows ARM64 & x86_64
+
+A single `abi3-py38` wheel per platform serves every CPython ≥ 3.8 - no separate wheel per minor version.
+
+## Features
+
+- **PNG, JPEG & QOI support** - auto-detected by file extension
+- **Path-based** - pass file paths in, blazediff handles decode + compare + encode
+- **SIMD-accelerated** - NEON on ARM, SSE4.1 on x86
+- **Block-based optimization** - skips unchanged regions
+- **Interpret mode** - region detection, classification, severity scoring, human-readable summaries
+
+## API Reference
+
+### `compare(base_path, compare_path, diff_output=None, *, ...)`
+
+Compares two images and optionally writes a diff image. All keyword arguments are optional.
+
+```python
+from blazediff import compare
+
+result = compare(
+    "expected.png",
+    "actual.png",
+    "diff.png",
+    threshold=0.1,
+    antialiasing=True,
+)
+```
+
+#### Parameters
+
+| Parameter        | Type            | Default | Description                                                            |
+| ---------------- | --------------- | ------- | ---------------------------------------------------------------------- |
+| `base_path`      | `str`           | -       | Path to the base/expected image                                        |
+| `compare_path`   | `str`           | -       | Path to the comparison/actual image                                    |
+| `diff_output`    | `str \| None`   | `None`  | Path where the diff image (or HTML report) will be written             |
+| `threshold`      | `float`         | `0.1`   | Color difference threshold (0.0-1.0). Lower = stricter                 |
+| `antialiasing`   | `bool`          | `False` | Enable anti-aliasing detection                                         |
+| `diff_mask`      | `bool`          | `False` | Output only differences with a transparent background                  |
+| `compression`    | `int`           | `0`     | PNG compression level (0-9, 0 = fastest, 9 = smallest)                 |
+| `quality`        | `int`           | `90`    | JPEG quality (1-100)                                                   |
+| `interpret`      | `bool`          | `False` | Run structured interpretation (region detection + classification)      |
+| `output_format`  | `"png" \| "html"` | `"png"` | `"html"` writes an interactive interpret report to `diff_output`     |
+
+#### Return value
+
+`compare()` returns a `DiffResult` object with:
+
+| Field            | Type                       | Description                                                  |
+| ---------------- | -------------------------- | ------------------------------------------------------------ |
+| `match`          | `bool`                     | `True` when images are identical (within threshold)          |
+| `reason`         | `str \| None`              | `"layout-diff"` or `"pixel-diff"` when `match` is `False`    |
+| `diff_count`     | `int \| None`              | Number of differing pixels (pixel-diff only)                 |
+| `diff_percentage`| `float \| None`            | Percentage of differing pixels (pixel-diff only)             |
+| `interpretation` | `InterpretResult \| None`  | Populated when `interpret=True` or `output_format="html"`    |
+
+<Callout type="info">
+  **Threshold guidelines:**
+  - `0.0` - Exact match only
+  - `0.05` - Strict comparison
+  - `0.1` - Default balanced comparison
+  - `0.2` - Lenient comparison
+</Callout>
+
+### `interpret_images(image1_path, image2_path, *, threshold=0.1, antialiasing=False)`
+
+Returns the full `InterpretResult` (regions, severity, summary) without writing any output file. Equivalent to `compare(..., interpret=True)` minus the diff image.
+
+```python
+from blazediff import interpret_images
+
+result = interpret_images("expected.png", "actual.png")
+print(result.summary)
+print(f"{result.total_regions} regions, severity={result.severity}")
+```
+
+## Usage
+
+### Basic comparison
+
+```python
+from blazediff import compare
+
+result = compare("expected.png", "actual.png", "diff.png", threshold=0.1)
+
+if result.match:
+    print("Images are identical!")
+elif result.reason == "pixel-diff":
+    print(f"{result.diff_count} pixels differ ({result.diff_percentage:.2f}%)")
+elif result.reason == "layout-diff":
+    print("Images have different dimensions")
+```
+
+### pytest assertion
+
+```python
+from blazediff import compare
+
+def test_homepage_matches_baseline():
+    result = compare("baseline.png", "rendered.png", "diff.png", threshold=0.05)
+    assert result.match, (
+        f"{result.diff_count} pixels differ ({result.diff_percentage:.2f}%)"
+    )
+```
+
+### Mixed formats
+
+`compare()` infers format from the file extension. Inputs and outputs can mix freely:
+
+```python
+# PNG inputs, QOI diff output (12x smaller diff files)
+compare("expected.png", "actual.png", "diff.qoi")
+
+# JPEG comparison
+compare("expected.jpg", "actual.jpg", "diff.jpg", quality=85)
+```
+
+| Format | Extensions       | Notes                                                              |
+| ------ | ---------------- | ------------------------------------------------------------------ |
+| PNG    | `.png`           | Lossless, transparency                                             |
+| JPEG   | `.jpg`, `.jpeg`  | Lossy, smaller files                                               |
+| QOI    | `.qoi`           | Fast lossless, ideal for diff outputs (~12x smaller than PNG)      |
+
+### Interpret mode
+
+Structured analysis - change regions, classification (Addition, Deletion, Shift, ContentChange, ColorChange, RenderingNoise), severity scoring, and human-readable summaries.
+
+```python
+from blazediff import compare, interpret_images
+
+# Programmatic
+result = interpret_images("expected.png", "actual.png")
+print(result.summary)
+# "Moderate visual change detected (1.87% of image, 10 regions).
+#  Content changed: 4 regions (bottom, center).
+#  Content added: 3 regions (right, bottom, bottom-left)."
+
+for region in result.regions:
+    print(f"  {region.region_type} @ {region.position}, severity={region.severity}")
+
+# Diff image + interpretation
+result = compare("expected.png", "actual.png", "diff.png", interpret=True)
+
+# Interactive HTML report
+compare("expected.png", "actual.png", "report.html", output_format="html")
+```
+
+Severity tiers: `Low` (&lt;1%), `Medium` (1-10%), `High` (&gt;10%). See [Interpret example →](/docs/difference-analysis) for the interactive demo.
+
+## Links
+
+- [PyPI Package](https://pypi.org/project/blazediff/)
+- [GitHub Repository](https://github.com/teimurjan/blazediff)
+- [Rust Crate](https://crates.io/crates/blazediff)
+- [NPM Package (`@blazediff/core-native`)](https://www.npmjs.com/package/@blazediff/core-native)

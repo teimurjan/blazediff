@@ -11,7 +11,7 @@ const meta: Meta<typeof TwoUpMode> = {
 	args: {
 		containerClassName:
 			"flex flex-col-reverse items-center gap-4 bg-gray-200 p-4",
-		containerInnerClassName: "flex items-center gap-10",
+		containerInnerClassName: "items-center gap-10",
 		panelClassName: "w-80",
 	},
 };

@@ -3,6 +3,7 @@
 	"compilerOptions": {
 		"jsx": "react-jsx",
 		"lib": ["ES2020", "DOM"],
+		"moduleResolution": "bundler",
 		"outDir": "./dist",
 		"rootDir": "./src"
 	},

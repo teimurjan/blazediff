@@ -1,0 +1,86 @@
+# React Components
+
+import { Tabs } from "nextra/components";
+import {
+  ReactSwipeDemo,
+  ReactTwoUpDemo,
+  ReactOnionSkinDemo,
+  ReactDifferenceDemo,
+} from "../../../../components/demos/react-modes";
+
+Build interactive image comparison components with React. Every example below is live and runs right on this page.
+
+## Installation
+
+```bash npm2yarn
+npm install @blazediff/react
+```
+
+<Tabs items={['SwipeMode', 'TwoUpMode', 'OnionSkinMode', 'DifferenceMode']}>
+  <Tabs.Tab>
+
+    <ReactSwipeDemo />
+
+    ```tsx
+    import { SwipeMode } from "@blazediff/react";
+
+    <SwipeMode
+      src1="before.png"
+      src2="after.png"
+      onPositionChange={(position) => console.log(position)}
+    />
+    ```
+
+  </Tabs.Tab>
+  <Tabs.Tab>
+
+    <ReactTwoUpDemo />
+
+    ```tsx
+    import { TwoUpMode } from "@blazediff/react";
+
+    <TwoUpMode
+      src1="before.png"
+      src2="after.png"
+      onImagesLoaded={({ image1, image2 }) => console.log(image1, image2)}
+    />
+    ```
+
+  </Tabs.Tab>
+  <Tabs.Tab>
+
+    <ReactOnionSkinDemo />
+
+    ```tsx
+    import { OnionSkinMode } from "@blazediff/react";
+
+    <OnionSkinMode
+      src1="before.png"
+      src2="after.png"
+      opacity={50}
+      onOpacityChange={(opacity) => console.log(opacity)}
+    />
+    ```
+
+  </Tabs.Tab>
+  <Tabs.Tab>
+
+    <ReactDifferenceDemo />
+
+    ```tsx
+    import { DifferenceMode } from "@blazediff/react";
+
+    <DifferenceMode
+      src1="before.png"
+      src2="after.png"
+      threshold={0.1}
+      onDiffComplete={({ diffCount, percentage }) =>
+        console.log(diffCount, percentage)
+      }
+    />
+    ```
+
+  </Tabs.Tab>
+</Tabs>
+
+All four components render from the [`@blazediff/ui`](/apis/ui) headless engine and accept `*ClassName` props for styling. See the [full API reference →](/apis/react).

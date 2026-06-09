@@ -11,7 +11,7 @@
  *   node .claude/skills/bench/run.js core --iterations 50
  */
 
-const { execSync, spawnSync } = require("node:child_process");
+const { execSync } = require("node:child_process");
 const path = require("node:path");
 const fs = require("node:fs");
 const { PAIRS } = require("./pairs.js");

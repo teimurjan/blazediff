@@ -1,23 +1,16 @@
-import type { Meta, StoryObj } from "@storybook/web-components-vite";
-import "../src/swipe-mode";
+import type { Meta, StoryObj } from "@storybook/html-vite";
+import { mountSwipe } from "../src";
 import { FIXTURE_2_A, FIXTURE_2_B } from "./fixtures";
 
 const meta: Meta = {
 	title: "Swipe Mode",
 	render: (args) => {
-		const element = document.createElement("blazediff-swipe");
-		element.setAttribute("src1", args.src1);
-		element.setAttribute("src2", args.src2);
-		element.setAttribute("class-container", "w-1/2 h-dvh m-auto");
-		if (args.threshold !== undefined) {
-			element.setAttribute("threshold", String(args.threshold));
-		}
-		if (args.includeAA !== undefined) {
-			element.setAttribute("include-aa", String(args.includeAA));
-		}
-		if (args.alpha !== undefined) {
-			element.setAttribute("alpha", String(args.alpha));
-		}
+		const element = document.createElement("div");
+		mountSwipe(element, {
+			src1: args.src1,
+			src2: args.src2,
+			containerClassName: "w-1/2 h-dvh m-auto",
+		});
 		return element;
 	},
 };

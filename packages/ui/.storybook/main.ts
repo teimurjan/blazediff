@@ -1,14 +1,18 @@
 import { join, resolve } from "node:path";
-import type { StorybookConfig } from "@storybook/web-components-vite";
+import type { StorybookConfig } from "@storybook/html-vite";
 
 const storiesDir = resolve(__dirname, "../stories");
 
 const config: StorybookConfig = {
 	stories: [join(storiesDir, "**/*.stories.@(js|jsx|mjs|ts|tsx)")],
-	addons: ["@storybook/addon-essentials", "@storybook/addon-links"],
+	addons: ["@storybook/addon-links"],
 	framework: {
-		name: "@storybook/web-components-vite",
+		name: "@storybook/html-vite",
 		options: {},
+	},
+	async viteFinal(config) {
+		config.plugins?.push((await import("@tailwindcss/vite")).default());
+		return config;
 	},
 };
 

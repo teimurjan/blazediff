@@ -20,14 +20,14 @@ export default {
 		},
 	},
 	docs: {
-		title: "Documentation",
+		title: "Docs",
 		type: "page",
 	},
-	examples: {
-		title: "Examples",
+	apis: {
+		title: "APIs",
 		type: "page",
 	},
-	contact: {
+	llms: {
 		title: "LLMs",
 		type: "page",
 		href: "/llms.txt",

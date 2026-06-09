@@ -4,7 +4,7 @@ import { installBrowsers } from "../../browsers";
 import { type CaptureRouteInput, runCaptures } from "../../captures";
 import { loadConfig, saveConfig } from "../../config";
 import { DEFAULT_READY_TIMEOUT_MS } from "../../defaults";
-import { discover } from "../../discover";
+import { discover, resolveSampling } from "../../discover";
 import type { JudgeBackend } from "../../judge";
 import {
 	type ConfigOpts,
@@ -30,6 +30,7 @@ interface Opts extends ConfigOpts {
 	force?: boolean;
 	browsers?: boolean; // --no-browsers => false
 	capture?: boolean; // --no-capture => false
+	sampleTemplates?: boolean; // --no-sample-templates => false
 	yes?: boolean;
 }
 
@@ -131,7 +132,11 @@ async function captureBaselines(
 	}
 
 	try {
-		const discovered = await discover({ baseUrl });
+		const discovered = await discover({
+			baseUrl,
+			maxRoutes: config.discovery?.maxRoutes,
+			sampleTemplates: resolveSampling(config.discovery),
+		});
 		const routes = toCaptureRoutes(discovered);
 		if (routes.length === 0) return { captured: 0, routes: 0 };
 
@@ -206,6 +211,10 @@ export function registerOnboard(program: Command, out: Output): void {
 		)
 		.option("--no-browsers", "skip the Chromium install step")
 		.option("--no-capture", "skip the baseline-capture step")
+		.option(
+			"--no-sample-templates",
+			"capture every reachable route; don't collapse large list/detail groups (persisted to config.discovery)",
+		)
 		.option("--yes", "accept all prompts (capture baselines, install Chromium)")
 		.action(async (opts: Opts) => {
 			const cwd = process.cwd();
@@ -233,6 +242,23 @@ export function registerOnboard(program: Command, out: Output): void {
 				} else {
 					throw err;
 				}
+			}
+
+			// Persist an explicit --no-sample-templates so this run's capture and all
+			// later discover/check runs keep full route coverage (no template collapse).
+			if (
+				config &&
+				opts.sampleTemplates === false &&
+				config.discovery?.sampleTemplates !== false
+			) {
+				config = {
+					...config,
+					discovery: { ...config.discovery, sampleTemplates: false },
+				};
+				await saveConfig(config, cwd);
+				lines.push(
+					"discovery: template sampling disabled (config.discovery.sampleTemplates=false)",
+				);
 			}
 
 			// 2. Chromium
