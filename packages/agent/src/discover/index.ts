@@ -1,10 +1,31 @@
-import type { DiscoveredRoute } from "../types";
+import type { DiscoveredRoute, DiscoveryConfig } from "../types";
 import { crawlRoutes } from "./crawl";
 import {
 	type CollapseResult,
 	collapseTemplates,
+	DEFAULT_SAMPLE_THRESHOLD,
+	DEFAULT_SAMPLES_PER_TEMPLATE,
 	type TemplateSampling,
 } from "./templates";
+
+/**
+ * Map persisted discovery config to the `sampleTemplates` shape `discover`
+ * expects: `false` disables sampling; otherwise honor any threshold/samples
+ * overrides, falling back to the built-in defaults.
+ */
+export function resolveSampling(
+	discovery?: DiscoveryConfig,
+): boolean | TemplateSampling {
+	if (discovery?.sampleTemplates === false) return false;
+	const { sampleThreshold, samplesPerTemplate } = discovery ?? {};
+	if (sampleThreshold === undefined && samplesPerTemplate === undefined) {
+		return true;
+	}
+	return {
+		threshold: sampleThreshold ?? DEFAULT_SAMPLE_THRESHOLD,
+		samples: samplesPerTemplate ?? DEFAULT_SAMPLES_PER_TEMPLATE,
+	};
+}
 
 export interface DiscoverOptions {
 	baseUrl: string;
@@ -51,3 +72,4 @@ export async function discover(
 
 export { crawlRoutes, collapseTemplates };
 export type { CollapseResult, TemplateSampling };
+export type { DiscoveryConfig } from "../types";

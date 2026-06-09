@@ -167,7 +167,7 @@ export default function AgentPage() {
 					<CtaLink href={AGENT_REPO_URL} variant="primary" external>
 						VIEW ON GITHUB
 					</CtaLink>
-					<CtaLink href="/docs/agent">READ DOCS</CtaLink>
+					<CtaLink href="/apis/agent">READ DOCS</CtaLink>
 					<CtaLink href={SKILL_URL} external>
 						READ THE SKILL
 					</CtaLink>

@@ -1,0 +1,91 @@
+# Agentic Visual Testing - Setting Up
+
+import { Callout } from "nextra/components";
+
+`@blazediff/agent` captures deterministic screenshots of your routes, diffs them
+against committed baselines with the native BlazeDiff core, and hands ambiguous
+diffs back to your coding agent (Claude Code, Cursor, Codex) to judge. This page
+gets you from zero to a committed set of baselines.
+
+## 1. Install
+
+```bash npm2yarn
+npm install --save-dev @blazediff/agent
+```
+
+First run prompts to install bundled Playwright Chromium - no `sudo`, no
+`npx playwright install --with-deps`.
+
+```bash
+blazediff-agent browsers install --check --json   # check
+blazediff-agent browsers install                  # install if missing
+```
+
+## 2. Onboard
+
+`onboard` writes `.blazediff/config.json` from your dev script, sets up
+`.gitignore`, installs Chromium, and installs the playbook into whatever
+coding-agent stack lives in your project.
+
+```bash
+# Setup only - baselines are captured explicitly in step 4
+blazediff-agent onboard --no-capture
+```
+
+It detects your stack automatically (Claude Code, Codex, Cursor); pass
+`--stack <name>` to be explicit, or `--stack local` to install the local
+(Moondream + Qwen) judge when there's no coding agent.
+
+## 3. Start the dev server
+
+```bash
+blazediff-agent serve-status --detach --json   # waits up to 60s for the port
+```
+
+Already have a running URL (e.g. staging)? Skip the dev server and point the agent
+at it: `blazediff-agent onboard --url https://staging.example.com`.
+
+## 4. Capture baselines
+
+Pipe a JSON list of routes - one `capture` call screenshots them all and writes the
+manifest plus baseline PNGs.
+
+```bash
+cat <<'EOF' | blazediff-agent capture --stdin --mode baseline --json
+[
+  {"id": "home", "url": "/", "mask": [".timestamp"]},
+  {"id": "pricing", "url": "/pricing"}
+]
+EOF
+```
+
+Then tear down the dev server (mandatory):
+
+```bash
+blazediff-agent serve-status --kill --json
+```
+
+<Callout type="info">
+**Commit `.blazediff/`** - config, manifest, and baselines all live there and are
+the source of truth for future checks.
+</Callout>
+
+## The config
+
+`.blazediff/config.json` is committed and drives every later run:
+
+```json
+{
+  "devServer": { "command": "pnpm dev", "port": 3000, "readyTimeoutMs": 60000 },
+  "framework": "next",
+  "packageManager": "pnpm",
+  "baseUrl": "http://127.0.0.1:3000"
+}
+```
+
+`.blazediff/manifest.json` is written by `capture` - **never edit it directly**.
+Per-route behavior (login, interactions) lives in
+[harnesses](/docs/agentic-testing/judging-and-harnesses#harnesses), not config.
+
+Next: [Running in CI →](/docs/agentic-testing/running-in-ci). Full command
+reference lives in the [`@blazediff/agent` docs](/apis/agent).

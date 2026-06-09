@@ -75,11 +75,40 @@ pub fn diff_rgba(
         // On identical the diff intentionally leaves the output buffer
         // unwritten (the gray-fill is purely cosmetic and is skipped for
         // performance). Don't copy that uninitialized-feeling memory back
-        // to the caller — preserve whatever they passed in.
+        // to the caller - preserve whatever they passed in.
         if !result.identical {
             target.copy_from(&out.data);
         }
     }
 
     Ok(result.diff_count)
+}
+
+/// Interpret the diff between two RGBA buffers into structured change regions.
+///
+/// Returns the `InterpretResult` (summary, regions with positions, change
+/// types, severity, etc.) serialized as a plain JS object - the same shape the
+/// native binding produces.
+#[wasm_bindgen(js_name = interpretRgba)]
+pub fn interpret_rgba(
+    rgba_a: &[u8],
+    rgba_b: &[u8],
+    width: u32,
+    height: u32,
+    threshold: f64,
+    include_aa: bool,
+) -> Result<JsValue, JsError> {
+    let img1 = image_from_slice(rgba_a, width, height, "rgba_a")?;
+    let img2 = image_from_slice(rgba_b, width, height, "rgba_b")?;
+
+    let opts = DiffOptions {
+        threshold,
+        include_aa,
+        ..Default::default()
+    };
+
+    let result = crate::interpret::interpret(&img1, &img2, &opts)
+        .map_err(|e| JsError::new(&e.to_string()))?;
+
+    serde_wasm_bindgen::to_value(&result).map_err(|e| JsError::new(&e.to_string()))
 }

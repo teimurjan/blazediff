@@ -2,64 +2,22 @@ export default {
 	index: {
 		display: "hidden",
 	},
-	"-- npm": {
-		type: "separator",
-		title: "NPM",
+	"pixel-comparison": {
+		title: "Pixel-by-pixel Image Comparison",
 	},
-	core: {
-		title: "@blazediff/core",
+	"structural-comparison": {
+		title: "Structural Image Comparison",
 	},
-	ssim: {
-		title: "@blazediff/ssim",
+	"difference-analysis": {
+		title: "Image Difference Analysis",
 	},
-	gmsd: {
-		title: "@blazediff/gmsd",
+	"agentic-testing": {
+		title: "Agentic Visual Testing",
 	},
-	object: {
-		title: "@blazediff/object",
+	"ui-components": {
+		title: "Interactive UI Components",
 	},
-	cli: {
-		title: "@blazediff/cli",
-	},
-	agent: {
-		title: "@blazediff/agent",
-	},
-	"core-native": {
-		title: "@blazediff/core-native",
-	},
-	"core-wasm": {
-		title: "@blazediff/core-wasm",
-	},
-	matcher: {
-		title: "@blazediff/matcher",
-	},
-	jest: {
-		title: "@blazediff/jest",
-	},
-	vitest: {
-		title: "@blazediff/vitest",
-	},
-	bun: {
-		title: "@blazediff/bun",
-	},
-	ui: {
-		title: "@blazediff/ui",
-	},
-	react: {
-		title: "@blazediff/react",
-	},
-	"-- python": {
-		type: "separator",
-		title: "Python",
-	},
-	python: {
-		title: "blazediff",
-	},
-	"-- rust": {
-		type: "separator",
-		title: "Rust",
-	},
-	rust: {
-		title: "blazediff",
+	"object-comparison": {
+		title: "Object Comparison",
 	},
 };

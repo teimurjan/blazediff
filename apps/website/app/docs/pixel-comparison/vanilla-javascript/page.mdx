@@ -1,0 +1,106 @@
+# Pixel-by-pixel Comparison - Vanilla JavaScript
+
+import { Tabs } from "nextra/components";
+import DiffImageComparison from "../../../../components/diff-image-comparison";
+
+Compare two images pixel by pixel in pure JavaScript - no native binaries, no
+WebAssembly. `@blazediff/core` runs anywhere JS runs (browser, Node, Deno, Bun,
+edge) and is ~1.5× faster than pixelmatch. Reach for it when you want zero install
+friction and portability over raw throughput. Need more speed? See
+[🐆🐆 Rust + WASM](/docs/pixel-comparison/rust-wasm) and
+[🐆🐆🐆 Rust + N-API](/docs/pixel-comparison/rust-napi).
+
+## Installation
+
+```bash npm2yarn
+npm install @blazediff/core
+```
+
+## Examples
+
+<Tabs items={['Basic Comparison', 'Custom Threshold', 'Custom Colors']}>
+  <Tabs.Tab>
+
+    <DiffImageComparison
+      fixtureA="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3a.png"
+      fixtureB="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3b.png"
+    />
+
+```ts
+import blazediff from "@blazediff/core";
+
+// loadImage can either be a browser function or a server function
+const img1 = await loadImage(
+  "https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3a.png"
+);
+const img2 = await loadImage(
+  "https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3b.png"
+);
+const output = new Uint8Array(img1.width * img1.height * 4);
+const width = img1.width;
+const height = img1.height;
+
+const diff = blazediff(img1, img2, output, width, height);
+```
+
+  </Tabs.Tab>
+
+  <Tabs.Tab>
+
+    <DiffImageComparison
+      fixtureA="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3a.png"
+      fixtureB="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3b.png"
+      options={{ threshold: 0.5 }}
+    />
+
+```ts
+import blazediff from "@blazediff/core";
+
+// loadImage can either be a browser function or a server function
+const img1 = await loadImage(
+  "https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3a.png"
+);
+const img2 = await loadImage(
+  "https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3b.png"
+);
+const output = new Uint8Array(img1.width * img1.height * 4);
+const width = img1.width;
+const height = img1.height;
+
+const diff = blazediff(img1, img2, output, width, height, { threshold: 0.5 });
+```
+
+  </Tabs.Tab>
+
+  <Tabs.Tab>
+
+    <DiffImageComparison
+      fixtureA="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3a.png"
+      fixtureB="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3b.png"
+      options={{ aaColor: [255, 0, 0], diffColor: [0, 255, 0] }}
+    />
+
+```ts
+import blazediff from "@blazediff/core";
+
+// loadImage can either be a browser function or a server function
+const img1 = await loadImage(
+  "https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3a.png"
+);
+const img2 = await loadImage(
+  "https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3b.png"
+);
+const output = new Uint8Array(img1.width * img1.height * 4);
+const width = img1.width;
+const height = img1.height;
+
+const diff = blazediff(img1, img2, output, width, height, {
+  aaColor: [255, 0, 0],
+  diffColor: [0, 255, 0],
+});
+```
+
+  </Tabs.Tab>
+</Tabs>
+
+See the [full API reference →](/apis/core).

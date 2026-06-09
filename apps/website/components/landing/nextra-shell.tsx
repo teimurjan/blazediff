@@ -7,7 +7,7 @@ import { Footer, Layout, Navbar } from "nextra-theme-docs";
 
 const banner = (
 	<Banner storageKey="agent-launch">
-		<Link href="/docs/agent">
+		<Link href="/docs/agentic-testing/setting-up">
 			New: <b className="text-blue-400">@blazediff/agent</b> - agentic visual
 			regression your coding agent can judge. Read more →
 		</Link>

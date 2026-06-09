@@ -1,0 +1,66 @@
+# @blazediff/gmsd
+
+import { Callout } from "nextra/components";
+
+Fast single-threaded GMSD (Gradient Magnitude Similarity Deviation) metric for perceptual image quality assessment. Perfect for CI visual testing where you need a similarity score rather than pixel-by-pixel differences.
+
+## Installation
+
+```sh npm2yarn
+npm install @blazediff/gmsd
+```
+
+## Features
+
+- **Gradient-based** - Measures structural similarity via gradient magnitudes, tolerant to compression artifacts
+- **GMS map output** - Optional grayscale visualization of gradient similarity
+
+[Mathematical details (FORMULA.md)](https://github.com/teimurjan/blazediff/blob/main/packages/gmsd/FORMULA.md)
+
+## API Reference
+
+### `gmsd(image1, image2, output, width, height, options?)`
+
+Compares two images using GMSD metric and returns a similarity score.
+
+#### Parameters
+
+| Parameter | Type                                         | Description                                      |
+| --------- | -------------------------------------------- | ------------------------------------------------ |
+| `image1`  | `Buffer`, `Uint8Array`, or `Uint8ClampedArray`  | Image data of the first image                    |
+| `image2`  | `Buffer`, `Uint8Array`, or `Uint8ClampedArray`  | Image data of the second image                   |
+| `output`  | `Buffer`, `Uint8Array`, `Uint8ClampedArray`, or `undefined` | Optional output buffer for GMS map visualization |
+| `width`   | `number`                                     | Width of the images in pixels                    |
+| `height`  | `number`                                     | Height of the images in pixels                   |
+| `options` | `GmsdOptions`                                | Comparison options (optional)                    |
+
+##### Options
+
+| Option       | Type     | Default | Description                                           |
+| ------------ | -------- | ------- | ----------------------------------------------------- |
+| `downsample` | `0` or `1` | `0`     | Downsample factor (0 = no downsampling, 1 = half)     |
+| `c`          | `number` | `170`   | Constant for numerical stability (tuned for Prewitt)  |
+
+##### Returns
+
+`number` - Difference score between 0 and 1:
+- `0.0` - Images are identical or perceptually identical
+- `0.0-0.05` - Very low difference (minor compression artifacts)
+- `0.05-0.15` - Low difference (noticeable but small changes)
+- `0.15-0.35` - Moderate similarity (significant structural differences)
+- `>0.35` - High difference (major differences)
+
+<Callout type="info">
+  **Score Guidelines:**
+  - Use threshold `>0.0` for strict regression testing
+  - Use threshold `>0.15` for loose regression testing with compression
+  - Scores below `0.35` indicate substantial visual differences
+</Callout>
+
+## Links
+
+- [GitHub Repository](https://github.com/teimurjan/blazediff)
+- [NPM Package](https://www.npmjs.com/package/@blazediff/gmsd)
+- [FORMULA.md](https://github.com/teimurjan/blazediff/blob/main/packages/gmsd/FORMULA.md) - Mathematical foundation
+- [Original GMSD Paper](http://www4.comp.polyu.edu.hk/~cslzhang/IQA/TIP_IQA_GMSD.pdf) - Xue et al. (2014)
+- [Examples →](/docs/structural-comparison)

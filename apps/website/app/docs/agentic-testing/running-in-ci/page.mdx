@@ -1,0 +1,80 @@
+# Agentic Visual Testing - Running in CI
+
+import { Callout } from "nextra/components";
+
+With baselines committed (see [Setting Up](/docs/agentic-testing/setting-up)),
+CI's job is one verb: `check`. It re-captures every manifest entry, diffs each
+against its baseline, and fails the build on any regression.
+
+## The check command
+
+```bash
+blazediff-agent check --judge host --json
+```
+
+The CLI starts the dev server automatically when `config.devServer` is set, runs
+every entry through Playwright, diffs each capture, and emits a `CheckReport`:
+
+```json
+{
+  "summaryPath": ".blazediff/summary.md",
+  "totalEntries": 23,
+  "passed": 22,
+  "failed": 0,
+  "pendingJudgments": 1,
+  "results": [
+    {
+      "id": "agent",
+      "url": "/agent",
+      "status": "needs-judgment",
+      "verdict": {
+        "label": "ambiguous",
+        "headline": "5 regions: 4 content-change, 1 addition @ left (0.13%, low)",
+        "action": "investigate"
+      }
+    }
+  ]
+}
+```
+
+`results[]` lists non-pass entries only. Full per-entry detail lives in
+`.blazediff/summary.md` and `.blazediff/judgments/<id>/request.json`.
+
+<Callout type="warning">
+**Check-only in CI.** When `CI=1` or there's no TTY, only `check` runs.
+`onboard` / `capture` / `rewrite` / `reset` are blocked - authoring belongs on a
+developer's machine, where baseline changes can be reviewed.
+</Callout>
+
+## GitHub Actions
+
+```yaml
+- run: pnpm install
+- run: npx blazediff-agent browsers install
+- run: npx blazediff-agent --cwd apps/website check --json
+  env:
+    # Only needed if any entry uses a login harness. One pair per persona.
+    # In CI, set these as secrets rather than committing .blazediff/.env.
+    BLAZEDIFF_AUTH_DEFAULT_EMAIL: ${{ secrets.BLAZEDIFF_AUTH_DEFAULT_EMAIL }}
+    BLAZEDIFF_AUTH_DEFAULT_PASSWORD: ${{ secrets.BLAZEDIFF_AUTH_DEFAULT_PASSWORD }}
+```
+
+Pass `-C, --cwd <abs-path>` to target one app inside a monorepo.
+
+## Exit codes
+
+| Code | Meaning |
+|---|---|
+| `0` | Every entry passed |
+| `1` | At least one regression, intentional, noise, or pending-judgment entry |
+| non-zero + JSON | Infra failure (missing manifest, no Chromium, etc.) |
+
+A route that times out is logged once in the result array and skipped - it never
+blocks the run.
+
+## When a check fails
+
+A `1` exit usually means a diff needs a verdict. Locally, your coding agent reads
+the judgment request and decides; intentional changes are accepted with
+`rewrite`. That loop - verdicts, harnesses, and masking flakes - is covered in
+[Judging and Harnesses →](/docs/agentic-testing/judging-and-harnesses).

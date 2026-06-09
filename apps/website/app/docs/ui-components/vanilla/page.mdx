@@ -1,0 +1,85 @@
+# Vanilla Components
+
+import { Tabs } from 'nextra/components'
+import {
+  VanillaSwipeDemo,
+  VanillaTwoUpDemo,
+  VanillaOnionSkinDemo,
+  VanillaDifferenceDemo,
+} from "../../../../components/demos/vanilla-modes";
+
+Use the BlazeDiff UI renderer (`mount*` functions) in vanilla JS - or drive the headless engine from any framework. Every example below is live and runs right on this page.
+
+## Installation
+
+```bash npm2yarn
+npm install @blazediff/ui
+```
+
+<Tabs items={['swipe-mode', 'two-up-mode', 'onion-skin-mode', 'difference-mode']}>
+  <Tabs.Tab>
+
+    <VanillaSwipeDemo />
+
+    ```ts
+    import { mountSwipe } from "@blazediff/ui";
+
+    mountSwipe(document.getElementById("app"), {
+      src1: "before.png",
+      src2: "after.png",
+      onPositionChange: (position) => console.log(position),
+    });
+    ```
+
+  </Tabs.Tab>
+  <Tabs.Tab>
+
+    <VanillaTwoUpDemo />
+
+    ```ts
+    import { mountTwoUp } from "@blazediff/ui";
+
+    mountTwoUp(document.getElementById("app"), {
+      src1: "before.png",
+      src2: "after.png",
+      onImagesLoaded: ({ image1, image2 }) => console.log(image1, image2),
+    });
+    ```
+
+  </Tabs.Tab>
+  <Tabs.Tab>
+
+    <VanillaOnionSkinDemo />
+
+    ```ts
+    import { mountOnionSkin } from "@blazediff/ui";
+
+    mountOnionSkin(document.getElementById("app"), {
+      src1: "before.png",
+      src2: "after.png",
+      opacity: 50,
+      onOpacityChange: (opacity) => console.log(opacity),
+    });
+    ```
+
+  </Tabs.Tab>
+  <Tabs.Tab>
+
+    <VanillaDifferenceDemo />
+
+    ```ts
+    import { mountDifference } from "@blazediff/ui";
+
+    mountDifference(document.getElementById("app"), {
+      src1: "before.png",
+      src2: "after.png",
+      threshold: 0.1,
+      onDiffComplete: ({ diffCount, percentage }) =>
+        console.log(diffCount, percentage),
+    });
+    ```
+
+  </Tabs.Tab>
+</Tabs>
+
+Each `mount*` call returns a `{ update, destroy }` handle - call `update(options)` to change sources or options in place, and `destroy()` to remove the UI. See the [full API reference →](/apis/ui).

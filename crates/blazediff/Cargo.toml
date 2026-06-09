@@ -31,11 +31,15 @@ crate-type = ["lib", "cdylib"]
 
 [features]
 default = ["io", "cli"]
-io = ["dep:rayon", "dep:memmap2", "dep:libc"]
+# Semantic diff interpretation. Pure compute over decoded buffers, so it's
+# available to both the io stack and the wasm build.
+interpret = []
+io = ["interpret", "dep:rayon", "dep:memmap2", "dep:libc"]
 cli = ["io", "dep:clap"]
 napi = ["io", "dep:napi", "dep:napi-derive"]
 python = ["io", "dep:pyo3"]
 wasm = [
+    "interpret",
     "dep:wasm-bindgen",
     "dep:js-sys",
     "dep:serde-wasm-bindgen",

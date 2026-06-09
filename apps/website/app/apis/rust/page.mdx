@@ -1,0 +1,197 @@
+# blazediff (Rust)
+
+import { Callout } from "nextra/components";
+
+The Rust crate that powers the entire BlazeDiff stack. **3-4x faster** than [odiff](https://github.com/dmtrKovalenko/odiff), **8x faster** than pixelmatch on 4K images. Block-based diff algorithm with SIMD-accelerated YIQ color comparison; the same engine drives `@blazediff/core-native` (Node.js) and `blazediff` (Python).
+
+[View Detailed Benchmarks](https://github.com/teimurjan/blazediff/blob/main/BENCHMARKS.md)
+
+## Installation
+
+### As a CLI
+
+```sh
+cargo install blazediff
+```
+
+### As a library
+
+```toml
+# Cargo.toml
+[dependencies]
+blazediff = "*"
+```
+
+Pre-built binaries (via `cargo install`) and crate sources are available on [crates.io](https://crates.io/crates/blazediff).
+
+## Features
+
+- **PNG, JPEG & QOI support** with vendored libspng, libjpeg-turbo, and qoi-rust (no system dependencies)
+- **SIMD-accelerated** - NEON on ARM, SSE4.1 on x86
+- **Block-based optimization** - skips unchanged 8x8 blocks via 32-bit integer compare before perceptual diff
+- **Interpret mode** - region detection, classification, severity scoring, human-readable summaries
+- **Cargo features** - opt into `napi` (Node.js bindings) or `python` (PyO3 bindings) when building from source
+
+## CLI Usage
+
+```sh
+# Basic diff
+blazediff image1.png image2.png diff.png
+
+# Custom threshold (0.0 - 1.0)
+blazediff image1.png image2.png diff.png -t 0.05
+
+# JPEG comparison
+blazediff a.jpg b.jpg diff.jpg -q 85
+
+# QOI diff output (12x smaller than PNG, faster encode)
+blazediff a.png b.png diff.qoi
+
+# Structured interpretation (JSON)
+blazediff a.png b.png --interpret
+
+# HTML interpret report
+blazediff a.png b.png report.html --output-format html
+```
+
+### CLI Options
+
+```sh
+blazediff [OPTIONS] <IMAGE1> <IMAGE2> [OUTPUT]
+
+Arguments:
+  <IMAGE1>  First image path (PNG, JPEG, or QOI)
+  <IMAGE2>  Second image path (PNG, JPEG, or QOI)
+  [OUTPUT]  Output diff image path (optional, format detected from extension)
+
+Options:
+  -t, --threshold <THRESHOLD>  Color difference threshold (0.0-1.0) [default: 0.1]
+  -a, --antialiasing           Enable anti-aliasing detection
+      --diff-mask              Output only differences (transparent background)
+  -c, --compression <LEVEL>    PNG compression level (0-9) [default: 0]
+  -q, --quality <QUALITY>      JPEG quality (1-100) [default: 90]
+      --interpret              Run structured interpretation after diff
+      --output-format <FORMAT> Output format (json, text, or html for interpret) [default: json]
+  -h, --help                   Print help
+  -V, --version                Print version
+```
+
+### Exit Codes
+
+- `0` - Images are identical
+- `1` - Images differ (includes layout/size mismatch)
+- `2` - Error (file not found, invalid format, etc.)
+
+## Library Usage
+
+The crate exposes `diff()` plus codec helpers for PNG, JPEG, and QOI. Decode once, diff in memory, encode if you want a diff image.
+
+```rust
+use blazediff::{diff, load_pngs, save_png, DiffOptions, Image};
+
+let (img1, img2) = load_pngs("expected.png", "actual.png")?;
+
+let options = DiffOptions {
+    threshold: 0.1,
+    include_aa: true,
+    ..Default::default()
+};
+
+let mut output = Image::new_uninit(img1.width, img1.height);
+let result = diff(&img1, &img2, Some(&mut output), &options)?;
+
+println!("{} pixels differ ({:.2}%)", result.diff_count, result.diff_percentage);
+if !result.identical {
+    save_png(&output, "diff.png")?;
+}
+```
+
+### Types
+
+```rust
+pub struct DiffOptions {
+    pub threshold: f64,           // 0.0-1.0, default 0.1
+    pub include_aa: bool,         // count anti-aliased pixels as diffs
+    pub alpha: f64,               // background opacity, default 0.1
+    pub aa_color: [u8; 3],        // default yellow [255, 255, 0]
+    pub diff_color: [u8; 3],      // default red   [255, 0, 0]
+    pub diff_color_alt: Option<[u8; 3]>,
+    pub diff_mask: bool,          // transparent background mode
+    pub compression: u8,          // PNG compression 0-9 (0 = fastest)
+}
+
+pub struct DiffResult {
+    pub diff_count: u32,
+    pub diff_percentage: f64,
+    pub identical: bool,
+}
+```
+
+### Codec helpers
+
+| Function                                          | Format |
+| ------------------------------------------------- | ------ |
+| `load_png` / `load_pngs` / `save_png` / `encode_png` | PNG  |
+| `load_jpeg` / `load_jpegs` / `save_jpeg`          | JPEG   |
+| `load_qoi` / `load_qois` / `save_qoi`             | QOI    |
+
+All decoders return `Image` (RGBA8, tightly packed). Inputs can be mixed formats - decode each side with the matching helper, then call `diff()`.
+
+<Callout type="info">
+  **Threshold guidelines:**
+  - `0.0` - Exact match only
+  - `0.05` - Strict comparison
+  - `0.1` - Default balanced comparison
+  - `0.2` - Lenient comparison
+</Callout>
+
+## Cargo Features
+
+| Feature   | Purpose                                                 |
+| --------- | ------------------------------------------------------- |
+| (default) | Pure Rust library + CLI                                 |
+| `napi`    | N-API bindings used by `@blazediff/core-native` on NPM  |
+| `python`  | PyO3 bindings used by the `blazediff` package on PyPI   |
+
+The `napi` and `python` features are mutually exclusive build modes for distributing prebuilt artifacts; you don't need them when consuming the crate as a Rust dependency.
+
+## Interpret
+
+Structured diff analysis. Takes two images, returns classified change regions with human-readable summaries.
+
+**Pipeline:** change mask -> morph close -> connected components -> per-region evidence extraction -> classify -> describe
+
+**Six-label decision tree:**
+
+| Type             | Signal                                                                  |
+| ---------------- | ----------------------------------------------------------------------- |
+| `RenderingNoise` | Tiny (&lt;=25px) or sparse + low color delta                             |
+| `Addition`       | Blends with background in img1, distinct in img2                        |
+| `Deletion`       | Distinct in img1, blends with background in img2                        |
+| `ColorChange`    | Edge structure preserved across both images + uniform color shift       |
+| `ContentChange`  | Fallback - structural change                                            |
+| `Shift`          | Post-hoc: matched Addition+Deletion pair with similar luminance         |
+
+```sh
+blazediff a.png b.png --interpret
+blazediff a.png b.png report.html --output-format html
+```
+
+Severity tiers: `Low` (&lt;1%), `Medium` (1-10%), `High` (&gt;10%). See [Interpret example →](/docs/difference-analysis) for the interactive demo, and [INTERPRET.md](https://github.com/teimurjan/blazediff/blob/main/crates/blazediff/INTERPRET.md) for the full algorithm spec.
+
+## Vendored libraries
+
+- [libspng](https://libspng.org/) - fast PNG decoding/encoding with SIMD
+- [libjpeg-turbo](https://libjpeg-turbo.org/) - high-performance JPEG codec with SIMD
+- [qoi-rust](https://github.com/aldanor/qoi-rust) - QOI (Quite OK Image) format
+
+No system C dependencies; the crate builds standalone with a recent Rust toolchain.
+
+## Links
+
+- [Crates.io](https://crates.io/crates/blazediff)
+- [GitHub Repository](https://github.com/teimurjan/blazediff)
+- [Crate README](https://github.com/teimurjan/blazediff/blob/main/crates/blazediff/README.md)
+- [INTERPRET.md (algorithm spec)](https://github.com/teimurjan/blazediff/blob/main/crates/blazediff/INTERPRET.md)
+- [NPM Package (`@blazediff/core-native`)](https://www.npmjs.com/package/@blazediff/core-native)
+- [PyPI Package](https://pypi.org/project/blazediff/)

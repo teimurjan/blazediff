@@ -1,4 +1,7 @@
-import init, { diffRgba as wasmDiffRgba } from "../wasm/blazediff.js";
+import init, {
+	diffRgba as wasmDiffRgba,
+	interpretRgba as wasmInterpretRgba,
+} from "../wasm/blazediff.js";
 
 export interface DiffOptions {
 	/** Color difference threshold (0-1). Lower = stricter. Default: 0.1 */
@@ -7,6 +10,78 @@ export interface DiffOptions {
 	includeAA?: boolean;
 	/** Render output with transparent background instead of grayscale base. Default: false */
 	diffMask?: boolean;
+}
+
+export interface InterpretOptions {
+	/** Color difference threshold (0-1). Lower = stricter. Default: 0.1 */
+	threshold?: number;
+	/** Count anti-aliased pixels as differences. Default: false */
+	includeAA?: boolean;
+}
+
+export interface BoundingBox {
+	x: number;
+	y: number;
+	width: number;
+	height: number;
+}
+
+export interface ShapeStats {
+	fillRatio: number;
+	borderRatio: number;
+	innerFillRatio: number;
+	centerDensity: number;
+	rowOccupancy: number;
+	colOccupancy: number;
+}
+
+export interface ColorDeltaStats {
+	meanDelta: number;
+	maxDelta: number;
+	deltaStddev: number;
+}
+
+export interface GradientStats {
+	edgeScore: number;
+	edgeScoreImg2: number;
+	edgeCorrelation: number;
+}
+
+export interface ClassificationSignals {
+	blendsWithBgInImg1: boolean;
+	blendsWithBgInImg2: boolean;
+	lowColorDelta: boolean;
+	lowEdgeChange: boolean;
+	denseFill: boolean;
+	sparseFill: boolean;
+	tinyRegion: boolean;
+	edgesCorrelated: boolean;
+	confidence: number;
+}
+
+export interface ChangeRegion {
+	bbox: BoundingBox;
+	pixelCount: number;
+	percentage: number;
+	position: string;
+	shape: string;
+	shapeStats: ShapeStats;
+	changeType: string;
+	signals: ClassificationSignals;
+	confidence: number;
+	colorDelta: ColorDeltaStats;
+	gradient: GradientStats;
+}
+
+export interface InterpretResult {
+	summary: string;
+	diffCount: number;
+	totalRegions: number;
+	regions: ChangeRegion[];
+	severity: string;
+	diffPercentage: number;
+	width: number;
+	height: number;
 }
 
 export type WasmInput =
@@ -19,7 +94,7 @@ export type WasmInput =
 let initPromise: Promise<unknown> | undefined;
 
 /**
- * Initialize the wasm module. Safe to call multiple times — subsequent calls
+ * Initialize the wasm module. Safe to call multiple times - subsequent calls
  * return the same promise. By default fetches the bundled `blazediff_bg.wasm`
  * via the module's import path. Pass a custom `URL`, `Response`, or bytes to
  * load the wasm from a different location (CDN, custom asset pipeline, etc.).
@@ -62,4 +137,32 @@ export async function diff(
 		options.diffMask ?? false,
 		output,
 	);
+}
+
+/**
+ * Interpret the diff between two RGBA pixel buffers into structured change
+ * regions - what changed, where, and how much. Returns the same shape as the
+ * native `@blazediff/core-native` `interpret`, with semantic change types,
+ * spatial positions, and severity.
+ *
+ * Both buffers must be `width * height * 4` bytes in RGBA8 order. Decode
+ * PNG/JPEG with `createImageBitmap` + `OffscreenCanvas.getImageData()` (or the
+ * `ImageDecoder` API) and pass the resulting `Uint8Array` here.
+ */
+export async function interpret(
+	a: Uint8Array,
+	b: Uint8Array,
+	width: number,
+	height: number,
+	options: InterpretOptions = {},
+): Promise<InterpretResult> {
+	await initBlazediff();
+	return wasmInterpretRgba(
+		a,
+		b,
+		width,
+		height,
+		options.threshold ?? 0.1,
+		options.includeAA ?? false,
+	) as InterpretResult;
 }

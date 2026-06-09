@@ -86,6 +86,22 @@ export interface DevServerConfig {
 	readyTimeoutMs?: number;
 }
 
+/** Route-discovery tuning, honored by both `discover` and `onboard` captures. */
+export interface DiscoveryConfig {
+	/** cap on routes returned (default 50) */
+	maxRoutes?: number;
+	/**
+	 * Collapse large list/detail template groups (e.g. /blog/:slug) down to a
+	 * few representatives. Set `false` for content sites where sibling routes are
+	 * distinct pages you want fully covered (default true).
+	 */
+	sampleTemplates?: boolean;
+	/** representatives kept per sampled group (default 2) */
+	samplesPerTemplate?: number;
+	/** group size at which sampling kicks in (default 5) */
+	sampleThreshold?: number;
+}
+
 export interface AgentConfig {
 	devServer: DevServerConfig | null;
 	framework?: string;
@@ -93,6 +109,8 @@ export interface AgentConfig {
 	baseUrl?: string;
 	/** default judge backend for `check`, set by `onboard --stack` */
 	judge?: JudgeBackend;
+	/** route-discovery tuning for `discover` and `onboard` captures */
+	discovery?: DiscoveryConfig;
 }
 
 export interface CaptureOptions {

@@ -318,7 +318,7 @@ function main() {
 	const repoRoot = path.resolve(__dirname, "../..");
 	const resolveArg = (p) => (path.isAbsolute(p) ? p : path.join(repoRoot, p));
 	const pair = PAIRS[args.pair];
-	const defaultMd = pair && pair.targetFile ? pair.targetFile : "BENCHMARKS.md";
+	const defaultMd = pair?.targetFile ? pair.targetFile : "BENCHMARKS.md";
 	const mdPath = args.md ? resolveArg(args.md) : path.join(repoRoot, defaultMd);
 	const result = update({
 		pairKey: args.pair,

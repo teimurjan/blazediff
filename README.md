@@ -21,7 +21,7 @@
 
 </div>
 
-**BlazeDiff** is a high-performance diff ecosystem. Originally built in JavaScript as a pixel-perfect image comparison library that's 1.5x faster than [pixelmatch](https://github.com/mapbox/pixelmatch). Now, BlazeDiff has evolved into a comprehensive suite of blazing-fast diff tools including image comparison, image diff analysis determenistically + agent-in-the-loop verdict, object diffing, perceptual quality metrics, web components, and React components for visualizing differences.
+**BlazeDiff** is a high-performance diff ecosystem. Originally built in JavaScript as a pixel-perfect image comparison library that's 1.5x faster than [pixelmatch](https://github.com/mapbox/pixelmatch). Now, BlazeDiff has evolved into a comprehensive suite of blazing-fast diff tools including image comparison, image diff analysis determenistically + agent-in-the-loop verdict, object diffing, perceptual quality metrics, framework-agnostic UI renderers, and React components for visualizing differences.
 
 ## Available Packages
 
@@ -39,7 +39,7 @@
 
 ### UI Components
 - **[@blazediff/react](./packages/react#readme)** - React components for diff visualization
-- **[@blazediff/ui](./packages/ui#readme)** - Framework-agnostic web components
+- **[@blazediff/ui](./packages/ui#readme)** - Headless engine + framework-agnostic renderer for image-diff UIs
 
 ## Quick Links
 
@@ -61,7 +61,7 @@ deno add jsr:@blazediff/core
 bunx jsr add @blazediff/core
 ```
 
-Every package above is available on both registries **except** the test-runner adapters (`@blazediff/vitest`, `@blazediff/jest`, `@blazediff/bun`) and the UI libraries (`@blazediff/ui`, `@blazediff/react`), which remain NPM-only - the adapters augment each runner's `Matchers` types and the UI packages have web-component return-type requirements that JSR's publish-time check doesn't allow. Native-binary sub-packages under `@blazediff/core-native-*` are also NPM-only; Deno consumers resolve them transparently via `npm:` specifiers declared inside `@blazediff/core-native`.
+Every package above is available on both registries **except** the test-runner adapters (`@blazediff/vitest`, `@blazediff/jest`, `@blazediff/bun`) and the UI libraries (`@blazediff/ui`, `@blazediff/react`), which remain NPM-only - the adapters augment each runner's `Matchers` types and the UI packages have browser-DOM and React type surfaces that JSR's publish-time slow-types check doesn't allow. Native-binary sub-packages under `@blazediff/core-native-*` are also NPM-only; Deno consumers resolve them transparently via `npm:` specifiers declared inside `@blazediff/core-native`.
 
 ## Performance
 

@@ -1,0 +1,156 @@
+# Agentic Visual Testing - Judging and Harnesses
+
+import { Callout } from "nextra/components";
+
+A failing `check` isn't always a regression. This page covers the two things that
+turn a raw diff into a decision: **judging** (is this change real, intentional, or
+noise?) and **harnesses** (driving the page - login, interactions - so the right
+thing gets screenshotted in the first place).
+
+## The judging model
+
+The heuristic verdict pipeline emits one of four labels per failing entry:
+
+| Label | Meaning | Default action |
+|---|---|---|
+| `regression-likely` | Confident structural change | Investigate; do not rewrite |
+| `intentional-likely` | Confident styling/typographic change | Ask user, then rewrite |
+| `noise-likely` | Confident non-deterministic source | Ask user; prefer masking |
+| `ambiguous` | Heuristic couldn't classify | Defer to host judge |
+
+For `ambiguous`, `--judge host` writes a `JudgmentRequest` to
+`.blazediff/judgments/<id>/request.json` with:
+
+- `regions[]` - bounding boxes, pixel counts, and change types per region
+- `paths.locator` (`locator.png`) - a ~400px overview with regions outlined in red
+- `paths.tiles` (`regions.png`) - a vertical stack of `[baseline | actual]` pairs
+- `paths.{baseline,actual,diff}` - full-page PNGs as a fallback
+
+<Callout type="info">
+**Token discipline.** The region tiles are 10–100× smaller than the full-page
+PNGs. A well-behaved host agent reads `regions.png` + `locator.png` first and only
+falls back to the full-page PNGs if a region clearly continues outside its crop.
+</Callout>
+
+The host agent writes its verdict to `.blazediff/judgments/<id>/verdict.json`:
+
+```json
+{
+  "id": "agent",
+  "verdict": {
+    "label": "intentional-likely",
+    "headline": "Em-dash replaced with hyphen in copy",
+    "rationale": ["region tile shows only typographic substitution"],
+    "action": "rewrite-if-intended"
+  },
+  "rationale": "Full paragraph explanation...",
+  "confidence": 0.95
+}
+```
+
+Then merge verdicts into the report - no re-screenshot:
+
+```bash
+blazediff-agent check --apply-judgments --json
+```
+
+Accept an intentional change by re-baselining the entry (mask/viewport/waitFor are
+preserved; only the PNG regenerates):
+
+```bash
+blazediff-agent rewrite agent --json       # by id
+blazediff-agent rewrite --failed --json    # all failures from the last check
+```
+
+## Harnesses
+
+A **harness** is a pluggable ESM script in `.blazediff/harnesses/<name>.js`,
+attached to an entry via its `harnesses: [{ name, params? }]` list. Login is just
+one kind - anything that drives the page before or around a screenshot is a
+harness. Two phases:
+
+- **`setup`** - runs before navigation (establish a session, e.g. login).
+- **`interact`** (default) - runs after the base screenshot; drives the page and
+  may emit extra named screenshots via `screenshot(name)`, each its own baseline
+  entry `<entry>__<name>`.
+
+### Interaction harness
+
+```js
+// .blazediff/harnesses/weather-menu.js
+/** @type {import("@blazediff/agent").Harness} */
+export default {
+  async run({ page, screenshot }) {
+    await page.getByRole("button", { name: "More options" }).click();
+    await screenshot("menu"); // -> baseline "weather__menu"
+  },
+};
+```
+
+```json
+{ "id": "weather", "url": "/weather", "harnesses": ["weather-menu"] }
+```
+
+### Login harness
+
+Routes behind a login flow capture through a `setup` harness. Credentials live in
+environment variables - never in the harness file, the manifest, or LLM context.
+
+```js
+/** @type {import("@blazediff/agent").Harness<{ persona?: string }>} */
+export default {
+  phase: "setup",
+  async run({ page, params }) {
+    const upper = (params.persona ?? "default").toUpperCase().replace(/[^A-Z0-9]/g, "_");
+    const email = process.env[`BLAZEDIFF_AUTH_${upper}_EMAIL`];
+    const password = process.env[`BLAZEDIFF_AUTH_${upper}_PASSWORD`];
+    if (!email || !password) throw new Error(`missing BLAZEDIFF_AUTH_${upper}_*`);
+    await page.goto("http://127.0.0.1:3000/login");
+    await page.locator('input[name="email"]').fill(email);
+    await page.locator('input[name="password"]').fill(password);
+    await Promise.all([
+      page.waitForURL((u) => !u.pathname.startsWith("/login")),
+      page.getByRole("button", { name: /sign in|log in/i }).click(),
+    ]);
+  },
+};
+```
+
+Attach it per entry, and drop credentials in `.blazediff/.env` (auto-gitignored):
+
+```json
+{ "id": "dashboard", "url": "/dashboard",
+  "harnesses": [{ "name": "auth", "params": { "persona": "default" } }] }
+```
+
+For OAuth/SSO, magic links, MFA, or captcha - record interactively instead:
+`blazediff-agent auth init --persona default --login-url http://127.0.0.1:3000/login`.
+
+## Masking flaky regions
+
+When a diff is `noise-likely` - or a real-looking diff is actually caused by
+something non-deterministic - mask it, don't rebaseline. A rebaseline just resets
+the clock on a flake; a mask removes it. Mask auto-cycling animations, third-party
+iframes, timestamps, per-session randomness, and personalization noise. **Don't**
+mask real content that happens to be changing - that's the change you want caught.
+
+The agent always masks any element matching `[data-blazediff-agent-mask]` - no
+manifest change needed. Add it to a shared component and it applies on every route:
+
+```tsx
+<div data-blazediff-agent-mask="report-carousel">...</div>
+```
+
+When you can't edit the source (third-party embed), fall back to a per-entry CSS
+selector. The mask list **replaces** the existing one, so include every selector
+you want kept:
+
+```bash
+cat <<'EOF' | blazediff-agent capture --stdin --mode baseline --json
+[
+  {"id": "examples-vanilla", "url": "/docs/ui-components/vanilla", "mask": ["iframe"]}
+]
+EOF
+```
+
+Full reference: [`@blazediff/agent` docs →](/apis/agent).

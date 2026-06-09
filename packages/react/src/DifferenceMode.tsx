@@ -1,7 +1,8 @@
+import { createDifferenceEngine } from "@blazediff/ui/engine";
 import type React from "react";
 import { useEffect, useRef } from "react";
-import "@blazediff/ui/difference-mode";
 import type { DifferenceModeProps } from "./types";
+import { useEngine } from "./useEngine";
 
 export const DifferenceMode: React.FC<DifferenceModeProps> = ({
 	src1,
@@ -15,49 +16,50 @@ export const DifferenceMode: React.FC<DifferenceModeProps> = ({
 	onDiffComplete,
 	onDiffError,
 }) => {
-	const ref = useRef<HTMLElement>(null);
+	const [engine, state] = useEngine(() =>
+		createDifferenceEngine({ src1, src2, threshold, includeAA, alpha }),
+	);
+	const canvasRef = useRef<HTMLCanvasElement>(null);
 
 	useEffect(() => {
-		const element = ref.current;
-		if (!element) return;
+		engine.setConfig({ src1, src2, threshold, includeAA, alpha });
+	}, [engine, src1, src2, threshold, includeAA, alpha]);
 
-		const handleDiffComplete = (e: CustomEvent) => {
-			onDiffComplete?.(e.detail);
-		};
-
-		const handleDiffError = (e: CustomEvent) => {
-			onDiffError?.(e.detail.error);
-		};
-
-		element.addEventListener(
-			"diff-complete",
-			handleDiffComplete as EventListener,
+	useEffect(() => {
+		const canvas = canvasRef.current;
+		if (state.status !== "ready" || !state.diff || !canvas) return;
+		const ctx = canvas.getContext("2d");
+		canvas.width = state.diff.width;
+		canvas.height = state.diff.height;
+		ctx?.putImageData(
+			new ImageData(
+				state.diff.output as Uint8ClampedArray<ArrayBuffer>,
+				state.diff.width,
+				state.diff.height,
+			),
+			0,
+			0,
 		);
-		element.addEventListener("diff-error", handleDiffError as EventListener);
+	}, [state.status, state.diff]);
 
-		return () => {
-			element.removeEventListener(
-				"diff-complete",
-				handleDiffComplete as EventListener,
-			);
-			element.removeEventListener(
-				"diff-error",
-				handleDiffError as EventListener,
-			);
-		};
-	}, [onDiffComplete, onDiffError]);
+	// biome-ignore lint/correctness/useExhaustiveDependencies: fire once per status transition
+	useEffect(() => {
+		if (state.status === "ready" && state.diff) {
+			onDiffComplete?.({
+				diffCount: state.diff.diffCount,
+				totalPixels: state.diff.totalPixels,
+				percentage: state.diff.percentage,
+			});
+		} else if (state.status === "error") {
+			onDiffError?.(state.error);
+		}
+	}, [state.status]);
 
 	return (
-		<blazediff-difference
-			ref={ref}
-			className={className}
-			src1={src1}
-			src2={src2}
-			threshold={String(threshold)}
-			include-aa={String(includeAA)}
-			alpha={String(alpha)}
-			class-container={containerClassName}
-			class-canvas={canvasClassName}
-		/>
+		<div className={className}>
+			<div className={containerClassName}>
+				<canvas ref={canvasRef} className={canvasClassName} />
+			</div>
+		</div>
 	);
 };

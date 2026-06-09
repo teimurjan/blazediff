@@ -1,0 +1,124 @@
+# @blazediff/object
+
+import { Callout } from "nextra/components";
+
+Structural object comparison with path tracking, cycle detection, and CREATE/REMOVE/CHANGE types.
+
+## Installation
+
+```sh npm2yarn
+npm install @blazediff/object
+```
+
+## Features
+
+- **Path tracking** for nested modifications
+- **Handles** primitives, objects, arrays, dates, regex, and circular references
+- **Consistent shapes** for V8 optimization (type, path, value, oldValue)
+
+## Quick Start
+
+```javascript
+import diff from '@blazediff/object';
+
+const oldObj = {
+  name: "John",
+  age: 30,
+  city: "NYC",
+  skills: ["JavaScript", "TypeScript"]
+};
+
+const newObj = {
+  name: "John",
+  age: 31,
+  city: "San Francisco",
+  skills: ["JavaScript", "TypeScript", "Go"],
+  active: true
+};
+
+const changes = diff(oldObj, newObj);
+console.log(changes);
+```
+
+**Output:**
+```json
+[
+  {
+    "type": 2,
+    "path": ["age"],
+    "value": 31,
+    "oldValue": 30
+  },
+  {
+    "type": 2,
+    "path": ["city"],
+    "value": "San Francisco",
+    "oldValue": "NYC"
+  },
+  {
+    "type": 0,
+    "path": ["skills", 2],
+    "value": "Go",
+    "oldValue": undefined
+  },
+  {
+    "type": 0,
+    "path": ["active"],
+    "value": true,
+    "oldValue": undefined
+  }
+]
+```
+
+## API Reference
+
+### `diff(oldObj, newObj, options?)`
+
+Compares two objects and returns an array of differences.
+
+#### Parameters
+
+| Parameter | Type     | Description                           |
+| --------- | -------- | ------------------------------------- |
+| `oldObj`  | `any`    | The original object to compare from   |
+| `newObj`  | `any`    | The new object to compare to          |
+| `options` | `object` | Configuration options (optional)      |
+
+#### Options
+
+| Option          | Type      | Default | Description                                    |
+| --------------- | --------- | ------- | ---------------------------------------------- |
+| `detectCycles`  | `boolean` | `true`  | Enable circular reference detection            |
+
+#### Returns
+
+Returns `Difference[]` - Array of difference objects with consistent structure:
+
+```typescript
+interface Difference {
+  type: DifferenceType;
+  path: (string | number)[];
+  value: any;
+  oldValue: any;
+}
+```
+
+### Difference Types
+
+<Callout type="info">
+**Difference Types** are represented as numbers for optimal performance:
+</Callout>
+
+| Type | Name     | Description                            |
+| ---- | -------- | -------------------------------------- |
+| `0`  | `CREATE` | Property or array element was added    |
+| `1`  | `REMOVE` | Property or array element was deleted  |
+| `2`  | `CHANGE` | Property or array element was modified |
+
+All difference objects maintain consistent shape with `type`, `path`, `value`, and `oldValue` fields for optimal V8 performance.
+
+## Links
+
+- [GitHub Repository](https://github.com/teimurjan/blazediff)
+- [NPM Package](https://www.npmjs.com/package/@blazediff/object)
+- [Examples →](/docs/object-comparison)

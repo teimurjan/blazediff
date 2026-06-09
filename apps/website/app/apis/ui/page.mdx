@@ -1,0 +1,166 @@
+# @blazediff/ui
+
+import { Callout } from "nextra/components";
+
+Headless engine and a framework-agnostic renderer for building image comparison interfaces. Works with any JavaScript framework or vanilla HTML.
+
+## Installation
+
+```sh npm2yarn
+npm install @blazediff/ui
+```
+
+## Two layers
+
+- **`@blazediff/ui`** — a tiny pure-JS renderer. `mount*` functions build the DOM, wire events, and keep it updated.
+- **`@blazediff/ui/engine`** — the headless engine. All state, calculations, and handlers live here with no rendering, so you can drive any framework from it.
+
+<Callout type="info">
+  Using React? [`@blazediff/react`](/apis/react) renders from this engine for
+  you, with the same modes and props.
+</Callout>
+
+## Features
+
+- **Framework agnostic**: drive the engine from React, Vue, Angular, Svelte, or vanilla JS
+- **No web components**: plain `mount*` functions and a subscribable engine
+- **Multiple modes**: swipe, two-up, onion skin, and difference visualization
+- **Functional by default**: the layout each mode needs is built in; classes are only for theming
+- **Lightweight**: zero dependencies except `@blazediff/core`
+
+## Quick Start
+
+Every mode is a `mount*(target, options)` function. It appends the UI into `target` and returns a handle with `update(options)` and `destroy()`.
+
+```js
+import { mountSwipe } from "@blazediff/ui";
+
+const handle = mountSwipe(document.getElementById("app"), {
+  src1: "image1.jpg",
+  src2: "image2.jpg",
+  alt1: "Original",
+  alt2: "Modified",
+  onPositionChange: (position) => console.log(position),
+});
+
+// later
+handle.update({ src2: "image3.jpg" });
+handle.destroy();
+```
+
+## Renderer API
+
+### `mountSwipe(target, options)`
+
+Compare two images with a draggable divider.
+
+| Option             | Type                         | Default    | Description                          |
+| ------------------ | ---------------------------- | ---------- | ------------------------------------ |
+| `src1`             | `string`                     | -          | URL of the first image               |
+| `src2`             | `string`                     | -          | URL of the second image              |
+| `alt1`             | `string`                     | `"Before"` | Alt text for the first image         |
+| `alt2`             | `string`                     | `"After"`  | Alt text for the second image        |
+| `initialPosition`  | `number`                     | `50`       | Initial divider position (0–100)     |
+| `className`        | `string`                     | -          | Class for the root element           |
+| `containerClassName` | `string`                   | -          | Class for the container              |
+| `image1ClassName`  | `string`                     | -          | Class for the first image            |
+| `image2ClassName`  | `string`                     | -          | Class for the second image           |
+| `dividerClassName` | `string`                     | -          | Class for the divider                |
+| `onPositionChange` | `(position: number) => void` | -          | Called when the divider moves (0–100)|
+
+### `mountTwoUp(target, options)`
+
+Two images side by side, with dimension-change detection.
+
+| Option                    | Type                                              | Default | Description                       |
+| ------------------------- | ------------------------------------------------- | ------- | --------------------------------- |
+| `src1`                    | `string`                                          | -       | URL of the first image            |
+| `src2`                    | `string`                                          | -       | URL of the second image           |
+| `crossOrigin`             | `string \| null`                                  | `"anonymous"` | `crossOrigin` for image loads |
+| `className`               | `string`                                          | -       | Class for the root element        |
+| `containerClassName`      | `string`                                          | -       | Class for the main container      |
+| `containerInnerClassName` | `string`                                          | -       | Class for the inner container     |
+| `panelClassName`          | `string`                                          | -       | Class for each panel              |
+| `imageClassName`          | `string`                                          | -       | Class for images                  |
+| `dimensionInfoClassName`  | `string`                                          | -       | Class for the dimension info text |
+| `onImagesLoaded`          | `(detail) => void`                                | -       | `{ image1, image2 }` dimensions   |
+| `onLoadError`             | `(error: unknown) => void`                        | -       | Called when loading fails         |
+
+### `mountOnionSkin(target, options)`
+
+Overlay two images with an opacity slider.
+
+| Option                     | Type                        | Default      | Description                      |
+| -------------------------- | --------------------------- | ------------ | -------------------------------- |
+| `src1`                     | `string`                    | -            | URL of the base image            |
+| `src2`                     | `string`                    | -            | URL of the overlay image         |
+| `opacity`                  | `number`                    | `50`         | Initial opacity (0–100)          |
+| `crossOrigin`              | `string \| null`            | `"anonymous"`| `crossOrigin` for image loads    |
+| `className`                | `string`                    | -            | Class for the root element       |
+| `sliderLabelText`          | `string`                    | `"Opacity:"` | Text for the slider label        |
+| `containerClassName`       | `string`                    | -            | Class for the main container     |
+| `imageContainerClassName`  | `string`                    | -            | Class for the image container    |
+| `imageClassName`           | `string`                    | -            | Class for images                 |
+| `sliderContainerClassName` | `string`                    | -            | Class for the slider container   |
+| `sliderClassName`          | `string`                    | -            | Class for the slider             |
+| `sliderLabelClassName`     | `string`                    | -            | Class for the slider label       |
+| `onOpacityChange`          | `(opacity: number) => void` | -            | Called when opacity changes      |
+| `onImagesLoaded`           | `(detail) => void`          | -            | `{ image1, image2 }` dimensions  |
+| `onLoadError`              | `(error: unknown) => void`  | -            | Called when loading fails        |
+
+### `mountDifference(target, options)`
+
+Show pixel differences using the BlazeDiff algorithm.
+
+| Option               | Type                       | Default | Description                 |
+| -------------------- | -------------------------- | ------- | --------------------------- |
+| `src1`               | `string`                   | -       | URL of the first image      |
+| `src2`               | `string`                   | -       | URL of the second image     |
+| `threshold`          | `number`                   | `0.1`   | Difference threshold (0–1)  |
+| `includeAA`          | `boolean`                  | `false` | Include anti-aliased pixels |
+| `alpha`              | `number`                   | `0.1`   | Opacity of the original     |
+| `crossOrigin`        | `string \| null`           | `"anonymous"` | `crossOrigin` for loads |
+| `className`          | `string`                   | -       | Class for the root element  |
+| `containerClassName` | `string`                   | -       | Class for the container     |
+| `canvasClassName`    | `string`                   | -       | Class for the canvas        |
+| `onDiffComplete`     | `(detail) => void`         | -       | `{ diffCount, totalPixels, percentage }` |
+| `onDiffError`        | `(error: unknown) => void` | -       | Called when comparison fails |
+
+## Headless engine
+
+Need another framework, or full control? Drive the engine directly from `@blazediff/ui/engine`. Each factory returns a controller with `getState()`, `subscribe(listener)`, `setConfig(config)`, `actions`, and `destroy()`.
+
+```js
+import { createSwipeEngine } from "@blazediff/ui/engine";
+
+const engine = createSwipeEngine(50);
+
+const unsubscribe = engine.subscribe(() => {
+  const { position, isDragging } = engine.getState();
+  // render position (0–100) however your framework wants
+});
+
+engine.actions.start(40); // pass an already-computed percentage
+engine.actions.move(55); // clamped + ignored unless dragging
+engine.actions.end();
+
+unsubscribe();
+engine.destroy();
+```
+
+| Factory                                       | State                                                                 | Actions                          |
+| --------------------------------------------- | --------------------------------------------------------------------- | -------------------------------- |
+| `createDifferenceEngine(config)`              | `{ status, diff?: { output, width, height, diffCount, totalPixels, percentage }, error? }` | –        |
+| `createSwipeEngine(initialPosition = 50)`     | `{ position, isDragging }`                                            | `start`, `move`, `end`, `setPosition` |
+| `createTwoUpEngine(config)`                   | `{ status, dims1, dims2, dimensionLabel, changed, error }`            | –                                |
+| `createOnionSkinEngine(config, opacity = 50)` | `{ status, opacity, dims1, dims2, error }`                            | `setOpacity`                     |
+
+Also exported: `formatDimensionLabel`, `normalizedOpacity`, `loadImageElement`, `getImageData`, `createStore`.
+
+The engine uses browser APIs (`Image`, a throwaway `<canvas>` for pixel extraction) but never touches the surface you render to — that boundary is what keeps it framework-agnostic.
+
+## Links
+
+- [GitHub Repository](https://github.com/teimurjan/blazediff)
+- [NPM Package](https://www.npmjs.com/package/@blazediff/ui)
+- [Examples →](/docs/ui-components/vanilla)

@@ -1,6 +1,6 @@
 {
 	"version": 1,
-	"configHash": "sha256:a80f3c1fc84f15c258f832dc22be9621f2ce1d3c93f711a63f42c8ad3af5cc32",
+	"configHash": "sha256:31c3475b20c50540c87c7c006d75d9738a7ccba2bb782674b8b7b72088b461a7",
 	"stabilityHooksVersion": 1,
 	"entries": [
 		{
@@ -16,11 +16,11 @@
 			"baselinePath": ".blazediff/baselines/agent.png",
 			"captureHash": "sha256:d332142ef86998f67e36377bf0aa7b55be0c0be98d7f4686b4b7ccf9ae3d96a7",
 			"createdBy": "agent",
-			"createdAt": "2026-05-26"
+			"createdAt": "2026-06-09"
 		},
 		{
-			"id": "docs",
-			"url": "/docs",
+			"id": "apis-agent",
+			"url": "/apis/agent",
 			"viewport": {
 				"width": 1280,
 				"height": 800
@@ -28,14 +28,14 @@
 			"waitFor": ["networkidle", "fonts"],
 			"mask": [],
 			"fullPage": true,
-			"baselinePath": ".blazediff/baselines/docs.png",
-			"captureHash": "sha256:44152de87f20d27887931284b8b55e0260d2995d16492bf0760be93f1487c964",
+			"baselinePath": ".blazediff/baselines/apis-agent.png",
+			"captureHash": "sha256:1e0c96386fd3582da20a2f0d4246f61bac9ae7b0aac0e0f73a15fe7cacad2eb8",
 			"createdBy": "agent",
-			"createdAt": "2026-05-26"
+			"createdAt": "2026-06-09"
 		},
 		{
-			"id": "docs-bun",
-			"url": "/docs/bun",
+			"id": "apis-bun",
+			"url": "/apis/bun",
 			"viewport": {
 				"width": 1280,
 				"height": 800
@@ -43,14 +43,14 @@
 			"waitFor": ["networkidle", "fonts"],
 			"mask": [],
 			"fullPage": true,
-			"baselinePath": ".blazediff/baselines/docs-bun.png",
-			"captureHash": "sha256:26236fb79ebfffd9609809c97db604f95d403fb76319be2740335a4984d2aa4c",
+			"baselinePath": ".blazediff/baselines/apis-bun.png",
+			"captureHash": "sha256:564ceb93a7e12df249599d7c65b741c22c3938338dac6062af48568efc040be4",
 			"createdBy": "agent",
-			"createdAt": "2026-05-26"
+			"createdAt": "2026-06-09"
 		},
 		{
-			"id": "docs-cli",
-			"url": "/docs/cli",
+			"id": "apis-cli",
+			"url": "/apis/cli",
 			"viewport": {
 				"width": 1280,
 				"height": 800
@@ -58,14 +58,14 @@
 			"waitFor": ["networkidle", "fonts"],
 			"mask": [],
 			"fullPage": true,
-			"baselinePath": ".blazediff/baselines/docs-cli.png",
-			"captureHash": "sha256:2e5ab96a36bc85c48fcd1fed30a286e9c2ba0321486f1d520dc641b87dd10ed2",
+			"baselinePath": ".blazediff/baselines/apis-cli.png",
+			"captureHash": "sha256:8f93c9b69e8cb5957fc2b551a049c808b53ee000f3cb18ddb0fcf4b4b0057776",
 			"createdBy": "agent",
-			"createdAt": "2026-05-26"
+			"createdAt": "2026-06-09"
 		},
 		{
-			"id": "docs-core",
-			"url": "/docs/core",
+			"id": "apis-core",
+			"url": "/apis/core",
 			"viewport": {
 				"width": 1280,
 				"height": 800
@@ -73,14 +73,14 @@
 			"waitFor": ["networkidle", "fonts"],
 			"mask": [],
 			"fullPage": true,
-			"baselinePath": ".blazediff/baselines/docs-core.png",
-			"captureHash": "sha256:e08c5bdef656498de772b12e57a74dc400245399e373e9dc695ad12d802821c7",
+			"baselinePath": ".blazediff/baselines/apis-core.png",
+			"captureHash": "sha256:82940b3efb96d016cc113907b954605b0ed37fb64bb34bc5e71039005b076eb1",
 			"createdBy": "agent",
-			"createdAt": "2026-05-26"
+			"createdAt": "2026-06-09"
 		},
 		{
-			"id": "docs-core-native",
-			"url": "/docs/core-native",
+			"id": "apis-core-native",
+			"url": "/apis/core-native",
 			"viewport": {
 				"width": 1280,
 				"height": 800
@@ -88,14 +88,14 @@
 			"waitFor": ["networkidle", "fonts"],
 			"mask": [],
 			"fullPage": true,
-			"baselinePath": ".blazediff/baselines/docs-core-native.png",
-			"captureHash": "sha256:9816f1851e28bba1ce0d7625435b444b23d89fbbf1aa1b490c1d8ca58705ca3f",
+			"baselinePath": ".blazediff/baselines/apis-core-native.png",
+			"captureHash": "sha256:9a2e700abd99fe64470171f959f9a7f5bf738bfd5f8b96757c17eb0f98664109",
 			"createdBy": "agent",
-			"createdAt": "2026-05-26"
+			"createdAt": "2026-06-09"
 		},
 		{
-			"id": "docs-gmsd",
-			"url": "/docs/gmsd",
+			"id": "apis-core-wasm",
+			"url": "/apis/core-wasm",
 			"viewport": {
 				"width": 1280,
 				"height": 800
@@ -103,14 +103,14 @@
 			"waitFor": ["networkidle", "fonts"],
 			"mask": [],
 			"fullPage": true,
-			"baselinePath": ".blazediff/baselines/docs-gmsd.png",
-			"captureHash": "sha256:d0660d9c6e3b82e75e356175cc8acbbdd0e58ee9d14b84e62569c8392bb6e5d1",
+			"baselinePath": ".blazediff/baselines/apis-core-wasm.png",
+			"captureHash": "sha256:952abea8f6944b5cc51a2a5c20533314d442b748bd6cf17279b1fc9580cb9bbe",
 			"createdBy": "agent",
-			"createdAt": "2026-05-26"
+			"createdAt": "2026-06-09"
 		},
 		{
-			"id": "docs-jest",
-			"url": "/docs/jest",
+			"id": "apis-gmsd",
+			"url": "/apis/gmsd",
 			"viewport": {
 				"width": 1280,
 				"height": 800
@@ -118,14 +118,14 @@
 			"waitFor": ["networkidle", "fonts"],
 			"mask": [],
 			"fullPage": true,
-			"baselinePath": ".blazediff/baselines/docs-jest.png",
-			"captureHash": "sha256:67de0654348bec93a4de5cf980026f5b0f63e1af8572c576304d918b90456e95",
+			"baselinePath": ".blazediff/baselines/apis-gmsd.png",
+			"captureHash": "sha256:4f25adc9abbfb9d42d0a266ecb0c7c3d1c8ff20ce8705f0431c1f26306595511",
 			"createdBy": "agent",
-			"createdAt": "2026-05-26"
+			"createdAt": "2026-06-09"
 		},
 		{
-			"id": "docs-matcher",
-			"url": "/docs/matcher",
+			"id": "apis-jest",
+			"url": "/apis/jest",
 			"viewport": {
 				"width": 1280,
 				"height": 800
@@ -133,14 +133,14 @@
 			"waitFor": ["networkidle", "fonts"],
 			"mask": [],
 			"fullPage": true,
-			"baselinePath": ".blazediff/baselines/docs-matcher.png",
-			"captureHash": "sha256:1871a0b2bb7940ec776dbb3c87517b0405e45849cbaa3f4cd3a7e16437b3f9df",
+			"baselinePath": ".blazediff/baselines/apis-jest.png",
+			"captureHash": "sha256:bffd3a6883972a2bdf0a7161cfaea691e5c3712c6263ae67239ea6c2782daaf7",
 			"createdBy": "agent",
-			"createdAt": "2026-05-26"
+			"createdAt": "2026-06-09"
 		},
 		{
-			"id": "docs-object",
-			"url": "/docs/object",
+			"id": "apis-matcher",
+			"url": "/apis/matcher",
 			"viewport": {
 				"width": 1280,
 				"height": 800
@@ -148,14 +148,14 @@
 			"waitFor": ["networkidle", "fonts"],
 			"mask": [],
 			"fullPage": true,
-			"baselinePath": ".blazediff/baselines/docs-object.png",
-			"captureHash": "sha256:89e81dc974704f7735a19c5fd5874de915d0d6eb47c23a60d62d901846127a82",
+			"baselinePath": ".blazediff/baselines/apis-matcher.png",
+			"captureHash": "sha256:5cad73a1bc68a973ff24ba7e92795525b1be4d8629e365641bc4d2565156735f",
 			"createdBy": "agent",
-			"createdAt": "2026-05-26"
+			"createdAt": "2026-06-09"
 		},
 		{
-			"id": "docs-python",
-			"url": "/docs/python",
+			"id": "apis-object",
+			"url": "/apis/object",
 			"viewport": {
 				"width": 1280,
 				"height": 800
@@ -163,14 +163,14 @@
 			"waitFor": ["networkidle", "fonts"],
 			"mask": [],
 			"fullPage": true,
-			"baselinePath": ".blazediff/baselines/docs-python.png",
-			"captureHash": "sha256:23f210a8bf0bedf4b5ca825adad8bebfddf835730d1f4a99355bcc84dd3d62bd",
+			"baselinePath": ".blazediff/baselines/apis-object.png",
+			"captureHash": "sha256:f7eb636dd5c8d4fb5bafb173232067bf61b998c5ad0e4702d0ec504a4898ad79",
 			"createdBy": "agent",
-			"createdAt": "2026-05-26"
+			"createdAt": "2026-06-09"
 		},
 		{
-			"id": "docs-react",
-			"url": "/docs/react",
+			"id": "apis-python",
+			"url": "/apis/python",
 			"viewport": {
 				"width": 1280,
 				"height": 800
@@ -178,14 +178,14 @@
 			"waitFor": ["networkidle", "fonts"],
 			"mask": [],
 			"fullPage": true,
-			"baselinePath": ".blazediff/baselines/docs-react.png",
-			"captureHash": "sha256:3d815106d1d2e150dee82434eda23782dd716ccdb2dd2eb05af335334da238c1",
+			"baselinePath": ".blazediff/baselines/apis-python.png",
+			"captureHash": "sha256:b44d030760bed836da9c2ca2ba273b2a01205905766776606994985d6313a4df",
 			"createdBy": "agent",
-			"createdAt": "2026-05-26"
+			"createdAt": "2026-06-09"
 		},
 		{
-			"id": "docs-rust",
-			"url": "/docs/rust",
+			"id": "apis-react",
+			"url": "/apis/react",
 			"viewport": {
 				"width": 1280,
 				"height": 800
@@ -193,14 +193,14 @@
 			"waitFor": ["networkidle", "fonts"],
 			"mask": [],
 			"fullPage": true,
-			"baselinePath": ".blazediff/baselines/docs-rust.png",
-			"captureHash": "sha256:c4448cca19aad1298bdc03ab219eda551c20058b125f06c59ecec6ca9b050c2d",
+			"baselinePath": ".blazediff/baselines/apis-react.png",
+			"captureHash": "sha256:1ccf1354e2772998c8f5a5a0a7b13b6963878c31d56b57ddb15382590b0b4c97",
 			"createdBy": "agent",
-			"createdAt": "2026-05-26"
+			"createdAt": "2026-06-09"
 		},
 		{
-			"id": "docs-ssim",
-			"url": "/docs/ssim",
+			"id": "apis-rust",
+			"url": "/apis/rust",
 			"viewport": {
 				"width": 1280,
 				"height": 800
@@ -208,14 +208,14 @@
 			"waitFor": ["networkidle", "fonts"],
 			"mask": [],
 			"fullPage": true,
-			"baselinePath": ".blazediff/baselines/docs-ssim.png",
-			"captureHash": "sha256:8d2f15c3f772d2f65a22cf6e6860dbadbfb5ac127a77bc3881b1905c6d0b5ec4",
+			"baselinePath": ".blazediff/baselines/apis-rust.png",
+			"captureHash": "sha256:445d138ee6a4ea08d963d1582384fddcc8338ad970252eb83a1cc69f90048dbe",
 			"createdBy": "agent",
-			"createdAt": "2026-05-26"
+			"createdAt": "2026-06-09"
 		},
 		{
-			"id": "docs-ui",
-			"url": "/docs/ui",
+			"id": "apis-ssim",
+			"url": "/apis/ssim",
 			"viewport": {
 				"width": 1280,
 				"height": 800
@@ -223,14 +223,14 @@
 			"waitFor": ["networkidle", "fonts"],
 			"mask": [],
 			"fullPage": true,
-			"baselinePath": ".blazediff/baselines/docs-ui.png",
-			"captureHash": "sha256:3f2e0da155a21f622e5c823998c7d57ec8c1e2c644b56ca26291d843d8419329",
+			"baselinePath": ".blazediff/baselines/apis-ssim.png",
+			"captureHash": "sha256:b796ce1aa6f6766258b3714fec6714b0a5682a46a5e8e4eb42719914732d39dd",
 			"createdBy": "agent",
-			"createdAt": "2026-05-26"
+			"createdAt": "2026-06-09"
 		},
 		{
-			"id": "docs-vitest",
-			"url": "/docs/vitest",
+			"id": "apis-ui",
+			"url": "/apis/ui",
 			"viewport": {
 				"width": 1280,
 				"height": 800
@@ -238,14 +238,14 @@
 			"waitFor": ["networkidle", "fonts"],
 			"mask": [],
 			"fullPage": true,
-			"baselinePath": ".blazediff/baselines/docs-vitest.png",
-			"captureHash": "sha256:64eb7b493ca09f85acb2b079e97c6cf7d262ff06cf64f6726d26c517e5115517",
+			"baselinePath": ".blazediff/baselines/apis-ui.png",
+			"captureHash": "sha256:66f547934372a0045cc28bbeeead0bc44a0aa600f610cc875514d9d6d86fd6f5",
 			"createdBy": "agent",
-			"createdAt": "2026-05-26"
+			"createdAt": "2026-06-09"
 		},
 		{
-			"id": "examples",
-			"url": "/examples",
+			"id": "apis-vitest",
+			"url": "/apis/vitest",
 			"viewport": {
 				"width": 1280,
 				"height": 800
@@ -253,14 +253,14 @@
 			"waitFor": ["networkidle", "fonts"],
 			"mask": [],
 			"fullPage": true,
-			"baselinePath": ".blazediff/baselines/examples.png",
-			"captureHash": "sha256:2e8a5f313aef6a16681916de39494780cd865e0589f8394886e3a14e0cd29009",
+			"baselinePath": ".blazediff/baselines/apis-vitest.png",
+			"captureHash": "sha256:4dcf4589e2a1c69eb8964a9de38d02865a07b8b9b01cf481e43cb86affc98b51",
 			"createdBy": "agent",
-			"createdAt": "2026-05-26"
+			"createdAt": "2026-06-09"
 		},
 		{
-			"id": "examples-image-comparison",
-			"url": "/examples/image-comparison",
+			"id": "docs-agentic-testing-judging-and-harnesses",
+			"url": "/docs/agentic-testing/judging-and-harnesses",
 			"viewport": {
 				"width": 1280,
 				"height": 800
@@ -268,14 +268,14 @@
 			"waitFor": ["networkidle", "fonts"],
 			"mask": [],
 			"fullPage": true,
-			"baselinePath": ".blazediff/baselines/examples-image-comparison.png",
-			"captureHash": "sha256:8e9e97c2dc4a5ea7022edd5adf219542857538c5a4839a86268ad27653b831a9",
+			"baselinePath": ".blazediff/baselines/docs-agentic-testing-judging-and-harnesses.png",
+			"captureHash": "sha256:654e643cfb5e87a86ff1c04b51b269f1458e11149a96fd1875f1ed542ab8ad1a",
 			"createdBy": "agent",
-			"createdAt": "2026-05-26"
+			"createdAt": "2026-06-09"
 		},
 		{
-			"id": "examples-interpret",
-			"url": "/examples/interpret",
+			"id": "docs-agentic-testing-running-in-ci",
+			"url": "/docs/agentic-testing/running-in-ci",
 			"viewport": {
 				"width": 1280,
 				"height": 800
@@ -283,14 +283,14 @@
 			"waitFor": ["networkidle", "fonts"],
 			"mask": [],
 			"fullPage": true,
-			"baselinePath": ".blazediff/baselines/examples-interpret.png",
-			"captureHash": "sha256:d228d99aacea87457b5f37e883b3620e44310c38bf030d70005c17bd5f0f2dc9",
+			"baselinePath": ".blazediff/baselines/docs-agentic-testing-running-in-ci.png",
+			"captureHash": "sha256:df1f182e7d952e9048d9fcbba3df186f7c019004fa26317ee9155b9ae44e3401",
 			"createdBy": "agent",
-			"createdAt": "2026-05-26"
+			"createdAt": "2026-06-09"
 		},
 		{
-			"id": "examples-object-comparison",
-			"url": "/examples/object-comparison",
+			"id": "docs-agentic-testing-setting-up",
+			"url": "/docs/agentic-testing/setting-up",
 			"viewport": {
 				"width": 1280,
 				"height": 800
@@ -298,40 +298,130 @@
 			"waitFor": ["networkidle", "fonts"],
 			"mask": [],
 			"fullPage": true,
-			"baselinePath": ".blazediff/baselines/examples-object-comparison.png",
-			"captureHash": "sha256:c10c538e655904d8dd9683a2d99dc17fd8f6bccc352e245b71b40448c3b752cb",
+			"baselinePath": ".blazediff/baselines/docs-agentic-testing-setting-up.png",
+			"captureHash": "sha256:116668eb47b46cd486b6021431fb003c50783306a80fc033ae2806833e128b71",
 			"createdBy": "agent",
-			"createdAt": "2026-05-26"
+			"createdAt": "2026-06-09"
 		},
 		{
-			"id": "examples-react",
-			"url": "/examples/react",
+			"id": "docs-difference-analysis",
+			"url": "/docs/difference-analysis",
 			"viewport": {
 				"width": 1280,
 				"height": 800
 			},
 			"waitFor": ["networkidle", "fonts"],
-			"mask": ["iframe"],
+			"mask": [],
 			"fullPage": true,
-			"baselinePath": ".blazediff/baselines/examples-react.png",
-			"captureHash": "sha256:b84c791329755d46faf3b235464d5cfeaba448dd8ab454684f9915a7cc0cbf8d",
+			"baselinePath": ".blazediff/baselines/docs-difference-analysis.png",
+			"captureHash": "sha256:75eae3ef4a07cc89f3662ca388b7d360f4a663ee40dc4768a99ac6ac2c12f40a",
 			"createdBy": "agent",
-			"createdAt": "2026-05-26"
+			"createdAt": "2026-06-09"
 		},
 		{
-			"id": "examples-web-components",
-			"url": "/examples/web-components",
+			"id": "docs-object-comparison",
+			"url": "/docs/object-comparison",
 			"viewport": {
 				"width": 1280,
 				"height": 800
 			},
 			"waitFor": ["networkidle", "fonts"],
-			"mask": ["iframe"],
+			"mask": [],
 			"fullPage": true,
-			"baselinePath": ".blazediff/baselines/examples-web-components.png",
-			"captureHash": "sha256:277a7c5c98824366a5cc45711102b67f74b3f71334198e08ee4c5585da93282f",
+			"baselinePath": ".blazediff/baselines/docs-object-comparison.png",
+			"captureHash": "sha256:d8be05e4961e09b265ae5337671d0690576f24d4f02562f9f42398a6d070fc0b",
 			"createdBy": "agent",
-			"createdAt": "2026-05-26"
+			"createdAt": "2026-06-09"
+		},
+		{
+			"id": "docs-pixel-comparison-rust-napi",
+			"url": "/docs/pixel-comparison/rust-napi",
+			"viewport": {
+				"width": 1280,
+				"height": 800
+			},
+			"waitFor": ["networkidle", "fonts"],
+			"mask": [],
+			"fullPage": true,
+			"baselinePath": ".blazediff/baselines/docs-pixel-comparison-rust-napi.png",
+			"captureHash": "sha256:34056ab5a4133c12382f7990ab3745113bab3cc7e1aac9f30cc97262bd8f1abb",
+			"createdBy": "agent",
+			"createdAt": "2026-06-09"
+		},
+		{
+			"id": "docs-pixel-comparison-rust-wasm",
+			"url": "/docs/pixel-comparison/rust-wasm",
+			"viewport": {
+				"width": 1280,
+				"height": 800
+			},
+			"waitFor": ["networkidle", "fonts"],
+			"mask": [],
+			"fullPage": true,
+			"baselinePath": ".blazediff/baselines/docs-pixel-comparison-rust-wasm.png",
+			"captureHash": "sha256:4fcacc65ef3afe5dae437af93fcb894a8e4d052bfc48673e15f7b6f15aec2b90",
+			"createdBy": "agent",
+			"createdAt": "2026-06-09"
+		},
+		{
+			"id": "docs-pixel-comparison-vanilla-javascript",
+			"url": "/docs/pixel-comparison/vanilla-javascript",
+			"viewport": {
+				"width": 1280,
+				"height": 800
+			},
+			"waitFor": ["networkidle", "fonts"],
+			"mask": [],
+			"fullPage": true,
+			"baselinePath": ".blazediff/baselines/docs-pixel-comparison-vanilla-javascript.png",
+			"captureHash": "sha256:e127c4d0b84b31c4005e6cba164f0e08bbd4d2a6970bbce293bd509a87f59e4f",
+			"createdBy": "agent",
+			"createdAt": "2026-06-09"
+		},
+		{
+			"id": "docs-structural-comparison",
+			"url": "/docs/structural-comparison",
+			"viewport": {
+				"width": 1280,
+				"height": 800
+			},
+			"waitFor": ["networkidle", "fonts"],
+			"mask": [],
+			"fullPage": true,
+			"baselinePath": ".blazediff/baselines/docs-structural-comparison.png",
+			"captureHash": "sha256:2043f8f94ab6a7fedb26b73d98e7be549e35c46f59180a02425e291206b52d6d",
+			"createdBy": "agent",
+			"createdAt": "2026-06-09"
+		},
+		{
+			"id": "docs-ui-components-react",
+			"url": "/docs/ui-components/react",
+			"viewport": {
+				"width": 1280,
+				"height": 800
+			},
+			"waitFor": ["networkidle", "fonts"],
+			"mask": [],
+			"fullPage": true,
+			"baselinePath": ".blazediff/baselines/docs-ui-components-react.png",
+			"captureHash": "sha256:5775b94ab0d582a7d2c7b912404f792524d02ff53bba4d3accd8a8110990f1b2",
+			"createdBy": "agent",
+			"createdAt": "2026-06-09"
+		},
+		{
+			"id": "docs-ui-components-vanilla",
+			"url": "/docs/ui-components/vanilla",
+			"viewport": {
+				"width": 1280,
+				"height": 800
+			},
+			"waitFor": ["networkidle", "fonts"],
+			"mask": [],
+			"fullPage": true,
+			"baselinePath": ".blazediff/baselines/docs-ui-components-vanilla.png",
+			"captureHash": "sha256:264b0266834ec36e746e6e20b654d8e2e1a2705598843a0af5c80bcc6d380b99",
+			"createdBy": "agent",
+			"createdAt": "2026-06-09"
 		},
 		{
 			"id": "home",
@@ -346,7 +436,22 @@
 			"baselinePath": ".blazediff/baselines/home.png",
 			"captureHash": "sha256:f4c036f0eb2f076e83b675dc21398017f2e823d6e45028fa2c50933a646008bd",
 			"createdBy": "agent",
-			"createdAt": "2026-05-26"
+			"createdAt": "2026-06-09"
+		},
+		{
+			"id": "llms-txt",
+			"url": "/llms.txt",
+			"viewport": {
+				"width": 1280,
+				"height": 800
+			},
+			"waitFor": ["networkidle", "fonts"],
+			"mask": [],
+			"fullPage": true,
+			"baselinePath": ".blazediff/baselines/llms-txt.png",
+			"captureHash": "sha256:f0033f42d8e5c296b4566134de21f0cff6f57fe9e11cfb142b41dbd0b79db782",
+			"createdBy": "agent",
+			"createdAt": "2026-06-09"
 		}
 	]
 }

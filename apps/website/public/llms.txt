@@ -1,6 +1,6 @@
 # BlazeDiff
 
-> BlazeDiff is a high-performance diff ecosystem. Originally built in JavaScript as a pixel-perfect image comparison library that's 1.5x faster than [pixelmatch](https://github.com/mapbox/pixelmatch). Now, BlazeDiff has evolved into a comprehensive suite of blazing-fast diff tools including image comparison, image diff analysis determenistically + agent-in-the-loop verdict, object diffing, perceptual quality metrics, web components, and React components for visualizing differences.
+> BlazeDiff is a high-performance diff ecosystem. Originally built in JavaScript as a pixel-perfect image comparison library that's 1.5x faster than [pixelmatch](https://github.com/mapbox/pixelmatch). Now, BlazeDiff has evolved into a comprehensive suite of blazing-fast diff tools including image comparison, image diff analysis determenistically + agent-in-the-loop verdict, object diffing, perceptual quality metrics, framework-agnostic UI renderers, and React components for visualizing differences.
 
 **Install (npm):** `npm install @blazediff/core`  
 **Install (JSR):** `deno add jsr:@blazediff/core`
@@ -71,7 +71,7 @@ Compares two images pixel by pixel and returns the number of different pixels.
 
 - [GitHub Repository](https://github.com/teimurjan/blazediff)
 - [NPM Package](https://www.npmjs.com/package/@blazediff/core)
-- [Examples →](/examples/image-comparison)
+- [Examples →](/docs/pixel-comparison/vanilla-javascript)
 
 ---
 
@@ -276,7 +276,7 @@ blazediff-cli hitchhikers-ssim image1.png image2.png --window-size 16 --no-cov-p
 - [SSIM Paper](https://ieeexplore.ieee.org/document/1284395) - Wang et al. (2004)
 - [MS-SSIM Paper](https://ieeexplore.ieee.org/document/1292216) - Wang et al. (2003)
 - [Hitchhiker's SSIM Paper](https://ieeexplore.ieee.org/document/9345560) - Venkataramanan et al. (2021)
-- [Examples →](/examples/image-comparison)
+- [Examples →](/docs/structural-comparison)
 
 ---
 
@@ -338,7 +338,7 @@ Compares two images using GMSD metric and returns a similarity score.
 - [NPM Package](https://www.npmjs.com/package/@blazediff/gmsd)
 - [FORMULA.md](https://github.com/teimurjan/blazediff/blob/main/packages/gmsd/FORMULA.md) - Mathematical foundation
 - [Original GMSD Paper](http://www4.comp.polyu.edu.hk/~cslzhang/IQA/TIP_IQA_GMSD.pdf) - Xue et al. (2014)
-- [Examples →](/examples/image-comparison)
+- [Examples →](/docs/structural-comparison)
 
 ---
 
@@ -461,7 +461,7 @@ All difference objects maintain consistent shape with `type`, `path`, `value`, a
 
 - [GitHub Repository](https://github.com/teimurjan/blazediff)
 - [NPM Package](https://www.npmjs.com/package/@blazediff/object)
-- [Examples →](/examples/object-comparison)
+- [Examples →](/docs/object-comparison)
 
 ---
 
@@ -808,7 +808,7 @@ SSIM: 0.9597
 
 - [GitHub Repository](https://github.com/teimurjan/blazediff)
 - [NPM Package](https://www.npmjs.com/package/@blazediff/cli)
-- [Examples →](/examples/image-comparison)
+- [Examples →](/docs/pixel-comparison/vanilla-javascript)
 
 ---
 
@@ -1050,14 +1050,14 @@ When you can't edit the source (third-party iframe, framework-owned element), fa
 
 - For external embeds, target the element type: `iframe`, `video`, `[data-testid="storybook-preview"]`.
 - Avoid Tailwind class chains and `nth-child` selectors. They break on the next style tweak.
-- Scope matters. Each manifest entry has its own `mask` array, so `iframe` on `/examples/web-components` won't affect `/home`.
+- Scope matters. Each manifest entry has its own `mask` array, so `iframe` on `/docs/ui-components/vanilla` won't affect `/home`.
 
 Re-capture the affected entries with the new mask list. The mask list **replaces** the existing one. Include every selector you want kept.
 
 ```sh
 cat <<'EOF' | blazediff-agent capture --stdin --mode baseline --json
 [
-  {"id": "examples-web-components", "url": "/examples/web-components", "mask": ["iframe"]}
+  {"id": "examples-vanilla", "url": "/docs/ui-components/vanilla", "mask": ["iframe"]}
 ]
 EOF
 ```
@@ -1476,7 +1476,7 @@ npx blazediff expected.png actual.png --interpret
 npx blazediff expected.png actual.png report.html --output-format html
 ```
 
-Severity: Low (&lt;1%), Medium (1-10%), High (&gt;10%). See [Interpret example →](/examples/interpret) for interactive demo.
+Severity: Low (&lt;1%), Medium (1-10%), High (&gt;10%). See [Interpret example →](/docs/difference-analysis) for interactive demo.
 
 **Accuracy:** Measured against hand-labeled datasets — classifier-only macro F1 is **0.998** on clean add/delete edits (`addition_deletion`) and **0.440** on inpaint edits that mix recolor and texture replacement (`inpaintcoco`). Full breakdown in [BENCHMARKS.md](https://github.com/teimurjan/blazediff/blob/main/crates/blazediff-interpret-verify/BENCHMARKS.md).
 
@@ -1504,13 +1504,13 @@ Binary sizes (stripped, LTO optimized):
 - [GitHub Repository](https://github.com/teimurjan/blazediff)
 - [NPM Package](https://www.npmjs.com/package/@blazediff/core-native)
 - [Rust Crate](https://crates.io/crates/blazediff)
-- [Examples →](/examples/image-comparison)
+- [Examples →](/docs/pixel-comparison/rust-napi)
 
 ---
 
 # @blazediff/core-wasm
 
-WebAssembly build of the BlazeDiff Rust algorithm for browsers, edge runtimes, and any wasm host. Same two-pass block algorithm as [`@blazediff/core-native`](/docs/core-native), compiled to `wasm32` with `v128` SIMD (`+simd128`). ~58% faster than [pixelmatch](https://github.com/mapbox/pixelmatch) on the same RGBA buffers; diff counts agree with pixelmatch to within ~0.05%.
+WebAssembly build of the BlazeDiff Rust algorithm for browsers, edge runtimes, and any wasm host. Same two-pass block algorithm as [`@blazediff/core-native`](/apis/core-native), compiled to `wasm32` with `v128` SIMD (`+simd128`). ~58% faster than [pixelmatch](https://github.com/mapbox/pixelmatch) on the same RGBA buffers; diff counts agree with pixelmatch to within ~0.05%.
 
 [View Detailed Benchmarks](https://github.com/teimurjan/blazediff/blob/main/BENCHMARKS.md)
 
@@ -1699,8 +1699,8 @@ Average ~58% faster across the full fixture set. Counts agree with pixelmatch wi
 | Use case                          | Package                          |
 | --------------------------------- | -------------------------------- |
 | Browser, edge worker, wasm host   | **`@blazediff/core-wasm`**       |
-| Node CLI / server with native bin | [`@blazediff/core-native`](/docs/core-native) |
-| Pure JS / no wasm support         | [`@blazediff/core`](/docs/core)  |
+| Node CLI / server with native bin | [`@blazediff/core-native`](/apis/core-native) |
+| Pure JS / no wasm support         | [`@blazediff/core`](/apis/core)  |
 
 ## Links
 
@@ -1712,7 +1712,7 @@ Average ~58% faster across the full fixture set. Counts agree with pixelmatch wi
 
 # @blazediff/matcher
 
-Core snapshot comparison logic that powers [@blazediff/jest](/docs/jest), [@blazediff/vitest](/docs/vitest), and [@blazediff/bun](/docs/bun). Most users should use those framework packages directly.
+Core snapshot comparison logic that powers [@blazediff/jest](/apis/jest), [@blazediff/vitest](/apis/vitest), and [@blazediff/bun](/apis/bun). Most users should use those framework packages directly.
 
 ## Installation
 
@@ -1815,16 +1815,16 @@ type ImageInput =
 
 ## Comparison Methods
 
-Available methods: `core`, `core-native`, `ssim`, `msssim`, `hitchhikers-ssim`, `gmsd`. See [@blazediff/core](/docs/core), [@blazediff/core-native](/docs/core-native), [@blazediff/ssim](/docs/ssim), and [@blazediff/gmsd](/docs/gmsd) for algorithm details.
+Available methods: `core`, `core-native`, `ssim`, `msssim`, `hitchhikers-ssim`, `gmsd`. See [@blazediff/core](/apis/core), [@blazediff/core-native](/apis/core-native), [@blazediff/ssim](/apis/ssim), and [@blazediff/gmsd](/apis/gmsd) for algorithm details.
 
 ## Links
 
 - [GitHub Repository](https://github.com/teimurjan/blazediff)
 - [NPM Package](https://www.npmjs.com/package/@blazediff/matcher)
-- [@blazediff/core](/docs/core) - Core comparison algorithm
-- [@blazediff/ssim](/docs/ssim) - SSIM algorithms
-- [@blazediff/gmsd](/docs/gmsd) - GMSD algorithm
-- [@blazediff/core-native](/docs/core-native) - Rust-native bindings
+- [@blazediff/core](/apis/core) - Core comparison algorithm
+- [@blazediff/ssim](/apis/ssim) - SSIM algorithms
+- [@blazediff/gmsd](/apis/gmsd) - GMSD algorithm
+- [@blazediff/core-native](/apis/core-native) - Rust-native bindings
 
 ---
 
@@ -1888,7 +1888,7 @@ await expect(imageInput).toMatchImageSnapshot(options?);
 | `threshold` | `number` | `0.1` | Color threshold for `core`/`core-native` (0-1) |
 | `runInWorker` | `boolean` | `true` | Run comparison in worker thread for better performance |
 
-See [@blazediff/matcher](/docs/matcher) for all available options.
+See [@blazediff/matcher](/apis/matcher) for all available options.
 
 ## Comparison Methods
 
@@ -2039,7 +2039,7 @@ import '@blazediff/jest';
 
 - [GitHub Repository](https://github.com/teimurjan/blazediff)
 - [NPM Package](https://www.npmjs.com/package/@blazediff/jest)
-- [@blazediff/matcher](/docs/matcher) - Core matcher logic
+- [@blazediff/matcher](/apis/matcher) - Core matcher logic
 - [Jest Documentation](https://jestjs.io/)
 
 ---
@@ -2103,7 +2103,7 @@ await expect(imageInput).toMatchImageSnapshot(options?);
 | `threshold` | `number` | `0.1` | Color threshold for `core`/`core-native` (0-1) |
 | `runInWorker` | `boolean` | `true` | Run comparison in worker thread for better performance |
 
-See [@blazediff/matcher](/docs/matcher) for all available options.
+See [@blazediff/matcher](/apis/matcher) for all available options.
 
 ## Comparison Methods
 
@@ -2259,7 +2259,7 @@ import '@blazediff/vitest';
 
 - [GitHub Repository](https://github.com/teimurjan/blazediff)
 - [NPM Package](https://www.npmjs.com/package/@blazediff/vitest)
-- [@blazediff/matcher](/docs/matcher) - Core matcher logic
+- [@blazediff/matcher](/apis/matcher) - Core matcher logic
 - [Vitest Documentation](https://vitest.dev/)
 
 ---
@@ -2326,7 +2326,7 @@ await expect(imageInput).toMatchImageSnapshot(options?);
 | `threshold` | `number` | `0.1` | Color threshold for `core`/`core-native` (0-1) |
 | `runInWorker` | `boolean` | `true` | Run comparison in worker thread for better performance |
 
-See [@blazediff/matcher](/docs/matcher) for all available options.
+See [@blazediff/matcher](/apis/matcher) for all available options.
 
 ## Comparison Methods
 
@@ -2457,14 +2457,14 @@ await expect(screenshot).toMatchImageSnapshot({
 
 - [GitHub Repository](https://github.com/teimurjan/blazediff)
 - [NPM Package](https://www.npmjs.com/package/@blazediff/bun)
-- [@blazediff/matcher](/docs/matcher) - Core matcher logic
+- [@blazediff/matcher](/apis/matcher) - Core matcher logic
 - [Bun Documentation](https://bun.sh/)
 
 ---
 
 # @blazediff/ui
 
-Framework-agnostic Web Components for building image comparison interfaces. Works with any JavaScript framework or vanilla HTML.
+Headless engine and a framework-agnostic renderer for building image comparison interfaces. Works with any JavaScript framework or vanilla HTML.
 
 ## Installation
 
@@ -2472,156 +2472,157 @@ Framework-agnostic Web Components for building image comparison interfaces. Work
 npm install @blazediff/ui
 ```
 
+## Two layers
+
+- **`@blazediff/ui`** — a tiny pure-JS renderer. `mount*` functions build the DOM, wire events, and keep it updated.
+- **`@blazediff/ui/engine`** — the headless engine. All state, calculations, and handlers live here with no rendering, so you can drive any framework from it.
+
+> **Info:** Using React? [`@blazediff/react`](/apis/react) renders from this engine for you, with the same modes and props.
+
 ## Features
 
-- **Framework agnostic**: Works with React, Vue, Angular, Svelte, or Vanilla JS
-- **Web Components**: Standard-based custom elements
-- **Multiple modes**: Swipe, two-up, onion skin, and difference visualization
-- **Customizable**: Full styling control via CSS classes
-- **Accessible**: Keyboard navigation and proper event handling
-- **Lightweight**: Zero dependencies (except @blazediff/core)
+- **Framework agnostic**: drive the engine from React, Vue, Angular, Svelte, or vanilla JS
+- **No web components**: plain `mount*` functions and a subscribable engine
+- **Multiple modes**: swipe, two-up, onion skin, and difference visualization
+- **Functional by default**: the layout each mode needs is built in; classes are only for theming
+- **Lightweight**: zero dependencies except `@blazediff/core`
 
 ## Quick Start
 
-### HTML
+Every mode is a `mount*(target, options)` function. It appends the UI into `target` and returns a handle with `update(options)` and `destroy()`.
 
-```html
-<!DOCTYPE html>
-<html>
-  <head>
-    <script type="module">
-      import "@blazediff/ui";
-    </script>
-  </head>
-  <body>
-    <blazediff-swipe
-      src1="image1.jpg"
-      src2="image2.jpg"
-      alt1="Original"
-      alt2="Modified"
-    >
-    </blazediff-swipe>
-  </body>
-</html>
+```js
+import { mountSwipe } from "@blazediff/ui";
+
+const handle = mountSwipe(document.getElementById("app"), {
+  src1: "image1.jpg",
+  src2: "image2.jpg",
+  alt1: "Original",
+  alt2: "Modified",
+  onPositionChange: (position) => console.log(position),
+});
+
+// later
+handle.update({ src2: "image3.jpg" });
+handle.destroy();
 ```
 
-### JavaScript
+## Renderer API
 
-```javascript
-import "@blazediff/ui";
+### `mountSwipe(target, options)`
 
-// The components are now available globally
-document.body.innerHTML = `
-  <blazediff-swipe
-    src1="./before.jpg"
-    src2="./after.jpg">
-  </blazediff-swipe>
-`;
+Compare two images with a draggable divider.
+
+| Option             | Type                         | Default    | Description                          |
+| ------------------ | ---------------------------- | ---------- | ------------------------------------ |
+| `src1`             | `string`                     | -          | URL of the first image               |
+| `src2`             | `string`                     | -          | URL of the second image              |
+| `alt1`             | `string`                     | `"Before"` | Alt text for the first image         |
+| `alt2`             | `string`                     | `"After"`  | Alt text for the second image        |
+| `initialPosition`  | `number`                     | `50`       | Initial divider position (0–100)     |
+| `className`        | `string`                     | -          | Class for the root element           |
+| `containerClassName` | `string`                   | -          | Class for the container              |
+| `image1ClassName`  | `string`                     | -          | Class for the first image            |
+| `image2ClassName`  | `string`                     | -          | Class for the second image           |
+| `dividerClassName` | `string`                     | -          | Class for the divider                |
+| `onPositionChange` | `(position: number) => void` | -          | Called when the divider moves (0–100)|
+
+### `mountTwoUp(target, options)`
+
+Two images side by side, with dimension-change detection.
+
+| Option                    | Type                                              | Default | Description                       |
+| ------------------------- | ------------------------------------------------- | ------- | --------------------------------- |
+| `src1`                    | `string`                                          | -       | URL of the first image            |
+| `src2`                    | `string`                                          | -       | URL of the second image           |
+| `crossOrigin`             | `string \| null`                                  | `"anonymous"` | `crossOrigin` for image loads |
+| `className`               | `string`                                          | -       | Class for the root element        |
+| `containerClassName`      | `string`                                          | -       | Class for the main container      |
+| `containerInnerClassName` | `string`                                          | -       | Class for the inner container     |
+| `panelClassName`          | `string`                                          | -       | Class for each panel              |
+| `imageClassName`          | `string`                                          | -       | Class for images                  |
+| `dimensionInfoClassName`  | `string`                                          | -       | Class for the dimension info text |
+| `onImagesLoaded`          | `(detail) => void`                                | -       | `{ image1, image2 }` dimensions   |
+| `onLoadError`             | `(error: unknown) => void`                        | -       | Called when loading fails         |
+
+### `mountOnionSkin(target, options)`
+
+Overlay two images with an opacity slider.
+
+| Option                     | Type                        | Default      | Description                      |
+| -------------------------- | --------------------------- | ------------ | -------------------------------- |
+| `src1`                     | `string`                    | -            | URL of the base image            |
+| `src2`                     | `string`                    | -            | URL of the overlay image         |
+| `opacity`                  | `number`                    | `50`         | Initial opacity (0–100)          |
+| `crossOrigin`              | `string \| null`            | `"anonymous"`| `crossOrigin` for image loads    |
+| `className`                | `string`                    | -            | Class for the root element       |
+| `sliderLabelText`          | `string`                    | `"Opacity:"` | Text for the slider label        |
+| `containerClassName`       | `string`                    | -            | Class for the main container     |
+| `imageContainerClassName`  | `string`                    | -            | Class for the image container    |
+| `imageClassName`           | `string`                    | -            | Class for images                 |
+| `sliderContainerClassName` | `string`                    | -            | Class for the slider container   |
+| `sliderClassName`          | `string`                    | -            | Class for the slider             |
+| `sliderLabelClassName`     | `string`                    | -            | Class for the slider label       |
+| `onOpacityChange`          | `(opacity: number) => void` | -            | Called when opacity changes      |
+| `onImagesLoaded`           | `(detail) => void`          | -            | `{ image1, image2 }` dimensions  |
+| `onLoadError`              | `(error: unknown) => void`  | -            | Called when loading fails        |
+
+### `mountDifference(target, options)`
+
+Show pixel differences using the BlazeDiff algorithm.
+
+| Option               | Type                       | Default | Description                 |
+| -------------------- | -------------------------- | ------- | --------------------------- |
+| `src1`               | `string`                   | -       | URL of the first image      |
+| `src2`               | `string`                   | -       | URL of the second image     |
+| `threshold`          | `number`                   | `0.1`   | Difference threshold (0–1)  |
+| `includeAA`          | `boolean`                  | `false` | Include anti-aliased pixels |
+| `alpha`              | `number`                   | `0.1`   | Opacity of the original     |
+| `crossOrigin`        | `string \| null`           | `"anonymous"` | `crossOrigin` for loads |
+| `className`          | `string`                   | -       | Class for the root element  |
+| `containerClassName` | `string`                   | -       | Class for the container     |
+| `canvasClassName`    | `string`                   | -       | Class for the canvas        |
+| `onDiffComplete`     | `(detail) => void`         | -       | `{ diffCount, totalPixels, percentage }` |
+| `onDiffError`        | `(error: unknown) => void` | -       | Called when comparison fails |
+
+## Headless engine
+
+Need another framework, or full control? Drive the engine directly from `@blazediff/ui/engine`. Each factory returns a controller with `getState()`, `subscribe(listener)`, `setConfig(config)`, `actions`, and `destroy()`.
+
+```js
+import { createSwipeEngine } from "@blazediff/ui/engine";
+
+const engine = createSwipeEngine(50);
+
+const unsubscribe = engine.subscribe(() => {
+  const { position, isDragging } = engine.getState();
+  // render position (0–100) however your framework wants
+});
+
+engine.actions.start(40); // pass an already-computed percentage
+engine.actions.move(55); // clamped + ignored unless dragging
+engine.actions.end();
+
+unsubscribe();
+engine.destroy();
 ```
 
-## API Reference
+| Factory                                       | State                                                                 | Actions                          |
+| --------------------------------------------- | --------------------------------------------------------------------- | -------------------------------- |
+| `createDifferenceEngine(config)`              | `{ status, diff?: { output, width, height, diffCount, totalPixels, percentage }, error? }` | –        |
+| `createSwipeEngine(initialPosition = 50)`     | `{ position, isDragging }`                                            | `start`, `move`, `end`, `setPosition` |
+| `createTwoUpEngine(config)`                   | `{ status, dims1, dims2, dimensionLabel, changed, error }`            | –                                |
+| `createOnionSkinEngine(config, opacity = 50)` | `{ status, opacity, dims1, dims2, error }`                            | `setOpacity`                     |
 
-### `<blazediff-swipe>`
+Also exported: `formatDimensionLabel`, `normalizedOpacity`, `loadImageElement`, `getImageData`, `createStore`.
 
-Interactive swipe component for comparing two images with a draggable divider.
-
-#### Attributes
-
-| Attribute         | Type     | Default    | Description                    |
-| ----------------- | -------- | ---------- | ------------------------------ |
-| `src1`            | `string` | -          | URL of the first image         |
-| `src2`            | `string` | -          | URL of the second image        |
-| `alt1`            | `string` | `"Before"` | Alt text for the first image   |
-| `alt2`            | `string` | `"After"`  | Alt text for the second image  |
-| `class-container` | `string` | -          | CSS class for the container    |
-| `class-image1`    | `string` | -          | CSS class for the first image  |
-| `class-image2`    | `string` | -          | CSS class for the second image |
-| `class-divider`   | `string` | -          | CSS class for the divider      |
-
-#### Events
-
-| Event             | Detail                 | Description                                 |
-| ----------------- | ---------------------- | ------------------------------------------- |
-| `position-change` | `{ position: number }` | Fired when divider position changes (0-100) |
-
-### `<blazediff-twoup>`
-
-Side-by-side comparison component with dimension information.
-
-#### Attributes
-
-| Attribute               | Type     | Default | Description                       |
-| ----------------------- | -------- | ------- | --------------------------------- |
-| `src1`                  | `string` | -       | URL of the first image            |
-| `src2`                  | `string` | -       | URL of the second image           |
-| `class-container`       | `string` | -       | CSS class for the main container  |
-| `class-container-inner` | `string` | -       | CSS class for the inner container |
-| `class-panel`           | `string` | -       | CSS class for each panel          |
-| `class-image`           | `string` | -       | CSS class for images              |
-| `class-dimension-info`  | `string` | -       | CSS class for dimension info text |
-
-#### Events
-
-| Event           | Detail                                                 | Description                    |
-| --------------- | ------------------------------------------------------ | ------------------------------ |
-| `images-loaded` | `{ image1: {width, height}, image2: {width, height} }` | Fired when both images load    |
-| `load-error`    | `{ error }`                                            | Fired when image loading fails |
-
-### `<blazediff-onionskin>`
-
-Overlay comparison with opacity control slider.
-
-#### Attributes
-
-| Attribute                | Type     | Default      | Description                      |
-| ------------------------ | -------- | ------------ | -------------------------------- |
-| `src1`                   | `string` | -            | URL of the base image            |
-| `src2`                   | `string` | -            | URL of the overlay image         |
-| `opacity`                | `number` | `50`         | Initial opacity (0-100)          |
-| `class-container`        | `string` | -            | CSS class for the main container |
-| `class-image-container`  | `string` | -            | CSS class for image container    |
-| `class-image`            | `string` | -            | CSS class for images             |
-| `class-slider-container` | `string` | -            | CSS class for slider container   |
-| `class-slider`           | `string` | -            | CSS class for the slider         |
-| `class-slider-label`     | `string` | -            | CSS class for slider label       |
-| `text-slider-label`      | `string` | `"Opacity:"` | Text for the slider label        |
-
-#### Events
-
-| Event            | Detail                                                 | Description                    |
-| ---------------- | ------------------------------------------------------ | ------------------------------ |
-| `opacity-change` | `{ opacity: number }`                                  | Fired when opacity changes     |
-| `images-loaded`  | `{ image1: {width, height}, image2: {width, height} }` | Fired when both images load    |
-| `load-error`     | `{ error }`                                            | Fired when image loading fails |
-
-### `<blazediff-difference>`
-
-Shows pixel differences using the BlazeDiff comparison algorithm.
-
-#### Attributes
-
-| Attribute         | Type      | Default | Description                 |
-| ----------------- | --------- | ------- | --------------------------- |
-| `src1`            | `string`  | -       | URL of the first image      |
-| `src2`            | `string`  | -       | URL of the second image     |
-| `threshold`       | `number`  | `0.1`   | Difference threshold (0-1)  |
-| `include-aa`      | `boolean` | `false` | Include anti-aliased pixels |
-| `alpha`           | `number`  | `0.1`   | Opacity of original image   |
-| `class-container` | `string`  | -       | CSS class for the container |
-| `class-canvas`    | `string`  | -       | CSS class for the canvas    |
-
-#### Events
-
-| Event           | Detail                                                           | Description                     |
-| --------------- | ---------------------------------------------------------------- | ------------------------------- |
-| `diff-complete` | `{ diffCount: number, totalPixels: number, percentage: number }` | Fired when comparison completes |
-| `diff-error`    | `{ error }`                                                      | Fired when comparison fails     |
+The engine uses browser APIs (`Image`, a throwaway `<canvas>` for pixel extraction) but never touches the surface you render to — that boundary is what keeps it framework-agnostic.
 
 ## Links
 
 - [GitHub Repository](https://github.com/teimurjan/blazediff)
 - [NPM Package](https://www.npmjs.com/package/@blazediff/ui)
-- [Examples →](/examples/web-components)
+- [Examples →](/docs/ui-components/vanilla)
 
 ---
 
@@ -2639,8 +2640,8 @@ npm install @blazediff/react
 
 - **React 16.8+ compatible**: Works with hooks and modern React features
 - **TypeScript first**: Full type safety and IntelliSense
-- **Web Components based**: Wraps @blazediff/ui components for React
-- **Performance focused**: Built on top of high-performance web components
+- **Engine-powered**: Renders from the [`@blazediff/ui`](/apis/ui) headless engine — all state and logic live there; React just renders
+- **Idiomatic React**: Real JSX, no web components or `dangerouslySetInnerHTML`
 - **Accessible**: Proper event handling and React patterns
 
 ## Quick Start
@@ -2745,7 +2746,7 @@ Shows pixel differences using the BlazeDiff comparison algorithm.
 
 - [GitHub Repository](https://github.com/teimurjan/blazediff)
 - [NPM Package](https://www.npmjs.com/package/@blazediff/react)
-- [Examples →](/examples/react)
+- [Examples →](/docs/ui-components/react)
 
 ---
 
@@ -2907,7 +2908,7 @@ result = compare("expected.png", "actual.png", "diff.png", interpret=True)
 compare("expected.png", "actual.png", "report.html", output_format="html")
 ```
 
-Severity tiers: `Low` (&lt;1%), `Medium` (1-10%), `High` (&gt;10%). See [Interpret example →](/examples/interpret) for the interactive demo.
+Severity tiers: `Low` (&lt;1%), `Medium` (1-10%), `High` (&gt;10%). See [Interpret example →](/docs/difference-analysis) for the interactive demo.
 
 ## Links
 
@@ -3089,7 +3090,7 @@ blazediff a.png b.png --interpret
 blazediff a.png b.png report.html --output-format html
 ```
 
-Severity tiers: `Low` (&lt;1%), `Medium` (1-10%), `High` (&gt;10%). See [Interpret example →](/examples/interpret) for the interactive demo, and [INTERPRET.md](https://github.com/teimurjan/blazediff/blob/main/crates/blazediff/INTERPRET.md) for the full algorithm spec.
+Severity tiers: `Low` (&lt;1%), `Medium` (1-10%), `High` (&gt;10%). See [Interpret example →](/docs/difference-analysis) for the interactive demo, and [INTERPRET.md](https://github.com/teimurjan/blazediff/blob/main/crates/blazediff/INTERPRET.md) for the full algorithm spec.
 
 ## Vendored libraries
 
@@ -3112,9 +3113,14 @@ No system C dependencies; the crate builds standalone with a recent Rust toolcha
 
 # Examples
 
-# Image Comparison
+# Pixel-by-pixel Comparison - Vanilla JavaScript
 
-Learn how to use BlazeDiff for different types of comparisons - binary, object, and pixel-by-pixel image comparison.
+Compare two images pixel by pixel in pure JavaScript - no native binaries, no
+WebAssembly. `@blazediff/core` runs anywhere JS runs (browser, Node, Deno, Bun,
+edge) and is ~1.5× faster than pixelmatch. Reach for it when you want zero install
+friction and portability over raw throughput. Need more speed? See
+[🐆🐆 Rust + WASM](/docs/pixel-comparison/rust-wasm) and
+[🐆🐆🐆 Rust + N-API](/docs/pixel-comparison/rust-napi).
 
 ## Installation
 
@@ -3122,11 +3128,7 @@ Learn how to use BlazeDiff for different types of comparisons - binary, object, 
 npm install @blazediff/core
 ```
 
-## Overview
-
-BlazeDiff provides multiple comparison methods optimized for different use cases. Try the interactive demos below to see each method in action.
-
-### Pixel-by-pixel Comparison
+## Examples
 
 ```ts
 import blazediff from "@blazediff/core";
@@ -3182,9 +3184,159 @@ const diff = blazediff(img1, img2, output, width, height, {
 });
 ```
 
-### Perceptual Comparison
+See the [full API reference →](/apis/core).
 
-#### GMSD (Gradient Magnitude Similarity Deviation)
+---
+
+# Pixel-by-pixel Comparison - Rust + WASM in JavaScript
+
+The same diff core, compiled to WebAssembly with SIMD. `@blazediff/core-wasm` runs
+in browsers, Workers, Deno, Bun, and edge runtimes - ~58% faster than pixelmatch
+from a 32KB binary. Reach for it when you want native-grade speed in the browser
+without a native dependency. The API takes pre-decoded RGBA buffers, so you decode
+images yourself with `createImageBitmap` + a canvas (or the `ImageDecoder` API).
+
+## Installation
+
+```bash
+npm install @blazediff/core-wasm
+```
+
+## Decoding images to RGBA
+
+```ts
+async function loadRgba(url: string) {
+  const bitmap = await createImageBitmap(await (await fetch(url)).blob());
+  const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+  const ctx = canvas.getContext("2d")!;
+  ctx.drawImage(bitmap, 0, 0);
+  const { data, width, height } = ctx.getImageData(0, 0, bitmap.width, bitmap.height);
+  return { data: new Uint8Array(data.buffer), width, height };
+}
+```
+
+## Examples
+
+```ts
+import { initBlazediff, diff } from "@blazediff/core-wasm";
+
+await initBlazediff(); // loads the sibling .wasm; call once
+
+const a = await loadRgba("3a.png");
+const b = await loadRgba("3b.png");
+const output = new Uint8Array(a.width * a.height * 4);
+
+const diffCount = await diff(a.data, b.data, a.width, a.height, output);
+```
+
+```ts
+import { initBlazediff, diff } from "@blazediff/core-wasm";
+
+await initBlazediff();
+
+const a = await loadRgba("3a.png");
+const b = await loadRgba("3b.png");
+const output = new Uint8Array(a.width * a.height * 4);
+
+const diffCount = await diff(a.data, b.data, a.width, a.height, output, {
+  threshold: 0.5,
+});
+```
+
+```ts
+import { initBlazediff, diff } from "@blazediff/core-wasm";
+
+await initBlazediff();
+
+const a = await loadRgba("3a.png");
+const b = await loadRgba("3b.png");
+const output = new Uint8Array(a.width * a.height * 4);
+
+// diffMask renders changes on a transparent background instead of grayscale
+const diffCount = await diff(a.data, b.data, a.width, a.height, output, {
+  diffMask: true,
+});
+```
+
+Loading the `.wasm` from a CDN, a bundler, or the filesystem? `initBlazediff`
+accepts a `URL`, `Response`, or raw bytes - see the
+[full API reference →](/apis/core-wasm).
+
+---
+
+# Pixel-by-pixel Comparison - Rust + N-API in Node
+
+The fastest path: native Rust compiled to a Node addon via N-API, ~3-4× faster
+than odiff. `@blazediff/core-native` works on **file paths** - it decodes PNG,
+JPEG, and QOI itself (in parallel) and can write the diff image straight to disk.
+Reach for it in Node test runners and CI where you have files and want maximum
+throughput.
+
+## Installation
+
+```bash
+npm install @blazediff/core-native
+```
+
+## Examples
+
+```ts
+import { compare } from "@blazediff/core-native";
+
+const result = await compare("3a.png", "3b.png");
+
+if (result.match) {
+  console.log("identical");
+} else if (result.reason === "pixel-diff") {
+  console.log(`${result.diffCount} pixels differ (${result.diffPercentage.toFixed(2)}%)`);
+} else if (result.reason === "layout-diff") {
+  console.log("dimensions differ");
+}
+```
+
+```ts
+import { compare } from "@blazediff/core-native";
+
+const result = await compare("3a.png", "3b.png", undefined, {
+  threshold: 0.5,
+  antialiasing: true,
+});
+```
+
+```ts
+import { compare } from "@blazediff/core-native";
+
+// Pass an output path to render the diff visualization to disk.
+// Format is inferred from the extension (PNG, JPEG, QOI).
+const result = await compare("3a.png", "3b.png", "diff.png");
+```
+
+Want a verdict on *what* changed, not just how many pixels? Pass `interpret: true`
+or use the dedicated [Image Difference Analysis →](/docs/difference-analysis)
+example. Full options in the [API reference →](/apis/core-native).
+
+---
+
+# Structural Image Comparison
+
+Pixel-by-pixel diffing answers "how many pixels changed". Structural metrics answer
+"how *different do these look*" - they tolerate imperceptible noise (compression
+artifacts, sub-pixel shifts) and score perceived similarity instead. Reach for them
+when an exact pixel match is too strict.
+
+BlazeDiff ships two: **GMSD** (gradient-based, fast) and **SSIM** (the classic
+structural index, with a 4× faster Hitchhiker's variant).
+
+## Installation
+
+```bash
+npm install @blazediff/gmsd @blazediff/ssim
+```
+
+## GMSD (Gradient Magnitude Similarity Deviation)
+
+Scores gradient (edge) similarity. Returns `0` for identical images; **lower is
+better**, typically in the `0`–`0.35` range.
 
     ```ts
 
@@ -3212,7 +3364,13 @@ const diff = blazediff(img1, img2, output, width, height, {
     const score = gmsd(img1, img2, undefined, width, height, { c: 100 });
     ```
 
-#### SSIM (Structural Similarity Index)
+See the [GMSD API reference →](/apis/gmsd).
+
+## SSIM (Structural Similarity Index)
+
+Scores luminance, contrast, and structure. Returns `1` for identical images;
+**higher is better**, in the `0`–`1` range. The Hitchhiker's variant uses
+non-overlapping windows for ~4× the throughput at near-identical accuracy.
 
 ```ts
 import ssim from "@blazediff/ssim/ssim";
@@ -3243,48 +3401,20 @@ const output = new Uint8Array(img1.width * img1.height * 4);
 const width = img1.width;
 const height = img1.height;
 
-const score = ssim(img1, img2, output, width, height);
+const score = hitchhikersSSIM(img1, img2, output, width, height);
 ```
+
+See the [SSIM API reference →](/apis/ssim).
 
 ---
 
-# Web Components
+# Image Difference Analysis
 
-Use BlazeDiff UI components in any framework or vanilla HTML.
-
-## Installation
-
-```bash
-npm install @blazediff/ui
-```
-
-## Overview
-
-- You can find the full source code for the stories below in the [GitHub repository](https://github.com/teimurjan/blazediff/refs/heads/main/packages/ui/stories).
-- You can also view the stories in the [Storybook](https://blazediff-ui-storybook.vercel.app/).
-
----
-
-# React Components
-
-Build interactive image comparison components with React.
-
-## Installation
-
-```bash
-npm install @blazediff/react
-```
-
-## Overview
-
-- You can find the full source code for the stories below in the [GitHub repository](https://github.com/teimurjan/blazediff/refs/heads/main/packages/react/stories).
-- You can also view the stories in the [Storybook](https://blazediff-react-storybook.vercel.app/).
-
----
-
-# Interpret
-
-Takes a raw pixel diff and tells you _what_ changed, _where_, and _how much_. No ML models - a deterministic pipeline that runs in the same binary as the diff itself.
+Takes a raw pixel diff and tells you _what_ changed, _where_, and _how much_. No ML
+models - a deterministic pipeline that runs in the same binary as the diff itself.
+Available in both the native Node binding (`@blazediff/core-native`) and the
+WebAssembly build (`@blazediff/core-wasm`), so you can run it server-side or in the
+browser.
 
 ## How it works
 
@@ -3300,23 +3430,44 @@ Takes a raw pixel diff and tells you _what_ changed, _where_, and _how much_. No
 
 ## Demo
 
+## Usage
+
+Both bindings return the same result shape - `summary`, `regions[]` (with
+`position`, `changeType`, `percentage`, …), and `severity`. The native binding
+reads files; the WASM binding takes pre-decoded RGBA buffers.
+
 ```ts
 import { interpret } from "@blazediff/core-native";
 
 const result = await interpret("fixtures/3a.png", "fixtures/3b.png");
 
+console.log(result.summary);
 for (const region of result.regions) {
   console.log(`${region.position}: ${region.changeType} (${region.percentage.toFixed(2)}%)`);
 }
 ```
 
 ```ts
-import { interpret } from "@blazediff/core-native";
+import { initBlazediff, interpret } from "@blazediff/core-wasm";
 
-const result = await interpret("fixtures/3a.png", "fixtures/3a.png");
-console.log(result.summary); // "Images are identical"
-console.log(result.regions.length); // 0
+await initBlazediff(); // loads the .wasm; call once
+
+// Decode both images to RGBA Uint8Arrays (see the Rust + WASM example)
+const a = await loadRgba("3a.png");
+const b = await loadRgba("3b.png");
+
+const result = await interpret(a.data, b.data, a.width, a.height);
+
+console.log(result.summary);
+for (const region of result.regions) {
+  console.log(`${region.position}: ${region.changeType} (${region.percentage.toFixed(2)}%)`);
+}
 ```
+
+### Identical images
+
+When nothing changed, `regions` is empty and `summary` reports no differences -
+identical for both bindings.
 
 ## Change types
 
@@ -3346,7 +3497,7 @@ Read this as: on clear add/delete edits the classifier almost never picks
 the wrong label (0.998 means 4 mistakes in 904 regions). On synthetic shifts
 the post-pass pairs about two thirds of moved-block events with near-perfect
 precision. On real inpainted photos it lands the right label in about four
-of every nine regions — the `ColorChange` vs `ContentChange` boundary is the
+of every nine regions - the `ColorChange` vs `ContentChange` boundary is the
 dominant confusion and the focus area for the next iteration. `html_color_pairs`
 isolates that same boundary on 100 rendered Tailwind UI screenshots that differ
 only in color classes: a dedicated chromatic-recolor branch admits
@@ -3356,5 +3507,494 @@ classifier F1 to 0.993 with zero false positives.
 End-to-end runs the full detector pipeline before classifying, so the score
 also reflects detection misses and spurious small regions; classifier-only
 isolates labeling quality from detection.
+
+---
+
+# Agentic Visual Testing - Setting Up
+
+`@blazediff/agent` captures deterministic screenshots of your routes, diffs them
+against committed baselines with the native BlazeDiff core, and hands ambiguous
+diffs back to your coding agent (Claude Code, Cursor, Codex) to judge. This page
+gets you from zero to a committed set of baselines.
+
+## 1. Install
+
+```bash
+npm install --save-dev @blazediff/agent
+```
+
+First run prompts to install bundled Playwright Chromium - no `sudo`, no
+`npx playwright install --with-deps`.
+
+```bash
+blazediff-agent browsers install --check --json   # check
+blazediff-agent browsers install                  # install if missing
+```
+
+## 2. Onboard
+
+`onboard` writes `.blazediff/config.json` from your dev script, sets up
+`.gitignore`, installs Chromium, and installs the playbook into whatever
+coding-agent stack lives in your project.
+
+```bash
+# Setup only - baselines are captured explicitly in step 4
+blazediff-agent onboard --no-capture
+```
+
+It detects your stack automatically (Claude Code, Codex, Cursor); pass
+`--stack <name>` to be explicit, or `--stack local` to install the local
+(Moondream + Qwen) judge when there's no coding agent.
+
+## 3. Start the dev server
+
+```bash
+blazediff-agent serve-status --detach --json   # waits up to 60s for the port
+```
+
+Already have a running URL (e.g. staging)? Skip the dev server and point the agent
+at it: `blazediff-agent onboard --url https://staging.example.com`.
+
+## 4. Capture baselines
+
+Pipe a JSON list of routes - one `capture` call screenshots them all and writes the
+manifest plus baseline PNGs.
+
+```bash
+cat <<'EOF' | blazediff-agent capture --stdin --mode baseline --json
+[
+  {"id": "home", "url": "/", "mask": [".timestamp"]},
+  {"id": "pricing", "url": "/pricing"}
+]
+EOF
+```
+
+Then tear down the dev server (mandatory):
+
+```bash
+blazediff-agent serve-status --kill --json
+```
+
+> **Info:** **Commit `.blazediff/`** - config, manifest, and baselines all live there and are the source of truth for future checks.
+
+## The config
+
+`.blazediff/config.json` is committed and drives every later run:
+
+```json
+{
+  "devServer": { "command": "pnpm dev", "port": 3000, "readyTimeoutMs": 60000 },
+  "framework": "next",
+  "packageManager": "pnpm",
+  "baseUrl": "http://127.0.0.1:3000"
+}
+```
+
+`.blazediff/manifest.json` is written by `capture` - **never edit it directly**.
+Per-route behavior (login, interactions) lives in
+[harnesses](/docs/agentic-testing/judging-and-harnesses#harnesses), not config.
+
+Next: [Running in CI →](/docs/agentic-testing/running-in-ci). Full command
+reference lives in the [`@blazediff/agent` docs](/apis/agent).
+
+---
+
+# Agentic Visual Testing - Running in CI
+
+With baselines committed (see [Setting Up](/docs/agentic-testing/setting-up)),
+CI's job is one verb: `check`. It re-captures every manifest entry, diffs each
+against its baseline, and fails the build on any regression.
+
+## The check command
+
+```bash
+blazediff-agent check --judge host --json
+```
+
+The CLI starts the dev server automatically when `config.devServer` is set, runs
+every entry through Playwright, diffs each capture, and emits a `CheckReport`:
+
+```json
+{
+  "summaryPath": ".blazediff/summary.md",
+  "totalEntries": 23,
+  "passed": 22,
+  "failed": 0,
+  "pendingJudgments": 1,
+  "results": [
+    {
+      "id": "agent",
+      "url": "/agent",
+      "status": "needs-judgment",
+      "verdict": {
+        "label": "ambiguous",
+        "headline": "5 regions: 4 content-change, 1 addition @ left (0.13%, low)",
+        "action": "investigate"
+      }
+    }
+  ]
+}
+```
+
+`results[]` lists non-pass entries only. Full per-entry detail lives in
+`.blazediff/summary.md` and `.blazediff/judgments/<id>/request.json`.
+
+> **Warning:** **Check-only in CI.** When `CI=1` or there's no TTY, only `check` runs. `onboard` / `capture` / `rewrite` / `reset` are blocked - authoring belongs on a developer's machine, where baseline changes can be reviewed.
+
+## GitHub Actions
+
+```yaml
+- run: pnpm install
+- run: npx blazediff-agent browsers install
+- run: npx blazediff-agent --cwd apps/website check --json
+  env:
+    # Only needed if any entry uses a login harness. One pair per persona.
+    # In CI, set these as secrets rather than committing .blazediff/.env.
+    BLAZEDIFF_AUTH_DEFAULT_EMAIL: ${{ secrets.BLAZEDIFF_AUTH_DEFAULT_EMAIL }}
+    BLAZEDIFF_AUTH_DEFAULT_PASSWORD: ${{ secrets.BLAZEDIFF_AUTH_DEFAULT_PASSWORD }}
+```
+
+Pass `-C, --cwd <abs-path>` to target one app inside a monorepo.
+
+## Exit codes
+
+| Code | Meaning |
+|---|---|
+| `0` | Every entry passed |
+| `1` | At least one regression, intentional, noise, or pending-judgment entry |
+| non-zero + JSON | Infra failure (missing manifest, no Chromium, etc.) |
+
+A route that times out is logged once in the result array and skipped - it never
+blocks the run.
+
+## When a check fails
+
+A `1` exit usually means a diff needs a verdict. Locally, your coding agent reads
+the judgment request and decides; intentional changes are accepted with
+`rewrite`. That loop - verdicts, harnesses, and masking flakes - is covered in
+[Judging and Harnesses →](/docs/agentic-testing/judging-and-harnesses).
+
+---
+
+# Agentic Visual Testing - Judging and Harnesses
+
+A failing `check` isn't always a regression. This page covers the two things that
+turn a raw diff into a decision: **judging** (is this change real, intentional, or
+noise?) and **harnesses** (driving the page - login, interactions - so the right
+thing gets screenshotted in the first place).
+
+## The judging model
+
+The heuristic verdict pipeline emits one of four labels per failing entry:
+
+| Label | Meaning | Default action |
+|---|---|---|
+| `regression-likely` | Confident structural change | Investigate; do not rewrite |
+| `intentional-likely` | Confident styling/typographic change | Ask user, then rewrite |
+| `noise-likely` | Confident non-deterministic source | Ask user; prefer masking |
+| `ambiguous` | Heuristic couldn't classify | Defer to host judge |
+
+For `ambiguous`, `--judge host` writes a `JudgmentRequest` to
+`.blazediff/judgments/<id>/request.json` with:
+
+- `regions[]` - bounding boxes, pixel counts, and change types per region
+- `paths.locator` (`locator.png`) - a ~400px overview with regions outlined in red
+- `paths.tiles` (`regions.png`) - a vertical stack of `[baseline | actual]` pairs
+- `paths.{baseline,actual,diff}` - full-page PNGs as a fallback
+
+> **Info:** **Token discipline.** The region tiles are 10–100× smaller than the full-page PNGs. A well-behaved host agent reads `regions.png` + `locator.png` first and only falls back to the full-page PNGs if a region clearly continues outside its crop.
+
+The host agent writes its verdict to `.blazediff/judgments/<id>/verdict.json`:
+
+```json
+{
+  "id": "agent",
+  "verdict": {
+    "label": "intentional-likely",
+    "headline": "Em-dash replaced with hyphen in copy",
+    "rationale": ["region tile shows only typographic substitution"],
+    "action": "rewrite-if-intended"
+  },
+  "rationale": "Full paragraph explanation...",
+  "confidence": 0.95
+}
+```
+
+Then merge verdicts into the report - no re-screenshot:
+
+```bash
+blazediff-agent check --apply-judgments --json
+```
+
+Accept an intentional change by re-baselining the entry (mask/viewport/waitFor are
+preserved; only the PNG regenerates):
+
+```bash
+blazediff-agent rewrite agent --json       # by id
+blazediff-agent rewrite --failed --json    # all failures from the last check
+```
+
+## Harnesses
+
+A **harness** is a pluggable ESM script in `.blazediff/harnesses/<name>.js`,
+attached to an entry via its `harnesses: [{ name, params? }]` list. Login is just
+one kind - anything that drives the page before or around a screenshot is a
+harness. Two phases:
+
+- **`setup`** - runs before navigation (establish a session, e.g. login).
+- **`interact`** (default) - runs after the base screenshot; drives the page and
+  may emit extra named screenshots via `screenshot(name)`, each its own baseline
+  entry `<entry>__<name>`.
+
+### Interaction harness
+
+```js
+// .blazediff/harnesses/weather-menu.js
+/** @type {import("@blazediff/agent").Harness} */
+export default {
+  async run({ page, screenshot }) {
+    await page.getByRole("button", { name: "More options" }).click();
+    await screenshot("menu"); // -> baseline "weather__menu"
+  },
+};
+```
+
+```json
+{ "id": "weather", "url": "/weather", "harnesses": ["weather-menu"] }
+```
+
+### Login harness
+
+Routes behind a login flow capture through a `setup` harness. Credentials live in
+environment variables - never in the harness file, the manifest, or LLM context.
+
+```js
+/** @type {import("@blazediff/agent").Harness<{ persona?: string }>} */
+export default {
+  phase: "setup",
+  async run({ page, params }) {
+    const upper = (params.persona ?? "default").toUpperCase().replace(/[^A-Z0-9]/g, "_");
+    const email = process.env[`BLAZEDIFF_AUTH_${upper}_EMAIL`];
+    const password = process.env[`BLAZEDIFF_AUTH_${upper}_PASSWORD`];
+    if (!email || !password) throw new Error(`missing BLAZEDIFF_AUTH_${upper}_*`);
+    await page.goto("http://127.0.0.1:3000/login");
+    await page.locator('input[name="email"]').fill(email);
+    await page.locator('input[name="password"]').fill(password);
+    await Promise.all([
+      page.waitForURL((u) => !u.pathname.startsWith("/login")),
+      page.getByRole("button", { name: /sign in|log in/i }).click(),
+    ]);
+  },
+};
+```
+
+Attach it per entry, and drop credentials in `.blazediff/.env` (auto-gitignored):
+
+```json
+{ "id": "dashboard", "url": "/dashboard",
+  "harnesses": [{ "name": "auth", "params": { "persona": "default" } }] }
+```
+
+For OAuth/SSO, magic links, MFA, or captcha - record interactively instead:
+`blazediff-agent auth init --persona default --login-url http://127.0.0.1:3000/login`.
+
+## Masking flaky regions
+
+When a diff is `noise-likely` - or a real-looking diff is actually caused by
+something non-deterministic - mask it, don't rebaseline. A rebaseline just resets
+the clock on a flake; a mask removes it. Mask auto-cycling animations, third-party
+iframes, timestamps, per-session randomness, and personalization noise. **Don't**
+mask real content that happens to be changing - that's the change you want caught.
+
+The agent always masks any element matching `[data-blazediff-agent-mask]` - no
+manifest change needed. Add it to a shared component and it applies on every route:
+
+```tsx
+<div data-blazediff-agent-mask="report-carousel">...</div>
+```
+
+When you can't edit the source (third-party embed), fall back to a per-entry CSS
+selector. The mask list **replaces** the existing one, so include every selector
+you want kept:
+
+```bash
+cat <<'EOF' | blazediff-agent capture --stdin --mode baseline --json
+[
+  {"id": "examples-vanilla", "url": "/docs/ui-components/vanilla", "mask": ["iframe"]}
+]
+EOF
+```
+
+Full reference: [`@blazediff/agent` docs →](/apis/agent).
+
+---
+
+# React Components
+  ReactSwipeDemo,
+  ReactTwoUpDemo,
+  ReactOnionSkinDemo,
+  ReactDifferenceDemo,
+} from "../../../../components/demos/react-modes";
+
+Build interactive image comparison components with React. Every example below is live and runs right on this page.
+
+## Installation
+
+```bash
+npm install @blazediff/react
+```
+
+    ```tsx
+
+    ```
+
+    ```tsx
+
+    ```
+
+    ```tsx
+
+    ```
+
+    ```tsx
+
+    ```
+
+All four components render from the [`@blazediff/ui`](/apis/ui) headless engine and accept `*ClassName` props for styling. See the [full API reference →](/apis/react).
+
+---
+
+# Vanilla Components
+  VanillaSwipeDemo,
+  VanillaTwoUpDemo,
+  VanillaOnionSkinDemo,
+  VanillaDifferenceDemo,
+} from "../../../../components/demos/vanilla-modes";
+
+Use the BlazeDiff UI renderer (`mount*` functions) in vanilla JS - or drive the headless engine from any framework. Every example below is live and runs right on this page.
+
+## Installation
+
+```bash
+npm install @blazediff/ui
+```
+
+    ```ts
+
+    mountSwipe(document.getElementById("app"), {
+      src1: "before.png",
+      src2: "after.png",
+      onPositionChange: (position) => console.log(position),
+    });
+    ```
+
+    ```ts
+
+    mountTwoUp(document.getElementById("app"), {
+      src1: "before.png",
+      src2: "after.png",
+      onImagesLoaded: ({ image1, image2 }) => console.log(image1, image2),
+    });
+    ```
+
+    ```ts
+
+    mountOnionSkin(document.getElementById("app"), {
+      src1: "before.png",
+      src2: "after.png",
+      opacity: 50,
+      onOpacityChange: (opacity) => console.log(opacity),
+    });
+    ```
+
+    ```ts
+
+    mountDifference(document.getElementById("app"), {
+      src1: "before.png",
+      src2: "after.png",
+      threshold: 0.1,
+      onDiffComplete: ({ diffCount, percentage }) =>
+        console.log(diffCount, percentage),
+    });
+    ```
+
+Each `mount*` call returns a `{ update, destroy }` handle - call `update(options)` to change sources or options in place, and `destroy()` to remove the UI. See the [full API reference →](/apis/ui).
+
+---
+
+# Object Comparison
+
+Learn how to use BlazeDiff for comparing JavaScript objects and detecting changes in complex data structures.
+
+## Installation
+
+```bash
+npm install @blazediff/object
+```
+
+## Overview
+
+BlazeDiff Object provides fast and efficient comparison of JavaScript objects, detecting additions, removals, and modifications with detailed path information. Try the interactive demos below to see different comparison scenarios in action.
+
+```ts
+import diff from "@blazediff/object";
+
+const oldObj = { a: 1, b: 2, c: 3 };
+const newObj = { a: 1, b: 20, d: 4 };
+
+const changes = diff(oldObj, newObj);
+```
+
+```ts
+import diff from "@blazediff/object";
+
+const oldObj = {
+  user: {
+    name: "John",
+    email: "john@old.com",
+    settings: {
+      theme: "dark",
+      notifications: true
+    }
+  }
+};
+
+const newObj = {
+  user: {
+    name: "John Doe",
+    email: "john@new.com",
+    settings: {
+      theme: "light",
+      notifications: true,
+      language: "en"
+    }
+  }
+};
+
+const changes = diff(oldObj, newObj);
+```
+
+```ts
+import diff from "@blazediff/object";
+
+const oldObj = {
+  items: [
+    { id: 1, name: "Item 1", value: 100 },
+    { id: 2, name: "Item 2", value: 200 }
+  ],
+  total: 300
+};
+
+const newObj = {
+  items: [
+    { id: 1, name: "Item 1", value: 150 },
+    { id: 2, name: "Item 2", value: 200 },
+    { id: 3, name: "Item 3", value: 50 }
+  ],
+  total: 400
+};
+
+const changes = diff(oldObj, newObj);
+```
 
 ---
