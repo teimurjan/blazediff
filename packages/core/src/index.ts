@@ -142,15 +142,17 @@ export function diff(
 	// 35215 is the maximum possible value for the YIQ difference metric
 	const maxDelta = 35215 * threshold * threshold;
 
-	// No-output fast paths. Single-pass wins on dense-diff mid-size images
-	// (4k photo pairs) because it avoids the redundant equality scan that
-	// block-scan does in Pass 1 + Pass 2. Block-scan still wins on both
-	// very small images (where the tighter inner loop is easier to JIT) and
-	// very large sparse-diff images (where Pass 1's early per-block exit
-	// avoids ~all of Pass 2). Both variants use the same inlined-colorDelta
-	// / unsigned-distance hot loop.
+	// Scans are routed by byte-diff density (~4k-sample probe). Sparse pairs
+	// (the common VRT case) win with the 4-pixel wide-skip scan; dense pairs
+	// (e.g. photos, where ~no 4-pixel group is identical) would pay pure
+	// overhead for it, so the skip is disabled. Very large dense images
+	// (40Mpx+ page screenshots with sub-threshold compression noise) take
+	// the block-tiled two-pass count, which is ~25% faster there than any
+	// single pass. All variants share the same inlined-colorDelta hot loop.
+	const sparse = !isDenseByteDiff(a32, b32, len);
+
 	if (output == null) {
-		if (len < 8_000_000 || len >= 30_000_000) {
+		if (!sparse && len >= 30_000_000) {
 			return diffCountOnlyBlocked(
 				image1,
 				image2,
@@ -171,6 +173,7 @@ export function diff(
 			height,
 			maxDelta,
 			!includeAA,
+			sparse,
 		);
 	}
 
@@ -189,6 +192,7 @@ export function diff(
 		diffColorAlt || diffColor,
 		!includeAA,
 		!!diffMask,
+		sparse,
 	);
 }
 
@@ -252,6 +256,7 @@ function diffWithOutput(
 	diffColorAltOrDiff: [number, number, number],
 	excludeAA: boolean,
 	diffMask: boolean,
+	sparse: boolean,
 ): number {
 	if ((output.byteOffset & 3) !== 0) {
 		return diffWithOutputBytes(
@@ -302,41 +307,60 @@ function diffWithOutput(
 			let blockHasDiff = false;
 			outer: for (let y = startY; y < endY; y++) {
 				const yOffset = y * width;
-				for (let x = startX; x < endX; x++) {
-					const i = yOffset + x;
-					if (a32[i] === b32[i]) continue;
+				const rowEnd = yOffset + endX;
+				const rowEnd4 = rowEnd - 3;
+				let i = yOffset + startX;
+				while (i < rowEnd) {
+					// Same 4-pixel XOR-OR wide skip as the count-only path,
+					// bounded to the current block row and disabled for dense
+					// pairs.
+					if (sparse)
+						while (
+							i < rowEnd4 &&
+							((a32[i] ^ b32[i]) |
+								(a32[i + 1] ^ b32[i + 1]) |
+								(a32[i + 2] ^ b32[i + 2]) |
+								(a32[i + 3] ^ b32[i + 3])) ===
+								0
+						)
+							i += 4;
+					// Dense pairs scan the whole row segment in one inner loop.
+					const stop = sparse ? (i + 4 < rowEnd ? i + 4 : rowEnd) : rowEnd;
+					for (; i < stop; i++) {
+						if (a32[i] === b32[i]) continue;
 
-					const pos = i * 4;
-					const r1 = image1[pos];
-					const g1 = image1[pos + 1];
-					const bl1 = image1[pos + 2];
-					const a1 = image1[pos + 3];
-					const r2 = image2[pos];
-					const g2 = image2[pos + 1];
-					const bl2 = image2[pos + 2];
-					const a2 = image2[pos + 3];
+						const pos = i * 4;
+						const r1 = image1[pos];
+						const g1 = image1[pos + 1];
+						const bl1 = image1[pos + 2];
+						const a1 = image1[pos + 3];
+						const r2 = image2[pos];
+						const g2 = image2[pos + 1];
+						const bl2 = image2[pos + 2];
+						const a2 = image2[pos + 3];
 
-					let dr = r1 - r2;
-					let dg = g1 - g2;
-					let db = bl1 - bl2;
-					if (a1 < 255 || a2 < 255) {
-						const da = a1 - a2;
-						const gb = 48 + 159 * (((pos / 1.618033988749895) | 0) & 1);
-						const bb = 48 + 159 * (((pos / 2.618033988749895) | 0) & 1);
-						dr = (r1 * a1 - r2 * a2 - 48 * da) / 255;
-						dg = (g1 * a1 - g2 * a2 - gb * da) / 255;
-						db = (bl1 * a1 - bl2 * a2 - bb * da) / 255;
-					}
-					const yc = dr * YIQ_Y_R + dg * YIQ_Y_G + db * YIQ_Y_B;
-					const ic = dr * YIQ_I_R + dg * YIQ_I_G + db * YIQ_I_B;
-					const qc = dr * YIQ_Q_R + dg * YIQ_Q_G + db * YIQ_Q_B;
-					const dist =
-						YIQ_COEFF_Y * yc * yc +
-						YIQ_COEFF_I * ic * ic +
-						YIQ_COEFF_Q * qc * qc;
-					if (dist > maxDelta) {
-						blockHasDiff = true;
-						break outer;
+						let dr = r1 - r2;
+						let dg = g1 - g2;
+						let db = bl1 - bl2;
+						if (a1 < 255 || a2 < 255) {
+							const da = a1 - a2;
+							const gb = 48 + 159 * (((pos / 1.618033988749895) | 0) & 1);
+							const bb = 48 + 159 * (((pos / 2.618033988749895) | 0) & 1);
+							dr = (r1 * a1 - r2 * a2 - 48 * da) / 255;
+							dg = (g1 * a1 - g2 * a2 - gb * da) / 255;
+							db = (bl1 * a1 - bl2 * a2 - bb * da) / 255;
+						}
+						const yc = dr * YIQ_Y_R + dg * YIQ_Y_G + db * YIQ_Y_B;
+						const ic = dr * YIQ_I_R + dg * YIQ_I_G + db * YIQ_I_B;
+						const qc = dr * YIQ_Q_R + dg * YIQ_Q_G + db * YIQ_Q_B;
+						const dist =
+							YIQ_COEFF_Y * yc * yc +
+							YIQ_COEFF_I * ic * ic +
+							YIQ_COEFF_Q * qc * qc;
+						if (dist > maxDelta) {
+							blockHasDiff = true;
+							break outer;
+						}
 					}
 				}
 			}
@@ -563,6 +587,27 @@ function diffWithOutputBytes(
 	return diff;
 }
 
+/**
+ * Estimate whether two images differ on more than ~25% of pixels at the
+ * byte level by sampling ~4096 evenly-spaced 32-bit pixels. Above that
+ * density, fully-identical 4-pixel groups become rare ((1-d)^4 < ⅓), so the
+ * wide-skip scan stops paying for itself. Used to route the count-only path.
+ */
+function isDenseByteDiff(
+	a32: Uint32Array,
+	b32: Uint32Array,
+	len: number,
+): boolean {
+	const stride = len > 4096 ? (len / 4096) | 0 : 1;
+	let samples = 0;
+	let mismatches = 0;
+	for (let i = 0; i < len; i += stride) {
+		samples++;
+		if (a32[i] !== b32[i]) mismatches++;
+	}
+	return mismatches * 4 > samples;
+}
+
 /** Check if array is valid pixel data */
 export function isValidImage(arr: unknown): arr is Image["data"] {
 	// work around instanceof Uint8Array not working properly in some Jest environments
@@ -708,7 +753,18 @@ export function antialiased(
 	const x2 = Math.min(x1 + 1, width - 1);
 	const y2 = Math.min(y1 + 1, height - 1);
 	const pos = y1 * width + x1;
-	const centerPixelOffset = pos * 4;
+	const centerVal = a32[pos];
+	const k = pos * 4;
+	// Center pixel channels and background blend constants are loop
+	// invariants of the 8-neighbor scan (brightnessDelta recomputed them per
+	// neighbor). `a32` is the Uint32 view of `image` at every call site.
+	const r1 = image[k];
+	const g1 = image[k + 1];
+	const b1 = image[k + 2];
+	const a1 = image[k + 3];
+	const rb = 48 + 159 * (k & 1);
+	const gb = 48 + 159 * (((k / 1.618033988749895) | 0) & 1);
+	const bb = 48 + 159 * (((k / 2.618033988749895) | 0) & 1);
 	let zeroes = x1 === x0 || x1 === x2 || y1 === y0 || y1 === y2 ? 1 : 0;
 	let min = 0;
 	let max = 0;
@@ -722,13 +778,34 @@ export function antialiased(
 		for (let y = y0; y <= y2; y++) {
 			if (x === x1 && y === y1) continue;
 
-			// Brightness delta between the center pixel and adjacent one
-			const delta = brightnessDelta(
-				image,
-				image,
-				centerPixelOffset,
-				(y * width + x) * 4,
-			);
+			const npos = y * width + x;
+			// Identical RGBA → brightness delta is exactly 0 (same result as
+			// brightnessDelta's all-channels-equal early return), without the
+			// float math. Flat regions exit via `zeroes > 2` after 3 compares.
+			if (a32[npos] === centerVal) {
+				zeroes++;
+				// If found more than 2 equal siblings, it's definitely not anti-aliasing
+				if (zeroes > 2) return false;
+				continue;
+			}
+
+			// Inlined brightnessDelta(image, image, k, m) — identical
+			// arithmetic, center side hoisted above.
+			const m = npos * 4;
+			const r2 = image[m];
+			const g2 = image[m + 1];
+			const b2 = image[m + 2];
+			const a2 = image[m + 3];
+			let dr = r1 - r2;
+			let dg = g1 - g2;
+			let db = b1 - b2;
+			if (a1 < 255 || a2 < 255) {
+				const da = a1 - a2;
+				dr = (r1 * a1 - r2 * a2 - rb * da) / 255;
+				dg = (g1 * a1 - g2 * a2 - gb * da) / 255;
+				db = (b1 * a1 - b2 * a2 - bb * da) / 255;
+			}
+			const delta = dr * YIQ_Y_R + dg * YIQ_Y_G + db * YIQ_Y_B;
 
 			// Count the number of equal, darker and brighter adjacent pixels
 			if (delta === 0) {
@@ -853,13 +930,31 @@ function diffCountOnly(
 	height: number,
 	maxDelta: number,
 	excludeAA: boolean,
+	sparse: boolean,
 ): number {
 	let diff = 0;
-	for (let y = 0; y < height; y++) {
-		const rowStart = y * width;
-		for (let x = 0; x < width; x++) {
-			const i = rowStart + x;
-			// Fast Uint32 equality — 1 compare per pixel instead of 4.
+	const len = width * height;
+	const len4 = len & ~3;
+	let i = 0;
+	while (i < len) {
+		// Wide skip: identical regions cost 1 branch per 4 pixels. XOR-OR of
+		// four 32-bit lanes is zero iff all four pixel pairs are identical.
+		// Disabled for dense pairs, where groups ~never match and the XOR
+		// test would be pure overhead.
+		if (sparse)
+			while (
+				i < len4 &&
+				((a32[i] ^ b32[i]) |
+					(a32[i + 1] ^ b32[i + 1]) |
+					(a32[i + 2] ^ b32[i + 2]) |
+					(a32[i + 3] ^ b32[i + 3])) ===
+					0
+			)
+				i += 4;
+		// Dense pairs scan the whole range in one inner loop — the structure
+		// degenerates to a plain per-pixel pass with no per-group overhead.
+		const stop = sparse ? (i + 4 < len ? i + 4 : len) : len;
+		for (; i < stop; i++) {
 			if (a32[i] === b32[i]) continue;
 
 			const pos = i * 4;
@@ -896,12 +991,15 @@ function diffCountOnly(
 				YIQ_COEFF_Y * yc * yc + YIQ_COEFF_I * ic * ic + YIQ_COEFF_Q * qc * qc;
 
 			if (dist > maxDelta) {
-				if (
-					excludeAA &&
-					(antialiased(image1, x, y, width, height, a32, b32) ||
-						antialiased(image2, x, y, width, height, b32, a32))
-				) {
-					continue;
+				if (excludeAA) {
+					const x = i % width;
+					const y = (i / width) | 0;
+					if (
+						antialiased(image1, x, y, width, height, a32, b32) ||
+						antialiased(image2, x, y, width, height, b32, a32)
+					) {
+						continue;
+					}
 				}
 				diff++;
 			}
@@ -911,20 +1009,20 @@ function diffCountOnly(
 }
 
 /**
- * Block-based count-only path used for very large images (typically tall
- * page screenshots with sparse diffs). Pass 1 partitions the image into
- * blocks and identifies which ones contain any above-threshold diff via an
- * early-exit per-block scan. Pass 2 then re-walks only those blocks for
- * AA-aware diff counting. For sparse-diff images this avoids running the
- * AA-detection branch on tens of millions of identical pixels.
+ * Block-tiled count-only path for very large dense-diff images (40Mpx+ page
+ * screenshots with sub-threshold compression noise), where it beats the
+ * single-pass scan by ~25%. Pass 1 partitions the image into blocks and
+ * identifies which ones contain any above-threshold diff via an early-exit
+ * per-block scan. Pass 2 then re-walks only those blocks for AA-aware diff
+ * counting.
  *
- * Differences from {@link diff}'s full path:
+ * Differences from {@link diffWithOutput}:
  *  - colorDelta is inlined in both passes,
  *  - Math.abs(delta) > maxDelta is replaced with a direct unsigned-distance
  *    comparison (sign isn't needed without a diff color to choose),
- *  - AA detection uses {@link antialiasedInline} with the center pixel's
- *    RGBA pre-hoisted out of the 8-neighbor loop,
- *  - all output-buffer branches are removed.
+ *  - all output-buffer branches are removed,
+ *  - no wide skip: this path is only reached for dense pairs, where the
+ *    XOR-OR group test would be pure overhead.
  */
 function diffCountOnlyBlocked(
 	image1: Image["data"],
