@@ -19,9 +19,15 @@ The fastest single-threaded image diff in the world. Native Rust implementation 
 - Cross-platform pre-built binaries (~700KB-900KB, no compilation required)
 
 **Vendored Libraries:**
-- [libspng](https://libspng.org/) - Fast PNG decoding/encoding with SIMD
+- [libspng](https://libspng.org/) - Fast PNG decoding/encoding with SIMD (default)
 - [libjpeg-turbo](https://libjpeg-turbo.org/) - High-performance JPEG codec with SIMD
 - [qoi](https://github.com/aldanor/qoi-rust) - QOI (Quite OK Image) format for fast lossless compression
+
+> **Experimental PNG codec:** the binaries also bundle an in-house Rust PNG codec
+> ([`blazediff-png`](https://github.com/teimurjan/blazediff/tree/main/crates/blazediff-png)),
+> faster than spng on every fixture with byte-exact decode parity. It's opt-in:
+> set `BLAZEDIFF_PNG_ENABLED=1` to route PNG decode and stored-block (level 0) encode
+> through it. spng stays the default.
 
 > **Note:** This package was previously published as [`@blazediff/bin`](https://www.npmjs.com/package/@blazediff/bin), which is now deprecated. Please use `@blazediff/core-native` instead.
 

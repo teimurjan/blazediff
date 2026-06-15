@@ -1,0 +1,97 @@
+# PNG Codec (blazediff_png)
+
+A from-scratch PNG codec in Rust: **single-threaded, SIMD-first, with byte-exact
+decode parity to [libspng](https://libspng.org)** - and faster than spng on every
+fixture we test, for both encode and decode.
+
+It powers PNG I/O in BlazeDiff: the workload is decoding screenshots for
+visual-regression diffs and writing the result back. The design follows from that
+- be fast on *one* image on *one* core, and let the caller parallelize across
+images, not the other way around.
+
+## What it does
+
+- **Decodes everything spng decodes** - bit depths 1/2/4/8/16, all five color
+  types, palette + tRNS, gray/RGB color-key transparency, Adam7 interlacing - to
+  RGBA8, producing the *same bytes* spng produces and *rejecting the same inputs*
+  spng rejects. `decode_with` also targets any `SPNG_FMT_*` with optional gamma /
+  sBIT transforms; `decode_with_metadata` captures every ancillary chunk.
+- **Encodes** all color-type / bit-depth combinations, optional Adam7, and real
+  deflate levels (libdeflate) plus a stored level 0. Lossless by construction:
+  the chosen mode must represent the input exactly, so `decode(encode(x)) == x`
+  always holds.
+
+## Performance
+
+Versus spng over the BlazeDiff corpus (34 PNGs, 342.7 MPx, up to 5600×3200),
+single-threaded on Apple Silicon - **faster on every fixture**:
+
+| Operation | vs spng | How |
+| --- | --- | --- |
+| Decode | **~1.4×** | whole-buffer libdeflate inflate + SIMD defilter |
+| Encode, level 6 (default) | **~5.8×** | libdeflate + NEON adaptive-filter kernels, at ~98% of spng's file size |
+| Encode, level 0 (stored) | **~1.8×** | uncompressed deflate blocks, copy- and allocation-light pipeline |
+
+The wins come from doing less, not from threads: a whole-buffer inflate instead
+of spng's per-scanline gating, in-place sequential defiltering, autovectorizable
+row expansion, and hand-written NEON kernels for the encode SAD/filter hot path.
+
+## Usage
+
+```rust
+let bytes = std::fs::read("image.png")?;
+
+// Decode to RGBA8 - Image { data, width, height }.
+let image = blazediff_png::decode(&bytes)?;
+
+// Re-encode (Auto picks the smallest lossless color mode; level 6 by default).
+let png = blazediff_png::encode(&image, &blazediff_png::EncodeOptions::default())?;
+```
+
+## The interesting part: parity by identity
+
+zlib's *acceptance* of malformed deflate streams isn't portable. Classic zlib
+(what spng links) tolerates "distance too far back" at scanline boundaries and
+copies from window memory; zlib-ng/zlib-rs reject those streams; libdeflate
+insists on complete adler-valid streams; miniz validates ahead of the write
+gate. Worse, classic zlib's verdict can depend on the exact `avail_out` gating
+sequence.
+
+So for the malformed-input edge cases the decoder **links the same system zlib
+spng links** and drives it with spng's exact per-scanline gate sequence - parity
+by identity, not by reimplementation. libdeflate stays the whole-buffer fast path
+for well-formed streams. (Parity is verified on system-zlib platforms; on Windows
+spng bundles miniz, so the boundary semantics differ there.)
+
+## Verified
+
+| Layer | Result |
+| --- | --- |
+| Exhaustive matrix | every `{depth × color × interlace × filter × tRNS}` at edge sizes, byte-parity with spng |
+| PngSuite conformance | 176/176 - 164 decode at parity, 12 corrupt files reject in lockstep |
+| Differential fuzzing | 40M+ execs vs spng, **0 unresolved divergences** |
+| Encode round-trip fuzzing | 5M+ execs, round-trip + spng cross-decode clean |
+| Line coverage | **98.89%** (residual lines are unreachable defensive arms) |
+
+Byte-identical *encode* output to spng is explicitly **not** a goal - both emit
+valid-but-different streams. The encode contract is lossless round-tripping plus
+spng cross-decode compatibility.
+
+## Deflate backends
+
+The inflate/compress seam is pluggable; everything else is pure Rust.
+
+| Feature | Backend | Use |
+| --- | --- | --- |
+| `zlib-backend` (default) | system zlib + libdeflate (C) | byte-exact spng parity, incl. accept/reject on malformed streams |
+| `rust-backend` | `zune-inflate` + `fdeflate` (pure Rust) | C-free native builds |
+
+The `rust-backend` is correct for every well-formed PNG but is **not**
+bug-compatible with spng on malformed/adversarial streams; spng's edge-case
+accept/reject parity is a `zlib-backend`-only guarantee.
+
+## Status
+
+Experimental. Inside BlazeDiff it is opt-in behind the `BLAZEDIFF_PNG_ENABLED`
+environment variable while it stabilizes; spng stays the default and the
+defensive decode fallback.

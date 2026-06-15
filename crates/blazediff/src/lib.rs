@@ -63,3 +63,24 @@ pub use jpeg_io::{load_jpeg, load_jpegs, save_jpeg};
 #[cfg(feature = "io")]
 pub use qoi_io::{load_qoi, load_qois, save_qoi};
 pub use types::{DiffError, DiffOptions, DiffResult, Image};
+
+/// Fuzzing-only oracle: exposes the pub(crate) spng reference decoder so the
+/// `blazediff_png` differential tests can check their decode against it.
+#[cfg(all(feature = "io", feature = "fuzzing"))]
+#[doc(hidden)]
+pub fn decode_spng_reference(data: &[u8]) -> Result<Image, DiffError> {
+    io::decode_spng(data)
+}
+
+/// Fuzzing-only oracle: decode through spng at an arbitrary `SPNG_FMT_*` and
+/// decode-flags combination, for `blazediff_png`'s format-parity tests.
+/// Returns `(width, height, color_type, bit_depth, bytes)`.
+#[cfg(all(feature = "io", feature = "fuzzing"))]
+#[doc(hidden)]
+pub fn decode_spng_reference_fmt(
+    data: &[u8],
+    fmt: std::os::raw::c_int,
+    flags: std::os::raw::c_int,
+) -> Result<(u32, u32, u8, u8, Vec<u8>), DiffError> {
+    io::decode_spng_fmt(data, fmt, flags)
+}

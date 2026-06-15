@@ -57,6 +57,12 @@ export default withNextra({
 				destination: `/apis/${slug}`,
 				permanent: true,
 			})),
+			// The PNG codec page now lives under the Rust crate API reference.
+			{
+				source: "/docs/png-codec",
+				destination: "/apis/rust/png-codec",
+				permanent: true,
+			},
 		];
 	},
 	turbopack: {

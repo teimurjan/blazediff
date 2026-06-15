@@ -1,0 +1,21 @@
+[package]
+name = "blazediff-png-benchmark"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[[bin]]
+name = "blazediff-png-benchmark"
+path = "src/main.rs"
+
+[dependencies]
+# The codec under test.
+blazediff-png = { path = "../blazediff-png" }
+# spng FFI + the vendored libspng that blazediff itself links — so we measure
+# the exact `spng` blazediff ships, not a separately-built one.
+blazediff = { path = "../blazediff", default-features = false, features = ["io"] }
+libc = "0.2"
+# Competitors.
+png = "0.18"            # image-rs pure-Rust codec (fdeflate encode)
+zune-png = "0.5"        # zune ecosystem PNG codec
+zune-core = "0.5"

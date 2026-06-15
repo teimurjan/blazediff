@@ -1,0 +1,64 @@
+[package]
+name = "blazediff-png"
+version = "0.1.0"
+edition = "2021"
+authors = ["Teimur Gasanov"]
+description = "Single-threaded, SIMD-first PNG codec with byte-exact libspng decode parity"
+license = "MIT"
+repository = "https://github.com/teimurjan/blazediff"
+keywords = ["png", "image", "decoder", "encoder", "simd"]
+categories = ["multimedia::images", "multimedia::encoding"]
+include = ["src/**/*", "Cargo.toml", "README.md"]
+
+[lib]
+name = "blazediff_png"
+path = "src/lib.rs"
+
+[dependencies]
+crc32fast = "1.5.0"
+simd-adler32 = "0.3.9"
+# zlib backend (default): byte-exact spng parity via the same C zlib spng
+# links + libdeflate's whole-buffer fast path. Differential fuzzing showed
+# classic zlib, zlib-ng/zlib-rs and miniz all disagree on boundary error
+# semantics ("distance too far back" bookkeeping, write-gate lookahead) —
+# linking the identical library is the only watertight parity strategy.
+# See src/backend/zlib.rs.
+libdeflater = { version = "1.25.2", optional = true }
+libz-sys = { version = "1", default-features = false, features = ["libc"], optional = true }
+# Strict-window reference inflate for the fuzz harness (feature "fuzzing").
+libz-rs-sys = { version = "0.6", optional = true }
+# rust backend: pure-Rust deflate for C-free native builds.
+# Loses spng accept/reject parity on malformed streams. See src/backend/rust.rs.
+# Inflate (decode): zune's pure-Rust deflate — ~1.5x faster than miniz_oxide
+# over our fixture corpus. `zlib` feature only (no gzip); checksum is disabled
+# at the call site since spng ignores the adler trailer.
+zune-inflate = { version = "0.2", default-features = false, features = ["zlib", "std"], optional = true }
+# Compress (encode): image-rs fast PNG-tuned deflate (ultra-fast mode). Pure safe Rust.
+fdeflate = { version = "0.3", optional = true }
+
+[features]
+default = ["zlib-backend"]
+# Exact spng parity via the same C zlib spng links + libdeflate fast path.
+zlib-backend = ["dep:libz-sys", "dep:libdeflater"]
+# Pure-Rust deflate for C-free native builds.
+rust-backend = ["dep:zune-inflate", "dep:fdeflate"]
+# Internal-only: strict-window reference inflate for the differential fuzzer.
+# Requires the zlib backend.
+fuzzing = ["dep:libz-rs-sys", "zlib-backend"]
+
+[dev-dependencies]
+png = "0.18.1"
+# The spng reference oracle for differential tests (decode_spng_reference).
+blazediff = { path = "../blazediff", default-features = false, features = ["io", "fuzzing"] }
+criterion = { version = "0.5", default-features = false }
+libc = "0.2"
+
+[[bench]]
+name = "simd_kernels"
+path = "benchmarks/simd_kernels.rs"
+harness = false
+
+[[bench]]
+name = "stored_encode"
+path = "benchmarks/stored_encode.rs"
+harness = false
