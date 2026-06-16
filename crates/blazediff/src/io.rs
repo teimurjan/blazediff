@@ -62,10 +62,10 @@ pub fn load_png<P: AsRef<Path>>(path: P) -> Result<Image, DiffError> {
 /// byte-for-byte (see that crate's differential tests).
 pub(crate) fn decode_spng(file_data: &[u8]) -> Result<Image, DiffError> {
     unsafe {
-        // Skip adler32 verification of the zlib stream — we only consume
-        // trusted, locally produced screenshots, and a corrupt stream still
-        // fails to inflate.
-        let ctx = spng_ctx_new(spng_ctx_flags_SPNG_CTX_IGNORE_ADLER32 as c_int);
+        // Keep Adler32 verification on: `load_png` is public API decoding
+        // arbitrary, possibly untrusted PNGs (CLI + napi/python bindings), so a
+        // corrupt zlib stream must error rather than yield wrong pixels.
+        let ctx = spng_ctx_new(0);
         if ctx.is_null() {
             return Err(DiffError::PngError("Failed to create spng context".into()));
         }

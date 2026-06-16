@@ -1,6 +1,6 @@
-//! Populates fuzz/corpus/{fuzz_decode,fuzz_decode_differential}/ with small
-//! PNGs covering every color type and filter the fast path handles, plus
-//! crops of the real page fixtures.
+//! Populates fuzz/corpus/{fuzz_decode,fuzz_decode_differential,fuzz_metadata_differential}/
+//! with small PNGs covering every color type and filter the codec handles,
+//! plus crops of the real page fixtures.
 //!
 //! Run: cargo run --manifest-path fuzz/Cargo.toml --features seed-gen --bin gen_seeds
 
@@ -9,7 +9,11 @@ use std::path::{Path, PathBuf};
 
 use png::{ColorType, Filter};
 
-const TARGETS: [&str; 2] = ["fuzz_decode", "fuzz_decode_differential"];
+const TARGETS: [&str; 3] = [
+    "fuzz_decode",
+    "fuzz_decode_differential",
+    "fuzz_metadata_differential",
+];
 
 fn corpus_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("corpus")
@@ -128,14 +132,24 @@ fn synthetic_seeds() {
     let bytes = encode(&raw, 64, 64, ColorType::Indexed, Filter::Paeth, Some((&plte, &trns)));
     write_seed("synthetic_indexed_trns.png", &bytes);
 
-    // zlib stored-block layout the png crate never emits, but fast_png_io's own
-    // encoder produces — seeds the inflate path for level-0 screenshots.
-    let img = blazediff::Image {
+    // zlib stored-block layout the png crate never emits, but blazediff_png's
+    // own level-0 encoder produces — seeds the inflate path for the
+    // screenshot-fast encode.
+    let img = blazediff_png::Image {
         data: lcg_bytes(64 * 64 * 4, 23),
         width: 64,
         height: 64,
     };
-    write_seed("stored_blocks.png", &blazediff::fast_png_io::encode_stored(&img));
+    let options = blazediff_png::EncodeOptions {
+        color: blazediff_png::ColorMode::Rgba8,
+        compression: 0,
+        filter: blazediff_png::Filter::None,
+        interlace: false,
+    };
+    write_seed(
+        "stored_blocks.png",
+        &blazediff_png::encode(&img, &options).unwrap(),
+    );
 }
 
 /// The page fixtures are 3000x13904 (41.7M px) — over the fuzz pixel budget,
