@@ -23,7 +23,7 @@ const path = require("node:path");
 
 const ROOT = path.resolve(__dirname, "..", "..");
 // Version source of truth: the private @blazediff/rust changesets shadow.
-// sync-cargo-version.js mirrors it into pyproject.toml, which maturin bakes into
+// sync-pyproject-version.js mirrors it into pyproject.toml, which maturin bakes into
 // the wheel filenames matched below.
 const RUST_SHADOW = path.join(ROOT, "crates", "blazediff", "package.json");
 const WHEELS_DIR = path.join(ROOT, "crates", "blazediff", "wheels");

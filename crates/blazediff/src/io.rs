@@ -228,7 +228,7 @@ pub fn encode_png(image: &Image, compression_level: i32) -> Result<Vec<u8>, Diff
             interlace: false,
         };
         return blazediff_png::encode_ref(png, &options)
-            .map_err(|e| DiffError::PngError(format!("blazediff_png encode failed: {:?}", e)));
+            .map_err(|e| DiffError::PngError(format!("blazediff_png encode failed: {e}")));
     }
     unsafe {
         let ctx = spng_ctx_new(spng_ctx_flags_SPNG_CTX_ENCODER as c_int);

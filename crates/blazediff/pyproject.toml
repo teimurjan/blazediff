@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "blazediff"
-# Synced from the @blazediff/rust changesets shadow by scripts/release/sync-cargo-version.js.
+# Synced from the @blazediff/rust changesets shadow by scripts/release/sync-pyproject-version.js.
 version = "5.0.0"
 description = "High-performance image diffing with block-based optimization and SIMD"
 license = { text = "MIT" }
