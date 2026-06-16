@@ -8,7 +8,7 @@
 // transport step anymore - the repo *is* the artifact store.
 //
 // Logic:
-//   - Read version from the @blazediff/python changesets shadow package.json
+//   - Read version from the @blazediff/rust changesets shadow package.json
 //   - PyPI already has it → skip
 //   - Wheels in crates/blazediff/wheels/ don't match version → skip with hint
 //   - Wheels uncommitted/unpushed → warn (the workflow only sees committed state)
@@ -102,7 +102,7 @@ function gitStatusForWheels() {
 async function main() {
 	const version = readShadowVersion();
 	console.log(`\n--- Publishing ${PACKAGE} to PyPI ---`);
-	console.log(`@blazediff/python shadow version: ${version}`);
+	console.log(`@blazediff/rust shadow version: ${version}`);
 
 	if (await versionExistsOnPyPI(PACKAGE, version)) {
 		console.log(`Version ${version} already on PyPI, skipping.`);

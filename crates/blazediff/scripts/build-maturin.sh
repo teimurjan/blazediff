@@ -137,7 +137,7 @@ cd "$PROJECT_DIR"
 
 # Version sanity: read it from pyproject.toml's static `version` (maturin bakes
 # this into the wheel filename; sync-cargo-version.js drives it from the
-# @blazediff/python shadow). Surface it loudly so a wrong-version build is
+# @blazediff/rust shadow). Surface it loudly so a wrong-version build is
 # obvious, and let callers assert via --version.
 WHEEL_VERSION="$(sed -nE 's/^version *= *"([^"]+)".*/\1/p' "$PROJECT_DIR/pyproject.toml" | head -1)"
 if [[ -z "$WHEEL_VERSION" ]]; then

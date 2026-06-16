@@ -13,8 +13,7 @@
 			"@blazediff/core-native-win32-arm64",
 			"@blazediff/core-native-win32-x64",
 			"@blazediff/rust",
-			"@blazediff/rust-png",
-			"@blazediff/python"
+			"@blazediff/rust-png"
 		]
 	],
 	"linked": [],
