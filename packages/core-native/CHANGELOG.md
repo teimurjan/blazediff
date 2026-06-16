@@ -1,5 +1,11 @@
 # @blazediff/core-native
 
+## 5.1.0
+
+### Minor Changes
+
+- 27841f8: Add new blazediff-png crate for faster PNG encoding and decoding
+
 ## 5.0.0
 
 ### Major Changes

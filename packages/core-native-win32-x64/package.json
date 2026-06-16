@@ -1,6 +1,6 @@
 {
 	"name": "@blazediff/core-native-win32-x64",
-	"version": "5.0.0",
+	"version": "5.1.0",
 	"description": "blazediff binary for Windows x64",
 	"main": "blazediff.node",
 	"os": [

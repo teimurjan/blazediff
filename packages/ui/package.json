@@ -1,6 +1,6 @@
 {
 	"name": "@blazediff/ui",
-	"version": "1.6.6",
+	"version": "2.0.0",
 	"description": "Headless engine and framework-agnostic renderer for image-diff UIs",
 	"private": false,
 	"publishConfig": {

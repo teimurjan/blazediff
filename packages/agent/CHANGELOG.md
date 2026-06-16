@@ -1,5 +1,18 @@
 # @blazediff/agent
 
+## 0.8.0
+
+### Minor Changes
+
+- 723e24c: Make route discovery configurable and respect config defaults.
+
+  `discover` now reads its settings (`maxRoutes`, `sampleTemplates`, `sampleThreshold`, `samplesPerTemplate`) from the `discovery` block in your config, with precedence of explicit CLI flag > config > built-in default. `onboard` gains a `--no-sample-templates` flag so you can capture every reachable route from scratch instead of sampling template groups.
+
+### Patch Changes
+
+- Updated dependencies [27841f8]
+  - @blazediff/core-native@5.1.0
+
 ## 0.7.0
 
 ### Minor Changes

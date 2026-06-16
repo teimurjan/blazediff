@@ -1,5 +1,7 @@
 # @blazediff/core-native-linux-x64
 
+## 5.1.0
+
 ## 5.0.0
 
 ## 4.3.4
