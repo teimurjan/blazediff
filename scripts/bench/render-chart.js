@@ -37,6 +37,8 @@ const { createCanvas, GlobalFonts } = require(canvasModulePath);
 const PALETTE = {
 	accent: "#ff7a1a",
 	accentShadow: "#c95a10",
+	cyan: "#1ad1ff",
+	cyanShadow: "#0e7fa3",
 	magenta: "#ff2e8b",
 	magentaShadow: "#a31e5b",
 	muted: "#7a7585",
@@ -85,15 +87,22 @@ const GROUPS = {
 					name: "odiff",
 					pair: "core-native",
 					variant: 0,
-					side: "left",
+					series: 0,
 					role: "competitor",
 				},
 				{
 					name: "@blazediff/core-native",
 					pair: "core-native",
 					variant: 0,
-					side: "right",
+					series: 1,
 					role: "blazediff",
+				},
+				{
+					name: "@blazediff/core-native (next)",
+					pair: "core-native",
+					variant: 0,
+					series: 2,
+					role: "blazediff-next",
 				},
 			],
 		},
@@ -231,10 +240,14 @@ function mdRefForBar(bar) {
 	const pair = PAIRS[bar.pair];
 	if (!pair) throw new Error(`Unknown pair: ${bar.pair}`);
 	const variant = variantOf(pair, bar.variant);
+	// Series columns lead the table: 0=baseline(left), 1=right, 2+=extra. A bar
+	// may pin its series explicitly; otherwise fall back to the left/right side.
+	const seriesIndex =
+		bar.series != null ? bar.series : bar.side === "left" ? 0 : 1;
 	return {
 		mdPath: path.join(REPO_ROOT, pair.targetFile),
 		section: variant.section,
-		columnIndex: bar.side === "left" ? 1 : 2,
+		columnIndex: seriesIndex + 1,
 	};
 }
 
@@ -385,11 +398,17 @@ function colorsForRole(role) {
 	if (role === "blazediff") {
 		return { fill: PALETTE.accent, shadow: PALETTE.accentShadow };
 	}
+	if (role === "blazediff-next" || role === "competitor-3") {
+		return { fill: PALETTE.cyan, shadow: PALETTE.cyanShadow };
+	}
 	if (role === "competitor-2") {
 		return { fill: PALETTE.magenta, shadow: PALETTE.magentaShadow };
 	}
 	return { fill: PALETTE.muted, shadow: PALETTE.mutedShadow };
 }
+
+const DEFAULT_LEGEND =
+	"LOWER IS BETTER  |  ORANGE = BLAZEDIFF  |  CYAN = BLAZEDIFF NEXT  |  GREY = COMPETITOR  |  MAGENTA = SECONDARY COMPETITOR";
 
 function drawVoxelBar(ctx, x, y, w, h, fillColor, shadowColor) {
 	const VOX = 12;
@@ -415,7 +434,7 @@ function drawVoxelBar(ctx, x, y, w, h, fillColor, shadowColor) {
 }
 
 function drawGroupedChart(groups, opts) {
-	const { title, subtitle, outPath } = opts;
+	const { title, subtitle, outPath, legend = DEFAULT_LEGEND } = opts;
 	const W = 1600;
 	const PADDING_X = 80;
 	const HEADER_H = 220;
@@ -500,12 +519,14 @@ function drawGroupedChart(groups, opts) {
 			const { fill, shadow } = colorsForRole(bar.role);
 			drawVoxelBar(ctx, chartLeft, yTop, w, barH, fill, shadow);
 
-			// Time label to the right of the bar
+			// Value label to the right of the bar. Groups may override the
+			// formatter (e.g. a size group labels bytes, not milliseconds).
+			const fmtValue = group.format || formatMs;
 			ctx.fillStyle = PALETTE.fg;
 			ctx.font = `bold 22px ${font}`;
 			ctx.textAlign = "left";
 			ctx.textBaseline = "middle";
-			ctx.fillText(formatMs(bar.totalMs), chartLeft + w + 14, yCenter);
+			ctx.fillText(fmtValue(bar.totalMs), chartLeft + w + 14, yCenter);
 
 			y += ROW;
 		}
@@ -518,11 +539,7 @@ function drawGroupedChart(groups, opts) {
 	ctx.font = `18px ${font}`;
 	ctx.textAlign = "left";
 	ctx.textBaseline = "top";
-	ctx.fillText(
-		"LOWER IS BETTER  |  ORANGE = BLAZEDIFF  |  GREY = COMPETITOR  |  MAGENTA = SECONDARY COMPETITOR",
-		PADDING_X,
-		H - FOOTER_H + 40,
-	);
+	ctx.fillText(legend, PADDING_X, H - FOOTER_H + 40);
 
 	fs.mkdirSync(path.dirname(outPath), { recursive: true });
 	fs.writeFileSync(outPath, canvas.toBuffer("image/png"));
@@ -568,4 +585,4 @@ function main() {
 }
 
 if (require.main === module) main();
-module.exports = { render };
+module.exports = { render, drawGroupedChart, formatMs, PALETTE };

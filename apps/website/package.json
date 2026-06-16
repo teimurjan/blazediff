@@ -4,8 +4,9 @@
 	"private": true,
 	"scripts": {
 		"typecheck": "tsc --noEmit",
+		"predev": "node scripts/generate-benchmarks.mjs",
 		"dev": "next dev --turbopack --port 4000",
-		"prebuild": "node scripts/generate-interpret-data.mjs && node scripts/generate-llms-txt.mjs",
+		"prebuild": "node scripts/generate-interpret-data.mjs && node scripts/generate-llms-txt.mjs && node scripts/generate-benchmarks.mjs",
 		"generate:launch-hero": "node scripts/generate-launch-hero.mjs",
 		"generate:launch-problem": "node scripts/generate-launch-problem.mjs",
 		"generate:launch-verdict": "node scripts/generate-launch-verdict.mjs",

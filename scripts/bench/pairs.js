@@ -97,6 +97,18 @@ const PAIRS = {
 			dir: "apps/image-benchmark",
 			filename: "blazediff.json",
 		},
+		// Additional implementations compared against the baseline (`left`).
+		// Each extra side becomes its own column (ms + saved + %) in the table
+		// and its own bar in the chart. blazediff-next reuses the `blazediff`
+		// task prefix but lives in its own JSON file, so there's no collision.
+		extra: [
+			{
+				name: "BlazeDiff Next",
+				cmd: "pnpm benchmark:core-native-next",
+				dir: "apps/image-benchmark",
+				filename: "blazediff-next.json",
+			},
+		],
 		compareScript: ".github/workflows/scripts/compare-and-print-core-native.js",
 		iterations: 25,
 		warmup: 5,
@@ -214,4 +226,13 @@ const PAIRS = {
 	},
 };
 
-module.exports = { PAIRS };
+/**
+ * Ordered series for a pair: `[left, right, ...extra]`. The first entry is the
+ * baseline that "Time Saved" / "% Improvement" columns are measured against.
+ * Multi-variant pairs don't carry `extra` — they stay strictly two-sided.
+ */
+function seriesOf(pair) {
+	return [pair.left, pair.right, ...(pair.extra || [])];
+}
+
+module.exports = { PAIRS, seriesOf };

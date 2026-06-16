@@ -27,6 +27,10 @@ export default {
 		title: "APIs",
 		type: "page",
 	},
+	benchmarks: {
+		title: "Benchmarks",
+		type: "page",
+	},
 	llms: {
 		title: "LLMs",
 		type: "page",

@@ -14,7 +14,7 @@
 const { execSync } = require("node:child_process");
 const path = require("node:path");
 const fs = require("node:fs");
-const { PAIRS } = require("./pairs.js");
+const { PAIRS, seriesOf } = require("./pairs.js");
 const { update } = require("./update-benchmarks-md.js");
 const { render: renderChart } = require("./render-chart.js");
 
@@ -73,16 +73,17 @@ function main() {
 		flags.iterations != null ? Number(flags.iterations) : pair.iterations;
 	const warmup = flags.warmup != null ? Number(flags.warmup) : pair.warmup;
 
-	// 1. Run both benchmarks.
+	// 1. Run every series' benchmark (baseline `left`, `right`, and any extras).
+	const sides = seriesOf(pair);
 	if (!flags["skip-run"]) {
-		run(buildBenchCmd(pair.left, iterations));
-		run(buildBenchCmd(pair.right, iterations));
+		for (const side of sides) run(buildBenchCmd(side, iterations));
 	}
 
 	const leftPath = sideJsonPath(pair.left);
 	const rightPath = sideJsonPath(pair.right);
-	if (!fs.existsSync(leftPath) || !fs.existsSync(rightPath)) {
-		console.error(`Missing JSON output: ${leftPath} or ${rightPath}`);
+	const missing = sides.map(sideJsonPath).filter((p) => !fs.existsSync(p));
+	if (missing.length) {
+		console.error(`Missing JSON output: ${missing.join(", ")}`);
 		process.exit(1);
 	}
 
@@ -95,39 +96,39 @@ function main() {
 	if (!flags["skip-compare"]) {
 		const hasVariants =
 			Array.isArray(pair.variants) && pair.variants.length > 0;
-		const leftRel = path.posix.join(pair.left.dir, pair.left.filename);
-		const rightRel = path.posix.join(pair.right.dir, pair.right.filename);
+		const rel = (side) => path.posix.join(side.dir, side.filename);
+		const runCompare = (series) => {
+			const inline = `const { compareAndPrint } = require('./.github/workflows/scripts/compare-and-print.js'); compareAndPrint(${JSON.stringify(
+				{ series, precision: pair.precision },
+			)});`;
+			run(`node -e ${JSON.stringify(inline)}`);
+		};
 		if (hasVariants) {
 			for (const variant of pair.variants) {
 				console.log(`\n--- ${variant.section} ---`);
-				const inline = `const { compareAndPrint } = require('./.github/workflows/scripts/compare-and-print.js'); compareAndPrint(${JSON.stringify(
+				runCompare([
 					{
-						fileA: leftRel,
-						fileB: rightRel,
-						nameA: pair.left.name,
-						nameB: pair.right.name,
-						precision: pair.precision,
-						prefixA: variant.leftTaskPrefix,
-						prefixB: variant.rightTaskPrefix,
+						file: rel(pair.left),
+						name: pair.left.name,
+						prefix: variant.leftTaskPrefix,
 					},
-				)});`;
-				run(`node -e ${JSON.stringify(inline)}`);
+					{
+						file: rel(pair.right),
+						name: pair.right.name,
+						prefix: variant.rightTaskPrefix,
+					},
+				]);
 			}
 		} else if (pair.compareScript) {
 			run(`node ${pair.compareScript}`);
 		} else {
-			const inline = `const { compareAndPrint } = require('./.github/workflows/scripts/compare-and-print.js'); compareAndPrint(${JSON.stringify(
-				{
-					fileA: leftRel,
-					fileB: rightRel,
-					nameA: pair.left.name,
-					nameB: pair.right.name,
-					precision: pair.precision,
-					prefixA: pair.left.taskPrefix,
-					prefixB: pair.right.taskPrefix,
-				},
-			)});`;
-			run(`node -e ${JSON.stringify(inline)}`);
+			runCompare(
+				sides.map((side) => ({
+					file: rel(side),
+					name: side.name,
+					prefix: side.taskPrefix,
+				})),
+			);
 		}
 	}
 

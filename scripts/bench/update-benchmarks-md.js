@@ -22,6 +22,8 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { PAIRS } = require("./pairs.js");
 
+const REPO_ROOT = path.resolve(__dirname, "../..");
+
 function parseArgs(argv) {
 	const out = {};
 	for (let i = 2; i < argv.length; i++) {
@@ -56,37 +58,55 @@ function loadResults(p, prefix) {
 		});
 }
 
-function buildRows(leftResults, rightResults, precision) {
-	const byKey = new Map(rightResults.map((r) => [r.key, r]));
+/**
+ * Build one row per fixture shared by every series. `series[0]` is the
+ * baseline; every other series contributes a formatted latency plus a
+ * saved/% pair measured against the baseline.
+ *
+ * @param {Array<{name: string, results: Array<{key, latency}>}>} series
+ */
+function buildRows(series, precision) {
+	const [baseline, ...others] = series;
+	const otherMaps = others.map(
+		(s) => new Map(s.results.map((r) => [r.key, r])),
+	);
+
 	const rows = [];
-	for (const l of leftResults) {
-		const r = byKey.get(l.key);
-		if (!r) continue;
-		const a = l.latency.mean;
-		const b = r.latency.mean;
-		const saved = a - b;
-		const pct = a ? (saved / a) * 100 : 0;
-		rows.push({
-			key: l.key,
-			a: `${a.toFixed(precision)}ms`,
-			b: `${b.toFixed(precision)}ms`,
-			saved: `${saved.toFixed(precision)}ms`,
-			pct: `${pct.toFixed(1)}%`,
-			pctNum: pct,
-		});
+	for (const base of baseline.results) {
+		const matches = otherMaps.map((m) => m.get(base.key));
+		if (matches.some((m) => !m)) continue;
+		const a = base.latency.mean;
+		const cells = [`${a.toFixed(precision)}ms`];
+		const comps = [];
+		for (const m of matches) {
+			const b = m.latency.mean;
+			const saved = a - b;
+			const pct = a ? (saved / a) * 100 : 0;
+			cells.push(`${b.toFixed(precision)}ms`);
+			comps.push({
+				saved: `${saved.toFixed(precision)}ms`,
+				pct: `${pct.toFixed(1)}%`,
+				pctNum: pct,
+			});
+		}
+		rows.push({ key: base.key, cells, comps });
 	}
 	rows.sort((x, y) => x.key.localeCompare(y.key));
 	return rows;
 }
 
-function buildHtmlTable(rows, pair) {
-	const head = [
-		"Benchmark",
-		pair.left.name,
-		pair.right.name,
-		"Time Saved",
-		"% Improvement",
-	];
+function buildHtmlTable(rows, seriesNames) {
+	const others = seriesNames.slice(1);
+	// Keep the original two-column labels for the common two-series case so
+	// existing tables stay byte-identical; name them per-series otherwise.
+	const savedLabel = (name) =>
+		others.length === 1 ? "Time Saved" : `${name} Saved`;
+	const pctLabel = (name) =>
+		others.length === 1 ? "% Improvement" : `${name} %`;
+
+	const head = ["Benchmark", ...seriesNames];
+	for (const name of others) head.push(savedLabel(name), pctLabel(name));
+
 	const lines = [];
 	lines.push("<table>");
 	lines.push("  <thead>");
@@ -98,10 +118,11 @@ function buildHtmlTable(rows, pair) {
 	for (const r of rows) {
 		lines.push("    <tr>");
 		lines.push(`      <td>${r.key}</td>`);
-		lines.push(`      <td>${r.a}</td>`);
-		lines.push(`      <td>${r.b}</td>`);
-		lines.push(`      <td>${r.saved}</td>`);
-		lines.push(`      <td>${r.pct}</td>`);
+		for (const cell of r.cells) lines.push(`      <td>${cell}</td>`);
+		for (const c of r.comps) {
+			lines.push(`      <td>${c.saved}</td>`);
+			lines.push(`      <td>${c.pct}</td>`);
+		}
 		lines.push("    </tr>");
 	}
 	lines.push("  </tbody>");
@@ -109,9 +130,11 @@ function buildHtmlTable(rows, pair) {
 	return lines.join("\n");
 }
 
+// Average improvement of the primary blazediff series (first non-baseline)
+// against the baseline — drives the section's blockquote.
 function averagePct(rows) {
 	if (!rows.length) return 0;
-	const sum = rows.reduce((s, r) => s + r.pctNum, 0);
+	const sum = rows.reduce((s, r) => s + r.comps[0].pctNum, 0);
 	return sum / rows.length;
 }
 
@@ -209,10 +232,34 @@ function resolveVariants(pair) {
 	];
 }
 
+/**
+ * Ordered series for a variant: baseline (`left`) first, then `right`, then any
+ * `extra` sides. Extra sides only apply to non-multi-variant pairs and resolve
+ * their JSON from the pair definition (`<dir>/<filename>` under the repo root).
+ */
+function variantSeries(pair, variant, leftPath, rightPath) {
+	const list = [
+		{ name: pair.left.name, path: leftPath, prefix: variant.leftTaskPrefix },
+		{ name: pair.right.name, path: rightPath, prefix: variant.rightTaskPrefix },
+	];
+	if (!Array.isArray(pair.variants) && Array.isArray(pair.extra)) {
+		for (const e of pair.extra) {
+			list.push({
+				name: e.name,
+				path: path.join(REPO_ROOT, e.dir, e.filename),
+				prefix: e.taskPrefix,
+			});
+		}
+	}
+	return list;
+}
+
 function patchVariant(md, pair, variant, leftPath, rightPath, it, wm, pr) {
-	const leftResults = loadResults(leftPath, variant.leftTaskPrefix);
-	const rightResults = loadResults(rightPath, variant.rightTaskPrefix);
-	const rows = buildRows(leftResults, rightResults, pr);
+	const series = variantSeries(pair, variant, leftPath, rightPath).map((s) => ({
+		name: s.name,
+		results: loadResults(s.path, s.prefix),
+	}));
+	const rows = buildRows(series, pr);
 	if (!rows.length) {
 		throw new Error(
 			`No overlapping benchmark names for variant "${variant.section}". ` +
@@ -243,7 +290,10 @@ function patchVariant(md, pair, variant, leftPath, rightPath, it, wm, pr) {
 	}
 
 	let sectionText = md.slice(section.start, section.end);
-	const html = buildHtmlTable(rows, pair);
+	const html = buildHtmlTable(
+		rows,
+		series.map((s) => s.name),
+	);
 	const avgPct = averagePct(rows);
 	const iterationsLine = buildIterationsLine(pair, it, wm);
 

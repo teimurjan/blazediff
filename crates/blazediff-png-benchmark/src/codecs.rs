@@ -12,18 +12,36 @@
 
 use blazediff::spng_ffi::*;
 use blazediff_png::{ColorMode, EncodeOptions, Filter, Image};
+use png::DeflateCompression;
 use std::os::raw::c_int;
 
 /// Display names, indexed the same as [`decode`] / [`encode`].
 pub const NAMES: [&str; 4] = ["blazediff", "spng", "image-rs", "zune"];
 
-// Each codec encodes at its *balanced default*. blazediff's is libdeflate
-// level 4 — its speed/size knee (~39% faster than level 6 for ~2% larger
-// output); spng's is zlib level 6. image-rs and zune use their own
-// `Default`/`Balanced`. (At matched level 6 blazediff is ~5.9× faster than
-// spng and ~2% smaller — see the README's level note.)
-const BD_LEVEL: u8 = 4;
-const SPNG_LEVEL: u8 = 6;
+/// Encode compression mode. We time each codec at two settings so the
+/// speed/size trade-off is visible and zune's compress-nothing encoder is
+/// measured on equal footing:
+///   - [`EncMode::None`] — stored / uncompressed deflate blocks (level 0).
+///   - [`EncMode::Half`] — half of each codec's *own* max deflate level
+///     (libdeflate 12 → 6, zlib 9 → 4). zune only supports stored output, so
+///     its `Half` is the same uncompressed encode.
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum EncMode {
+    None,
+    Half,
+}
+
+/// The deflate level/strategy each codec runs for `mode`, for display.
+pub fn level_label(idx: usize, mode: EncMode) -> &'static str {
+    match (idx, mode) {
+        (_, EncMode::None) => "stored",
+        (0, EncMode::Half) => "libdeflate 6",
+        (1, EncMode::Half) => "zlib 4",
+        (2, EncMode::Half) => "flate2 4",
+        (3, EncMode::Half) => "stored", // zune has no compressed mode
+        _ => unreachable!(),
+    }
+}
 
 struct CtxGuard(*mut spng_ctx);
 impl Drop for CtxGuard {
@@ -47,12 +65,12 @@ pub fn decode(idx: usize, bytes: &[u8]) -> usize {
     }
 }
 
-/// Encode the RGBA8 `img` with codec `idx`, returning the PNG bytes.
-pub fn encode(idx: usize, img: &Image) -> Vec<u8> {
+/// Encode the RGBA8 `img` with codec `idx` at `mode`, returning the PNG bytes.
+pub fn encode(idx: usize, img: &Image, mode: EncMode) -> Vec<u8> {
     match idx {
-        0 => bd_encode(img),
-        1 => spng_encode(img),
-        2 => image_encode(img),
+        0 => bd_encode(img, mode),
+        1 => spng_encode(img, mode),
+        2 => image_encode(img, mode),
         3 => zune_encode(img),
         _ => unreachable!(),
     }
@@ -60,13 +78,22 @@ pub fn encode(idx: usize, img: &Image) -> Vec<u8> {
 
 // --- blazediff ---------------------------------------------------------------
 
-fn bd_encode(img: &Image) -> Vec<u8> {
+fn bd_encode(img: &Image, mode: EncMode) -> Vec<u8> {
+    // libdeflate levels 0..=12; "half" of the max is 6, "none" is stored (0).
+    let compression = match mode {
+        EncMode::None => 0,
+        EncMode::Half => 6,
+    };
     blazediff_png::encode(
         img,
         &EncodeOptions {
             color: ColorMode::Rgba8,
-            compression: BD_LEVEL,
-            filter: Filter::Adaptive,
+            compression,
+            filter: if compression == 0 {
+                Filter::None
+            } else {
+                Filter::Adaptive
+            },
             interlace: false,
         },
     )
@@ -114,7 +141,12 @@ pub fn spng_decode(bytes: &[u8]) -> (u32, u32, Vec<u8>) {
     }
 }
 
-fn spng_encode(img: &Image) -> Vec<u8> {
+fn spng_encode(img: &Image, mode: EncMode) -> Vec<u8> {
+    // zlib levels 0..=9; "half" of the max is 4, "none" is stored (0).
+    let level: c_int = match mode {
+        EncMode::None => 0,
+        EncMode::Half => 4,
+    };
     unsafe {
         let ctx = spng_ctx_new(spng_ctx_flags_SPNG_CTX_ENCODER as c_int);
         assert!(!ctx.is_null());
@@ -129,11 +161,16 @@ fn spng_encode(img: &Image) -> Vec<u8> {
         };
         assert_eq!(spng_set_ihdr(ctx, &mut ihdr), 0);
         spng_set_option(ctx, spng_option_SPNG_ENCODE_TO_BUFFER, 1);
-        spng_set_option(
-            ctx,
-            spng_option_SPNG_IMG_COMPRESSION_LEVEL,
-            SPNG_LEVEL as c_int,
-        );
+        spng_set_option(ctx, spng_option_SPNG_IMG_COMPRESSION_LEVEL, level);
+        if level == 0 {
+            // Match the "no compression" intent: don't filter before storing
+            // (restrict the adaptive choice to the None filter).
+            spng_set_option(
+                ctx,
+                spng_option_SPNG_FILTER_CHOICE,
+                spng_filter_choice_SPNG_FILTER_CHOICE_NONE as c_int,
+            );
+        }
 
         let ret = spng_encode_image(
             ctx,
@@ -165,13 +202,19 @@ fn image_decode(bytes: &[u8]) -> usize {
     info.buffer_size()
 }
 
-fn image_encode(img: &Image) -> Vec<u8> {
+fn image_encode(img: &Image, mode: EncMode) -> Vec<u8> {
+    // flate2/zlib levels 1..=9 (`Level`); "half" of the max is 4, "none" is the
+    // crate's stored mode (which also forces no row filtering).
+    let compression = match mode {
+        EncMode::None => DeflateCompression::NoCompression,
+        EncMode::Half => DeflateCompression::Level(4),
+    };
     let mut out = Vec::new();
     {
         let mut encoder = png::Encoder::new(&mut out, img.width, img.height);
         encoder.set_color(png::ColorType::Rgba);
         encoder.set_depth(png::BitDepth::Eight);
-        encoder.set_compression(png::Compression::default());
+        encoder.set_deflate_compression(compression);
         let mut writer = encoder.write_header().expect("image-rs header");
         writer.write_image_data(&img.data).expect("image-rs encode");
     }
