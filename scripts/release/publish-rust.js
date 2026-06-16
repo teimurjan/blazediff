@@ -7,10 +7,19 @@ const os = require("node:os");
 const ROOT = path.resolve(__dirname, "..", "..");
 const CRATES_DIR = path.join(ROOT, "crates");
 
+// Order matters: blazediff depends on blazediff-png, so the dependency must be
+// on crates.io before blazediff's publish verification builds.
 const CRATES = [
 	{
+		name: "blazediff-png",
+		npmPkgPath: path.join(ROOT, "crates", "blazediff-png", "package.json"),
+		cargoTomlPath: path.join(ROOT, "crates", "blazediff-png", "Cargo.toml"),
+		dockerfile: "blazediff-png/Dockerfile.publish",
+		dockerTag: "blazediff-png-publish",
+	},
+	{
 		name: "blazediff",
-		npmPkgPath: path.join(ROOT, "packages", "core-native", "package.json"),
+		npmPkgPath: path.join(ROOT, "crates", "blazediff", "package.json"),
 		cargoTomlPath: path.join(ROOT, "crates", "blazediff", "Cargo.toml"),
 		dockerfile: "blazediff/Dockerfile.publish",
 		dockerTag: "blazediff-publish",
@@ -50,6 +59,22 @@ async function versionExistsOnCratesIo(crateName, version) {
 		console.log(`Failed to check crates.io: ${err.message}`);
 		return false;
 	}
+}
+
+// Poll crates.io until a freshly published version is queryable, so a
+// downstream crate's publish (which resolves it from the registry) doesn't race
+// the index propagation.
+async function waitForCratesIo(crateName, version, tries = 30, delayMs = 5000) {
+	for (let attempt = 1; attempt <= tries; attempt++) {
+		if (await versionExistsOnCratesIo(crateName, version)) return;
+		console.log(
+			`Waiting for ${crateName}@${version} to propagate (${attempt}/${tries})...`,
+		);
+		await new Promise((resolve) => setTimeout(resolve, delayMs));
+	}
+	console.log(
+		`Warning: ${crateName}@${version} still not visible on crates.io after waiting`,
+	);
 }
 
 function syncVersion(cargoTomlPath, targetVersion) {
@@ -100,6 +125,10 @@ async function publishCrate(crate, token) {
 	} finally {
 		fs.unlinkSync(tokenFile);
 	}
+
+	// Ensure the just-published version is visible before any dependent crate
+	// later in CRATES tries to resolve it from the registry.
+	await waitForCratesIo(crate.name, versions.bin);
 }
 
 async function main() {

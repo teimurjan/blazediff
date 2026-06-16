@@ -8,10 +8,14 @@ RUN apt-get update && apt-get install -y \
     zlib1g-dev \
     && rm -rf /var/lib/apt/lists/*
 
+# Every workspace member must be present for cargo to load the workspace, even
+# the ones this image doesn't build directly.
 COPY Cargo.toml .
 COPY Cargo.lock .
 COPY blazediff/ blazediff/
 COPY blazediff-interpret-verify/ blazediff-interpret-verify/
+COPY blazediff-png/ blazediff-png/
+COPY blazediff-png-benchmark/ blazediff-png-benchmark/
 
 WORKDIR /app/blazediff
 

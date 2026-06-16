@@ -4,9 +4,9 @@ Performance benchmarks comparing BlazeDiff against popular alternatives across i
 
 ## Benchmark Targets
 
-- **[Pixel By Pixel](./benchmarks/pixel-by-pixel.md)** — `@blazediff/core` (JS), `@blazediff/core-wasm`, `@blazediff/core-native`, and the `blazediff` PyPI bindings, compared against `pixelmatch`, `odiff`, and `opencv-python`.
-- **[Structural Similarity](./benchmarks/structural.md)** — `@blazediff/ssim` (fast/original + hitchhikers) compared against `ssim.js` (fast + weber).
-- **[Object Diffing](./benchmarks/object.md)** — `@blazediff/object` compared against `microdiff`.
+- **[Pixel By Pixel](./benchmarks/pixel-by-pixel.md)** - `@blazediff/core` (JS), `@blazediff/core-wasm`, `@blazediff/core-native`, and the `blazediff` PyPI bindings, compared against `pixelmatch`, `odiff`, and `opencv-python`.
+- **[Structural Similarity](./benchmarks/structural.md)** - `@blazediff/ssim` (fast/original + hitchhikers) compared against `ssim.js` (fast + weber).
+- **[Object Diffing](./benchmarks/object.md)** - `@blazediff/object` compared against `microdiff`.
 
 Each target file embeds a summary chart of % improvement over the competitor (orange = BlazeDiff faster, magenta = regression).
 

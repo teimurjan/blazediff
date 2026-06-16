@@ -135,20 +135,21 @@ done
 
 cd "$PROJECT_DIR"
 
-# Version sanity: read it from Cargo.toml (maturin bakes this into wheel
-# filenames via pyproject's `dynamic = ["version"]`). Surface it loudly so a
-# wrong-version build is obvious, and let callers assert via --version.
-CARGO_VERSION="$(sed -nE 's/^version *= *"([^"]+)".*/\1/p' "$PROJECT_DIR/Cargo.toml" | head -1)"
-if [[ -z "$CARGO_VERSION" ]]; then
-    echo "Error: could not read version from $PROJECT_DIR/Cargo.toml"
+# Version sanity: read it from pyproject.toml's static `version` (maturin bakes
+# this into the wheel filename; sync-pyproject-version.js drives it from the
+# @blazediff/rust shadow). Surface it loudly so a wrong-version build is
+# obvious, and let callers assert via --version.
+WHEEL_VERSION="$(sed -nE 's/^version *= *"([^"]+)".*/\1/p' "$PROJECT_DIR/pyproject.toml" | head -1)"
+if [[ -z "$WHEEL_VERSION" ]]; then
+    echo "Error: could not read version from $PROJECT_DIR/pyproject.toml"
     exit 1
 fi
-if [[ -n "$EXPECTED_VERSION" && "$EXPECTED_VERSION" != "$CARGO_VERSION" ]]; then
-    echo "Error: --version $EXPECTED_VERSION does not match Cargo.toml ($CARGO_VERSION)."
-    echo "       Bump Cargo.toml (e.g. \`pnpm sync-cargo-version\`) or correct the --version flag before building."
+if [[ -n "$EXPECTED_VERSION" && "$EXPECTED_VERSION" != "$WHEEL_VERSION" ]]; then
+    echo "Error: --version $EXPECTED_VERSION does not match pyproject.toml ($WHEEL_VERSION)."
+    echo "       Bump it (e.g. \`node scripts/release/sync-pyproject-version.js\`) or correct the --version flag before building."
     exit 1
 fi
-echo "==> Building wheels for blazediff v$CARGO_VERSION (from Cargo.toml)"
+echo "==> Building wheels for blazediff v$WHEEL_VERSION (from pyproject.toml)"
 
 # Wipe stale wheels from prior runs so $WHEELS_DIR only contains wheels from
 # this build - otherwise older versions linger and get synced into the committed

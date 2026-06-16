@@ -23,6 +23,7 @@
 
 # Benchmark results
 *.json
+!package.json
 !Cargo.json
 
 # Cross-compilation outputs

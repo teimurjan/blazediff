@@ -11,7 +11,9 @@
 			"@blazediff/core-native-linux-arm64",
 			"@blazediff/core-native-linux-x64",
 			"@blazediff/core-native-win32-arm64",
-			"@blazediff/core-native-win32-x64"
+			"@blazediff/core-native-win32-x64",
+			"@blazediff/rust",
+			"@blazediff/rust-png"
 		]
 	],
 	"linked": [],

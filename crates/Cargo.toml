@@ -1,5 +1,10 @@
 [workspace]
-members = ["blazediff", "blazediff-interpret-verify"]
+members = [
+    "blazediff",
+    "blazediff-interpret-verify",
+    "blazediff-png",
+    "blazediff-png-benchmark",
+]
 resolver = "2"
 
 # =============================================================================

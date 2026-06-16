@@ -14,7 +14,7 @@
 		"test": "pnpm -r test",
 		"typecheck": "pnpm -r typecheck",
 		"changeset": "changeset",
-		"version": "changeset version && node scripts/release/sync-cargo-version.js",
+		"version": "changeset version && node scripts/release/sync-cargo-version.js && node scripts/release/sync-pyproject-version.js",
 		"release": "changeset publish && node scripts/release/publish-rust.js && deno run -A scripts/release/publish-jsr.ts && node scripts/release/publish-pypi.js",
 		"deno:test": "deno test --allow-all --no-check",
 		"bench": "node scripts/bench/run.js",
@@ -64,6 +64,8 @@
 	"workspaces": [
 		"packages/*",
 		"apps/*",
-		"examples/*"
+		"examples/*",
+		"crates/blazediff",
+		"crates/blazediff-png"
 	]
 }

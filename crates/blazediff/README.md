@@ -13,6 +13,7 @@ High-performance image diffing with block-based optimization and SIMD accelerati
 - **SIMD acceleration** - Native SSE4.1 (x86) and NEON (ARM) implementations
 - **Multiple formats** - PNG, JPEG, and QOI support
 - **Perceptual diffing** - YIQ-based color difference with antialiasing detection
+- **In-house PNG codec** - optional [`blazediff_png`](../blazediff-png), faster than spng on every fixture, with byte-exact decode parity; opt-in via `BLAZEDIFF_PNG_ENABLED`
 - **Cross-platform** - Linux, macOS, and Windows support
 - **Multi-language** - Native Rust crate, Node.js (N-API), and Python (PyO3) bindings - all sharing the same core
 
@@ -95,6 +96,10 @@ See [INTERPRET.md](./INTERPRET.md) for the full algorithm documentation - pipeli
 ## Performance
 
 3-4x faster than odiff, 8x faster than pixelmatch on 4K images.
+
+PNG I/O defaults to spng. Setting `BLAZEDIFF_PNG_ENABLED=1` routes decode and stored
+(level 0) encode through the in-house [`blazediff_png`](../blazediff-png) codec,
+which is faster than spng on every fixture.
 
 ## License
 

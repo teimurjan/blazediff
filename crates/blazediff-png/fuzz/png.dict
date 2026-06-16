@@ -1,0 +1,10 @@
+# PNG structure dictionary for libFuzzer.
+sig="\x89PNG\x0d\x0a\x1a\x0a"
+ihdr="IHDR"
+idat="IDAT"
+iend="IEND"
+plte="PLTE"
+trns="tRNS"
+gama="gAMA"
+zlib_default="\x78\x9c"
+zlib_stored="\x78\x01"

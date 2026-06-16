@@ -44,7 +44,7 @@ blazediff-agent onboard --stack codex
 blazediff-agent onboard --stack claude,codex
 blazediff-agent onboard --stack all
 
-# No coding agent — install the local (Moondream + Qwen) judge
+# No coding agent - install the local (Moondream + Qwen) judge
 blazediff-agent onboard --stack local
 ```
 
@@ -56,7 +56,7 @@ Per stack:
 | Codex | `~/.codex/skills/blazediff/SKILL.md` | user-global | `AGENTS.md`, `.codex/`, or `~/.codex/` |
 | Cursor | `<project>/.cursor/rules/blazediff.mdc` | project | `.cursor/` or `.cursorrules` |
 
-Codex is user-global because OpenAI's Codex CLI discovers skills under `~/.codex/skills/<name>/SKILL.md` — installing there means `/blazediff` works in every project on your machine. On a TTY with no detection, the command prompts. Pass `--force` to overwrite a hand-edited file.
+Codex is user-global because OpenAI's Codex CLI discovers skills under `~/.codex/skills/<name>/SKILL.md` - installing there means `/blazediff` works in every project on your machine. On a TTY with no detection, the command prompts. Pass `--force` to overwrite a hand-edited file.
 
 ## Quickstart from a coding agent
 
@@ -289,7 +289,7 @@ Re-run `check` to confirm the entry now passes.
 }
 ```
 
-Per-route behavior (login, interactions) lives in **harnesses**, not config — see [Harnesses](#harnesses) below.
+Per-route behavior (login, interactions) lives in **harnesses**, not config - see [Harnesses](#harnesses) below.
 
 Omit `devServer` to point the agent at an already-running URL (set `baseUrl` directly):
 
@@ -317,14 +317,14 @@ blazediff-agent onboard --url https://staging.example.com --json
 
 A **harness** is a pluggable script in `.blazediff/harnesses/<name>.js`, attached
 to an entry via its `harnesses: [{ name, params? }]` list. Login is just one kind
-of harness — anything that drives the page before or around a screenshot is the
+of harness - anything that drives the page before or around a screenshot is the
 same concept.
 
-A harness is an ESM module (`.js` / `.mjs` — TypeScript is not auto-transpiled)
+A harness is an ESM module (`.js` / `.mjs` - TypeScript is not auto-transpiled)
 that default-exports a `Harness`. Two phases:
 
-- **`setup`** — runs before navigation (establish a session, e.g. login).
-- **`interact`** (default) — runs after the base screenshot; drives the page and
+- **`setup`** - runs before navigation (establish a session, e.g. login).
+- **`interact`** (default) - runs after the base screenshot; drives the page and
   may emit extra named screenshots via `screenshot(name)`. Each becomes its own
   baseline entry, id `<entry>__<name>`.
 
@@ -369,10 +369,10 @@ its own manifest/baseline/diff entry. To re-baseline a multi-shot entry,
 ### Login harness
 
 Routes behind a login flow capture through a `setup` harness. Credentials live
-in environment variables — never in the harness file, the manifest, or LLM
+in environment variables - never in the harness file, the manifest, or LLM
 context (the harness only references `process.env.BLAZEDIFF_AUTH_*`).
 
-For a plain email/password form the agent **writes the harness directly** — it
+For a plain email/password form the agent **writes the harness directly** - it
 identifies the form fields from the login route source or a DOM snapshot and
 emits `.blazediff/harnesses/auth.js`:
 
@@ -396,8 +396,8 @@ export default {
 };
 ```
 
-For flows that can't be reduced to fill-and-submit — OAuth/SSO, magic links,
-MFA, captcha — record it interactively instead:
+For flows that can't be reduced to fill-and-submit - OAuth/SSO, magic links,
+MFA, captcha - record it interactively instead:
 
 ```sh
 blazediff-agent auth init --persona default --login-url http://127.0.0.1:3000/login
@@ -414,9 +414,9 @@ same `.blazediff/harnesses/auth.js`.
   "harnesses": [{ "name": "auth", "params": { "persona": "default" } }] }
 ```
 
-**Credentials.** The CLI auto-loads env files from `--cwd` —
+**Credentials.** The CLI auto-loads env files from `--cwd` -
 `.blazediff/.env[.local]` (blazediff-scoped, auto-gitignored) then the
-project-root `.env[.local]` — before any harness runs. Real exported env vars
+project-root `.env[.local]` - before any harness runs. Real exported env vars
 win; `.blazediff/` files beat the root. So just drop them in `.blazediff/.env`:
 
 ```sh

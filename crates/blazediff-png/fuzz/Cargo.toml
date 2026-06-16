@@ -1,0 +1,88 @@
+[package]
+name = "blazediff-png-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[features]
+seed-gen = ["dep:png"]
+
+[dependencies]
+libfuzzer-sys = "0.4"
+png = { version = "0.18.1", optional = true }
+
+[dependencies.blazediff-png]
+path = ".."
+features = ["fuzzing"]
+
+# The spng oracle for the differential targets.
+[dependencies.blazediff]
+path = "../../blazediff"
+default-features = false
+features = ["io", "fuzzing"]
+
+[lib]
+name = "blazediff_png_fuzz"
+path = "src/lib.rs"
+
+[[bin]]
+name = "fuzz_decode"
+path = "fuzz_targets/fuzz_decode.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "fuzz_decode_differential"
+path = "fuzz_targets/fuzz_decode_differential.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "fuzz_decode_format"
+path = "fuzz_targets/fuzz_decode_format.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "fuzz_encode_roundtrip"
+path = "fuzz_targets/fuzz_encode_roundtrip.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "fuzz_encode16_roundtrip"
+path = "fuzz_targets/fuzz_encode16_roundtrip.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "fuzz_metadata_differential"
+path = "fuzz_targets/fuzz_metadata_differential.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "gen_seeds"
+path = "src/bin/gen_seeds.rs"
+test = false
+doc = false
+bench = false
+required-features = ["seed-gen"]
+
+# Standalone workspace: the parent has an explicit members list and
+# lto="fat"/panic="abort" release profiles that must not apply here
+# (panic="abort" bypasses libfuzzer-sys's panic hook).
+[workspace]
+members = ["."]
+
+[profile.release]
+debug = 1

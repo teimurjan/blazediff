@@ -62,4 +62,7 @@ export default {
 	rust: {
 		title: "blazediff",
 	},
+	"blazediff-png": {
+		title: "blazediff-png",
+	},
 };

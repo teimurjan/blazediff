@@ -8,7 +8,7 @@
 // transport step anymore - the repo *is* the artifact store.
 //
 // Logic:
-//   - Read version from crates/blazediff/Cargo.toml
+//   - Read version from the @blazediff/rust changesets shadow package.json
 //   - PyPI already has it → skip
 //   - Wheels in crates/blazediff/wheels/ don't match version → skip with hint
 //   - Wheels uncommitted/unpushed → warn (the workflow only sees committed state)
@@ -22,7 +22,10 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const ROOT = path.resolve(__dirname, "..", "..");
-const CARGO_TOML = path.join(ROOT, "crates", "blazediff", "Cargo.toml");
+// Version source of truth: the private @blazediff/rust changesets shadow.
+// sync-pyproject-version.js mirrors it into pyproject.toml, which maturin bakes into
+// the wheel filenames matched below.
+const RUST_SHADOW = path.join(ROOT, "crates", "blazediff", "package.json");
 const WHEELS_DIR = path.join(ROOT, "crates", "blazediff", "wheels");
 const PACKAGE = "blazediff";
 const WORKFLOW = "publish-pypi.yml";
@@ -35,11 +38,10 @@ const EXPECTED_PLATFORM_TAGS = [
 	"win_arm64",
 ];
 
-function readCargoVersion() {
-	const cargoToml = fs.readFileSync(CARGO_TOML, "utf8");
-	const match = cargoToml.match(/^version\s*=\s*"([^"]+)"/m);
-	if (!match) throw new Error(`No version field in ${CARGO_TOML}`);
-	return match[1];
+function readShadowVersion() {
+	const { version } = JSON.parse(fs.readFileSync(RUST_SHADOW, "utf8"));
+	if (!version) throw new Error(`No version field in ${RUST_SHADOW}`);
+	return version;
 }
 
 async function versionExistsOnPyPI(name, version) {
@@ -98,9 +100,9 @@ function gitStatusForWheels() {
 }
 
 async function main() {
-	const version = readCargoVersion();
+	const version = readShadowVersion();
 	console.log(`\n--- Publishing ${PACKAGE} to PyPI ---`);
-	console.log(`Cargo.toml version: ${version}`);
+	console.log(`@blazediff/rust shadow version: ${version}`);
 
 	if (await versionExistsOnPyPI(PACKAGE, version)) {
 		console.log(`Version ${version} already on PyPI, skipping.`);
