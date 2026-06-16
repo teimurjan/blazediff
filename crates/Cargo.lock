@@ -135,6 +135,7 @@ name = "blazediff-png"
 version = "5.1.0"
 dependencies = [
  "blazediff",
+ "cc",
  "crc32fast",
  "criterion",
  "fdeflate",

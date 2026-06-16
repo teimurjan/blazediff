@@ -30,6 +30,11 @@ use super::{IdatInflate, StreamInflateError};
 
 // zlib >= 1.2.9 extension spng relies on (skip adler32 verification);
 // libz-sys doesn't declare it. Resolved from the same libz we link.
+// Only declared/called when the linked zlib actually provides it
+// (ZLIB_VERNUM >= 0x1290 — see build.rs); spng gates its own call the same
+// way, so on older zlib both fall back to validating adler32 and the symbol
+// is never referenced (it would otherwise fail to link). Parity holds.
+#[cfg(has_inflate_validate)]
 extern "C" {
     fn inflateValidate(strm: *mut z::z_stream, check: c_int) -> c_int;
 }
@@ -158,7 +163,10 @@ impl Inflater {
         if ret != z::Z_OK {
             return None;
         }
-        unsafe { inflateValidate(strm.as_mut_ptr(), 0) };
+        #[cfg(has_inflate_validate)]
+        unsafe {
+            inflateValidate(strm.as_mut_ptr(), 0)
+        };
         Some(Self { strm })
     }
 
