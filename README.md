@@ -33,6 +33,13 @@
 - **[@blazediff/ssim](./packages/ssim#readme)** - SSIM, MS-SSIM, and Hitchhiker's SSIM for perceptual quality assessment
 - **[@blazediff/gmsd](./packages/gmsd#readme)** - Gradient Magnitude Similarity Deviation metric
 
+### Rust Crates
+- **[blazediff](https://crates.io/crates/blazediff)** - The Rust crate powering `@blazediff/core-native`: block-based image diffing with SIMD ([source](./crates/blazediff#readme))
+- **[blazediff-png](https://crates.io/crates/blazediff-png)** - From-scratch PNG codec in Rust, single-threaded and SIMD-first, with byte-exact decode parity to libspng and faster on every fixture ([source](./crates/blazediff-png#readme))
+
+### Python Package
+- **[blazediff](https://pypi.org/project/blazediff/)** - Python bindings (via maturin) for the Rust diff core ([source](./crates/blazediff#readme))
+
 ### Command Line Tools
 - **[@blazediff/cli](./packages/cli#readme)** - JS CLI with multiple algorithms (diff, GMSD, SSIM, MS-SSIM, Hitchhiker's SSIM)
 - **[@blazediff/agent](./packages/agent#readme)** - Agentic visual regression. Auto-discovers routes, captures deterministic screenshots, and hands ambiguous diffs back to your coding agent (Claude Code, Cursor, Codex) to judge.
@@ -59,6 +66,12 @@ bun i @blazediff/core
 # Deno / Bun via JSR
 deno add jsr:@blazediff/core
 bunx jsr add @blazediff/core
+
+# Rust via Cargo
+cargo add blazediff
+
+# Python via pip
+pip install blazediff
 ```
 
 Every package above is available on both registries **except** the test-runner adapters (`@blazediff/vitest`, `@blazediff/jest`, `@blazediff/bun`) and the UI libraries (`@blazediff/ui`, `@blazediff/react`), which remain NPM-only - the adapters augment each runner's `Matchers` types and the UI packages have browser-DOM and React type surfaces that JSR's publish-time slow-types check doesn't allow. Native-binary sub-packages under `@blazediff/core-native-*` are also NPM-only; Deno consumers resolve them transparently via `npm:` specifiers declared inside `@blazediff/core-native`.
@@ -68,7 +81,7 @@ Every package above is available on both registries **except** the test-runner a
 BlazeDiff delivers significant performance improvements across all components:
 
 - **Native (Rust)**: 3-4x faster than odiff, 8x faster than pixelmatch on 4K images
-ge, up to ~5x on 4K (browser, edge, any wasm host)
+- **WASM**: ~58% faster than pixelmatch, up to ~5x on 4K (browser, edge, any wasm host)
 - **Image Pixel-by-Pixel (JS)**: ~50% faster than pixelmatch (up to 88% on identical images)
 - **SSIM**: ~25% faster than ssim.js, ~70% faster with Hitchhiker's SSIM
 - **Object Diff**: ~55% faster than microdiff (up to 96% on identical arrays)

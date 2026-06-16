@@ -6,10 +6,10 @@ import { getPageMap } from "nextra/page-map";
 import { Footer, Layout, Navbar } from "nextra-theme-docs";
 
 const banner = (
-	<Banner storageKey="agent-launch">
-		<Link href="/docs/agentic-testing/setting-up">
-			New: <b className="text-blue-400">@blazediff/agent</b> - agentic visual
-			regression your coding agent can judge. Read more →
+	<Banner storageKey="png-codec-launch">
+		<Link href="/apis/blazediff-png">
+			New: <b className="text-blue-400">blazediff-png</b> - a from-scratch Rust
+			PNG codec, byte-exact to libspng and faster on every fixture. Read more →
 		</Link>
 	</Banner>
 );
