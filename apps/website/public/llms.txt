@@ -856,7 +856,7 @@ blazediff-agent onboard --stack codex
 blazediff-agent onboard --stack claude,codex
 blazediff-agent onboard --stack all
 
-# No coding agent — install the local (Moondream + Qwen) judge
+# No coding agent - install the local (Moondream + Qwen) judge
 blazediff-agent onboard --stack local
 ```
 
@@ -868,7 +868,7 @@ Per stack:
 | Codex | `~/.codex/skills/blazediff/SKILL.md` | user-global | `AGENTS.md`, `.codex/`, or `~/.codex/` |
 | Cursor | `<project>/.cursor/rules/blazediff.mdc` | project | `.cursor/` or `.cursorrules` |
 
-Codex is user-global because OpenAI's Codex CLI discovers skills under `~/.codex/skills/<name>/SKILL.md` — installing there means `/blazediff` works in every project on your machine. On a TTY with no detection, the command prompts. Pass `--force` to overwrite a hand-edited file.
+Codex is user-global because OpenAI's Codex CLI discovers skills under `~/.codex/skills/<name>/SKILL.md` - installing there means `/blazediff` works in every project on your machine. On a TTY with no detection, the command prompts. Pass `--force` to overwrite a hand-edited file.
 
 ## Quickstart from a coding agent
 
@@ -1081,7 +1081,7 @@ Re-run `check` to confirm the entry now passes.
 }
 ```
 
-Per-route behavior (login, interactions) lives in **harnesses**, not config — see [Harnesses](#harnesses) below.
+Per-route behavior (login, interactions) lives in **harnesses**, not config - see [Harnesses](#harnesses) below.
 
 Omit `devServer` to point the agent at an already-running URL (set `baseUrl` directly):
 
@@ -1109,14 +1109,14 @@ blazediff-agent onboard --url https://staging.example.com --json
 
 A **harness** is a pluggable script in `.blazediff/harnesses/<name>.js`, attached
 to an entry via its `harnesses: [{ name, params? }]` list. Login is just one kind
-of harness — anything that drives the page before or around a screenshot is the
+of harness - anything that drives the page before or around a screenshot is the
 same concept.
 
-A harness is an ESM module (`.js` / `.mjs` — TypeScript is not auto-transpiled)
+A harness is an ESM module (`.js` / `.mjs` - TypeScript is not auto-transpiled)
 that default-exports a `Harness`. Two phases:
 
-- **`setup`** — runs before navigation (establish a session, e.g. login).
-- **`interact`** (default) — runs after the base screenshot; drives the page and
+- **`setup`** - runs before navigation (establish a session, e.g. login).
+- **`interact`** (default) - runs after the base screenshot; drives the page and
   may emit extra named screenshots via `screenshot(name)`. Each becomes its own
   baseline entry, id `<entry>__<name>`.
 
@@ -1161,10 +1161,10 @@ its own manifest/baseline/diff entry. To re-baseline a multi-shot entry,
 ### Login harness
 
 Routes behind a login flow capture through a `setup` harness. Credentials live
-in environment variables — never in the harness file, the manifest, or LLM
+in environment variables - never in the harness file, the manifest, or LLM
 context (the harness only references `process.env.BLAZEDIFF_AUTH_*`).
 
-For a plain email/password form the agent **writes the harness directly** — it
+For a plain email/password form the agent **writes the harness directly** - it
 identifies the form fields from the login route source or a DOM snapshot and
 emits `.blazediff/harnesses/auth.js`:
 
@@ -1188,8 +1188,8 @@ export default {
 };
 ```
 
-For flows that can't be reduced to fill-and-submit — OAuth/SSO, magic links,
-MFA, captcha — record it interactively instead:
+For flows that can't be reduced to fill-and-submit - OAuth/SSO, magic links,
+MFA, captcha - record it interactively instead:
 
 ```sh
 blazediff-agent auth init --persona default --login-url http://127.0.0.1:3000/login
@@ -1206,9 +1206,9 @@ same `.blazediff/harnesses/auth.js`.
   "harnesses": [{ "name": "auth", "params": { "persona": "default" } }] }
 ```
 
-**Credentials.** The CLI auto-loads env files from `--cwd` —
+**Credentials.** The CLI auto-loads env files from `--cwd` -
 `.blazediff/.env[.local]` (blazediff-scoped, auto-gitignored) then the
-project-root `.env[.local]` — before any harness runs. Real exported env vars
+project-root `.env[.local]` - before any harness runs. Real exported env vars
 win; `.blazediff/` files beat the root. So just drop them in `.blazediff/.env`:
 
 ```sh
@@ -3111,70 +3111,109 @@ No system C dependencies; the crate builds standalone with a recent Rust toolcha
 
 ---
 
-# PNG Codec (blazediff_png)
+# blazediff-png
 
-A from-scratch PNG codec in Rust: **single-threaded, SIMD-first, with byte-exact
-decode parity to [libspng](https://libspng.org)** — and faster than spng on every
-fixture we test, for both encode and decode.
+A from-scratch PNG codec in Rust: **single-threaded, SIMD-first, with byte-exact decode parity to [libspng](https://libspng.org)** — and faster than spng on every fixture we test, for both encode and decode. It powers PNG I/O in the BlazeDiff Rust crate.
 
-It powers PNG I/O in BlazeDiff: the workload is decoding screenshots for
-visual-regression diffs and writing the result back. The design follows from that
-— be fast on *one* image on *one* core, and let the caller parallelize across
-images, not the other way around.
+[View per-fixture benchmarks](https://github.com/teimurjan/blazediff/tree/main/crates/blazediff-png-benchmark)
 
-## What it does
+## Installation
 
-- **Decodes everything spng decodes** — bit depths 1/2/4/8/16, all five color
-  types, palette + tRNS, gray/RGB color-key transparency, Adam7 interlacing — to
-  RGBA8, producing the *same bytes* spng produces and *rejecting the same inputs*
-  spng rejects. `decode_with` also targets any `SPNG_FMT_*` with optional gamma /
-  sBIT transforms; `decode_with_metadata` captures every ancillary chunk.
-- **Encodes** all color-type / bit-depth combinations, optional Adam7, and real
-  deflate levels (libdeflate) plus a stored level 0. Lossless by construction:
-  the chosen mode must represent the input exactly, so `decode(encode(x)) == x`
-  always holds.
+```toml
+# Cargo.toml
+[dependencies]
+blazediff-png = "0.1"
+```
+
+The crate name is `blazediff-png`; the library imports as `blazediff_png`. Crate sources are available on [crates.io](https://crates.io/crates/blazediff-png).
+
+> **Warning:** Experimental. Inside BlazeDiff it is opt-in behind the `BLAZEDIFF_PNG_ENABLED` environment variable while it stabilizes; spng stays the default and the defensive decode fallback.
+
+## Features
+
+- **Decodes everything spng decodes** — bit depths 1/2/4/8/16, all five color types, palette + tRNS, gray/RGB color-key transparency, Adam7 interlacing — to RGBA8, producing the *same bytes* spng produces and *rejecting the same inputs* spng rejects.
+- **Targets any pixel format** — `decode_with` reaches any `SPNG_FMT_*` with optional gamma / sBIT transforms; `decode_with_metadata` captures every ancillary chunk.
+- **Encodes** all color-type / bit-depth combinations, optional Adam7, and real deflate levels (libdeflate) plus a stored level 0. Lossless by construction: `decode(encode(x)) == x` always holds.
+- **SIMD-first, single-threaded** — whole-buffer inflate, in-place defilter, NEON adaptive-filter kernels; the caller parallelizes across images, not the codec.
+- **Pluggable deflate backend** — system zlib + libdeflate for spng parity, or pure Rust for C-free builds.
 
 ## Performance
 
-Versus spng over the BlazeDiff corpus (34 PNGs, 342.7 MPx, up to 5600×3200),
-single-threaded on Apple Silicon — **faster on every fixture**:
+Versus spng over the BlazeDiff corpus (34 PNGs, 342.7 MPx, up to 5600×3200), single-threaded on Apple Silicon — **faster on every fixture**:
 
 | Operation | vs spng | How |
 | --- | --- | --- |
 | Decode | **~1.4×** | whole-buffer libdeflate inflate + SIMD defilter |
-| Encode, level 6 (default) | **~5.8×** | libdeflate + NEON adaptive-filter kernels, at ~98% of spng's file size |
+| Encode, level 6 | **~5.8×** | libdeflate + NEON adaptive-filter kernels, at ~98% of spng's file size |
 | Encode, level 0 (stored) | **~1.8×** | uncompressed deflate blocks, copy- and allocation-light pipeline |
 
-The wins come from doing less, not from threads: a whole-buffer inflate instead
-of spng's per-scanline gating, in-place sequential defiltering, autovectorizable
-row expansion, and hand-written NEON kernels for the encode SAD/filter hot path.
+The wins come from doing less, not from threads: a whole-buffer inflate instead of spng's per-scanline gating, in-place sequential defiltering, autovectorizable row expansion, and hand-written NEON kernels for the encode SAD/filter hot path.
 
-## Usage
+## Library Usage
+
+Decode to RGBA8, work in memory, encode back out.
 
 ```rust
+use blazediff_png::{decode, encode, EncodeOptions};
+
 let bytes = std::fs::read("image.png")?;
 
 // Decode to RGBA8 — Image { data, width, height }.
-let image = blazediff_png::decode(&bytes)?;
+let image = decode(&bytes)?;
 
-// Re-encode (Auto picks the smallest lossless color mode; level 6 by default).
-let png = blazediff_png::encode(&image, &blazediff_png::EncodeOptions::default())?;
+// Re-encode (Auto picks the smallest lossless color mode; level 4 by default).
+let png = encode(&image, &EncodeOptions::default())?;
 ```
 
-## The interesting part: parity by identity
+### Types
 
-zlib's *acceptance* of malformed deflate streams isn't portable. Classic zlib
-(what spng links) tolerates "distance too far back" at scanline boundaries and
-copies from window memory; zlib-ng/zlib-rs reject those streams; libdeflate
-insists on complete adler-valid streams; miniz validates ahead of the write
-gate. Worse, classic zlib's verdict can depend on the exact `avail_out` gating
-sequence.
+```rust
+pub struct Image {
+    pub data: Vec<u8>,   // RGBA8, 4 bytes per pixel, row-major
+    pub width: u32,
+    pub height: u32,
+}
 
-So for the malformed-input edge cases the decoder **links the same system zlib
-spng links** and drives it with spng's exact per-scanline gate sequence — parity
-by identity, not by reimplementation. libdeflate stays the whole-buffer fast path
-for well-formed streams. (Parity is verified on system-zlib platforms; on Windows
-spng bundles miniz, so the boundary semantics differ there.)
+pub struct EncodeOptions {
+    pub color: ColorMode,   // Auto = smallest lossless mode
+    pub compression: u8,    // 0 = stored, 1..=12 = libdeflate level (default 4)
+    pub filter: Filter,     // None/Sub/Up/Average/Paeth/Adaptive/Choice
+    pub interlace: bool,    // Adam7
+}
+```
+
+`ColorMode` covers every PNG color type and bit depth (`Gray1..16`, `GrayAlpha8/16`, `Indexed1..8`, `Rgb8/16`, `Rgba8/16`) plus `Auto`. `Filter::Choice(FilterSet)` restricts the adaptive heuristic to a chosen subset of filters, mirroring spng's `SPNG_IMG_FILTER_CHOICE`.
+
+### API
+
+| Function | Purpose |
+| --- | --- |
+| `decode` | PNG → RGBA8 `Image`, spng-parity |
+| `decode_with` | PNG → any `DecodeFormat`, optional gamma / sBIT |
+| `decode_with_metadata` | `decode` + every ancillary chunk |
+| `encode` / `encode_ref` | RGBA8 → PNG (`Vec<u8>`); `_ref` borrows the buffer |
+| `encode_to` | stream a PNG encode into any `Write` sink |
+| `encode16` | true 16-bit `Image16` → PNG |
+| `encode_with_metadata` | `encode` + caller-supplied ancillary chunks |
+
+> **Info:** **Compression levels:** - `0` — uncompressed stored blocks (fastest) - `4` — default speed/size knee - `6` — spng's default ratio (~98% of its file size) - `12` — libdeflate maximum
+
+## Cargo Features
+
+The inflate/compress seam is pluggable; everything else is pure Rust.
+
+| Feature | Backend | Use |
+| --- | --- | --- |
+| `zlib-backend` (default) | system zlib + libdeflate (C) | byte-exact spng parity, incl. accept/reject on malformed streams |
+| `rust-backend` | `zune-inflate` + `fdeflate` (pure Rust) | C-free native builds |
+
+The `rust-backend` is correct for every well-formed PNG but is **not** bug-compatible with spng on malformed/adversarial streams; spng's edge-case accept/reject parity is a `zlib-backend`-only guarantee.
+
+## Parity by identity
+
+zlib's *acceptance* of malformed deflate streams isn't portable. Classic zlib (what spng links) tolerates "distance too far back" at scanline boundaries and copies from window memory; zlib-ng/zlib-rs reject those streams; libdeflate insists on complete adler-valid streams; miniz validates ahead of the write gate. Worse, classic zlib's verdict can depend on the exact `avail_out` gating sequence.
+
+So for the malformed-input edge cases the decoder **links the same system zlib spng links** and drives it with spng's exact per-scanline gate sequence — parity by identity, not by reimplementation. libdeflate stays the whole-buffer fast path for well-formed streams. (Parity is verified on system-zlib platforms; on Windows spng bundles miniz, so the boundary semantics differ there.)
 
 ## Verified
 
@@ -3186,28 +3225,14 @@ spng bundles miniz, so the boundary semantics differ there.)
 | Encode round-trip fuzzing | 5M+ execs, round-trip + spng cross-decode clean |
 | Line coverage | **98.89%** (residual lines are unreachable defensive arms) |
 
-Byte-identical *encode* output to spng is explicitly **not** a goal — both emit
-valid-but-different streams. The encode contract is lossless round-tripping plus
-spng cross-decode compatibility.
+Byte-identical *encode* output to spng is explicitly **not** a goal — both emit valid-but-different streams. The encode contract is lossless round-tripping plus spng cross-decode compatibility.
 
-## Deflate backends
+## Links
 
-The inflate/compress seam is pluggable; everything else is pure Rust.
-
-| Feature | Backend | Use |
-| --- | --- | --- |
-| `zlib-backend` (default) | system zlib + libdeflate (C) | byte-exact spng parity, incl. accept/reject on malformed streams |
-| `rust-backend` | `zune-inflate` + `fdeflate` (pure Rust) | C-free native builds |
-
-The `rust-backend` is correct for every well-formed PNG but is **not**
-bug-compatible with spng on malformed/adversarial streams; spng's edge-case
-accept/reject parity is a `zlib-backend`-only guarantee.
-
-## Status
-
-Experimental. Inside BlazeDiff it is opt-in behind the `BLAZEDIFF_PNG_ENABLED`
-environment variable while it stabilizes; spng stays the default and the
-defensive decode fallback.
+- [Crates.io](https://crates.io/crates/blazediff-png)
+- [Crate README](https://github.com/teimurjan/blazediff/blob/main/crates/blazediff-png/README.md)
+- [Benchmarks](https://github.com/teimurjan/blazediff/tree/main/crates/blazediff-png-benchmark)
+- [GitHub Repository](https://github.com/teimurjan/blazediff)
 
 ---
 

@@ -1,0 +1,6 @@
+{
+	"name": "@blazediff/rust-png",
+	"version": "0.0.1",
+	"private": true,
+	"description": "Version shadow for the blazediff-png Rust crate. Changesets versions this package; the version is synced into Cargo.toml and published to crates.io (never to npm). Fixed to @blazediff/core-native."
+}

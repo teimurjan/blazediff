@@ -132,7 +132,7 @@ dependencies = [
 
 [[package]]
 name = "blazediff-png"
-version = "0.1.0"
+version = "5.0.0"
 dependencies = [
  "blazediff",
  "crc32fast",

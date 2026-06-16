@@ -2,6 +2,13 @@ packages:
   - packages/*
   - apps/*
   - examples/*
+  # Version-only shadows for the Rust crates + Python wheel (private; crates.io/PyPI, not npm).
+  #
+  # @blazediff/rust → blazediff crate (crates.io)
+  #                 ↘ blazediff wheel (PyPI)
+  # @blazediff/rust-png → blazediff-png crate (crates.io)
+  - crates/blazediff
+  - crates/blazediff-png
 
 onlyBuiltDependencies:
   - esbuild
