@@ -1,6 +1,5 @@
 /* tslint:disable */
 /* eslint-disable */
-export function _start(): void;
 /**
  * Interpret the diff between two RGBA buffers into structured change regions.
  *
@@ -9,6 +8,7 @@ export function _start(): void;
  * native binding produces.
  */
 export function interpretRgba(rgba_a: Uint8Array, rgba_b: Uint8Array, width: number, height: number, threshold: number, include_aa: boolean): any;
+export function _start(): void;
 /**
  * Diff two RGBA buffers. Returns the count of differing pixels.
  *
