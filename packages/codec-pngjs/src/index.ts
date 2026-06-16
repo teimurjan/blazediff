@@ -7,21 +7,38 @@ export interface Image {
 	height: number;
 }
 
-async function read(input: string | Buffer): Promise<Image> {
-	return new Promise((resolve, reject) => {
-		try {
-			const buffer = typeof input === "string" ? readFileSync(input) : input;
-			const png = PNG.sync.read(buffer);
+// PNG.sync.read reaches into Node's private zlib `_handle`, which Deno (≥2.8)
+// rejects with "expected typed ArrayBufferView". On Deno, fall back to the
+// async streaming parser (public zlib API); keep the faster sync path on Node.
+const isDeno = typeof (globalThis as { Deno?: unknown }).Deno !== "undefined";
 
-			resolve({
-				data: png.data,
-				width: png.width,
-				height: png.height,
-			});
-		} catch (error) {
-			reject(new Error(`Failed to read PNG file ${input}: ${error}`));
-		}
+function decode(buffer: Buffer): Promise<Image> {
+	if (!isDeno) {
+		const png = PNG.sync.read(buffer);
+		return Promise.resolve({
+			data: png.data,
+			width: png.width,
+			height: png.height,
+		});
+	}
+	return new Promise((resolve, reject) => {
+		new PNG().parse(buffer, (error, png) => {
+			if (error) {
+				reject(error);
+				return;
+			}
+			resolve({ data: png.data, width: png.width, height: png.height });
+		});
 	});
+}
+
+async function read(input: string | Buffer): Promise<Image> {
+	try {
+		const buffer = typeof input === "string" ? readFileSync(input) : input;
+		return await decode(buffer);
+	} catch (error) {
+		throw new Error(`Failed to read PNG file ${input}: ${error}`);
+	}
 }
 
 async function write(image: Image, output: string | Buffer): Promise<void> {

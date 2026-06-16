@@ -57,15 +57,20 @@ From the repo root:
 
 | Target            | Groups                                                                  | Bars per group |
 | ----------------- | ----------------------------------------------------------------------- | -------------- |
-| `pixel-by-pixel`  | JavaScript · JavaScript Native Binary · Python                          | 3 / 2 / 3      |
+| `pixel-by-pixel`  | JavaScript · JavaScript Native Binary · Python                          | 3 / 3 / 3      |
 | `structural`      | SSIM (fast / original) · Hitchhikers SSIM (Weber)                       | 2 / 2          |
 | `object`          | Plain JS object diff                                                    | 2              |
+| `png-codec`       | Decode · Encode no-compression · Encode half-compression (separate generator) | 4 / 4 / 4 |
 
 Within a group, fixture sets are **intersected** across the bars so totals are apples-to-apples. The group caption shows how many fixtures were summed (e.g. `32 fixtures, summed`).
 
 - Output: 1600px wide, transparent PNG, voxel-art palette (orange `#ff7a1a` for BlazeDiff, gunmetal `#7a7585` for primary competitor, magenta `#ff2e8b` reserved for secondary competitor).
 - **Data source**: the per-fixture ms columns of the `<table>` blocks in the target Markdown file. This is deliberate — pair JSONs share filenames (`blazediff.json` is overwritten by every right-side bench), so reading the Markdown after `update-benchmarks-md.js` has just written to it gives a consistent cross-pair view without inspecting every JSON.
-- To add or rearrange bars, edit the `GROUPS` registry near the top of `render-chart.js`. Each bar is `{ name, pair, variant, side: "left"|"right", role: "blazediff"|"competitor"|"competitor-2" }`.
+- To add or rearrange bars, edit the `GROUPS` registry near the top of `render-chart.js`. Each bar is `{ name, pair, variant, series, role }`, where `series` is the 0-based index into the pair's `[left, right, ...extra]` list (column `series + 1` in the Markdown table; `side: "left"|"right"` still works as shorthand for series 0/1). `role` is `"blazediff"` (orange) · `"blazediff-next"` (cyan) · `"competitor"` (grey) · `"competitor-2"` (magenta) · `"competitor-3"` (cyan).
+
+### Extra series (3+ implementations per group)
+
+A pair can compare more than two implementations against its baseline (`left`) by adding an `extra: [{ name, cmd, dir, filename }, ...]` array in `pairs.js`. Each extra side becomes its own Markdown column (latency + `Saved` + `%`) and its own chart bar. `core-native` uses this to put `blazediff-next` (core-native with `BLAZEDIFF_PNG_ENABLED=1`) alongside `blazediff` and `odiff`.
 
 `@napi-rs/canvas` is the canvas backend. It isn't a root devDependency — `render-chart.js` resolves it through the `apps/website` workspace (which already depends on it). If that workspace is ever removed, install `@napi-rs/canvas` at the repo root.
 
@@ -76,6 +81,29 @@ node scripts/bench/render-chart.js --target pixel-by-pixel
 node scripts/bench/render-chart.js --target structural
 node scripts/bench/render-chart.js --target object
 ```
+
+## PNG codec (`png.js`)
+
+The `blazediff-png` codec benchmark doesn't fit the pair model (it's a Rust binary comparing four codecs — blazediff / spng / image-rs / zune — for decode, encode, and output size), so it has its own orchestrator:
+
+```sh
+node scripts/bench/png.js              # cargo build + run, then regenerate
+node scripts/bench/png.js --skip-run   # reuse the last JSON
+node scripts/bench/png.js --json <p>   # read/write a specific JSON path
+```
+
+It runs `blazediff-png-benchmark -- --json <tmp>` (from `crates/`), then writes `benchmarks/png-codec.md` and `benchmarks/charts/png-codec.png`, reusing `drawGroupedChart` from `render-chart.js`. The Rust side gained a `--json <path>` flag for this.
+
+Encode is measured at **two compression modes** so the speed/size trade-off is explicit and zune's stored-only encoder is compared fairly:
+
+- **no compression** — stored deflate blocks (level 0), no row filtering;
+- **half compression** — half of each codec's own max deflate level (libdeflate 12 → 6, zlib 9 → 4). zune-png only supports stored output, so its half-compression pass is the same uncompressed encode (and ~6× larger).
+
+Each mode gets its own timing table, size table, and chart group. The actual level per codec/mode comes from the Rust binary (`codecs::level_label`) via the JSON's `encodeLevels`, so the labels never drift from what was run.
+
+## Publishing to the website
+
+`apps/website/scripts/generate-benchmarks.mjs` mirrors every `benchmarks/*.md` into the Nextra site as the **Benchmarks** section: it converts the `<table>` blocks to themed GFM tables, rewrites `./charts/*.png` refs to copied `/benchmark-charts/*` assets, and writes `app/benchmarks/<slug>/page.mdx` plus the section `_meta.ts` / `layout.tsx` / index redirect. It's wired into the website's `predev` and `prebuild`, so regenerating a benchmark Markdown is all it takes — the page ships on the next build. The generated `app/benchmarks/` and `public/benchmark-charts/` are gitignored; the source `benchmarks/*.md` + charts are committed.
 
 ## Things to verify before declaring done
 

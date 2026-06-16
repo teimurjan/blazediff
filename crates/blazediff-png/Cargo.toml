@@ -1,6 +1,6 @@
 [package]
 name = "blazediff-png"
-version = "0.0.1"
+version = "5.1.0"
 edition = "2021"
 authors = ["Teimur Gasanov"]
 description = "Single-threaded, SIMD-first PNG codec with byte-exact libspng decode parity"
@@ -8,7 +8,7 @@ license = "MIT"
 repository = "https://github.com/teimurjan/blazediff"
 keywords = ["png", "image", "decoder", "encoder", "simd"]
 categories = ["multimedia::images", "multimedia::encoding"]
-include = ["src/**/*", "Cargo.toml", "README.md"]
+include = ["src/**/*", "build.rs", "Cargo.toml", "README.md"]
 
 [lib]
 name = "blazediff_png"
@@ -45,6 +45,10 @@ rust-backend = ["dep:zune-inflate", "dep:fdeflate"]
 # Internal-only: strict-window reference inflate for the differential fuzzer.
 # Requires the zlib backend.
 fuzzing = ["dep:libz-rs-sys", "zlib-backend"]
+
+[build-dependencies]
+# Compile-only probe of the target zlib's ZLIB_VERNUM (see build.rs).
+cc = "1"
 
 [dev-dependencies]
 png = "0.18.1"

@@ -45,3 +45,6 @@ _pagefind/
 
 # Generated data
 data/
+# Generated benchmark pages (see scripts/generate-benchmarks.mjs)
+app/benchmarks/
+public/benchmark-charts/
