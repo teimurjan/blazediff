@@ -41,6 +41,17 @@ get_package_name() {
     esac
 }
 
+# libdeflate-sys compiles its full x86 runtime-dispatch table, including the
+# AVX-512 adler32 path, regardless of -C target-cpu. zig (cross-linker for our
+# Linux/Windows wheels) bundles clang 18+, which gates 512-bit intrinsics behind
+# the `evex512` ABI feature. libdeflate's vendored source enables avx512vnni via
+# a function target attribute but not evex512, so that clang rejects it:
+#   "_mm512_loadu_si512 requires target feature 'evex512' ... changes the ABI"
+# Enabling evex512 for the C TUs on the x86_64 Linux triple unblocks the build.
+# Namespaced to the triple, so other targets (and native macOS clang) are
+# untouched. Only matters for zig cross-builds, which is how every wheel is made.
+export CFLAGS_x86_64_unknown_linux_gnu="${CFLAGS_x86_64_unknown_linux_gnu:-} -mevex512"
+
 # RUSTFLAGS per target for distribution (optimized but compatible)
 get_rustflags() {
     case "$1" in
