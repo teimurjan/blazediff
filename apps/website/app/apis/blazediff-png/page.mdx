@@ -35,10 +35,10 @@ Versus spng over the BlazeDiff corpus (34 PNGs, 342.7 MPx, up to 5600×3200), si
 | Operation | vs spng | How |
 | --- | --- | --- |
 | Decode | **~1.4×** | whole-buffer libdeflate inflate + SIMD defilter |
-| Encode, level 6 | **~5.8×** | libdeflate + NEON adaptive-filter kernels, at ~98% of spng's file size |
-| Encode, level 0 (stored) | **~1.8×** | uncompressed deflate blocks, copy- and allocation-light pipeline |
+| Encode, stored (level 0) | **~2.2×** | uncompressed deflate blocks, copy- and allocation-light pipeline |
+| Encode, compressed | **~3.8×** | libdeflate level 6 vs spng zlib 4, at ~94% of spng's file size |
 
-The wins come from doing less, not from threads: a whole-buffer inflate instead of spng's per-scanline gating, in-place sequential defiltering, autovectorizable row expansion, and hand-written NEON kernels for the encode SAD/filter hot path.
+The wins come from doing less, not from threads: a whole-buffer inflate instead of spng's per-scanline gating, in-place sequential defiltering, autovectorizable row expansion, and hand-written NEON kernels for the encode SAD/filter hot path. [See the full per-fixture benchmarks →](/benchmarks/png-codec)
 
 ## Library Usage
 
