@@ -15,6 +15,8 @@ export interface BlazeDiffOptions {
 	antialiasing?: boolean;
 	/** Output only differences with transparent background */
 	diffMask?: boolean;
+	/** Alternative RGB color for darkening differences. Default: diff color */
+	diffColorAlt?: [number, number, number];
 	/** PNG compression level (0-9, 0=fastest/largest, 9=slowest/smallest) */
 	compression?: number;
 	/** JPEG quality (1-100). Default: 90 */
@@ -56,6 +58,7 @@ interface NapiDiffOptions {
 	threshold?: number;
 	antialiasing?: boolean;
 	diffMask?: boolean;
+	diffColorAlt?: [number, number, number];
 	compression?: number;
 	quality?: number;
 	interpret?: boolean;
@@ -147,6 +150,23 @@ interface NativeBinding {
 		image2Path: string,
 		options: NapiInterpretOptions | null,
 	): InterpretResult;
+}
+
+function validateRgb(
+	color: [number, number, number] | undefined,
+): [number, number, number] | undefined {
+	if (!color) return undefined;
+	if (
+		color.length !== 3 ||
+		color.some(
+			(channel) => !Number.isInteger(channel) || channel < 0 || channel > 255,
+		)
+	) {
+		throw new RangeError(
+			"diffColorAlt must contain three integer RGB channels",
+		);
+	}
+	return color;
 }
 
 const PLATFORM_PACKAGES: Record<
@@ -269,6 +289,7 @@ function convertToNapiOptions(options?: BlazeDiffOptions): NapiDiffOptions {
 		threshold: options?.threshold,
 		antialiasing: options?.antialiasing,
 		diffMask: options?.diffMask,
+		diffColorAlt: validateRgb(options?.diffColorAlt),
 		compression: options?.compression,
 		quality: options?.quality,
 		interpret: options?.interpret,
@@ -346,13 +367,12 @@ function buildArgs(diffOutput?: string, options?: BlazeDiffOptions): string[] {
 	if (options.threshold !== undefined)
 		args.push(`--threshold=${options.threshold}`);
 	if (options.antialiasing) args.push("--antialiasing");
-	if (!useInterpret) {
-		if (options.diffMask) args.push("--diff-mask");
-		if (options.compression !== undefined)
-			args.push(`--compression=${options.compression}`);
-		if (options.quality !== undefined)
-			args.push(`--quality=${options.quality}`);
-	}
+	if (options.diffMask) args.push("--diff-mask");
+	const diffColorAlt = validateRgb(options.diffColorAlt);
+	if (diffColorAlt) args.push(`--diff-color-alt=${diffColorAlt.join(",")}`);
+	if (options.compression !== undefined)
+		args.push(`--compression=${options.compression}`);
+	if (options.quality !== undefined) args.push(`--quality=${options.quality}`);
 
 	return args;
 }

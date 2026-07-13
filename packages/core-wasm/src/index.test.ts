@@ -33,6 +33,14 @@ function loadPNG(rel: string): {
 	};
 }
 
+function solidRgba(width: number, height: number, value: number): Uint8Array {
+	const pixels = new Uint8Array(width * height * 4);
+	for (let offset = 0; offset < pixels.length; offset += 4) {
+		pixels.set([value, value, value, 255], offset);
+	}
+	return pixels;
+}
+
 beforeAll(async () => {
 	const bytes = readFileSync(WASM_PATH);
 	await initBlazediff(bytes);
@@ -97,10 +105,81 @@ describe("diff() smoke", () => {
 		expect(out.some((v) => v !== 0)).toBe(true);
 	});
 
+	it("writes diffColorAlt for darkening changes", async () => {
+		const brighter = solidRgba(2, 2, 200);
+		const darker = solidRgba(2, 2, 50);
+		const out = new Uint8Array(brighter.length);
+
+		const count = await diff(brighter, darker, 2, 2, out, {
+			includeAA: true,
+			diffColorAlt: [0, 128, 255],
+		});
+
+		expect(count).toBe(4);
+		expect([...out.slice(0, 4)]).toEqual([0, 128, 255, 255]);
+	});
+
+	it("rejects invalid diffColorAlt channels", async () => {
+		const brighter = solidRgba(2, 2, 200);
+		const darker = solidRgba(2, 2, 50);
+
+		await expect(
+			diff(brighter, darker, 2, 2, undefined, {
+				diffColorAlt: [0, 256, 0],
+			}),
+		).rejects.toThrow("diffColorAlt must contain three integer RGB channels");
+	});
+
 	it("rejects mismatched buffer size", async () => {
 		const a = loadPNG("pixelmatch/1a.png");
 		const short = new Uint8Array(4);
 		await expect(diff(short, a.data, a.width, a.height)).rejects.toThrow();
+	});
+});
+
+describe("diff() with interpretation", () => {
+	it("writes the same diff while returning interpretation", async () => {
+		const a = loadPNG("pixelmatch/1a.png");
+		const b = loadPNG("pixelmatch/1b.png");
+		const standalone = new Uint8Array(a.data.length);
+		const combined = new Uint8Array(a.data.length);
+		const options = {
+			includeAA: true,
+			diffColorAlt: [0, 128, 255] as [number, number, number],
+		};
+		const diffCount = await diff(
+			a.data,
+			b.data,
+			a.width,
+			a.height,
+			standalone,
+			options,
+		);
+
+		const result = await diff(a.data, b.data, a.width, a.height, combined, {
+			...options,
+			interpret: true,
+		});
+
+		expect(result.match).toBe(false);
+		if (!result.match) {
+			expect(result.diffCount).toBe(diffCount);
+			expect(result.interpretation.diffCount).toBe(diffCount);
+		}
+		expect(combined).toEqual(standalone);
+	});
+
+	it("preserves output for identical buffers", async () => {
+		const a = loadPNG("pixelmatch/1a.png");
+		const out = new Uint8Array(a.data.length).fill(17);
+
+		const result = await diff(a.data, a.data, a.width, a.height, out, {
+			interpret: true,
+		});
+
+		expect(result.match).toBe(true);
+		expect(result.interpretation.totalRegions).toBe(0);
+		expect(out.every((value) => value === 17)).toBe(true);
 	});
 });
 

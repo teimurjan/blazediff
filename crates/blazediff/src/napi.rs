@@ -4,8 +4,11 @@
 //! without spawning child processes.
 
 use crate::{
-    diff, interpret::interpret, interpret::types as itypes, load_jpeg, load_jpegs, load_png,
-    load_pngs, save_jpeg, save_png_with_compression, DiffError, DiffOptions, Image,
+    diff,
+    interpret::types as itypes,
+    interpret::{interpret, interpret_with_output},
+    load_jpeg, load_jpegs, load_png, load_pngs, save_jpeg, save_png_with_compression, DiffError,
+    DiffOptions, Image,
 };
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
@@ -94,6 +97,8 @@ pub struct NapiDiffOptions {
     pub antialiasing: Option<bool>,
     /// Output only differences with transparent background
     pub diff_mask: Option<bool>,
+    /// Alternative RGB color for darkening differences
+    pub diff_color_alt: Option<Vec<u8>>,
     /// PNG compression level (0-9, 0=fastest, 9=smallest). Default: 0
     pub compression: Option<u8>,
     /// JPEG quality (1-100). Default: 90
@@ -117,6 +122,19 @@ pub struct NapiDiffResult {
     pub interpretation: Option<NapiInterpretResult>,
 }
 
+fn optional_rgb(value: Option<Vec<u8>>, label: &str) -> Result<Option<[u8; 3]>> {
+    let Some(value) = value else {
+        return Ok(None);
+    };
+    match value.as_slice() {
+        [r, g, b] => Ok(Some([*r, *g, *b])),
+        _ => Err(Error::new(
+            Status::InvalidArg,
+            format!("{}: expected 3 channels, got {}", label, value.len()),
+        )),
+    }
+}
+
 /// Compare two images and optionally generate a diff image.
 ///
 /// Returns a result object with match status and diff details.
@@ -131,6 +149,7 @@ pub fn compare(
         threshold: None,
         antialiasing: None,
         diff_mask: None,
+        diff_color_alt: None,
         compression: None,
         quality: None,
         interpret: None,
@@ -139,6 +158,7 @@ pub fn compare(
     let threshold = opts.threshold.unwrap_or(0.1);
     let antialiasing = opts.antialiasing.unwrap_or(false);
     let diff_mask = opts.diff_mask.unwrap_or(false);
+    let diff_color_alt = optional_rgb(opts.diff_color_alt, "diff_color_alt")?;
     let compression = opts.compression.unwrap_or(0);
     let quality = opts.quality.unwrap_or(90);
     let run_interpret = opts.interpret.unwrap_or(false);
@@ -166,16 +186,33 @@ pub fn compare(
         threshold,
         include_aa: !antialiasing,
         diff_mask,
+        diff_color_alt,
         compression,
         ..Default::default()
     };
 
-    // Interpret mode: run structured analysis and return early
+    // Interpret mode: generate the visualization and structured analysis in one pass.
     if run_interpret {
-        let result = interpret(&img1, &img2, &diff_options)
+        let mut output_image = if diff_output.is_some() {
+            Some(Image::new_uninit(img1.width, img1.height))
+        } else {
+            None
+        };
+        let result = interpret_with_output(&img1, &img2, output_image.as_mut(), &diff_options)
             .map_err(|e| Error::new(Status::GenericFailure, format!("Interpret failed: {}", e)))?;
 
-        let is_identical = result.total_regions == 0;
+        let is_identical = result.diff_count == 0;
+        if !is_identical {
+            if let (Some(ref output_path), Some(ref output)) = (&diff_output, &output_image) {
+                save_image(output, output_path, compression, quality).map_err(|e| {
+                    Error::new(
+                        Status::GenericFailure,
+                        format!("Failed to save diff: {}", e),
+                    )
+                })?;
+            }
+        }
+
         let diff_count = result.diff_count;
         let diff_percentage = result.diff_percentage;
         let regions: Vec<NapiChangeRegion> = result.regions.iter().map(convert_region).collect();

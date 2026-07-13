@@ -11,8 +11,8 @@
 //!   2 - Error
 
 use blazediff::{
-    diff, interpret::interpret, load_jpeg, load_jpegs, load_png, load_pngs, load_qoi, load_qois,
-    save_jpeg, save_png_with_compression, save_qoi, DiffError, DiffOptions, Image,
+    diff, interpret::interpret_with_output, load_jpeg, load_jpegs, load_png, load_pngs, load_qoi,
+    load_qois, save_jpeg, save_png_with_compression, save_qoi, DiffError, DiffOptions, Image,
 };
 use clap::Parser;
 use rayon::prelude::*;
@@ -50,6 +50,10 @@ struct Args {
     #[arg(long)]
     diff_mask: bool,
 
+    /// Alternative RGB color for darkening differences (r,g,b)
+    #[arg(long, value_parser = parse_rgb)]
+    diff_color_alt: Option<[u8; 3]>,
+
     /// Output format (json or text)
     #[arg(long, default_value = "json")]
     output_format: String,
@@ -65,6 +69,22 @@ struct Args {
     /// Run structured interpretation after raw pixel diff
     #[arg(long)]
     interpret: bool,
+}
+
+fn parse_rgb(value: &str) -> Result<[u8; 3], String> {
+    let channels = value
+        .split(',')
+        .map(str::trim)
+        .map(|channel| {
+            channel
+                .parse::<u8>()
+                .map_err(|_| format!("invalid RGB channel: {channel}"))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+
+    channels
+        .try_into()
+        .map_err(|_| "RGB color must contain exactly three channels".to_string())
 }
 
 /// Supported image formats
@@ -188,6 +208,7 @@ fn main() -> ExitCode {
         threshold: args.threshold,
         include_aa: !args.antialiasing,
         diff_mask: args.diff_mask,
+        diff_color_alt: args.diff_color_alt,
         compression: args.compression,
         ..Default::default()
     };
@@ -229,7 +250,12 @@ fn main() -> ExitCode {
 }
 
 fn run_interpret(args: &Args, img1: &Image, img2: &Image, options: &DiffOptions) -> ExitCode {
-    let result = match interpret(img1, img2, options) {
+    let mut output_image = if args.output.is_some() {
+        Some(Image::new_uninit(img1.width, img1.height))
+    } else {
+        None
+    };
+    let result = match interpret_with_output(img1, img2, output_image.as_mut(), options) {
         Ok(r) => r,
         Err(e) => {
             output_error(args, &format!("Interpret failed: {e}"));
@@ -237,13 +263,22 @@ fn run_interpret(args: &Args, img1: &Image, img2: &Image, options: &DiffOptions)
         }
     };
 
+    if result.diff_count > 0 {
+        if let (Some(ref output_path), Some(ref output)) = (&args.output, &output_image) {
+            if let Err(e) = save_image(output, output_path, args) {
+                output_error(args, &format!("Failed to save {output_path}: {e}"));
+                return ExitCode::from(2);
+            }
+        }
+    }
+
     if args.output_format == "json" {
         println!("{}", serde_json::to_string_pretty(&result).unwrap());
     } else {
         println!("{}", result.summary);
     }
 
-    if result.total_regions == 0 {
+    if result.diff_count == 0 {
         ExitCode::from(0)
     } else {
         ExitCode::from(1)
