@@ -118,43 +118,6 @@ function passArray8ToWasm0(arg, malloc) {
     WASM_VECTOR_LEN = arg.length;
     return ptr;
 }
-/**
- * Interpret the diff between two RGBA buffers into structured change regions.
- *
- * Returns the `InterpretResult` (summary, regions with positions, change
- * types, severity, etc.) serialized as a plain JS object - the same shape the
- * native binding produces.
- * @param {Uint8Array} rgba_a
- * @param {Uint8Array} rgba_b
- * @param {number} width
- * @param {number} height
- * @param {number} threshold
- * @param {boolean} include_aa
- * @returns {any}
- */
-export function interpretRgba(rgba_a, rgba_b, width, height, threshold, include_aa) {
-    try {
-        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
-        const ptr0 = passArray8ToWasm0(rgba_a, wasm.__wbindgen_export_0);
-        const len0 = WASM_VECTOR_LEN;
-        const ptr1 = passArray8ToWasm0(rgba_b, wasm.__wbindgen_export_0);
-        const len1 = WASM_VECTOR_LEN;
-        wasm.interpretRgba(retptr, ptr0, len0, ptr1, len1, width, height, threshold, include_aa);
-        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
-        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
-        var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
-        if (r2) {
-            throw takeObject(r1);
-        }
-        return takeObject(r0);
-    } finally {
-        wasm.__wbindgen_add_to_stack_pointer(16);
-    }
-}
-
-export function _start() {
-    wasm._start();
-}
 
 function isLikeNone(x) {
     return x === undefined || x === null;
@@ -172,17 +135,20 @@ function isLikeNone(x) {
  * @param {number} threshold
  * @param {boolean} include_aa
  * @param {boolean} diff_mask
+ * @param {Uint8Array | null} [diff_color_alt]
  * @param {Uint8Array | null} [out_diff]
  * @returns {number}
  */
-export function diffRgba(rgba_a, rgba_b, width, height, threshold, include_aa, diff_mask, out_diff) {
+export function diffRgba(rgba_a, rgba_b, width, height, threshold, include_aa, diff_mask, diff_color_alt, out_diff) {
     try {
         const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
         const ptr0 = passArray8ToWasm0(rgba_a, wasm.__wbindgen_export_0);
         const len0 = WASM_VECTOR_LEN;
         const ptr1 = passArray8ToWasm0(rgba_b, wasm.__wbindgen_export_0);
         const len1 = WASM_VECTOR_LEN;
-        wasm.diffRgba(retptr, ptr0, len0, ptr1, len1, width, height, threshold, include_aa, diff_mask, isLikeNone(out_diff) ? 0 : addHeapObject(out_diff));
+        var ptr2 = isLikeNone(diff_color_alt) ? 0 : passArray8ToWasm0(diff_color_alt, wasm.__wbindgen_export_0);
+        var len2 = WASM_VECTOR_LEN;
+        wasm.diffRgba(retptr, ptr0, len0, ptr1, len1, width, height, threshold, include_aa, diff_mask, ptr2, len2, isLikeNone(out_diff) ? 0 : addHeapObject(out_diff));
         var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
         var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
         var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
@@ -193,6 +159,49 @@ export function diffRgba(rgba_a, rgba_b, width, height, threshold, include_aa, d
     } finally {
         wasm.__wbindgen_add_to_stack_pointer(16);
     }
+}
+
+/**
+ * Interpret the diff between two RGBA buffers into structured change regions.
+ *
+ * Returns the `InterpretResult` (summary, regions with positions, change
+ * types, severity, etc.) serialized as a plain JS object - the same shape the
+ * native binding produces.
+ * @param {Uint8Array} rgba_a
+ * @param {Uint8Array} rgba_b
+ * @param {number} width
+ * @param {number} height
+ * @param {number} threshold
+ * @param {boolean} include_aa
+ * @param {boolean} diff_mask
+ * @param {Uint8Array | null} [diff_color_alt]
+ * @param {Uint8Array | null} [out_diff]
+ * @returns {any}
+ */
+export function interpretRgba(rgba_a, rgba_b, width, height, threshold, include_aa, diff_mask, diff_color_alt, out_diff) {
+    try {
+        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+        const ptr0 = passArray8ToWasm0(rgba_a, wasm.__wbindgen_export_0);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passArray8ToWasm0(rgba_b, wasm.__wbindgen_export_0);
+        const len1 = WASM_VECTOR_LEN;
+        var ptr2 = isLikeNone(diff_color_alt) ? 0 : passArray8ToWasm0(diff_color_alt, wasm.__wbindgen_export_0);
+        var len2 = WASM_VECTOR_LEN;
+        wasm.interpretRgba(retptr, ptr0, len0, ptr1, len1, width, height, threshold, include_aa, diff_mask, ptr2, len2, isLikeNone(out_diff) ? 0 : addHeapObject(out_diff));
+        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+        var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
+        if (r2) {
+            throw takeObject(r1);
+        }
+        return takeObject(r0);
+    } finally {
+        wasm.__wbindgen_add_to_stack_pointer(16);
+    }
+}
+
+export function _start() {
+    wasm._start();
 }
 
 async function __wbg_load(module, imports) {
