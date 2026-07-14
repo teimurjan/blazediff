@@ -1,6 +1,6 @@
 [package]
 name = "blazediff-png"
-version = "5.1.0"
+version = "5.2.0"
 edition = "2021"
 authors = ["Teimur Gasanov"]
 description = "Single-threaded, SIMD-first PNG codec with byte-exact libspng decode parity"

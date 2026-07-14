@@ -2,8 +2,8 @@
 /* eslint-disable */
 export const memory: WebAssembly.Memory;
 export const _start: () => void;
-export const diffRgba: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number) => void;
-export const interpretRgba: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number) => void;
+export const diffRgba: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number, l: number, m: number) => void;
+export const interpretRgba: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number, l: number, m: number) => void;
 export const __wbindgen_export_0: (a: number, b: number) => number;
 export const __wbindgen_export_1: (a: number, b: number, c: number, d: number) => number;
 export const __wbindgen_export_2: (a: number, b: number, c: number) => void;

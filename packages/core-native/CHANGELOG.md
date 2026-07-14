@@ -1,5 +1,15 @@
 # @blazediff/core-native
 
+## 5.2.0
+
+### Minor Changes
+
+- 44a5292: Add `diffColorAlt` for coloring darkening differences in native and WebAssembly diff output.
+
+### Patch Changes
+
+- 44a5292: Allow WebAssembly `diff` to return interpretation and diff output from one pass, and make native combined comparison write its requested output.
+
 ## 5.1.0
 
 ### Minor Changes
