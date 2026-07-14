@@ -39,6 +39,10 @@ use types::{ChangeRegion, ChangeType, InterpretResult};
 /// throwing away genuine edits.
 const REFINE_DELTA_FLOOR_SQ: f32 = 100.0;
 
+const MASK_DIFF_COLOR: [u8; 3] = [255, 0, 0];
+const MASK_DIFF_COLOR_ALT: [u8; 3] = [0, 0, 255];
+const MASK_AA_COLOR: [u8; 3] = [255, 255, 0];
+
 /// Refine a coarse mask down to the actually-changed pixels inside the given
 /// bboxes. Pixels marked true in `input_mask` but with a tiny YIQ delta between
 /// `img1` and `img2` are dropped. Used by classifier-only paths so callers can
@@ -165,26 +169,45 @@ pub fn classify_regions(
     regions
 }
 
-/// Run a diff and interpret the results into structured regions with spatial positions,
-/// severity, color deltas, gradient scoring, and semantic interpretation.
-pub fn interpret(
+fn recolor_output(output: &mut Image, options: &DiffOptions) {
+    let diff_color_alt = options.diff_color_alt.unwrap_or(options.diff_color);
+
+    for pixel in output.data.chunks_exact_mut(4) {
+        let color = match [pixel[0], pixel[1], pixel[2]] {
+            MASK_DIFF_COLOR => options.diff_color,
+            MASK_DIFF_COLOR_ALT => diff_color_alt,
+            MASK_AA_COLOR => options.aa_color,
+            _ => continue,
+        };
+        pixel[..3].copy_from_slice(&color);
+    }
+}
+
+/// Run a diff once, optionally retain its visualization, and interpret the
+/// results into structured regions.
+pub fn interpret_with_output(
     img1: &Image,
     img2: &Image,
+    mut output: Option<&mut Image>,
     options: &DiffOptions,
 ) -> Result<InterpretResult, DiffError> {
     let width = img1.width;
     let height = img1.height;
     let total_pixels = (width * height) as f64;
 
-    let mut output = Image::new(width, height);
-    // Force alpha=0 so unchanged pixels are pure grayscale - the change mask
-    // relies on R!=G||R!=B to detect changed pixels, and any original-color
-    // bleed would cause false positives.
+    let retain_output = output.is_some();
+    let mut internal_output = Image::new_uninit(width, height);
+    let diff_output = output.as_deref_mut().unwrap_or(&mut internal_output);
+
+    // Stable non-grayscale marker colors keep mask extraction independent of
+    // caller-selected colors, including grayscale alternatives.
     let mask_options = DiffOptions {
-        alpha: 0.0,
-        ..*options
+        aa_color: MASK_AA_COLOR,
+        diff_color: MASK_DIFF_COLOR,
+        diff_color_alt: Some(MASK_DIFF_COLOR_ALT),
+        ..options.clone()
     };
-    let diff_result = diff(img1, img2, Some(&mut output), &mask_options)?;
+    let diff_result = diff(img1, img2, Some(diff_output), &mask_options)?;
 
     if diff_result.identical {
         return Ok(InterpretResult {
@@ -199,7 +222,10 @@ pub fn interpret(
         });
     }
 
-    let mask = extract_change_mask(&output.data, width, height);
+    let mask = extract_change_mask(&diff_output.data, width, height);
+    if retain_output {
+        recolor_output(diff_output, options);
+    }
     let components = detect_regions(&mask, width, height);
     let mut regions: Vec<ChangeRegion> = components
         .into_iter()
@@ -234,6 +260,16 @@ pub fn interpret(
     })
 }
 
+/// Run a diff and interpret the results into structured regions with spatial positions,
+/// severity, color deltas, gradient scoring, and semantic interpretation.
+pub fn interpret(
+    img1: &Image,
+    img2: &Image,
+    options: &DiffOptions,
+) -> Result<InterpretResult, DiffError> {
+    interpret_with_output(img1, img2, None, options)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -265,6 +301,44 @@ mod tests {
 
         assert_eq!(result.total_regions, 0);
         assert!(result.regions.is_empty());
+    }
+
+    #[test]
+    fn test_interpret_with_output_matches_diff() {
+        let img1 = make_solid_image(32, 32, 200, 200, 200);
+        let img2 = make_solid_image(32, 32, 50, 50, 50);
+        let options = DiffOptions {
+            include_aa: true,
+            diff_color_alt: Some([0, 128, 255]),
+            ..Default::default()
+        };
+        let mut expected = Image::new(32, 32);
+        let diff_result = diff(&img1, &img2, Some(&mut expected), &options).unwrap();
+        let mut actual = Image::new(32, 32);
+
+        let interpretation =
+            interpret_with_output(&img1, &img2, Some(&mut actual), &options).unwrap();
+
+        assert_eq!(interpretation.diff_count, diff_result.diff_count);
+        assert_eq!(actual.data, expected.data);
+    }
+
+    #[test]
+    fn test_interpret_with_grayscale_alt_color_keeps_regions() {
+        let img1 = make_solid_image(32, 32, 200, 200, 200);
+        let img2 = make_solid_image(32, 32, 50, 50, 50);
+        let options = DiffOptions {
+            include_aa: true,
+            diff_color_alt: Some([32, 32, 32]),
+            ..Default::default()
+        };
+        let mut output = Image::new(32, 32);
+
+        let result = interpret_with_output(&img1, &img2, Some(&mut output), &options).unwrap();
+
+        assert_eq!(result.diff_count, 32 * 32);
+        assert!(result.total_regions > 0);
+        assert_eq!(&output.data[..4], &[32, 32, 32, 255]);
     }
 
     #[test]

@@ -103,7 +103,7 @@ Initializes the wasm module. Safe to call multiple times; subsequent calls retur
 
 ### `diff(a, b, width, height, output?, options?)`
 
-Compares two RGBA pixel buffers and returns the number of differing pixels.
+Compares two RGBA pixel buffers and returns the number of differing pixels. Set `interpret: true` to return structured interpretation while producing the diff output in the same pass.
 
 <table>
   <tr>
@@ -138,12 +138,12 @@ Compares two RGBA pixel buffers and returns the number of differing pixels.
   </tr>
   <tr>
     <td><code>options</code></td>
-    <td>DiffOptions</td>
+    <td>DiffOptions | InterpretedDiffOptions</td>
     <td>Comparison options (optional)</td>
   </tr>
 </table>
 
-**Returns:** `Promise<number>` (count of differing pixels)
+**Returns:** `Promise<number>` by default, or `Promise<DiffResult>` with `interpret: true`
 
 <table>
   <tr>
@@ -170,7 +170,46 @@ Compares two RGBA pixel buffers and returns the number of differing pixels.
     <td>false</td>
     <td>Render diff with transparent background instead of grayscale base</td>
   </tr>
+  <tr>
+    <td><code>diffColorAlt</code></td>
+    <td>[number, number, number]</td>
+    <td>diff color</td>
+    <td>Alternative RGB color for darkening differences</td>
+  </tr>
+  <tr>
+    <td><code>interpret</code></td>
+    <td>boolean</td>
+    <td>false</td>
+    <td>Return structured interpretation from the same diff pass</td>
+  </tr>
 </table>
+
+With `interpret: true`, `diff()` returns:
+
+```typescript
+type DiffResult =
+  | { match: true; interpretation: InterpretResult }
+  | {
+      match: false;
+      reason: 'pixel-diff';
+      diffCount: number;
+      diffPercentage: number;
+      interpretation: InterpretResult;
+    };
+```
+
+```typescript
+const result = await diff(a, b, width, height, output, {
+  diffColorAlt: [0, 128, 255],
+  interpret: true,
+});
+```
+
+### `interpret(a, b, width, height, options?)`
+
+Returns structured change regions without retaining a diff visualization. It is a convenience wrapper over `diff()` with `interpret: true`.
+
+**Returns:** `Promise<InterpretResult>`
 
 ## Usage
 

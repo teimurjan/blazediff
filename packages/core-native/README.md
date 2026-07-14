@@ -109,10 +109,16 @@ Compare two images (PNG or JPEG) and generate a diff image. Format is auto-detec
     <td>Output only differences with transparent background</td>
   </tr>
   <tr>
+    <td><code>diffColorAlt</code></td>
+    <td>[number, number, number]</td>
+    <td>diff color</td>
+    <td>Alternative RGB color for darkening differences</td>
+  </tr>
+  <tr>
     <td><code>interpret</code></td>
     <td>boolean</td>
     <td>false</td>
-    <td>Run structured interpretation after diff - adds <code>interpretation</code> to the result with detected change regions, classification, and a human-readable summary</td>
+    <td>Generate the diff image and structured interpretation in one pass, adding <code>interpretation</code> to the result</td>
   </tr>
 </table>
 
@@ -272,9 +278,11 @@ Options:
   -t, --threshold <THRESHOLD>  Color difference threshold (0.0-1.0) [default: 0.1]
   -a, --antialiasing           Enable anti-aliasing detection
       --diff-mask              Output only differences (transparent background)
+      --diff-color-alt <R,G,B> Alternative RGB color for darkening differences
   -c, --compression <LEVEL>    PNG compression level (0-9, 0=fastest, 9=smallest) [default: 0]
   -q, --quality <QUALITY>      JPEG quality (1-100) [default: 90]
       --output-format <FORMAT> Output format (json or text) [default: json]
+      --interpret              Generate diff output and structured interpretation
   -h, --help                   Print help
   -V, --version                Print version
 ```

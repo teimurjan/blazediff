@@ -91,7 +91,7 @@ await initBlazediff(readFileSync(wasmPath));
 
 ### `diff(a, b, width, height, output?, options?)`
 
-Compares two RGBA pixel buffers and returns the number of differing pixels.
+Compares two RGBA pixel buffers and returns the number of differing pixels. Set `interpret: true` to return structured interpretation while producing the diff output in the same pass.
 
 #### Parameters
 
@@ -102,7 +102,7 @@ Compares two RGBA pixel buffers and returns the number of differing pixels.
 | `width`   | `number`              | Image width in pixels                                    |
 | `height`  | `number`              | Image height in pixels                                   |
 | `output`  | `Uint8Array \| undefined` | Optional diff visualization output (same length). Written in place |
-| `options` | `DiffOptions`         | Comparison options (optional)                            |
+| `options` | `DiffOptions \| InterpretedDiffOptions` | Comparison options (optional)                  |
 
 ##### Options
 
@@ -111,10 +111,37 @@ Compares two RGBA pixel buffers and returns the number of differing pixels.
 | `threshold`  | `number`  | `0.1`   | Color difference threshold (0.0-1.0). Lower = more strict |
 | `includeAA`  | `boolean` | `false` | Count anti-aliased pixels as differences                 |
 | `diffMask`   | `boolean` | `false` | Render diff with transparent background instead of grayscale base |
+| `diffColorAlt` | `[number, number, number]` | diff color | Alternative RGB color for darkening differences |
+| `interpret` | `boolean` | `false` | Return structured interpretation from the same diff pass |
 
 <Callout type="info">
   **Threshold Guidelines:** `0.0` exact match · `0.05` strict · `0.1` default · `0.2` lenient
 </Callout>
+
+With `interpret: true`, `diff()` returns a `DiffResult` instead of a pixel count:
+
+```typescript
+const result = await diff(a, b, width, height, output, {
+  diffColorAlt: [0, 128, 255],
+  interpret: true,
+});
+```
+
+```typescript
+type DiffResult =
+  | { match: true; interpretation: InterpretResult }
+  | {
+      match: false;
+      reason: 'pixel-diff';
+      diffCount: number;
+      diffPercentage: number;
+      interpretation: InterpretResult;
+    };
+```
+
+### `interpret(a, b, width, height, options?)`
+
+Returns structured change regions without retaining a diff visualization. It is a convenience wrapper over `diff()` with `interpret: true`.
 
 ## Usage
 
