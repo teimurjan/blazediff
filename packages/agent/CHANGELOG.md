@@ -1,5 +1,12 @@
 # @blazediff/agent
 
+## 0.8.2
+
+### Patch Changes
+
+- Updated dependencies [548266e]
+  - @blazediff/core-native@5.3.0
+
 ## 0.8.1
 
 ### Patch Changes
