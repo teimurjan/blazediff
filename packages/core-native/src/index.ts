@@ -25,6 +25,9 @@ export interface BlazeDiffOptions {
 	interpret?: boolean;
 }
 
+/** File path or encoded PNG, JPEG, or QOI bytes. */
+export type BlazeDiffInput = string | Uint8Array;
+
 export type BlazeDiffResult =
 	| { match: true; interpretation?: InterpretResult }
 	| { match: false; reason: "layout-diff" }
@@ -142,6 +145,12 @@ interface NativeBinding {
 	compare(
 		basePath: string,
 		comparePath: string,
+		diffOutput: string | null,
+		options: NapiDiffOptions | null,
+	): NapiDiffResult;
+	compareBuffers(
+		base: Uint8Array,
+		comparison: Uint8Array,
 		diffOutput: string | null,
 		options: NapiDiffOptions | null,
 	): NapiDiffResult;
@@ -501,19 +510,22 @@ async function execFileInterpretCompare(
 }
 
 /**
- * Compare two images (PNG or JPEG) and optionally generate a diff image.
+ * Compare two encoded images (PNG, JPEG, or QOI) and optionally generate a diff image.
+ *
+ * Inputs must both be file paths or both be encoded byte arrays. Node.js Buffer
+ * values are Uint8Array instances and can be passed directly.
  *
  * Uses native N-API bindings when available for ~10-100x better performance
- * on small images (no process spawn overhead). Falls back to execFile if
- * native bindings are unavailable.
+ * on small images (no process spawn overhead). Path inputs fall back to
+ * execFile if native bindings are unavailable.
  *
  * @example
  * ```ts
- * // With diff output
+ * // With file paths and diff output
  * const result = await compare('expected.png', 'actual.png', 'diff.png');
  *
- * // Without diff output (faster, just returns comparison result)
- * const result = await compare('expected.png', 'actual.png');
+ * // With encoded image buffers
+ * const result = await compare(expectedPngBuffer, actualPngBuffer);
  *
  * if (result.match) {
  *   console.log('Images identical');
@@ -523,36 +535,57 @@ async function execFileInterpretCompare(
  * ```
  */
 export async function compare(
-	basePath: string,
-	comparePath: string,
+	base: BlazeDiffInput,
+	comparison: BlazeDiffInput,
 	diffOutput?: string,
 	options?: BlazeDiffOptions,
 ): Promise<BlazeDiffResult> {
-	// Try native binding first for better performance
+	const baseIsPath = typeof base === "string";
+	const comparisonIsPath = typeof comparison === "string";
+	if (baseIsPath !== comparisonIsPath) {
+		throw new TypeError(
+			"Image inputs must both be file paths or both be encoded byte arrays",
+		);
+	}
+
 	const binding = tryLoadNativeBinding();
 	if (binding) {
 		try {
-			const result = binding.compare(
-				basePath,
-				comparePath,
-				diffOutput ?? null,
-				convertToNapiOptions(options),
-			);
+			const result =
+				baseIsPath && comparisonIsPath
+					? binding.compare(
+							base,
+							comparison,
+							diffOutput ?? null,
+							convertToNapiOptions(options),
+						)
+					: binding.compareBuffers(
+							base as Uint8Array,
+							comparison as Uint8Array,
+							diffOutput ?? null,
+							convertToNapiOptions(options),
+						);
 			return convertNapiResult(result);
 		} catch (err) {
-			// Check if it's a file-not-exists error
-			const message = err instanceof Error ? err.message : String(err);
-			const missingFile = detectMissingFile(message, basePath, comparePath);
-			if (missingFile) {
-				return { match: false, reason: "file-not-exists", file: missingFile };
+			if (baseIsPath && comparisonIsPath) {
+				const message = err instanceof Error ? err.message : String(err);
+				const missingFile = detectMissingFile(message, base, comparison);
+				if (missingFile) {
+					return {
+						match: false,
+						reason: "file-not-exists",
+						file: missingFile,
+					};
+				}
 			}
-			// Re-throw other errors
 			throw err;
 		}
 	}
 
-	// Fallback to execFile
-	return execFileCompare(basePath, comparePath, diffOutput, options);
+	if (!baseIsPath || !comparisonIsPath) {
+		throw new Error("Encoded image inputs require the native N-API binding");
+	}
+	return execFileCompare(base, comparison, diffOutput, options);
 }
 
 /** Get the path to the blazediff binary for direct CLI usage. */
@@ -573,8 +606,9 @@ export function hasNativeBinding(): boolean {
 /**
  * Interpret the diff between two images, returning structured analysis results.
  *
- * Uses native N-API bindings when available for better performance.
- * Falls back to execFile if native bindings are unavailable.
+ * Inputs must both be file paths or both be encoded byte arrays. Uses native
+ * N-API bindings when available for better performance. Path inputs fall back
+ * to execFile if native bindings are unavailable.
  *
  * @example
  * ```ts
@@ -586,19 +620,21 @@ export function hasNativeBinding(): boolean {
  * ```
  */
 export async function interpret(
-	image1Path: string,
-	image2Path: string,
+	image1: BlazeDiffInput,
+	image2: BlazeDiffInput,
 	options?: Pick<BlazeDiffOptions, "threshold" | "antialiasing">,
 ): Promise<InterpretResult> {
+	const image1IsPath = typeof image1 === "string";
+	const image2IsPath = typeof image2 === "string";
 	const binding = tryLoadNativeBinding();
-	if (binding) {
-		return binding.interpretImages(image1Path, image2Path, {
+	if (binding && image1IsPath && image2IsPath) {
+		return binding.interpretImages(image1, image2, {
 			threshold: options?.threshold,
 			antialiasing: options?.antialiasing,
 		});
 	}
 
-	const result = await compare(image1Path, image2Path, undefined, {
+	const result = await compare(image1, image2, undefined, {
 		...options,
 		interpret: true,
 	});

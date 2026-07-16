@@ -34,7 +34,10 @@ unsafe fn get_tj_error(handle: tjhandle) -> String {
 pub fn load_jpeg<P: AsRef<Path>>(path: P) -> Result<Image, DiffError> {
     let file = File::open(path.as_ref())?;
     let file_data = unsafe { Mmap::map(&file)? };
+    decode_jpeg(&file_data)
+}
 
+pub(crate) fn decode_jpeg(file_data: &[u8]) -> Result<Image, DiffError> {
     unsafe {
         // Initialize decompressor
         let handle = tj3Init(TJINIT_TJINIT_DECOMPRESS as i32);

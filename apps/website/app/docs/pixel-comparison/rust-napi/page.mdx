@@ -4,10 +4,10 @@ import { Tabs } from "nextra/components";
 import DiffImageComparison from "../../../../components/diff-image-comparison";
 
 The fastest path: native Rust compiled to a Node addon via N-API, ~3-4× faster
-than odiff. `@blazediff/core-native` works on **file paths** - it decodes PNG,
-JPEG, and QOI itself (in parallel) and can write the diff image straight to disk.
-Reach for it in Node test runners and CI where you have files and want maximum
-throughput.
+than odiff. `@blazediff/core-native` accepts file paths or encoded `Buffer` and
+`Uint8Array` inputs. It decodes PNG, JPEG, and QOI itself in parallel and can
+write the diff image straight to disk. Reach for it in Node test runners and CI
+when you want maximum throughput.
 
 ## Installation
 
@@ -17,7 +17,7 @@ npm install @blazediff/core-native
 
 ## Examples
 
-<Tabs items={['Basic Comparison', 'Custom Threshold', 'Write Diff Image']}>
+<Tabs items={['Basic Comparison', 'Buffer Comparison', 'Custom Threshold', 'Write Diff Image']}>
   <Tabs.Tab>
 
     <DiffImageComparison
@@ -37,6 +37,23 @@ if (result.match) {
 } else if (result.reason === "layout-diff") {
   console.log("dimensions differ");
 }
+```
+
+  </Tabs.Tab>
+
+  <Tabs.Tab>
+
+```ts
+import { readFile } from "node:fs/promises";
+import { compare } from "@blazediff/core-native";
+
+const [expected, actual] = await Promise.all([
+  readFile("3a.png"),
+  readFile("3b.png"),
+]);
+
+// The native binding borrows these Buffer allocations without copying them.
+const result = await compare(expected, actual);
 ```
 
   </Tabs.Tab>
@@ -77,6 +94,10 @@ const result = await compare("3a.png", "3b.png", "diff.png");
 
   </Tabs.Tab>
 </Tabs>
+
+Encoded inputs are borrowed directly for each synchronous native call, so the
+JavaScript bytes are not copied into Rust. PNG, JPEG, or QOI decoding still
+allocates native RGBA pixel buffers.
 
 Want a verdict on *what* changed, not just how many pixels? Pass `interpret: true`
 or use the dedicated [Image Difference Analysis →](/docs/difference-analysis)

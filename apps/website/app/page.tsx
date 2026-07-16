@@ -2,7 +2,7 @@ import Link from "next/link";
 import BenchmarkChart from "../components/landing/benchmark-chart";
 import CtaLink from "../components/landing/cta-link";
 import Hero from "../components/landing/hero";
-import HeroHeading, { HeroGradient } from "../components/landing/hero-heading";
+import HeroHeading, { HeroAccent } from "../components/landing/hero-heading";
 import HeroInterpret from "../components/landing/hero-interpret";
 import HeroSubhead from "../components/landing/hero-subhead";
 import InstallSnippet from "../components/landing/install-snippet";
@@ -233,14 +233,14 @@ export default function Home() {
 							<br />
 							PIXEL DIFF.
 							<br />
-							<HeroGradient>AGENT-IN-THE-LOOP</HeroGradient>
+							<HeroAccent>AGENT-IN-THE-LOOP</HeroAccent>
 							<br />
-							<HeroGradient>VERDICTS.</HeroGradient>
+							<HeroAccent>VERDICTS.</HeroAccent>
 						</HeroHeading>
 						<HeroSubhead>
-							RUST, WASM, AND JS DIFF CORES. SSIM AND GMSD METRICS. JEST,
-							VITEST, AND BUN MATCHERS. AN AGENT THAT HANDS AMBIGUOUS DIFFS TO
-							CLAUDE CODE, CURSOR, OR CODEX. NO SAAS. NO API KEY. MIT.
+							Rust, WASM, and JS diff cores. SSIM and GMSD metrics. Jest,
+							Vitest, and Bun matchers. An agent that hands ambiguous diffs to
+							Claude Code, Cursor, or Codex. No SaaS. No API key. MIT.
 						</HeroSubhead>
 						<InstallSnippet commands="npm install @blazediff/core" />
 					</>
@@ -266,11 +266,11 @@ export default function Home() {
 
 			<Section
 				title="BENCHMARKS"
-				intro="REPRODUCIBLE FROM THE REPO. SAME FIXTURES, SAME HARDWARE (M1 MAX), HYPERFINE-MEASURED."
+				intro="Reproducible from the repo. Same fixtures, same hardware (M1 Max), hyperfine-measured."
 			>
 				<BenchmarkChart
 					groups={BENCHMARK_GROUPS}
-					footnote="FULL TABLE IN BENCHMARKS.MD AT THE REPO ROOT. EVERY ROW HAS A FIXTURE AND A METHODOLOGY NOTE."
+					footnote="Full table in BENCHMARKS.md at the repo root. Every row has a fixture and a methodology note."
 				/>
 			</Section>
 
@@ -296,7 +296,7 @@ export default function Home() {
 
 			<Section
 				title="THE STACK"
-				intro="ONE MONOREPO. FOUR LAYERS. INSTALL ONE PACKAGE OR THE WHOLE STACK."
+				intro="One monorepo. Four layers. Install one package or the whole stack."
 			>
 				<div className="flex flex-col gap-12">
 					{TIER_ORDER.map((tier) => {

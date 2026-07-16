@@ -8,7 +8,7 @@
 ## Performance
 
 - **Native (Rust)**: 3-4x faster than odiff, 8x faster than pixelmatch on 4K images
-ge, up to ~5x on 4K (browser, edge, any wasm host)
+- **WASM**: ~58% faster than pixelmatch, up to ~5x on 4K (browser, edge, any wasm host)
 - **Image Pixel-by-Pixel (JS)**: ~50% faster than pixelmatch (up to 88% on identical images)
 - **SSIM**: ~25% faster than ssim.js, ~70% faster with Hitchhiker's SSIM
 - **Object Diff**: ~55% faster than microdiff (up to 96% on identical arrays)
@@ -1294,7 +1294,7 @@ Pre-built binaries are included for all major platforms - no compilation require
 
 ## Features
 
-- **PNG, JPEG & QOI support** - auto-detected by file extension
+- **PNG, JPEG & QOI support** - auto-detected by file extension or encoded bytes
 - **3-4x faster** than odiff, **3x smaller** binaries (~700KB-900KB vs ~2-3MB)
 - **SIMD-accelerated** - NEON on ARM, SSE4.1 on x86
 - **Block-based optimization** - skips unchanged regions
@@ -1308,18 +1308,18 @@ Pre-built binaries are included for all major platforms - no compilation require
 
 ## API Reference
 
-### `compare(basePath, comparePath, diffOutput, options?)`
+### `compare(base, comparison, diffOutput, options?)`
 
-Compares two images (PNG, JPEG, or QOI) and generates a diff image. Format is auto-detected from file extension.
+Compares two images from file paths or encoded `Buffer`/`Uint8Array` inputs and optionally generates a diff image. Both inputs must use the same input type. Format is auto-detected from the file extension or encoded bytes.
 
 #### Parameters
 
-| Parameter     | Type              | Description                           |
-| ------------- | ----------------- | ------------------------------------- |
-| `basePath`    | `string`          | Path to the base/expected image       |
-| `comparePath` | `string`          | Path to the comparison/actual image   |
-| `diffOutput`  | `string`          | Path where the diff image will be saved |
-| `options`     | `BlazeDiffOptions` | Comparison options (optional)         |
+| Parameter     | Type                      | Description                                  |
+| ------------- | ------------------------- | -------------------------------------------- |
+| `base`        | `string \| Uint8Array`     | Base/expected image path or encoded bytes    |
+| `comparison`  | `string \| Uint8Array`     | Comparison/actual image path or encoded bytes |
+| `diffOutput`  | `string`                  | Path where the diff image will be saved      |
+| `options`     | `BlazeDiffOptions`        | Comparison options (optional)                |
 
 ##### Options
 
@@ -1328,7 +1328,8 @@ Compares two images (PNG, JPEG, or QOI) and generates a diff image. Format is au
 | `threshold`        | `number`  | `0.1`   | Color difference threshold (0.0-1.0). Lower = more strict |
 | `antialiasing`     | `boolean` | `false` | Enable anti-aliasing detection                           |
 | `diffMask`         | `boolean` | `false` | Output only differences with transparent background      |
-| `interpret`        | `boolean` | `false` | Run structured interpretation (region detection + classification) |
+| `diffColorAlt`     | `[number, number, number]` | diff color | Alternative RGB color for darkening differences |
+| `interpret`        | `boolean` | `false` | Generate the diff image and structured interpretation in one pass |
 
 #### Return Types
 
@@ -1340,7 +1341,9 @@ type BlazeDiffResult =
   | { match: false; reason: "file-not-exists"; file: string };
 ```
 
-When `interpret: true`, the result includes an `interpretation` field with structured analysis.
+When `interpret: true`, the requested diff output is written and the result includes an `interpretation` field from the same diff pass.
+
+> **Info:** Encoded inputs are passed by reference across the N-API boundary. Rust borrows the existing JavaScript backing memory for the synchronous call. Image decoding still allocates native RGBA pixel buffers.
 
 > **Info:** **Threshold Guidelines:** - `0.0` - Exact match only - `0.05` - Strict comparison - `0.1` - Default balanced comparison - `0.2` - Lenient comparison
 
@@ -1363,6 +1366,21 @@ if (result.match) {
 } else if (result.reason === 'layout-diff') {
   console.log('Images have different dimensions');
 }
+```
+
+### Encoded Buffer Input
+
+```typescript
+import { readFile } from "node:fs/promises";
+import { compare } from "@blazediff/core-native";
+
+const [expected, actual] = await Promise.all([
+  readFile("expected.png"),
+  readFile("actual.png"),
+]);
+
+// Reuse these same Buffer objects across comparisons without a JS-to-Rust copy.
+const result = await compare(expected, actual, "diff.png");
 ```
 
 ### CLI Usage
@@ -1407,6 +1425,7 @@ Options:
   -t, --threshold <THRESHOLD>  Color difference threshold (0.0-1.0) [default: 0.1]
   -a, --antialiasing           Enable anti-aliasing detection
       --diff-mask              Output only differences (transparent background)
+      --diff-color-alt <R,G,B> Alternative RGB color for darkening differences
   -c, --compression <LEVEL>    PNG compression level (0-9, 0=fastest, 9=smallest) [default: 0]
   -q, --quality <QUALITY>      JPEG quality (1-100) [default: 90]
       --interpret              Run structured interpretation after diff
@@ -1435,7 +1454,7 @@ Input images can be mixed formats (e.g., compare PNG to JPEG). Output format is 
 
 ### Interpret
 
-Structured diff analysis. Takes two images, returns classified change regions with human-readable summaries.
+Structured diff analysis for matching path or encoded byte inputs. Returns classified change regions with human-readable summaries.
 
 **Pipeline:** change mask → morph close → connected components → per-region evidence extraction → classify → describe
 
@@ -1599,7 +1618,7 @@ await initBlazediff(readFileSync(wasmPath));
 
 ### `diff(a, b, width, height, output?, options?)`
 
-Compares two RGBA pixel buffers and returns the number of differing pixels.
+Compares two RGBA pixel buffers and returns the number of differing pixels. Set `interpret: true` to return structured interpretation while producing the diff output in the same pass.
 
 #### Parameters
 
@@ -1610,7 +1629,7 @@ Compares two RGBA pixel buffers and returns the number of differing pixels.
 | `width`   | `number`              | Image width in pixels                                    |
 | `height`  | `number`              | Image height in pixels                                   |
 | `output`  | `Uint8Array \| undefined` | Optional diff visualization output (same length). Written in place |
-| `options` | `DiffOptions`         | Comparison options (optional)                            |
+| `options` | `DiffOptions \| InterpretedDiffOptions` | Comparison options (optional)                  |
 
 ##### Options
 
@@ -1619,8 +1638,35 @@ Compares two RGBA pixel buffers and returns the number of differing pixels.
 | `threshold`  | `number`  | `0.1`   | Color difference threshold (0.0-1.0). Lower = more strict |
 | `includeAA`  | `boolean` | `false` | Count anti-aliased pixels as differences                 |
 | `diffMask`   | `boolean` | `false` | Render diff with transparent background instead of grayscale base |
+| `diffColorAlt` | `[number, number, number]` | diff color | Alternative RGB color for darkening differences |
+| `interpret` | `boolean` | `false` | Return structured interpretation from the same diff pass |
 
 > **Info:** **Threshold Guidelines:** `0.0` exact match · `0.05` strict · `0.1` default · `0.2` lenient
+
+With `interpret: true`, `diff()` returns a `DiffResult` instead of a pixel count:
+
+```typescript
+const result = await diff(a, b, width, height, output, {
+  diffColorAlt: [0, 128, 255],
+  interpret: true,
+});
+```
+
+```typescript
+type DiffResult =
+  | { match: true; interpretation: InterpretResult }
+  | {
+      match: false;
+      reason: 'pixel-diff';
+      diffCount: number;
+      diffPercentage: number;
+      interpretation: InterpretResult;
+    };
+```
+
+### `interpret(a, b, width, height, options?)`
+
+Returns structured change regions without retaining a diff visualization. It is a convenience wrapper over `diff()` with `interpret: true`.
 
 ## Usage
 
@@ -3144,10 +3190,10 @@ Versus spng over the BlazeDiff corpus (34 PNGs, 342.7 MPx, up to 5600×3200), si
 | Operation | vs spng | How |
 | --- | --- | --- |
 | Decode | **~1.4×** | whole-buffer libdeflate inflate + SIMD defilter |
-| Encode, level 6 | **~5.8×** | libdeflate + NEON adaptive-filter kernels, at ~98% of spng's file size |
-| Encode, level 0 (stored) | **~1.8×** | uncompressed deflate blocks, copy- and allocation-light pipeline |
+| Encode, stored (level 0) | **~2.2×** | uncompressed deflate blocks, copy- and allocation-light pipeline |
+| Encode, compressed | **~3.8×** | libdeflate level 6 vs spng zlib 4, at ~94% of spng's file size |
 
-The wins come from doing less, not from threads: a whole-buffer inflate instead of spng's per-scanline gating, in-place sequential defiltering, autovectorizable row expansion, and hand-written NEON kernels for the encode SAD/filter hot path.
+The wins come from doing less, not from threads: a whole-buffer inflate instead of spng's per-scanline gating, in-place sequential defiltering, autovectorizable row expansion, and hand-written NEON kernels for the encode SAD/filter hot path. [See the full per-fixture benchmarks →](/benchmarks/png-codec)
 
 ## Library Usage
 
@@ -3392,10 +3438,10 @@ accepts a `URL`, `Response`, or raw bytes - see the
 # Pixel-by-pixel Comparison - Rust + N-API in Node
 
 The fastest path: native Rust compiled to a Node addon via N-API, ~3-4× faster
-than odiff. `@blazediff/core-native` works on **file paths** - it decodes PNG,
-JPEG, and QOI itself (in parallel) and can write the diff image straight to disk.
-Reach for it in Node test runners and CI where you have files and want maximum
-throughput.
+than odiff. `@blazediff/core-native` accepts file paths or encoded `Buffer` and
+`Uint8Array` inputs. It decodes PNG, JPEG, and QOI itself in parallel and can
+write the diff image straight to disk. Reach for it in Node test runners and CI
+when you want maximum throughput.
 
 ## Installation
 
@@ -3420,6 +3466,19 @@ if (result.match) {
 ```
 
 ```ts
+import { readFile } from "node:fs/promises";
+import { compare } from "@blazediff/core-native";
+
+const [expected, actual] = await Promise.all([
+  readFile("3a.png"),
+  readFile("3b.png"),
+]);
+
+// The native binding borrows these Buffer allocations without copying them.
+const result = await compare(expected, actual);
+```
+
+```ts
 import { compare } from "@blazediff/core-native";
 
 const result = await compare("3a.png", "3b.png", undefined, {
@@ -3435,6 +3494,10 @@ import { compare } from "@blazediff/core-native";
 // Format is inferred from the extension (PNG, JPEG, QOI).
 const result = await compare("3a.png", "3b.png", "diff.png");
 ```
+
+Encoded inputs are borrowed directly for each synchronous native call, so the
+JavaScript bytes are not copied into Rust. PNG, JPEG, or QOI decoding still
+allocates native RGBA pixel buffers.
 
 Want a verdict on *what* changed, not just how many pixels? Pass `interpret: true`
 or use the dedicated [Image Difference Analysis →](/docs/difference-analysis)
