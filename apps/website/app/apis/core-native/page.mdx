@@ -25,7 +25,7 @@ Pre-built binaries are included for all major platforms - no compilation require
 
 ## Features
 
-- **PNG, JPEG & QOI support** - auto-detected by file extension
+- **PNG, JPEG & QOI support** - auto-detected by file extension or encoded bytes
 - **3-4x faster** than odiff, **3x smaller** binaries (~700KB-900KB vs ~2-3MB)
 - **SIMD-accelerated** - NEON on ARM, SSE4.1 on x86
 - **Block-based optimization** - skips unchanged regions
@@ -39,18 +39,18 @@ Pre-built binaries are included for all major platforms - no compilation require
 
 ## API Reference
 
-### `compare(basePath, comparePath, diffOutput, options?)`
+### `compare(base, comparison, diffOutput, options?)`
 
-Compares two images (PNG, JPEG, or QOI) and generates a diff image. Format is auto-detected from file extension.
+Compares two images from file paths or encoded `Buffer`/`Uint8Array` inputs and optionally generates a diff image. Both inputs must use the same input type. Format is auto-detected from the file extension or encoded bytes.
 
 #### Parameters
 
-| Parameter     | Type              | Description                           |
-| ------------- | ----------------- | ------------------------------------- |
-| `basePath`    | `string`          | Path to the base/expected image       |
-| `comparePath` | `string`          | Path to the comparison/actual image   |
-| `diffOutput`  | `string`          | Path where the diff image will be saved |
-| `options`     | `BlazeDiffOptions` | Comparison options (optional)         |
+| Parameter     | Type                      | Description                                  |
+| ------------- | ------------------------- | -------------------------------------------- |
+| `base`        | `string \| Uint8Array`     | Base/expected image path or encoded bytes    |
+| `comparison`  | `string \| Uint8Array`     | Comparison/actual image path or encoded bytes |
+| `diffOutput`  | `string`                  | Path where the diff image will be saved      |
+| `options`     | `BlazeDiffOptions`        | Comparison options (optional)                |
 
 ##### Options
 
@@ -73,6 +73,12 @@ type BlazeDiffResult =
 ```
 
 When `interpret: true`, the requested diff output is written and the result includes an `interpretation` field from the same diff pass.
+
+<Callout type="info">
+  Encoded inputs are passed by reference across the N-API boundary. Rust borrows
+  the existing JavaScript backing memory for the synchronous call. Image decoding
+  still allocates native RGBA pixel buffers.
+</Callout>
 
 <Callout type="info">
   **Threshold Guidelines:**
@@ -101,6 +107,21 @@ if (result.match) {
 } else if (result.reason === 'layout-diff') {
   console.log('Images have different dimensions');
 }
+```
+
+### Encoded Buffer Input
+
+```typescript
+import { readFile } from "node:fs/promises";
+import { compare } from "@blazediff/core-native";
+
+const [expected, actual] = await Promise.all([
+  readFile("expected.png"),
+  readFile("actual.png"),
+]);
+
+// Reuse these same Buffer objects across comparisons without a JS-to-Rust copy.
+const result = await compare(expected, actual, "diff.png");
 ```
 
 ### CLI Usage
@@ -176,7 +197,7 @@ Input images can be mixed formats (e.g., compare PNG to JPEG). Output format is 
 
 ### Interpret
 
-Structured diff analysis. Takes two images, returns classified change regions with human-readable summaries.
+Structured diff analysis for matching path or encoded byte inputs. Returns classified change regions with human-readable summaries.
 
 **Pipeline:** change mask → morph close → connected components → per-region evidence extraction → classify → describe
 

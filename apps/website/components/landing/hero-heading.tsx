@@ -8,10 +8,6 @@ export default function HeroHeading({ children }: { children: ReactNode }) {
 	);
 }
 
-export function HeroGradient({ children }: { children: ReactNode }) {
-	return (
-		<span className="bg-clip-text text-transparent bg-gradient-to-r from-accent to-magenta">
-			{children}
-		</span>
-	);
+export function HeroAccent({ children }: { children: ReactNode }) {
+	return <span className="text-accent">{children}</span>;
 }

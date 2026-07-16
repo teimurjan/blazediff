@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import { describe, expect, it } from "vitest";
-import { compare, getBinaryPath, hasNativeBinding } from "./index";
+import { compare, getBinaryPath, hasNativeBinding, interpret } from "./index";
 
 const execFileAsync = promisify(execFile);
 
@@ -36,6 +36,55 @@ describe("compare", () => {
 		const result = await compare(smallImage, largeImage);
 
 		expect(result).toEqual({ match: false, reason: "layout-diff" });
+	});
+
+	it.each([
+		["PNG", "pixelmatch/1a.png"],
+		["JPEG", "4k-jpeg/1a.jpg"],
+		["QOI", "4k-qoi/1a.qoi"],
+	])("should compare encoded %s Buffer inputs", async (_, relativePath) => {
+		const image = await readFile(join(FIXTURES_PATH, relativePath));
+		await expect(compare(image, image)).resolves.toEqual({ match: true });
+	});
+
+	it("should compare Uint8Array views with non-zero offsets", async () => {
+		const path1 = join(FIXTURES_PATH, "pixelmatch/1a.png");
+		const path2 = join(FIXTURES_PATH, "pixelmatch/1b.png");
+		const [image1, image2, pathResult] = await Promise.all([
+			readFile(path1),
+			readFile(path2),
+			compare(path1, path2),
+		]);
+		const storage1 = new Uint8Array(image1.length + 8);
+		const storage2 = new Uint8Array(image2.length + 8);
+		storage1.set(image1, 4);
+		storage2.set(image2, 4);
+
+		const bufferResult = await compare(
+			storage1.subarray(4, image1.length + 4),
+			storage2.subarray(4, image2.length + 4),
+		);
+		expect(bufferResult).toEqual(pathResult);
+	});
+
+	it("should interpret encoded Buffer inputs", async () => {
+		const [image1, image2] = await Promise.all([
+			readFile(join(FIXTURES_PATH, "pixelmatch/1a.png")),
+			readFile(join(FIXTURES_PATH, "pixelmatch/1b.png")),
+		]);
+		const result = await interpret(image1, image2);
+
+		expect(result.diffCount).toBeGreaterThan(0);
+		expect(result.totalRegions).toBeGreaterThan(0);
+	});
+
+	it("should reject mixed path and byte array inputs", async () => {
+		const imagePath = join(FIXTURES_PATH, "pixelmatch/1a.png");
+		const image = await readFile(imagePath);
+
+		await expect(compare(imagePath, image)).rejects.toThrow(
+			"Image inputs must both be file paths or both be encoded byte arrays",
+		);
 	});
 
 	it("should return file-not-exists when base image is missing", async () => {

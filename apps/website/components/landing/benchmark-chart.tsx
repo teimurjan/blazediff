@@ -75,7 +75,9 @@ export default function BenchmarkChart({
 				);
 			})}
 			{footnote && (
-				<p className="font-mono text-[12px] text-muted uppercase">{footnote}</p>
+				<p className="font-sans text-[13px] text-muted leading-relaxed">
+					{footnote}
+				</p>
 			)}
 		</div>
 	);

@@ -33,6 +33,19 @@ impl ImageFormat {
             _ => None,
         }
     }
+
+    fn from_bytes(data: &[u8]) -> Option<Self> {
+        if data.starts_with(b"\x89PNG\r\n\x1a\n") {
+            return Some(ImageFormat::Png);
+        }
+        if data.starts_with(&[0xff, 0xd8, 0xff]) {
+            return Some(ImageFormat::Jpeg);
+        }
+        if data.starts_with(b"qoif") {
+            return Some(ImageFormat::Qoi);
+        }
+        None
+    }
 }
 
 /// Load two images in parallel, auto-detecting format
@@ -69,6 +82,28 @@ fn load_images<P1: AsRef<Path> + Sync, P2: AsRef<Path> + Sync>(
 
     let mut iter = results.into_iter();
     Ok((iter.next().unwrap()?, iter.next().unwrap()?))
+}
+
+fn decode_image_buffer(data: &[u8]) -> std::result::Result<Image, DiffError> {
+    match ImageFormat::from_bytes(data) {
+        Some(ImageFormat::Png) => crate::io::decode_png(data),
+        Some(ImageFormat::Jpeg) => crate::jpeg_io::decode_jpeg(data),
+        Some(ImageFormat::Qoi) => crate::qoi_io::decode_qoi(data),
+        None => Err(DiffError::UnsupportedFormat(
+            "Unsupported image buffer format".to_string(),
+        )),
+    }
+}
+
+fn load_image_buffers(
+    image1: &[u8],
+    image2: &[u8],
+) -> std::result::Result<(Image, Image), DiffError> {
+    let (result1, result2) = rayon::join(
+        || decode_image_buffer(image1),
+        || decode_image_buffer(image2),
+    );
+    Ok((result1?, result2?))
 }
 
 /// Save an image, auto-detecting format from extension
@@ -135,13 +170,9 @@ fn optional_rgb(value: Option<Vec<u8>>, label: &str) -> Result<Option<[u8; 3]>> 
     }
 }
 
-/// Compare two images and optionally generate a diff image.
-///
-/// Returns a result object with match status and diff details.
-#[napi]
-pub fn compare(
-    base_path: String,
-    compare_path: String,
+fn compare_images(
+    img1: Image,
+    img2: Image,
     diff_output: Option<String>,
     options: Option<NapiDiffOptions>,
 ) -> Result<NapiDiffResult> {
@@ -162,14 +193,6 @@ pub fn compare(
     let compression = opts.compression.unwrap_or(0);
     let quality = opts.quality.unwrap_or(90);
     let run_interpret = opts.interpret.unwrap_or(false);
-
-    // Load images
-    let (img1, img2) = load_images(&base_path, &compare_path).map_err(|e| {
-        Error::new(
-            Status::GenericFailure,
-            format!("Failed to load images: {}", e),
-        )
-    })?;
 
     // Check for size mismatch - can't diff images of different sizes
     if img1.width != img2.width || img1.height != img2.height {
@@ -203,7 +226,7 @@ pub fn compare(
 
         let is_identical = result.diff_count == 0;
         if !is_identical {
-            if let (Some(ref output_path), Some(ref output)) = (&diff_output, &output_image) {
+            if let (Some(output_path), Some(output)) = (&diff_output, &output_image) {
                 save_image(output, output_path, compression, quality).map_err(|e| {
                     Error::new(
                         Status::GenericFailure,
@@ -250,7 +273,7 @@ pub fn compare(
 
     // Save diff image if requested and images differ
     if !result.identical {
-        if let (Some(ref output_path), Some(ref output)) = (&diff_output, &output_image) {
+        if let (Some(output_path), Some(output)) = (&diff_output, &output_image) {
             save_image(output, output_path, compression, quality).map_err(|e| {
                 Error::new(
                     Status::GenericFailure,
@@ -277,6 +300,40 @@ pub fn compare(
             interpretation: None,
         })
     }
+}
+
+/// Compare two images from paths and optionally generate a diff image.
+#[napi]
+pub fn compare(
+    base_path: String,
+    compare_path: String,
+    diff_output: Option<String>,
+    options: Option<NapiDiffOptions>,
+) -> Result<NapiDiffResult> {
+    let (img1, img2) = load_images(&base_path, &compare_path).map_err(|e| {
+        Error::new(
+            Status::GenericFailure,
+            format!("Failed to load images: {}", e),
+        )
+    })?;
+    compare_images(img1, img2, diff_output, options)
+}
+
+/// Compare two encoded image buffers and optionally generate a diff image.
+#[napi]
+pub fn compare_buffers(
+    base: &[u8],
+    comparison: &[u8],
+    diff_output: Option<String>,
+    options: Option<NapiDiffOptions>,
+) -> Result<NapiDiffResult> {
+    let (img1, img2) = load_image_buffers(base, comparison).map_err(|e| {
+        Error::new(
+            Status::GenericFailure,
+            format!("Failed to load images: {}", e),
+        )
+    })?;
+    compare_images(img1, img2, diff_output, options)
 }
 
 // ─── Interpret N-API bindings ────────────────────────────────────────────────

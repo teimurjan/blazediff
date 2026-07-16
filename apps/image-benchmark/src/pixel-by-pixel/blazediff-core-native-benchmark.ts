@@ -1,17 +1,34 @@
 #!/usr/bin/env node
 
+import { readFile } from "node:fs/promises";
 import { compare, hasNativeBinding } from "@blazediff/core-native";
 import { Bench, hrtimeNow } from "tinybench";
 import { getBenchmarkImagePairs, parseBenchmarkArgs } from "../utils";
 
 async function main() {
-	const { iterations, format, output, fixtures } = parseBenchmarkArgs();
+	const { iterations, format, output, fixtures, variant } =
+		parseBenchmarkArgs();
 
 	console.log(`[blazediff] Starting benchmark with ${iterations} iterations`);
 	console.log(`[blazediff] Native binding available: ${hasNativeBinding()}`);
 
 	const pairs = getBenchmarkImagePairs(fixtures);
 	console.log(`[blazediff] Found ${pairs.length} image pairs`);
+
+	const useBuffers = variant === "buffer";
+	const buffersByPath = useBuffers
+		? new Map(
+				await Promise.all(
+					[...new Set(pairs.flatMap((pair) => [pair.a, pair.b]))].map(
+						async (imagePath) =>
+							[imagePath, await readFile(imagePath)] as const,
+					),
+				),
+			)
+		: undefined;
+	console.log(
+		`[blazediff] Input mode: ${useBuffers ? `buffers (${buffersByPath?.size} shared allocations)` : "paths"}`,
+	);
 
 	const bench = new Bench({
 		iterations,
@@ -20,11 +37,15 @@ async function main() {
 		now: hrtimeNow,
 	});
 
-	for (let i = 0; i < pairs.length; i++) {
-		const pair = pairs[i];
+	for (const pair of pairs) {
+		const base = buffersByPath?.get(pair.a) ?? pair.a;
+		const comparison = buffersByPath?.get(pair.b) ?? pair.b;
+		const label = useBuffers ? "blazediff buffers" : "blazediff";
 
-		bench.add(`blazediff - ${pairs[i].name}`, async () => {
-			await compare(pair.a, pair.b, "/tmp/test.png", { antialiasing: true });
+		bench.add(`${label} - ${pair.name}`, async () => {
+			await compare(base, comparison, "/tmp/test.png", {
+				antialiasing: true,
+			});
 		});
 	}
 

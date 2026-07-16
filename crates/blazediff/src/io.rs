@@ -39,14 +39,17 @@ impl Drop for CtxGuard {
 pub fn load_png<P: AsRef<Path>>(path: P) -> Result<Image, DiffError> {
     let file = File::open(path.as_ref())?;
     let file_data = unsafe { Mmap::map(&file)? };
+    decode_png(&file_data)
+}
 
+pub(crate) fn decode_png(file_data: &[u8]) -> Result<Image, DiffError> {
     // When enabled, blazediff_png decodes every format spng accepts,
     // byte-identically, and is substantially faster (whole-buffer libdeflate
     // inflate, SIMD defilter); spng stays as a defensive fallback should the
     // codec ever reject an input spng would have taken. Off by default while
     // the codec is experimental.
     if blazediff_png_enabled() {
-        if let Ok(img) = blazediff_png::decode(&file_data) {
+        if let Ok(img) = blazediff_png::decode(file_data) {
             return Ok(Image {
                 data: img.data,
                 width: img.width,
@@ -54,7 +57,7 @@ pub fn load_png<P: AsRef<Path>>(path: P) -> Result<Image, DiffError> {
             });
         }
     }
-    decode_spng(&file_data)
+    decode_spng(file_data)
 }
 
 /// Decode a PNG byte buffer through spng (FMT_RGBA8 + tRNS). The decode

@@ -11,7 +11,7 @@
 The fastest single-threaded image diff in the world. Native Rust implementation with SIMD optimization, **3-4x faster** and **3x smaller** than [odiff](https://github.com/dmtrKovalenko/odiff).
 
 **Features:**
-- **PNG, JPEG & QOI support** - auto-detected by file extension
+- **PNG, JPEG & QOI support** - auto-detected by file extension or encoded bytes
 - SIMD-accelerated (NEON on ARM, SSE4.1 on x86)
 - Block-based two-pass optimization
 - YIQ perceptual color difference
@@ -49,9 +49,9 @@ Pre-built binaries are included via platform-specific packages:
 
 ## API
 
-### compare(basePath, comparePath, diffOutput, options?)
+### compare(base, comparison, diffOutput, options?)
 
-Compare two images (PNG or JPEG) and generate a diff image. Format is auto-detected from file extension.
+Compare two images from file paths or encoded `Uint8Array`/`Buffer` inputs and optionally generate a diff image. Both inputs must use the same input type. Format is auto-detected from the file extension or encoded bytes.
 
 <table>
   <tr>
@@ -60,14 +60,14 @@ Compare two images (PNG or JPEG) and generate a diff image. Format is auto-detec
     <th width="500">Description</th>
   </tr>
   <tr>
-    <td><code>basePath</code></td>
-    <td>string</td>
-    <td>Path to the base/expected image</td>
+    <td><code>base</code></td>
+    <td>string | Uint8Array</td>
+    <td>Base/expected image path or encoded bytes</td>
   </tr>
   <tr>
-    <td><code>comparePath</code></td>
-    <td>string</td>
-    <td>Path to the comparison/actual image</td>
+    <td><code>comparison</code></td>
+    <td>string | Uint8Array</td>
+    <td>Comparison/actual image path or encoded bytes</td>
   </tr>
   <tr>
     <td><code>diffOutput</code></td>
@@ -82,6 +82,22 @@ Compare two images (PNG or JPEG) and generate a diff image. Format is auto-detec
 </table>
 
 <strong>Returns:</strong> `Promise<BlazeDiffResult>`
+
+#### Encoded Buffer Inputs
+
+```typescript
+import { readFile } from "node:fs/promises";
+import { compare } from "@blazediff/core-native";
+
+const [expected, actual] = await Promise.all([
+  readFile("expected.png"),
+  readFile("actual.png"),
+]);
+
+const result = await compare(expected, actual, "diff.png");
+```
+
+The native binding borrows the existing `Buffer` or `Uint8Array` backing memory for the synchronous call. The encoded bytes are not copied into Rust, so the same JavaScript buffers can be reused across comparisons. Decoding still allocates native RGBA pixel buffers.
 
 <table>
   <tr>
@@ -122,9 +138,9 @@ Compare two images (PNG or JPEG) and generate a diff image. Format is auto-detec
   </tr>
 </table>
 
-### interpret(image1Path, image2Path, options?)
+### interpret(image1, image2, options?)
 
-Convenience wrapper that calls `compare` with `interpret: true` and returns the `InterpretResult` directly. No diff image output - purely analytical.
+Convenience wrapper that calls `compare` with `interpret: true` and returns the `InterpretResult` directly. Accepts matching path or encoded byte inputs. No diff image output - purely analytical.
 
 <table>
   <tr>
@@ -133,14 +149,14 @@ Convenience wrapper that calls `compare` with `interpret: true` and returns the 
     <th width="500">Description</th>
   </tr>
   <tr>
-    <td><code>image1Path</code></td>
-    <td>string</td>
-    <td>Path to the first image</td>
+    <td><code>image1</code></td>
+    <td>string | Uint8Array</td>
+    <td>First image path or encoded bytes</td>
   </tr>
   <tr>
-    <td><code>image2Path</code></td>
-    <td>string</td>
-    <td>Path to the second image</td>
+    <td><code>image2</code></td>
+    <td>string | Uint8Array</td>
+    <td>Second image path or encoded bytes</td>
   </tr>
   <tr>
     <td><code>options</code></td>

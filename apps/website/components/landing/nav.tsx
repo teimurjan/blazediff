@@ -34,8 +34,8 @@ export default function LandingNav({
 	ctaHref,
 }: LandingNavProps) {
 	return (
-		<nav className="bg-surface/80 backdrop-blur-md font-mono text-[14px] uppercase tracking-wider sticky top-0 border-b border-line z-40">
-			<div className="flex justify-between items-center gap-3 w-full px-4 md:px-10 py-2 max-w-screen-2xl mx-auto h-16">
+		<nav className="sticky max-w-screen-2xl w-full mx-auto top-0 z-40 px-10 pt-3 md:pt-4">
+			<div className="w-full bg-surface/80 backdrop-blur-md border border-line font-mono text-[14px] uppercase tracking-wider flex justify-between items-center gap-3 px-4 md:px-6 py-2 h-14">
 				<Link
 					href="/"
 					className="flex items-center gap-2 md:gap-4 shrink min-w-0"

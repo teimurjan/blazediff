@@ -9,9 +9,12 @@ use std::path::Path;
 pub fn load_qoi<P: AsRef<Path>>(path: P) -> Result<Image, DiffError> {
     let file = File::open(path.as_ref())?;
     let file_data = unsafe { Mmap::map(&file)? };
+    decode_qoi(&file_data)
+}
 
+pub(crate) fn decode_qoi(file_data: &[u8]) -> Result<Image, DiffError> {
     let (header, pixels) =
-        qoi::decode_to_vec(&file_data).map_err(|e| DiffError::QoiError(e.to_string()))?;
+        qoi::decode_to_vec(file_data).map_err(|e| DiffError::QoiError(e.to_string()))?;
 
     let width = header.width;
     let height = header.height;

@@ -1,9 +1,7 @@
 import AgentTerminalDemo from "../../components/landing/agent-terminal-demo";
 import CtaLink from "../../components/landing/cta-link";
 import Hero from "../../components/landing/hero";
-import HeroHeading, {
-	HeroGradient,
-} from "../../components/landing/hero-heading";
+import HeroHeading, { HeroAccent } from "../../components/landing/hero-heading";
 import HeroSubhead from "../../components/landing/hero-subhead";
 import InstallSnippet from "../../components/landing/install-snippet";
 import NumberedCard from "../../components/landing/numbered-card";
@@ -85,12 +83,12 @@ export default function AgentPage() {
 							<br />
 							TESTING FOR YOUR
 							<br />
-							<HeroGradient>CODING AGENT</HeroGradient>
+							<HeroAccent>CODING AGENT</HeroAccent>
 						</HeroHeading>
 						<HeroSubhead>
-							YOUR CODING AGENT RUNS THE TESTS AND JUDGES AMBIGUOUS DIFFS FROM
-							COMPACT REGION TILES. NO EMBEDDED LLM. NO API KEY. NO PER-SNAPSHOT
-							BILL. OPEN SOURCE FROM CLI TO CI.
+							Your coding agent runs the tests and judges ambiguous diffs from
+							compact region tiles. No embedded LLM. No API key. No per-snapshot
+							bill. Open source from CLI to CI.
 						</HeroSubhead>
 						<InstallSnippet
 							commands={[
@@ -109,7 +107,7 @@ export default function AgentPage() {
 
 			<Section
 				title="WHY THIS DESIGN"
-				intro="FOUR DECISIONS THAT KEEP THE LOOP CHEAP, AUDITABLE, AND OUTSIDE A VENDOR'S CLOUD."
+				intro="Four decisions that keep the loop cheap, auditable, and outside a vendor's cloud."
 			>
 				<div className="flex flex-col gap-20 md:gap-24">
 					{PRINCIPLES.map((p, i) => (
@@ -120,7 +118,7 @@ export default function AgentPage() {
 
 			<Section
 				title="HOW IT WORKS"
-				intro="TWO TOUCHPOINTS. ONE COMMAND TO AUTHOR FROM YOUR CODING AGENT, ONE STEP IN CI TO ENFORCE."
+				intro="Two touchpoints. One command to author from your coding agent, one step in CI to enforce."
 			>
 				<div className="grid grid-cols-1 md:grid-cols-2 gap-8">
 					{PROTOCOL.map((step) => (
@@ -131,7 +129,7 @@ export default function AgentPage() {
 
 			<Section
 				title="REPORT OUTPUT"
-				intro="EVERY CHECK WRITES A 5-COLUMN MARKDOWN REPORT WITH BASELINE, ACTUAL, AND DIFF THUMBNAILS PER ROUTE. THE SAMPLE BELOW IS FROM A REAL RUN ON THIS WEBSITE."
+				intro="Every check writes a 5-column Markdown report with baseline, actual, and diff thumbnails per route. The sample below is from a real run on this website."
 			>
 				<TerminalFrame title=".blazediff/summary.md">
 					<div className="p-6 bg-canvas flex flex-col gap-6">

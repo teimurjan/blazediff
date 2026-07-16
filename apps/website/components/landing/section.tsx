@@ -27,7 +27,7 @@ export default function Section({
 				</h2>
 			)}
 			{intro && (
-				<p className="font-mono text-[14px] text-muted mb-12 max-w-2xl uppercase">
+				<p className="font-sans text-[15px] text-muted mb-12 max-w-2xl leading-relaxed">
 					{intro}
 				</p>
 			)}

@@ -20,6 +20,7 @@
 		"bench": "node scripts/bench/run.js",
 		"benchmark:core": "pnpm --filter @blazediff/image-benchmark core",
 		"benchmark:core-native": "pnpm --filter @blazediff/image-benchmark core-native",
+		"benchmark:core-native-buffer": "pnpm --filter @blazediff/image-benchmark core-native-buffer",
 		"benchmark:core-native-next": "BLAZEDIFF_PNG_ENABLED=1 pnpm --filter @blazediff/image-benchmark core-native",
 		"benchmark:core-wasm": "pnpm --filter @blazediff/image-benchmark core-wasm",
 		"benchmark:odiff": "pnpm --filter @blazediff/image-benchmark odiff",
