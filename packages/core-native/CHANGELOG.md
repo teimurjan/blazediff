@@ -1,5 +1,11 @@
 # @blazediff/core-native
 
+## 5.3.0
+
+### Minor Changes
+
+- 548266e: Accept encoded `Buffer` and `Uint8Array` inputs in `compare` and `interpret` without copying their JavaScript backing memory into Rust.
+
 ## 5.2.0
 
 ### Minor Changes

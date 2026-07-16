@@ -112,6 +112,10 @@ function takeObject(idx) {
     return ret;
 }
 
+export function _start() {
+    wasm._start();
+}
+
 function passArray8ToWasm0(arg, malloc) {
     const ptr = malloc(arg.length * 1, 1) >>> 0;
     getUint8ArrayMemory0().set(arg, ptr / 1);
@@ -198,10 +202,6 @@ export function interpretRgba(rgba_a, rgba_b, width, height, threshold, include_
     } finally {
         wasm.__wbindgen_add_to_stack_pointer(16);
     }
-}
-
-export function _start() {
-    wasm._start();
 }
 
 async function __wbg_load(module, imports) {

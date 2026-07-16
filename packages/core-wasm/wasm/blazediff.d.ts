@@ -1,5 +1,6 @@
 /* tslint:disable */
 /* eslint-disable */
+export function _start(): void;
 /**
  * Diff two RGBA buffers. Returns the count of differing pixels.
  *
@@ -16,7 +17,6 @@ export function diffRgba(rgba_a: Uint8Array, rgba_b: Uint8Array, width: number, 
  * native binding produces.
  */
 export function interpretRgba(rgba_a: Uint8Array, rgba_b: Uint8Array, width: number, height: number, threshold: number, include_aa: boolean, diff_mask: boolean, diff_color_alt?: Uint8Array | null, out_diff?: Uint8Array | null): any;
-export function _start(): void;
 
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
