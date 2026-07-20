@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-	failureBlock,
+	checkSummary,
 	progressLine,
 	summaryLine,
 } from "../../src/cli/render/check";
@@ -28,55 +28,20 @@ function failResult(
 	};
 }
 
-describe("failureBlock", () => {
-	it("collapses entries that share a verdict into a single headline (no ids when only one group)", () => {
-		const results = ["docs", "home", "pricing"].map((id) => failResult(id));
-		const lines = failureBlock(results);
-		// One headline, one line — no glyph + id list, no action arrow, no diffs.
-		expect(lines).toHaveLength(1);
-		expect(lines[0]).toBe('"123" added to Nimbus text');
-	});
-
-	it("prefixes each headline with its ids when there are multiple verdict groups", () => {
-		const results = [
-			failResult("docs", "headline A"),
-			failResult("home", "headline A"),
-			failResult("pricing", "headline B"),
-		];
-		const lines = failureBlock(results);
-		expect(lines).toHaveLength(2);
-		expect(lines[0]).toContain("docs, home:");
-		expect(lines[0]).toContain("headline A");
-		expect(lines[1]).toContain("pricing:");
-		expect(lines[1]).toContain("headline B");
-	});
-
-	it("omits per-test diff paths and the action arrow entirely", () => {
-		const lines = failureBlock([failResult("docs")]).join("\n");
-		expect(lines).not.toContain(".diff.png");
-		expect(lines).not.toContain("→");
-		expect(lines).not.toContain("rewrite-if-intended");
-	});
-
-	it("keeps verdict-less results distinct with id + status", () => {
-		const results: CheckResult[] = [
-			{
-				id: "a",
-				url: "/a",
-				status: "missing-baseline",
-				message: "no baseline",
-			},
-			{ id: "b", url: "/b", status: "fail", diffPercentage: 1.2 },
-		];
-		const lines = failureBlock(results);
-		expect(lines.some((l) => l.includes("a: missing-baseline"))).toBe(true);
-		expect(lines.some((l) => l.includes("b: fail (1.200%)"))).toBe(true);
-	});
-});
-
 describe("progressLine", () => {
-	it("returns undefined for captured so each page renders once (judging → result)", () => {
-		expect(progressLine({ type: "captured", entryId: "home" })).toBeUndefined();
+	it("renders capture and comparison phases before judgment", () => {
+		expect(
+			progressLine({ type: "capturing", entryId: "home", url: "/home" }),
+		).toContain("capturing");
+		expect(progressLine({ type: "captured", entryId: "home" })).toContain(
+			"captured",
+		);
+		expect(
+			progressLine({ type: "capture-complete", captured: 1, total: 1 }),
+		).toContain("capture complete");
+		expect(
+			progressLine({ type: "diffing", entryId: "home", url: "/home" }),
+		).toContain("comparing");
 	});
 
 	it("shows an in-flight line when a test starts judging", () => {
@@ -93,9 +58,55 @@ describe("progressLine", () => {
 		const line = progressLine({ type: "result", result: failResult("home") });
 		expect(line).toContain("home");
 		expect(line).not.toContain("judging");
+		expect(line).toContain('"123" added to Nimbus text');
 		// Counter `[N]` / `[N/total]` is gone — only the glyph leads the line.
 		expect(line).not.toMatch(/^\s*\[\d/);
 		expect(line).not.toMatch(/\[\d+\/\d+\]/);
+	});
+	it("keeps the verdict detail in an awaiting-judgment row", () => {
+		const pending = {
+			...failResult("home", "navigation shifted"),
+			status: "needs-judgment" as const,
+		};
+		const line = progressLine({
+			type: "interrupt",
+			interrupt: {
+				kind: "host-judgment-required",
+				entryId: "home",
+				url: "/home",
+				requestPath: "/tmp/home/request.json",
+				pendingResult: pending,
+			},
+		});
+		expect(line).toContain("navigation shifted");
+		expect(line).toContain("awaiting judgment");
+	});
+});
+
+describe("checkSummary", () => {
+	it("does not repeat details already shown in live rows", () => {
+		const report: CheckReport = {
+			createdAt: "",
+			totalEntries: 1,
+			passed: 0,
+			failed: 0,
+			pendingJudgments: 1,
+			results: [
+				{
+					...failResult("home", "navigation shifted"),
+					status: "needs-judgment",
+				},
+			],
+		};
+		const output = checkSummary(
+			report,
+			"/repo/.blazediff/report.json",
+			"/repo/.blazediff/judgments",
+		);
+		expect(output).toContain("0/1 passed (1 pending judgment)");
+		expect(output).toContain("report:");
+		expect(output).toContain("pending:");
+		expect(output).not.toContain("navigation shifted");
 	});
 });
 

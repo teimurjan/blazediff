@@ -9,12 +9,14 @@ import {
 } from "node:http";
 import path from "node:path";
 import { promisify } from "node:util";
+import sharp from "sharp";
 import { loadConfig } from "../config";
 import { DEFAULT_THRESHOLD } from "../defaults";
 import { paths } from "../paths";
 import { readReport } from "../report/json";
 import { approveEntry, rejectEntry } from "./actions";
 import { toReviewPayload } from "./map";
+import type { ReviewEntry, ReviewImageSize } from "./types";
 
 const execFileP = promisify(execFile);
 
@@ -152,6 +154,29 @@ function imageFile(cwd: string, kind: ImageKind, id: string): string | null {
 	if (!resolved.startsWith(path.resolve(p.root) + path.sep)) return null;
 	return resolved;
 }
+async function readImageSize(
+	file: string | null,
+): Promise<ReviewImageSize | undefined> {
+	if (!file || !existsSync(file)) return undefined;
+	try {
+		const { width, height } = await sharp(file).metadata();
+		return width && height ? { width, height } : undefined;
+	} catch {
+		return undefined;
+	}
+}
+
+async function attachImageSizes(
+	cwd: string,
+	entry: ReviewEntry,
+): Promise<ReviewEntry> {
+	if (entry.summary !== "image dimensions changed") return entry;
+	const [baselineSize, candidateSize] = await Promise.all([
+		readImageSize(imageFile(cwd, "baseline", entry.id)),
+		readImageSize(imageFile(cwd, "actual", entry.id)),
+	]);
+	return { ...entry, baselineSize, candidateSize };
+}
 
 async function handleApi(
 	req: IncomingMessage,
@@ -171,7 +196,11 @@ async function handleApi(
 			return true;
 		}
 		const { _config, ...meta } = await buildRunMeta(cwd);
-		sendJson(res, 200, toReviewPayload(report, meta));
+		const payload = toReviewPayload(report, meta);
+		const entries = await Promise.all(
+			payload.entries.map((entry) => attachImageSizes(cwd, entry)),
+		);
+		sendJson(res, 200, { ...payload, entries });
 		return true;
 	}
 

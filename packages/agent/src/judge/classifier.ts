@@ -10,7 +10,7 @@
  * `vision.ts`. The CLI uses the default singleton; tests inject their own.
  */
 
-import { createLoadProgress, loadTransformers } from "./transformers";
+import { loadTransformersModel } from "./transformers";
 
 export interface ClassifierRunner {
 	/** Run `prompt` as a single user turn; returns the model's completion text. */
@@ -28,22 +28,24 @@ const MODEL_ID = "onnx-community/Qwen3.5-0.8B-ONNX";
 const MAX_NEW_TOKENS = 64;
 
 async function defaultFactory(): Promise<ClassifierRunner> {
-	const mod = await loadTransformers();
-	const progress = createLoadProgress("classifier");
-	const progress_callback = progress.onProgress;
-	const [tokenizer, model] = await Promise.all([
-		mod.AutoTokenizer.from_pretrained(MODEL_ID, { progress_callback }),
-		mod.Qwen3_5ForConditionalGeneration.from_pretrained(MODEL_ID, {
-			dtype: {
-				embed_tokens: "fp32",
-				vision_encoder: "q8",
-				decoder_model_merged: "q4",
-			},
-			device: "cpu",
-			progress_callback,
-		}),
-	]);
-	progress.done();
+	const { tokenizer, model } = await loadTransformersModel(
+		"classifier",
+		async (mod, progress_callback) => {
+			const [tokenizer, model] = await Promise.all([
+				mod.AutoTokenizer.from_pretrained(MODEL_ID, { progress_callback }),
+				mod.Qwen3_5ForConditionalGeneration.from_pretrained(MODEL_ID, {
+					dtype: {
+						embed_tokens: "fp32",
+						vision_encoder: "q8",
+						decoder_model_merged: "q4",
+					},
+					device: "cpu",
+					progress_callback,
+				}),
+			]);
+			return { tokenizer, model };
+		},
+	);
 
 	return {
 		async complete(prompt: string): Promise<string> {

@@ -1,8 +1,14 @@
 // TopBar, Rail (sidebar), Inspector, HelpOverlay, VerdictBanner.
-import { useMemo } from "react";
-import type { ReviewClass, ReviewEntry, ReviewRunMeta } from "../types";
+import { useMemo, useState } from "react";
+import logoUrl from "../../../../../apps/website/public/logo.png";
+import type {
+	ReviewClass,
+	ReviewEntry,
+	ReviewRegion,
+	ReviewRunMeta,
+} from "../types";
 import { Icons } from "./icons";
-import { ZoomInset } from "./viewer";
+import { PixelZoomPopover } from "./viewer";
 
 export type Filter = "all" | "pending" | "approved" | "issues";
 
@@ -11,14 +17,17 @@ export function TopBar({
 	meta,
 	entries,
 	onApproveAllIntentional,
+	onApproveAll,
 	onShowHelp,
 }: {
 	meta: ReviewRunMeta;
 	entries: ReviewEntry[];
 	onApproveAllIntentional: () => void;
+	onApproveAll: () => void;
 	onShowHelp: () => void;
 }) {
 	const reviewed = entries.filter((e) => e.status !== "unreviewed").length;
+	const pending = entries.length - reviewed;
 	const intentionalPending = entries.filter(
 		(e) =>
 			e.status === "unreviewed" && e.classification === "intentional-likely",
@@ -27,7 +36,7 @@ export function TopBar({
 	return (
 		<div className="topbar">
 			<div className="brand">
-				<span className="brand-dot" />
+				<img className="brand-logo" src={logoUrl} alt="" />
 				<span>blazediff</span>
 			</div>
 
@@ -70,9 +79,10 @@ export function TopBar({
 				style={
 					intentionalPending === 0 ? { opacity: 0.4, cursor: "default" } : {}
 				}
+				title="Approve all pending intentional changes"
 			>
 				<Icons.Spark w={12} h={12} style={{ color: "var(--ok)" }} />
-				Approve all intentional
+				<span className="bulk-label">Approve all intentional</span>
 				{intentionalPending > 0 && (
 					<span
 						className="mono"
@@ -81,6 +91,17 @@ export function TopBar({
 						{intentionalPending}
 					</span>
 				)}
+			</button>
+			<button
+				className="topbar-btn primary"
+				onClick={onApproveAll}
+				disabled={pending === 0}
+				style={pending === 0 ? { opacity: 0.4, cursor: "default" } : {}}
+				title="Approve every pending change"
+			>
+				<Icons.Check w={12} h={12} />
+				<span className="bulk-label">Approve all</span>
+				{pending > 0 && <span className="mono bulk-count">{pending}</span>}
 			</button>
 
 			<button
@@ -242,10 +263,18 @@ export function Inspector({
 	onSelectRegion: (id: number) => void;
 	onSkip: () => void;
 }) {
+	const [preview, setPreview] = useState<{
+		region: ReviewRegion;
+		x: number;
+		y: number;
+	} | null>(null);
 	if (!entry) return <div className="inspect" />;
 	const isReviewed = entry.status !== "unreviewed";
-	const selectedRegion = entry.regions.find((r) => r.id === selectedRegionId);
 
+	const dimensionChange =
+		entry.baselineSize && entry.candidateSize
+			? { before: entry.baselineSize, after: entry.candidateSize }
+			: null;
 	return (
 		<div className="inspect">
 			<div className="inspect-body">
@@ -273,9 +302,27 @@ export function Inspector({
 							className="mono"
 							style={{ fontSize: 12, color: "var(--text3)" }}
 						>
-							{entry.url} · {entry.width}×{entry.height}
+							{entry.url}
+							{!dimensionChange && ` · ${entry.width}×${entry.height}`}
 						</div>
 					</div>
+					{dimensionChange && (
+						<div className="dimension-change">
+							<div>
+								<span>Before</span>
+								<strong>
+									{dimensionChange.before.width}×{dimensionChange.before.height}
+								</strong>
+							</div>
+							<span className="dimension-arrow">→</span>
+							<div>
+								<span>After</span>
+								<strong>
+									{dimensionChange.after.width}×{dimensionChange.after.height}
+								</strong>
+							</div>
+						</div>
+					)}
 					<div className="meta-grid">
 						<div className="meta-cell">
 							<div className="k">Diff</div>
@@ -315,19 +362,29 @@ export function Inspector({
 							</span>
 						</p>
 						<div className="reg-list">
-							{entry.regions.map((r, i) => (
+							{entry.regions.map((region, index) => (
 								<button
-									key={r.id}
-									className={`reg-row ${selectedRegionId === r.id ? "selected" : ""}`}
-									onClick={() => onSelectRegion(r.id)}
+									key={region.id}
+									className={`reg-row ${selectedRegionId === region.id ? "selected" : ""}`}
+									onClick={() => onSelectRegion(region.id)}
+									onMouseEnter={(event) =>
+										setPreview({
+											region,
+											x: event.clientX,
+											y: event.clientY,
+										})
+									}
+									onMouseLeave={() => setPreview(null)}
 								>
-									<span className="rnum">#{i + 1}</span>
+									<span className="rnum">#{index + 1}</span>
 									<span>
 										<div className="rcoord">
-											x={r.bbox.x} y={r.bbox.y} · {r.bbox.w}×{r.bbox.h}
+											x={region.bbox.x} y={region.bbox.y} · {region.bbox.w}×
+											{region.bbox.h}
 										</div>
 										<div className="rchange">
-											{r.kind} · {r.pixels}px · {r.change.toFixed(3)}%
+											{region.kind} · {region.pixels}px ·{" "}
+											{region.change.toFixed(3)}%
 										</div>
 									</span>
 									<Icons.ChevR
@@ -338,8 +395,13 @@ export function Inspector({
 								</button>
 							))}
 						</div>
-						{selectedRegion && (
-							<ZoomInset entry={entry} region={selectedRegion} />
+						{preview && (
+							<PixelZoomPopover
+								entry={entry}
+								region={preview.region}
+								anchorX={preview.x}
+								anchorY={preview.y}
+							/>
 						)}
 					</div>
 				)}

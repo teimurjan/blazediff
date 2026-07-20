@@ -14,12 +14,19 @@ export interface ReviewRegion {
 	change: number; // percentage
 }
 
+export interface ReviewImageSize {
+	width: number;
+	height: number;
+}
+
 export interface ReviewEntry {
 	id: string;
 	name: string;
 	url: string;
 	width: number;
 	height: number;
+	baselineSize?: ReviewImageSize;
+	candidateSize?: ReviewImageSize;
 	diff: number; // diffPercentage
 	classification: ReviewClass;
 	severity: string;

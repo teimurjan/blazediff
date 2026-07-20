@@ -1,6 +1,6 @@
 {
 	"devServer": {
-		"command": "pnpm dev",
+		"command": "pnpm build && pnpm start",
 		"port": 4000,
 		"readyTimeoutMs": 60000
 	},

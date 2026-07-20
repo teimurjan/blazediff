@@ -11,7 +11,7 @@
 		"generate:launch-problem": "node scripts/generate-launch-problem.mjs",
 		"generate:launch-verdict": "node scripts/generate-launch-verdict.mjs",
 		"build": "next build && pnpm postbuild",
-		"start": "next start",
+		"start": "next start --port 4000",
 		"postbuild": "pagefind --site .next/server/app --output-path public/_pagefind && cp -r ./public/_pagefind ./out"
 	},
 	"dependencies": {

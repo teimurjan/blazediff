@@ -4,14 +4,20 @@ import { DEFAULT_READY_TIMEOUT_MS, DEFAULT_THRESHOLD } from "../../defaults";
 import { type RunEvent, runGraph } from "../../graph";
 import { type ApplyJudgmentsResult, applyJudgments } from "../../judge";
 import { paths } from "../../paths";
-import { isPortOpen, startServer } from "../../server/lifecycle";
+import {
+	isPortOpen,
+	type ServerHandle,
+	startServer,
+	stopServer,
+} from "../../server/lifecycle";
 import type { AgentConfig, CheckReport } from "../../types";
 import { parseJudge, slimReport } from "../check-output";
 import type { Output } from "../output";
 import { parsePositiveInteger, parseThreshold } from "../parsers";
-import { failureBlock, summaryLine } from "../render/check";
+import { checkSummary } from "../render/check";
 import { createProgress } from "../render/progress";
-import { dim, relPath } from "../render/theme";
+import { createDevServerProgress } from "../render/server";
+import { relPath } from "../render/theme";
 
 interface Opts {
 	baseUrl?: string;
@@ -53,65 +59,65 @@ function buildApplyHuman(r: ApplyJudgmentsResult, reportPath: string): string {
 		.join("\n");
 }
 
-/**
- * Compose the human-readable output for a normal `check` run. Layout is flat
- * (no nested indents): summary headline, one line per verdict-group failure,
- * then the report path and footer hints — matching the structure the failure
- * summary actually needs.
- */
-function buildCheckHuman(
-	report: CheckReport,
-	reportPath: string,
-	judgmentsPath: string,
-): string {
-	const summary = summaryLine(report);
-	if (report.failed === 0 && report.pendingJudgments === 0) {
-		return `${summary}\nreport: ${relPath(reportPath)}`;
-	}
-	const reviewHint =
-		report.failed > 0 || report.pendingJudgments > 0
-			? "run `blazediff-agent review` to review interactively"
-			: undefined;
-	return [
-		summary,
-		...failureBlock(report.results),
-		`report: ${relPath(reportPath)}`,
-		report.pendingJudgments > 0
-			? `pending: ${relPath(judgmentsPath)}/ - host writes <id>/verdict.json, then re-run check --apply-judgments`
-			: undefined,
-		reviewHint,
-	]
-		.filter(Boolean)
-		.join("\n");
-}
-
 /** 1 when the run has hard failures; undefined keeps the inherited success exit. */
 function exitCodeFor(report: CheckReport): number | undefined {
 	return report.failed > 0 ? 1 : undefined;
 }
-
 /**
- * Start the configured dev server if it isn't already up, then leave it running
- * so repeated local `check` runs attach to a warm server. Skipped for an
- * external base URL (no `devServer`). Tear down with `serve-status --kill`.
+ * Start the configured dev server if it is not already up. A server started by
+ * `check` is returned to the caller and stopped after the run. An existing
+ * server is attached but never owned or stopped.
  */
 async function ensureDevServer(
 	config: AgentConfig | null,
 	out: Output,
-): Promise<void> {
-	const port = config?.devServer?.port;
-	if (!config?.devServer || !port || (await isPortOpen(port))) return;
+): Promise<ServerHandle | null> {
+	const devServer = config?.devServer;
+	const port = devServer?.port;
+	if (!devServer || !port) return null;
 
-	await startServer({
-		command: config.devServer.command,
+	const logPath = paths().serverLog;
+	const progress = createDevServerProgress(out, {
+		command: devServer.command,
 		port,
-		readyTimeoutMs: config.devServer.readyTimeoutMs ?? DEFAULT_READY_TIMEOUT_MS,
+		logPath,
 	});
-	if (!out.isQuiet()) {
+	progress.checking();
+	if (await isPortOpen(port)) {
+		progress.ready(true);
+		return null;
+	}
+
+	progress.starting();
+	try {
+		const handle = await startServer({
+			command: devServer.command,
+			port,
+			logPath,
+			readyTimeoutMs: devServer.readyTimeoutMs ?? DEFAULT_READY_TIMEOUT_MS,
+		});
+		progress.ready(Boolean(handle.attached));
+		return handle.attached ? null : handle;
+	} catch (error) {
+		progress.failed();
+		throw error;
+	}
+}
+
+async function stopCheckServer(
+	server: ServerHandle,
+	out: Output,
+): Promise<void> {
+	const human = !out.isQuiet() && !out.isJson();
+	if (human) {
 		process.stderr.write(
-			`${dim(`dev server started on :${port} (serve-status --kill to stop)`)}\n`,
+			`[blazediff] stopping dev server http://127.0.0.1:${server.port}\n`,
 		);
 	}
+	const result = await stopServer(process.cwd(), server.port);
+	if (!human) return;
+	const status = result.killed ? "stopped" : "already stopped";
+	process.stderr.write(`✓ dev server ${status} on :${server.port}\n`);
 }
 
 export function registerCheck(program: Command, out: Output): void {
@@ -162,24 +168,28 @@ export function registerCheck(program: Command, out: Output): void {
 
 			const config = await loadConfig();
 			const baseUrl = resolveBaseUrl(config, opts.baseUrl);
-			if (!opts.baseUrl) await ensureDevServer(config, out);
-			const report = await runGraph({
-				baseUrl,
-				threshold: parseThreshold(opts.threshold),
-				concurrency: opts.concurrency
-					? parsePositiveInteger(opts.concurrency, "--concurrency")
-					: undefined,
-				emitDiffPng: opts.diffPng,
-				junitPath: opts.junit,
-				judge: parseJudge(opts.judge ?? config?.judge ?? "none"),
-				onEvent: makeProgressReporter(out),
-			});
+			const server = opts.baseUrl ? null : await ensureDevServer(config, out);
+			try {
+				const report = await runGraph({
+					baseUrl,
+					threshold: parseThreshold(opts.threshold),
+					concurrency: opts.concurrency
+						? parsePositiveInteger(opts.concurrency, "--concurrency")
+						: undefined,
+					emitDiffPng: opts.diffPng,
+					junitPath: opts.junit,
+					judge: parseJudge(opts.judge ?? config?.judge ?? "none"),
+					onEvent: makeProgressReporter(out),
+				});
 
-			out.emit(
-				slimReport(report, reportPath),
-				buildCheckHuman(report, reportPath, paths().judgments),
-			);
-			const code = exitCodeFor(report);
-			if (code !== undefined) process.exitCode = code;
+				out.emit(
+					slimReport(report, reportPath),
+					checkSummary(report, reportPath, paths().judgments),
+				);
+				const code = exitCodeFor(report);
+				if (code !== undefined) process.exitCode = code;
+			} finally {
+				if (server) await stopCheckServer(server, out);
+			}
 		});
 }

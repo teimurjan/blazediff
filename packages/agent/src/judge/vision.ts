@@ -15,7 +15,7 @@
  *     one token per vision patch ((H/patch)·(W/patch)) by hand before decoding.
  */
 
-import { createLoadProgress, loadTransformers } from "./transformers";
+import { loadTransformersModel } from "./transformers";
 
 export interface VisionRunner {
 	/** Answer `question` about the image at `imagePath`; returns the model's text. */
@@ -35,23 +35,25 @@ const MAX_NEW_TOKENS = 64;
 const ANSWER_MARKER = "Answer:";
 
 async function defaultFactory(): Promise<VisionRunner> {
-	const mod = await loadTransformers();
-	const progress = createLoadProgress("vision");
-	const progress_callback = progress.onProgress;
-	const [tokenizer, processor, model] = await Promise.all([
-		mod.AutoTokenizer.from_pretrained(MODEL_ID, { progress_callback }),
-		mod.AutoProcessor.from_pretrained(MODEL_ID, { progress_callback }),
-		mod.Moondream1ForConditionalGeneration.from_pretrained(MODEL_ID, {
-			dtype: {
-				embed_tokens: "fp32",
-				vision_encoder: "q8",
-				decoder_model_merged: "q4",
-			},
-			device: "cpu",
-			progress_callback,
-		}),
-	]);
-	progress.done();
+	const { mod, tokenizer, processor, model } = await loadTransformersModel(
+		"vision",
+		async (mod, progress_callback) => {
+			const [tokenizer, processor, model] = await Promise.all([
+				mod.AutoTokenizer.from_pretrained(MODEL_ID, { progress_callback }),
+				mod.AutoProcessor.from_pretrained(MODEL_ID, { progress_callback }),
+				mod.Moondream1ForConditionalGeneration.from_pretrained(MODEL_ID, {
+					dtype: {
+						embed_tokens: "fp32",
+						vision_encoder: "q8",
+						decoder_model_merged: "q4",
+					},
+					device: "cpu",
+					progress_callback,
+				}),
+			]);
+			return { mod, tokenizer, processor, model };
+		},
+	);
 
 	return {
 		async describe(imagePath: string, question: string): Promise<string> {

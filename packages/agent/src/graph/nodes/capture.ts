@@ -17,7 +17,10 @@ function asCaptured(
 	return { entry, output };
 }
 
-export function makeCaptureNode(semaphore: Semaphore) {
+export function makeCaptureNode(
+	semaphore: Semaphore,
+	abortController: AbortController,
+) {
 	return async function captureNode(
 		state: CaptureStateType,
 	): Promise<Partial<CaptureStateType>> {
@@ -66,22 +69,33 @@ export function makeCaptureNode(semaphore: Semaphore) {
 
 		const baselinePath = path.join(options.baselinesDir, `${entry.id}.png`);
 		try {
-			const capture = await semaphore.run(() =>
-				captureScreenshot(
-					options.baseUrl,
-					{
-						id: entry.id,
-						url: entry.url,
-						viewport: entry.viewport,
-						mask: entry.mask,
-						waitFor: entry.waitFor,
-						fullPage: entry.fullPage ?? DEFAULT_FULL_PAGE,
-						mode: "actual",
-					},
-					options.cwd,
-					harnesses,
-				),
-			);
+			const capture = await semaphore.run(async () => {
+				emitEvent({
+					type: "capturing",
+					entryId: entry.id,
+					url: entry.url,
+				});
+				try {
+					return await captureScreenshot(
+						options.baseUrl,
+						{
+							id: entry.id,
+							url: entry.url,
+							viewport: entry.viewport,
+							mask: entry.mask,
+							waitFor: entry.waitFor,
+							fullPage: entry.fullPage ?? DEFAULT_FULL_PAGE,
+							mode: "actual",
+						},
+						options.cwd,
+						harnesses,
+						abortController.signal,
+					);
+				} catch (err) {
+					if (!(err instanceof HarnessError)) abortController.abort(err);
+					throw err;
+				}
+			}, abortController.signal);
 
 			const items: CapturedEntry[] = [
 				asCaptured(entry, {
