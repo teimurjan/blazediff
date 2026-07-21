@@ -1,6 +1,6 @@
 import type { RunEvent } from "../../graph";
 import type { CheckReport, CheckResult } from "../../types";
-import { bold, dim, pc, statusGlyph } from "./theme";
+import { bold, dim, pc, relPath, statusGlyph } from "./theme";
 
 /** `x/y passed (...)` headline, colored green when all pass, red otherwise. */
 export function summaryLine(report: CheckReport): string {
@@ -15,100 +15,81 @@ export function summaryLine(report: CheckReport): string {
 		? pc.green(bold(text))
 		: pc.red(bold(text));
 }
+export function checkSummary(
+	report: CheckReport,
+	reportPath: string,
+	judgmentsPath: string,
+): string {
+	const summary = summaryLine(report);
+	if (report.failed === 0 && report.pendingJudgments === 0) {
+		return `${summary}\nreport: ${relPath(reportPath)}`;
+	}
+	return [
+		summary,
+		`report: ${relPath(reportPath)}`,
+		report.pendingJudgments > 0
+			? `pending: ${relPath(judgmentsPath)}/ - host writes <id>/verdict.json, then re-run check --apply-judgments`
+			: undefined,
+		"run `blazediff-agent review` to review interactively",
+	]
+		.filter(Boolean)
+		.join("\n");
+}
+
+function liveResultDetail(
+	result: CheckResult,
+	awaitingJudgment = false,
+): string {
+	const details: string[] = [];
+	if (result.verdict?.headline) {
+		details.push(result.verdict.headline);
+	} else if (result.status !== "pass" && result.message) {
+		details.push(result.message);
+	} else if (
+		result.status === "fail" &&
+		typeof result.diffPercentage === "number"
+	) {
+		details.push(`${result.diffPercentage.toFixed(3)}%`);
+	}
+	if (awaitingJudgment) details.push("awaiting judgment");
+	return details.join(" · ");
+}
 
 /**
- * One live progress line (written to stderr). Pure formatter — no I/O.
+ * One live progress line written to stderr.
  *
- * `captured` returns undefined deliberately: each page also gets a final
- * `result` line, so printing both stacks the page twice. The check progress
- * display is one line per test, owned by the judging → result transition.
+ * A page keeps one row as it moves through capture, comparison, judgment, and
+ * its terminal result. The capture-complete event is a phase summary.
  */
 export function progressLine(event: RunEvent): string | undefined {
+	if (event.type === "capturing") {
+		return `${pc.cyan("◌")} ${event.entryId}${dim("  (capturing…)")}`;
+	}
+	if (event.type === "captured") {
+		return `${pc.green("✓")} ${event.entryId}${dim("  (captured)")}`;
+	}
+	if (event.type === "capture-complete") {
+		const count =
+			event.captured === event.total
+				? `${event.captured} screenshot${event.captured === 1 ? "" : "s"}`
+				: `${event.captured}/${event.total} screenshots`;
+		return `${pc.green("✓")} capture complete${dim(`  (${count})`)}`;
+	}
+	if (event.type === "diffing") {
+		return `${pc.cyan("◌")} ${event.entryId}${dim("  (comparing…)")}`;
+	}
 	if (event.type === "result") {
-		const r = event.result;
-		const detail =
-			r.status === "fail" && typeof r.diffPercentage === "number"
-				? dim(`  (${r.diffPercentage.toFixed(3)}%)`)
-				: r.status !== "pass" && r.message
-					? dim(`  (${r.message})`)
-					: "";
-		return `${statusGlyph(r.status)} ${r.id}${detail}`;
+		const detailText = liveResultDetail(event.result);
+		const detail = detailText ? dim(`  (${detailText})`) : "";
+		return `${statusGlyph(event.result.status)} ${event.result.id}${detail}`;
 	}
 	if (event.type === "judging") {
 		return `${pc.cyan("◌")} ${event.entryId}${dim("  (judging…)")}`;
 	}
 	if (event.type === "interrupt") {
-		return `${pc.yellow("?")} ${event.interrupt.entryId}${dim("  (awaiting judgment)")}`;
+		const pending = event.interrupt.pendingResult;
+		const detail = liveResultDetail(pending, true);
+		return `${pc.yellow("?")} ${event.interrupt.entryId}${detail ? dim(`  (${detail})`) : ""}`;
 	}
 	return undefined;
-}
-
-type FailGroup = {
-	signature: string;
-	results: CheckResult[];
-	verdict?: CheckResult["verdict"];
-};
-
-/** Group failing results so identical verdicts collapse into one block. */
-function groupFailures(results: CheckResult[]): FailGroup[] {
-	const order: string[] = [];
-	const groups = new Map<string, FailGroup>();
-	for (const r of results) {
-		if (r.status === "pass") continue;
-		// Entries without a verdict (or needing judgment) never collapse — each
-		// carries its own status/message and must stay distinct.
-		const signature = r.verdict
-			? `v:${r.status}|${r.verdict.label}|${r.verdict.headline}|${r.verdict.action}`
-			: `s:${r.id}`;
-		let group = groups.get(signature);
-		if (!group) {
-			group = { signature, results: [], verdict: r.verdict };
-			groups.set(signature, group);
-			order.push(signature);
-		}
-		group.results.push(r);
-	}
-	return order.map((s) => groups.get(s) as FailGroup);
-}
-
-function detailFor(r: CheckResult): string {
-	if (typeof r.diffPercentage === "number") {
-		return `${r.status} (${r.diffPercentage.toFixed(3)}%)`;
-	}
-	return r.status;
-}
-
-/**
- * Compact failure block — one line per verdict group (the headline), one line
- * per verdict-less result (id + status). Per-test diff paths and the verdict
- * label/action are intentionally omitted: the live progress above already shows
- * which tests failed, and `blazediff-agent review` is the way to drill into
- * details. When several groups share results, the ids prefix the headline so
- * the reader can tell which tests belong to which verdict.
- */
-export function failureBlock(results: CheckResult[]): string[] {
-	const groups = groupFailures(results);
-	const verdictGroups = groups.filter((g) => g.verdict);
-	const multipleVerdicts = verdictGroups.length > 1;
-	const lines: string[] = [];
-	for (const group of groups) {
-		if (group.verdict) {
-			const headline = group.verdict.headline;
-			if (multipleVerdicts) {
-				const ids = group.results.map((r) => r.id).join(", ");
-				lines.push(`${dim(`${ids}:`)} ${headline}`);
-			} else {
-				lines.push(headline);
-			}
-			continue;
-		}
-		// Verdict-less: keep the glyph so missing-baseline / raw-fail visually
-		// distinguish from verdict headlines above.
-		const r = group.results[0] as CheckResult;
-		lines.push(`${statusGlyph(r.status)} ${bold(r.id)}: ${detailFor(r)}`);
-		if (r.status === "needs-judgment" && r.message) {
-			lines.push(dim(`  ${r.message}`));
-		}
-	}
-	return lines;
 }

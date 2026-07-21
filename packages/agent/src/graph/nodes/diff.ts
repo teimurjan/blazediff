@@ -1,4 +1,5 @@
 import { diffEntry } from "../../diff";
+import { emitEvent } from "../events";
 import type { Semaphore } from "../semaphore";
 import type { BranchStateType } from "../state";
 import { missingBaselineResult } from "./results";
@@ -24,15 +25,16 @@ export function makeDiffNode(semaphore: Semaphore) {
 			throw new Error("diffNode: capture output paths missing");
 		}
 
-		const outcome = await semaphore.run(() =>
-			diffEntry(
+		const outcome = await semaphore.run(() => {
+			emitEvent({ type: "diffing", entryId: entry.id, url: entry.url });
+			return diffEntry(
 				entry.id,
 				capture.baselinePath as string,
 				capture.captureOutputPath as string,
 				{ threshold: options.threshold, emitDiffPng: options.emitDiffPng },
 				options.cwd,
-			),
-		);
+			);
+		});
 
 		if (outcome.reason === "file-not-exists") {
 			return {

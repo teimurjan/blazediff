@@ -9,6 +9,9 @@ function pass(id: string): CheckResult {
 function fail(id: string): CheckResult {
 	return { id, url: `/${id}`, status: "fail", diffPercentage: 0.01 };
 }
+function hasCursorUp(output: string): boolean {
+	return output.split("\x1b[").some((part) => /^\d+F/.test(part));
+}
 
 describe("createProgress", () => {
 	let writes: string[];
@@ -28,30 +31,35 @@ describe("createProgress", () => {
 		writeSpy.mockRestore();
 	});
 
-	describe("non-TTY (append-only)", () => {
-		it("emits exactly one line per test (the terminal result) with no ANSI escapes", () => {
+	describe("non-TTY", () => {
+		it("announces each phase once and prints terminal results", () => {
 			const view = createProgress({ interactive: false });
-			view.emit({ type: "captured", entryId: "home" });
-			view.emit({ type: "judging", entryId: "home", url: "/home" });
-			view.emit({ type: "result", result: pass("home") });
+			view.emit({ type: "capturing", entryId: "a", url: "/a" });
+			view.emit({ type: "capturing", entryId: "b", url: "/b" });
+			view.emit({ type: "captured", entryId: "a" });
+			view.emit({ type: "capture-complete", captured: 2, total: 2 });
+			view.emit({ type: "diffing", entryId: "a", url: "/a" });
+			view.emit({ type: "diffing", entryId: "b", url: "/b" });
+			view.emit({ type: "judging", entryId: "a", url: "/a" });
+			view.emit({ type: "judging", entryId: "b", url: "/b" });
+			view.emit({ type: "result", result: pass("a") });
+			view.emit({ type: "result", result: pass("a") });
 
-			// Captured and judging are both suppressed in non-TTY — captured because
-			// the result line would duplicate the page, judging because without
-			// ANSI we can't overwrite it with the result.
-			expect(writes).toHaveLength(1);
-			expect(writes.join("")).not.toContain("\x1b[");
-			expect(writes.join("")).not.toContain("judging");
-			expect(writes.join("")).not.toContain("captured");
-			expect(writes[0]).toContain("home");
+			const output = writes.join("");
+			expect(output).not.toContain("\x1b[");
+			expect(output.match(/capturing/g)).toHaveLength(1);
+			expect(output.match(/comparing/g)).toHaveLength(1);
+			expect(output.match(/judging/g)).toHaveLength(1);
+			expect(output.match(/✓ a/g)).toHaveLength(1);
+			expect(output).toContain("capture complete");
 		});
 
-		it("interrupts still print as a terminal event", () => {
+		it("prints an interrupt once as a terminal event", () => {
 			const view = createProgress({ interactive: false });
-			view.emit({ type: "judging", entryId: "home", url: "/home" });
-			view.emit({
-				type: "interrupt",
+			const interrupt = {
+				type: "interrupt" as const,
 				interrupt: {
-					kind: "host-judgment-required",
+					kind: "host-judgment-required" as const,
 					entryId: "home",
 					url: "/home",
 					requestPath: ".blazediff/judgments/home",
@@ -59,53 +67,62 @@ describe("createProgress", () => {
 					pendingResult: {
 						id: "home",
 						url: "/home",
-						status: "needs-judgment",
+						status: "needs-judgment" as const,
 					},
 				},
-			});
+			};
+			view.emit({ type: "judging", entryId: "home", url: "/home" });
+			view.emit(interrupt);
+			view.emit(interrupt);
 
-			expect(writes).toHaveLength(1);
-			expect(writes[0]).toContain("home");
-			expect(writes[0]).toContain("awaiting judgment");
+			expect(writes).toHaveLength(2);
+			expect(writes.at(-1)).toContain("awaiting judgment");
 		});
 	});
 
-	describe("interactive (live redraw)", () => {
-		it("replaces a judging row with its result in place", () => {
+	describe("interactive", () => {
+		it("replaces one transient line through capture and comparison", () => {
 			const view = createProgress({ interactive: true });
-			view.emit({ type: "judging", entryId: "home", url: "/home" });
-			// First redraw draws the live region from scratch (no clear yet).
-			expect(writes.some((w) => w.includes("\x1b[1F"))).toBe(false);
-			expect(writes.at(-1)).toContain("judging");
+			view.emit({ type: "capturing", entryId: "home", url: "/home" });
+			view.emit({ type: "captured", entryId: "home" });
+			expect(writes).toHaveLength(2);
+			expect(writes.at(-1)).toContain("captured");
 
-			view.emit({ type: "result", result: fail("home") });
-			// Second redraw clears the previous 1 line then writes the result.
-			const clears = writes.filter((w) => w.includes("\x1b[1F"));
-			expect(clears).toHaveLength(1);
-			expect(writes.at(-1)).toContain("home");
-			expect(writes.at(-1)).not.toContain("judging");
-			// No `[N]` or `[N/total]` counter prefix anymore.
-			expect(writes.at(-1)).not.toMatch(/\[\d+(\/\d+)?\]/);
+			view.emit({ type: "capture-complete", captured: 1, total: 1 });
+			expect(writes.at(-1)).toContain("capture complete");
+
+			view.emit({ type: "diffing", entryId: "home", url: "/home" });
+			expect(writes.at(-1)).toContain("comparing");
+			expect(hasCursorUp(writes.join(""))).toBe(false);
 		});
 
-		it("redraws all in-flight rows on each event so completed rows stay positioned", () => {
+		it("clears the transient line and prints each result once", () => {
 			const view = createProgress({ interactive: true });
-			view.emit({ type: "judging", entryId: "a", url: "/a" });
-			view.emit({ type: "judging", entryId: "b", url: "/b" });
-			// On the second judging emit, the view should clear the previous
-			// region (1 line) and redraw both rows.
-			const lastWrites = writes.slice(-3);
-			expect(lastWrites[0]).toContain("\x1b[1F");
-			expect(lastWrites[1]).toContain("a");
-			expect(lastWrites[2]).toContain("b");
+			view.emit({ type: "judging", entryId: "home", url: "/home" });
+			view.emit({ type: "result", result: fail("home") });
+			const writesAfterResult = writes.length;
+			view.emit({ type: "result", result: fail("home") });
 
-			view.emit({ type: "result", result: pass("a") });
-			// `a` becomes result, `b` stays as judging; both lines still drawn.
-			const tail = writes.slice(-3);
-			expect(tail[0]).toContain("\x1b[2F"); // clear the 2-line region
-			expect(tail[1]).toContain("a");
-			expect(tail[1]).not.toContain("judging");
-			expect(tail[2]).toContain("judging"); // b still judging
+			expect(writes).toHaveLength(writesAfterResult);
+			expect(writes.at(-1)).toContain("home");
+			expect(writes.at(-1)).not.toContain("judging");
+			expect(writes.at(-1)).toMatch(/\n$/);
+		});
+
+		it("does constant work per event instead of redrawing every row", () => {
+			const view = createProgress({ interactive: true });
+			for (let index = 0; index < 30; index += 1) {
+				view.emit({
+					type: "judging",
+					entryId: `page-${index}`,
+					url: `/page-${index}`,
+				});
+			}
+
+			expect(writes).toHaveLength(30);
+			expect(writes.every((write) => !write.includes("\n"))).toBe(true);
+			expect(hasCursorUp(writes.join(""))).toBe(false);
+			expect(writes.at(-1)).toContain("page-29");
 		});
 	});
 });

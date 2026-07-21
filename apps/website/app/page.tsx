@@ -7,6 +7,7 @@ import HeroInterpret from "../components/landing/hero-interpret";
 import HeroSubhead from "../components/landing/hero-subhead";
 import InstallSnippet from "../components/landing/install-snippet";
 import NumberedCard from "../components/landing/numbered-card";
+import Reveal from "../components/landing/reveal";
 import Section from "../components/landing/section";
 import LandingShell from "../components/landing/shell";
 import interpretData from "../data/interpret/blazediff-3-diff.json";
@@ -167,6 +168,11 @@ const USED_BY = [
 		logo: "/apexcharts-logo.png",
 		href: "https://github.com/apexcharts/apexcharts.js",
 	},
+	{
+		name: "Avatune",
+		logo: "/avatune-logo.png",
+		href: "https://www.avatune.dev/",
+	},
 ];
 
 const FEATURES = [
@@ -275,23 +281,34 @@ export default function Home() {
 			</Section>
 
 			<Section title="USED BY">
-				<div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-8 gap-8 items-center">
-					{USED_BY.map((p) => (
-						<a
-							key={p.name}
-							href={p.href}
-							target="_blank"
-							rel="noopener noreferrer"
-							className="flex flex-col items-center gap-2 grayscale hover:grayscale-0 opacity-70 hover:opacity-100 transition-all"
-						>
-							{/* biome-ignore lint/performance/noImgElement: simple logo asset */}
-							<img src={p.logo} alt={p.name} className="h-12" />
-							<span className="font-mono text-[11px] text-muted uppercase tracking-wider">
-								{p.name}
-							</span>
-						</a>
-					))}
-				</div>
+				<Reveal className="marquee-mask overflow-hidden">
+					<div className="marquee-track flex w-max hover:[animation-play-state:paused]">
+						{[0, 1].map((copy) => (
+							<div
+								key={copy}
+								className="flex shrink-0 items-center"
+								aria-hidden={copy === 1}
+							>
+								{USED_BY.map((p) => (
+									<a
+										key={p.name}
+										href={p.href}
+										target="_blank"
+										rel="noopener noreferrer"
+										tabIndex={copy === 1 ? -1 : undefined}
+										className="flex shrink-0 flex-col items-center gap-2 px-8 grayscale hover:grayscale-0 opacity-70 hover:opacity-100 transition-all"
+									>
+										{/* biome-ignore lint/performance/noImgElement: simple logo asset */}
+										<img src={p.logo} alt={p.name} className="h-12" />
+										<span className="font-mono text-[11px] text-muted uppercase tracking-wider">
+											{p.name}
+										</span>
+									</a>
+								))}
+							</div>
+						))}
+					</div>
+				</Reveal>
 			</Section>
 
 			<Section

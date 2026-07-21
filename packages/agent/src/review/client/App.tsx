@@ -9,23 +9,7 @@ import {
 	VerdictBanner,
 } from "./components";
 import { Icons } from "./icons";
-import {
-	TweakColor,
-	TweakRadio,
-	TweakSection,
-	type Tweaks,
-	TweaksPanel,
-	TweakToggle,
-	useTweaks,
-} from "./tweaks";
 import { Viewer, type ViewMode } from "./viewer";
-
-const TWEAK_DEFAULTS: Tweaks = {
-	density: "regular",
-	accent: "#818cf8",
-	diffColor: "#f43fb0",
-	layout: "default",
-};
 
 const MODES: [
 	ViewMode,
@@ -69,16 +53,22 @@ async function postAction(
 	id: string,
 	action: "approve" | "reject",
 ): Promise<ReviewEntry | null> {
-	const res = await fetch(`/api/entries/${encodeURIComponent(id)}/${action}`, {
-		method: "POST",
-	});
-	if (!res.ok) return null;
-	const body = (await res.json()) as { ok: boolean; entry?: ReviewEntry };
-	return body.entry ?? null;
+	try {
+		const res = await fetch(
+			`/api/entries/${encodeURIComponent(id)}/${action}`,
+			{
+				method: "POST",
+			},
+		);
+		if (!res.ok) return null;
+		const body = (await res.json()) as { ok: boolean; entry?: ReviewEntry };
+		return body.entry ?? null;
+	} catch {
+		return null;
+	}
 }
 
 export function App() {
-	const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
 	const [meta, setMeta] = useState<ReviewRunMeta | null>(null);
 	const [entries, setEntries] = useState<ReviewEntry[]>([]);
 	const [loaded, setLoaded] = useState(false);
@@ -115,17 +105,6 @@ export function App() {
 		activeId != null
 			? (selectedRegion[activeId] ?? active?.regions[0]?.id ?? null)
 			: null;
-
-	// Apply tweak-driven CSS vars at the root.
-	useEffect(() => {
-		const root = document.documentElement;
-		root.style.setProperty("--accent", t.accent);
-		root.style.setProperty("--accent-hi", lighten(t.accent, 0.12));
-		root.style.setProperty("--accent-soft", `${t.accent}22`);
-		root.style.setProperty("--diff", t.diffColor);
-		root.style.setProperty("--diff-soft", `${t.diffColor}26`);
-		root.style.setProperty("--diff-glow", `${t.diffColor}66`);
-	}, [t.accent, t.diffColor]);
 
 	const flash = useCallback((msg: string) => {
 		setToast(msg);
@@ -210,35 +189,57 @@ export function App() {
 		flash(`Undid ${u.label}`);
 	}, [mutate, flash]);
 
+	const approveTargets = useCallback(
+		(targets: ReviewEntry[], description: string) => {
+			if (targets.length === 0) return;
+			const targetIds = new Set(targets.map((entry) => entry.id));
+			setEntries((current) =>
+				current.map((entry) =>
+					targetIds.has(entry.id)
+						? {
+								...entry,
+								status: "approved",
+								reviewedAt: "just now",
+								reviewedBy: "you",
+							}
+						: entry,
+				),
+			);
+			flash(`Approved ${targets.length} ${description}`);
+			void (async () => {
+				let failed = 0;
+				for (const target of targets) {
+					const entry = await postAction(target.id, "approve");
+					if (entry) {
+						mutate(target.id, entry);
+					} else {
+						mutate(target.id, target);
+						failed++;
+					}
+				}
+				if (failed > 0)
+					flash(`Couldn't approve ${failed} change${failed === 1 ? "" : "s"}`);
+			})();
+		},
+		[flash, mutate],
+	);
+
 	const onApproveAllIntentional = useCallback(() => {
 		const targets = entries.filter(
-			(e) =>
-				e.status === "unreviewed" && e.classification === "intentional-likely",
+			(entry) =>
+				entry.status === "unreviewed" &&
+				entry.classification === "intentional-likely",
 		);
-		if (targets.length === 0) return;
-		setEntries((prev) =>
-			prev.map((e) =>
-				targets.some((tg) => tg.id === e.id)
-					? {
-							...e,
-							status: "approved",
-							reviewedAt: "just now",
-							reviewedBy: "you",
-						}
-					: e,
-			),
+		approveTargets(
+			targets,
+			`intentional change${targets.length === 1 ? "" : "s"}`,
 		);
-		flash(
-			`Approved ${targets.length} intentional change${targets.length === 1 ? "" : "s"}`,
-		);
-		Promise.all(
-			targets.map((tg) =>
-				postAction(tg.id, "approve").then(
-					(entry) => entry && mutate(tg.id, entry),
-				),
-			),
-		);
-	}, [entries, flash, mutate]);
+	}, [entries, approveTargets]);
+
+	const onApproveAll = useCallback(() => {
+		const targets = entries.filter((entry) => entry.status === "unreviewed");
+		approveTargets(targets, `change${targets.length === 1 ? "" : "s"}`);
+	}, [entries, approveTargets]);
 
 	const goRelative = useCallback(
 		(delta: number) => {
@@ -333,14 +334,6 @@ export function App() {
 		onUndo,
 	]);
 
-	const densityClass =
-		t.density === "compact"
-			? "density-compact"
-			: t.density === "comfy"
-				? "density-comfy"
-				: "";
-	const layoutClass = t.layout === "focus" ? "layout-focus" : "";
-
 	if (!loaded) return <div className="review-status">Loading report…</div>;
 	if (!meta || entries.length === 0)
 		return (
@@ -350,11 +343,12 @@ export function App() {
 		);
 
 	return (
-		<div className={`app ${densityClass} ${layoutClass}`}>
+		<div className="app">
 			<TopBar
 				meta={meta}
 				entries={entries}
 				onApproveAllIntentional={onApproveAllIntentional}
+				onApproveAll={onApproveAll}
 				onShowHelp={() => setShowHelp(true)}
 			/>
 
@@ -373,22 +367,26 @@ export function App() {
 						<span className="url">{active?.url}</span>
 					</div>
 					<div className="center-hd-spacer" />
-					<button
-						className={`topbar-btn ghost ${maskOnSelect ? "on-focus" : ""}`}
-						onClick={() => setMaskOnSelect((v) => !v)}
-						title="Dim outside the selected region (M)"
-						style={
-							maskOnSelect
-								? {
-										color: "var(--accent-hi)",
-										background: "var(--accent-soft)",
-									}
-								: {}
-						}
-					>
-						<Icons.Focus w={13} h={13} /> Focus
-					</button>
-					<ViewModeSwitch mode={mode} setMode={setMode} />
+					{active?.status !== "approved" && (
+						<>
+							<button
+								className={`topbar-btn ghost ${maskOnSelect ? "on-focus" : ""}`}
+								onClick={() => setMaskOnSelect((v) => !v)}
+								title="Dim outside the selected region (M)"
+								style={
+									maskOnSelect
+										? {
+												color: "var(--accent-hi)",
+												background: "var(--accent-soft)",
+											}
+										: {}
+								}
+							>
+								<Icons.Focus w={13} h={13} /> Focus
+							</button>
+							<ViewModeSwitch mode={mode} setMode={setMode} />
+						</>
+					)}
 				</div>
 
 				{active && (
@@ -427,51 +425,6 @@ export function App() {
 
 			{showHelp && <HelpOverlay onClose={() => setShowHelp(false)} />}
 			{toast && <div className="toast">{toast}</div>}
-
-			<TweaksPanel>
-				<TweakSection label="Layout" />
-				<TweakRadio
-					label="Density"
-					value={t.density}
-					options={["compact", "regular", "comfy"]}
-					onChange={(v) => setTweak("density", v)}
-				/>
-				<TweakRadio
-					label="Sidebar"
-					value={t.layout}
-					options={["default", "focus"]}
-					onChange={(v) => setTweak("layout", v)}
-				/>
-				<TweakSection label="Color" />
-				<TweakColor
-					label="Accent"
-					value={t.accent}
-					options={["#818cf8", "#34d399", "#f5b342", "#f97316"]}
-					onChange={(v) => setTweak("accent", v)}
-				/>
-				<TweakColor
-					label="Diff highlight"
-					value={t.diffColor}
-					options={["#f43fb0", "#f43f5e", "#06b6d4", "#a3e635"]}
-					onChange={(v) => setTweak("diffColor", v)}
-				/>
-				<TweakSection label="Behavior" />
-				<TweakToggle
-					label="Mask outside region on select"
-					value={maskOnSelect}
-					onChange={setMaskOnSelect}
-				/>
-			</TweaksPanel>
 		</div>
 	);
-}
-
-function lighten(hex: string, amt: number): string {
-	const h = hex.replace("#", "");
-	const r = parseInt(h.slice(0, 2), 16);
-	const g = parseInt(h.slice(2, 4), 16);
-	const b = parseInt(h.slice(4, 6), 16);
-	const f = (c: number) => Math.min(255, Math.round(c + (255 - c) * amt));
-	const hx = (n: number) => n.toString(16).padStart(2, "0");
-	return `#${hx(f(r))}${hx(f(g))}${hx(f(b))}`;
 }

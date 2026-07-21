@@ -1,6 +1,7 @@
 import Image from "next/image";
 import type { ComponentType } from "react";
 import Card from "./card";
+import Reveal from "./reveal";
 
 interface NumberedCardProps {
 	num: string;
@@ -26,7 +27,7 @@ export default function NumberedCard({
 					reverse ? "md:flex-row-reverse" : "md:flex-row"
 				}`}
 			>
-				<div className="md:w-[33%] shrink-0">
+				<Reveal className="md:w-[33%] shrink-0">
 					<div className="relative aspect-[16/9] bg-surface border border-line overflow-hidden">
 						<Image
 							src={illustration}
@@ -36,7 +37,7 @@ export default function NumberedCard({
 							className="object-contain"
 						/>
 					</div>
-				</div>
+				</Reveal>
 				<div className="flex-1 flex flex-col gap-5">
 					<div className="flex items-start justify-between">
 						<span className="font-display text-[64px] leading-none font-bold text-muted opacity-30">

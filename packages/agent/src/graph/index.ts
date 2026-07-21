@@ -12,7 +12,7 @@ import { writeReport } from "../report/json";
 import { writeJunit } from "../report/junit";
 import type { CheckReport, CheckResult, Manifest } from "../types";
 import { FsCheckpointSaver } from "./checkpoint";
-import { setEventSink } from "./events";
+import { emitEvent, setEventSink } from "./events";
 import type { JudgmentInterrupt } from "./interrupt";
 import { makeCaptureNode } from "./nodes/capture";
 import { makeDiffNode } from "./nodes/diff";
@@ -29,7 +29,10 @@ import {
 export type ResumeMap = Record<string, Verdict>;
 
 export type RunEvent =
+	| { type: "capturing"; entryId: string; url: string }
 	| { type: "captured"; entryId: string }
+	| { type: "capture-complete"; captured: number; total: number }
+	| { type: "diffing"; entryId: string; url: string }
 	| { type: "result"; result: CheckResult }
 	| { type: "judging"; entryId: string; url: string }
 	| { type: "interrupt"; interrupt: JudgmentInterrupt }
@@ -57,11 +60,14 @@ export function threadIdFor(cwd: string): string {
 		.slice(0, 16);
 }
 
-function buildCaptureGraph(captureSemaphore: Semaphore) {
+function buildCaptureGraph(
+	captureSemaphore: Semaphore,
+	abortController: AbortController,
+) {
 	// Per-base-entry capture. Each Send runs the base entry's harnesses and
 	// emits its base + sub-shots into the shared `captured` channel.
 	return new StateGraph(CaptureState)
-		.addNode("capture", makeCaptureNode(captureSemaphore))
+		.addNode("capture", makeCaptureNode(captureSemaphore, abortController))
 		.addEdge(START, "capture")
 		.addEdge("capture", END)
 		.compile();
@@ -88,6 +94,11 @@ function buildBranchGraph(diffSemaphore: Semaphore) {
 async function dispatchNode(
 	state: GraphStateType,
 ): Promise<Partial<GraphStateType>> {
+	const total = state.captured.length;
+	const captured = state.captured.filter(
+		(item) => item.output.captureOutputPath,
+	).length;
+	emitEvent({ type: "capture-complete", captured, total });
 	if (state.options) await resolveJudge(state.options.judge).warmup?.();
 	return {};
 }
@@ -96,8 +107,9 @@ function buildGraph(
 	captureSemaphore: Semaphore,
 	diffSemaphore: Semaphore,
 	checkpointer: FsCheckpointSaver,
+	abortController: AbortController,
 ) {
-	const captureBranch = buildCaptureGraph(captureSemaphore);
+	const captureBranch = buildCaptureGraph(captureSemaphore, abortController);
 	const branch = buildBranchGraph(diffSemaphore);
 	return new StateGraph(GraphState)
 		.addNode("load", loadNode)
@@ -226,9 +238,15 @@ export async function runGraph(opts: RunOptions): Promise<CheckReport> {
 	const concurrency = opts.concurrency ?? defaultConcurrency();
 	const captureSemaphore = createSemaphore(concurrency);
 	const diffSemaphore = createSemaphore(cpuCores());
+	const abortController = new AbortController();
 	const baselinesDir = paths(cwd).baselines;
 	const checkpointer = new FsCheckpointSaver(paths(cwd).checkpoints);
-	const graph = buildGraph(captureSemaphore, diffSemaphore, checkpointer);
+	const graph = buildGraph(
+		captureSemaphore,
+		diffSemaphore,
+		checkpointer,
+		abortController,
+	);
 	const threadId = opts.threadId ?? threadIdFor(cwd);
 
 	if (!opts.resume) {
@@ -254,6 +272,7 @@ export async function runGraph(opts: RunOptions): Promise<CheckReport> {
 	try {
 		collect = await streamGraph(graph, input, threadId, opts.onEvent);
 	} finally {
+		abortController.abort();
 		setEventSink(undefined);
 		await closeBrowser();
 	}

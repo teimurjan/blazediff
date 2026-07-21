@@ -74,6 +74,7 @@ export async function captureScreenshot(
 	opts: CaptureOptions,
 	cwd: string = process.cwd(),
 	harnesses?: ResolvedHarness[],
+	signal?: AbortSignal,
 ): Promise<CaptureResult> {
 	const viewport = opts.viewport ?? DEFAULT_VIEWPORT;
 	const waitFor = opts.waitFor ?? DEFAULT_WAIT_FOR;
@@ -96,7 +97,18 @@ export async function captureScreenshot(
 	const context = handle.context;
 	const browser = await getBrowser();
 	const page = await openStablePage(handle);
+	const abortCapture = () => {
+		handle.disposable = true;
+		void context.close().catch(() => {});
+	};
+	signal?.addEventListener("abort", abortCapture, { once: true });
 	try {
+		if (signal?.aborted) {
+			abortCapture();
+			throw signal.reason instanceof Error
+				? signal.reason
+				: new Error("capture aborted");
+		}
 		const rejectScreenshot = async (): Promise<void> => {
 			throw new HarnessError("setup harness must not call screenshot()");
 		};
@@ -148,6 +160,7 @@ export async function captureScreenshot(
 			subCaptures: subCaptures.length > 0 ? subCaptures : undefined,
 		};
 	} finally {
+		signal?.removeEventListener("abort", abortCapture);
 		await page.close().catch(() => {});
 		await releaseStableContext(handle);
 	}

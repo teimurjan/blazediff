@@ -36,3 +36,39 @@ body {
 .nextra-navbar > nav {
 	max-width: 80rem;
 }
+
+@utility marquee-mask {
+	-webkit-mask-image: linear-gradient(
+		to right,
+		transparent,
+		black 6%,
+		black 94%,
+		transparent
+	);
+	mask-image: linear-gradient(
+		to right,
+		transparent,
+		black 6%,
+		black 94%,
+		transparent
+	);
+}
+
+@keyframes marquee {
+	from {
+		transform: translateX(0);
+	}
+	to {
+		transform: translateX(-50%);
+	}
+}
+
+.marquee-track {
+	animation: marquee 45s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.marquee-track {
+		animation: none;
+	}
+}
