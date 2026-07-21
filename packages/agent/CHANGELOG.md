@@ -1,5 +1,11 @@
 # @blazediff/agent
 
+## 0.9.0
+
+### Minor Changes
+
+- 0b21acd: Improve check progress and cancellation, and expand the visual review workflow.
+
 ## 0.8.2
 
 ### Patch Changes
