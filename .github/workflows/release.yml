@@ -45,6 +45,10 @@ jobs:
         with:
           node-version-file: ".node-version"
           cache: "pnpm"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Setup npm for trusted publishing
+        run: npm install --global npm@11.5.1
 
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
@@ -65,5 +69,4 @@ jobs:
           publish: pnpm run release
         env:
           GITHUB_TOKEN: ${{ secrets.CHANGESETS_PAT }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           CRATES_IO_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
