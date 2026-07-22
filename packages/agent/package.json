@@ -1,6 +1,6 @@
 {
 	"name": "@blazediff/agent",
-	"version": "0.8.2",
+	"version": "0.9.0",
 	"description": "Agentic visual regression for BlazeDiff. Auto-discovers routes, captures deterministic screenshots, runs CI checks.",
 	"private": false,
 	"publishConfig": {
