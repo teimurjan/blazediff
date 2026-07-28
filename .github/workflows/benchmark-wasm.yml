@@ -103,6 +103,28 @@ jobs:
       - name: Build
         run: pnpm build
 
+      # After `pnpm build`: core-wasm's entry point is dist/index.js (ESM),
+      # emitted by tsup during the build. Load it and the freshly built module,
+      # so a broken bundle or glue fails here rather than mid-benchmark.
+      - name: Verify the wasm module loads
+        shell: bash
+        working-directory: apps/image-benchmark
+        run: |
+          set -euo pipefail
+          node --input-type=module -e '
+            const { initBlazediff, diff } = await import("@blazediff/core-wasm");
+            const { readFileSync } = await import("node:fs");
+            const { createRequire } = await import("node:module");
+            const wasmPath = createRequire(import.meta.url).resolve(
+              "@blazediff/core-wasm/wasm/blazediff_bg.wasm",
+            );
+            await initBlazediff(readFileSync(wasmPath));
+            const a = new Uint8Array(16), b = new Uint8Array(16);
+            const n = await diff(a, b, 2, 2);
+            if (n !== 0) { console.error("::error::unexpected diff count " + n); process.exit(1); }
+            console.log("wasm module OK");
+          '
+
       - name: Run Benchmark (@blazediff/core-wasm)
         run: pnpm benchmark:core-wasm -- --format=json --output=blazediff-wasm.json
 
