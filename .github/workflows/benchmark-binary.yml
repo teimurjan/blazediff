@@ -23,6 +23,10 @@ jobs:
       - name: Checkout Repo
         uses: actions/checkout@v5
         with:
+          # The vendored C (libspng, libjpeg-turbo, miniz) lives in submodules,
+          # and build.rs compiles it whenever the `io` feature is on. Without
+          # this the native build dies on a missing vendor/libspng/spng/spng.c.
+          submodules: recursive
           lfs: true
 
       - name: Setup pnpm

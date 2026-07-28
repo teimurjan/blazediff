@@ -23,6 +23,10 @@ jobs:
       - name: Checkout Repo
         uses: actions/checkout@v5
         with:
+          # No `submodules` here on purpose: the wasm build runs with
+          # --no-default-features --features wasm, so `io` is off and build.rs
+          # returns before touching the vendored C. Verified by building with
+          # crates/blazediff/vendor absent.
           lfs: true
 
       - name: Setup pnpm
