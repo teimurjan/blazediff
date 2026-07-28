@@ -67,6 +67,10 @@ jobs:
       # binary no user receives.
       - name: Build native binary from source
         shell: bash
+        env:
+          # `_targets.sh` adds -mevex512 to the x86_64 Linux C flags for zig's
+          # clang; the runner's native cc is GCC 13, which has no such flag.
+          BLAZEDIFF_SKIP_EVEX512: "1"
         run: |
           set -euo pipefail
           HOST=$(rustc -vV | awk '/^host:/{print $2}')
@@ -108,4 +112,15 @@ jobs:
 
       - name: Compare and Print Combined Markdown Table
         if: always()
-        run: node .github/workflows/scripts/compare-and-print-core-native.js
+        shell: bash
+        run: |
+          # Runs on failure too, so an earlier crash still reports whatever
+          # completed. Bail out quietly when a series is missing rather than
+          # dying on ENOENT, which would bury the real error under a stack trace.
+          for f in blazediff.json blazediff-next.json odiff.json; do
+            if [ ! -s "apps/image-benchmark/$f" ]; then
+              echo "::warning::apps/image-benchmark/$f missing - skipping comparison (an earlier step failed)"
+              exit 0
+            fi
+          done
+          node .github/workflows/scripts/compare-and-print-core-native.js

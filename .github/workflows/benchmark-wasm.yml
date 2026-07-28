@@ -107,4 +107,14 @@ jobs:
 
       - name: Compare and Print Combined Markdown Table
         if: always()
-        run: node .github/workflows/scripts/compare-and-print-core-wasm.js
+        shell: bash
+        run: |
+          # See the binary benchmark: skip rather than ENOENT when an earlier
+          # step failed, so the real error stays the visible one.
+          for f in blazediff-wasm.json pixelmatch.json; do
+            if [ ! -s "apps/image-benchmark/$f" ]; then
+              echo "::warning::apps/image-benchmark/$f missing - skipping comparison (an earlier step failed)"
+              exit 0
+            fi
+          done
+          node .github/workflows/scripts/compare-and-print-core-wasm.js
