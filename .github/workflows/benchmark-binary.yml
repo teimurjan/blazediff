@@ -81,7 +81,9 @@ jobs:
           echo "Building for $HOST"
           ./crates/blazediff/scripts/build-all.sh --target "$HOST" --napi
 
-      - name: Verify the benchmark will use the freshly built binary
+      # A .node can only exist here if this job built it (the prebuilt ones were
+      # deleted above), so this asserts the build actually emitted the binding.
+      - name: Verify a native binary was produced
         shell: bash
         run: |
           set -euo pipefail
@@ -92,10 +94,18 @@ jobs:
             exit 1
           fi
           ls -l "${nodes[@]}"
-          # Resolve @blazediff/core-native from the benchmark app, which is what
-          # actually loads it. Done with `cd` rather than a step-level
-          # working-directory so the glob above still resolves from the repo root.
-          cd apps/image-benchmark
+
+      - name: Build
+        run: pnpm build
+
+      # Must run AFTER `pnpm build`: @blazediff/core-native's entry point is
+      # dist/index.js, which tsup emits during the build. Requiring the package
+      # before that fails with MODULE_NOT_FOUND even though the .node exists.
+      - name: Verify the native binding loads
+        shell: bash
+        working-directory: apps/image-benchmark
+        run: |
+          set -euo pipefail
           node -e '
             const { hasNativeBinding } = require("@blazediff/core-native");
             if (!hasNativeBinding()) {
@@ -104,9 +114,6 @@ jobs:
             }
             console.log("native binding OK");
           '
-
-      - name: Build
-        run: pnpm build
 
       - name: Run Benchmark (@blazediff/core-native)
         run: pnpm benchmark:core-native -- --format=json --output=blazediff.json
