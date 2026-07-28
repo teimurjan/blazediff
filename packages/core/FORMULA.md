@@ -52,6 +52,57 @@ maxDelta = 35215 × threshold²
 
 A pixel is different if `|δ| > maxDelta`, where `35215` is the maximum YIQ delta.
 
+## Early Rejection Bound
+
+Most pixels in a real comparison differ by only a unit or two per channel (encoding
+noise, not a visible change). Evaluating the full metric on all of them is wasted work,
+so an exact bound rejects them first.
+
+Because ΔY, ΔI and ΔQ are each linear in the channel deltas `v = (ΔR, ΔG, ΔB)`, the
+metric is a quadratic form:
+
+```
+δ = vᵀMv,    M = 0.5053·yyᵀ + 0.299·iiᵀ + 0.1957·qqᵀ
+```
+
+where `y`, `i`, `q` are the RGB→YIQ coefficient rows above. Evaluating it gives:
+
+```
+        ⎡  0.160096   0.018113  -0.027177 ⎤
+    M = ⎢  0.018113   0.249815   0.028493 ⎥
+        ⎣ -0.027177   0.028493   0.056532 ⎦
+```
+
+`M` is symmetric and positive-definite, so for every `v` the Rayleigh quotient is
+bounded by its largest eigenvalue:
+
+```
+δ = vᵀMv ≤ λmax·‖v‖²,    λmax = 0.2560781412378786
+```
+
+Therefore:
+
+```
+ΔR² + ΔG² + ΔB² ≤ maxDelta / λmax    ⟹    δ ≤ maxDelta
+```
+
+A pixel satisfying the left-hand side is **provably** below threshold and skips the
+full metric (three integer multiplies instead of twelve floating-point ones). This is
+a conservative bound, not a heuristic: it can never reject a pixel the metric would
+have counted as different.
+
+### Exactness
+
+The bound is applied only when both pixels are fully opaque, so `ΔR`, `ΔG`, `ΔB` are
+integers in `[-255, 255]` and `‖v‖² ≤ 195075` — computed exactly in a double, with no
+rounding of its own. The implementation constant is rounded **up** from `λmax`, so the
+single division `maxDelta / λmax` can only narrow the rejection window, never widen it
+past the true boundary.
+
+Verified exhaustively over all `511³ = 133,432,830` integer delta triples: the worst
+observed ratio `δ/‖v‖²` is `0.2560781281866944 ≤ λmax`, and across thresholds
+`0.001`–`1.0` zero pixels are rejected that the full metric counts as different.
+
 ## Anti-Aliasing Detection
 
 For each pixel, examine its 8 neighbors:

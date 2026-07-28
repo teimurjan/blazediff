@@ -327,8 +327,9 @@ Benchmarked on Apple M1 Max (25 runs, 5 warmup, image IO included) against `odif
 
 | Tool | 4k/1 | 4k/2 | 4k/3 | vs blazediff |
 |------|-----:|-----:|-----:|-------------|
-| **blazediff** | ~359ms | ~452ms | ~506ms | - |
-| odiff | ~1221ms | ~1525ms | ~1750ms | 3.4-3.5x slower |
+| **blazediff** | ~275ms | ~342ms | ~347ms | - |
+| **blazediff** (encoded buffer input) | ~203ms | ~256ms | ~270ms | - |
+| odiff | ~1266ms | ~1538ms | ~1799ms | 4.5-5.2x slower |
 
 Binary sizes (stripped, LTO optimized) - **~3x smaller than odiff**:
 

@@ -209,7 +209,7 @@ const BENCHMARK_GROUPS = [
 			},
 			{
 				label: "@blazediff/core-wasm",
-				ms: 51.75,
+				ms: 34.42,
 				highlight: true,
 			},
 		],
@@ -218,10 +218,10 @@ const BENCHMARK_GROUPS = [
 		title: "NATIVE BINARY VS ODIFF",
 		subtitle: "4K · IO INCLUDED · 25 RUNS",
 		bars: [
-			{ label: "odiff", ms: 1190.92 },
+			{ label: "odiff", ms: 1265.82 },
 			{
 				label: "@blazediff/core-native",
-				ms: 293.86,
+				ms: 275.42,
 				highlight: true,
 			},
 		],

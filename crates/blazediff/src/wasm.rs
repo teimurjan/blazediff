@@ -13,7 +13,14 @@ pub fn _start() {
     console_error_panic_hook::set_once();
 }
 
-fn image_from_slice(rgba: &[u8], width: u32, height: u32, label: &str) -> Result<Image, JsError> {
+/// Wrap the caller's RGBA bytes without copying them.
+///
+/// The parameter is taken by value: wasm-bindgen has already copied the JS
+/// typed array into a wasm-side allocation, and an owned `Vec<u8>` parameter
+/// takes ownership of exactly that allocation. Borrowing it as `&[u8]` and
+/// calling `to_vec()` would copy every input buffer a second time — 143 MB per
+/// call for a 4K pair, before comparing a single pixel.
+fn image_from_vec(rgba: Vec<u8>, width: u32, height: u32, label: &str) -> Result<Image, JsError> {
     let expected = (width as usize)
         .checked_mul(height as usize)
         .and_then(|v| v.checked_mul(4))
@@ -27,7 +34,7 @@ fn image_from_slice(rgba: &[u8], width: u32, height: u32, label: &str) -> Result
         )));
     }
     Ok(Image {
-        data: rgba.to_vec(),
+        data: rgba,
         width,
         height,
     })
@@ -75,8 +82,8 @@ fn copy_output(
 /// visualization and just get a count.
 #[wasm_bindgen(js_name = diffRgba)]
 pub fn diff_rgba(
-    rgba_a: &[u8],
-    rgba_b: &[u8],
+    rgba_a: Vec<u8>,
+    rgba_b: Vec<u8>,
     width: u32,
     height: u32,
     threshold: f64,
@@ -85,8 +92,8 @@ pub fn diff_rgba(
     diff_color_alt: Option<Vec<u8>>,
     out_diff: Option<js_sys::Uint8Array>,
 ) -> Result<u32, JsError> {
-    let img1 = image_from_slice(rgba_a, width, height, "rgba_a")?;
-    let img2 = image_from_slice(rgba_b, width, height, "rgba_b")?;
+    let img1 = image_from_vec(rgba_a, width, height, "rgba_a")?;
+    let img2 = image_from_vec(rgba_b, width, height, "rgba_b")?;
 
     let opts = DiffOptions {
         threshold,
@@ -114,8 +121,8 @@ pub fn diff_rgba(
 /// native binding produces.
 #[wasm_bindgen(js_name = interpretRgba)]
 pub fn interpret_rgba(
-    rgba_a: &[u8],
-    rgba_b: &[u8],
+    rgba_a: Vec<u8>,
+    rgba_b: Vec<u8>,
     width: u32,
     height: u32,
     threshold: f64,
@@ -124,8 +131,8 @@ pub fn interpret_rgba(
     diff_color_alt: Option<Vec<u8>>,
     out_diff: Option<js_sys::Uint8Array>,
 ) -> Result<JsValue, JsError> {
-    let img1 = image_from_slice(rgba_a, width, height, "rgba_a")?;
-    let img2 = image_from_slice(rgba_b, width, height, "rgba_b")?;
+    let img1 = image_from_vec(rgba_a, width, height, "rgba_a")?;
+    let img2 = image_from_vec(rgba_b, width, height, "rgba_b")?;
 
     let opts = DiffOptions {
         threshold,

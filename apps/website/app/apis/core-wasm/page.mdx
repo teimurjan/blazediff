@@ -2,7 +2,7 @@
 
 import { Callout } from "nextra/components";
 
-WebAssembly build of the BlazeDiff Rust algorithm for browsers, edge runtimes, and any wasm host. Same two-pass block algorithm as [`@blazediff/core-native`](/apis/core-native), compiled to `wasm32` with `v128` SIMD (`+simd128`). ~58% faster than [pixelmatch](https://github.com/mapbox/pixelmatch) on the same RGBA buffers; diff counts agree with pixelmatch to within ~0.05%.
+WebAssembly build of the BlazeDiff Rust algorithm for browsers, edge runtimes, and any wasm host. Same two-pass block algorithm as [`@blazediff/core-native`](/apis/core-native), compiled to `wasm32` with `v128` SIMD (`+simd128`). ~55% faster than [pixelmatch](https://github.com/mapbox/pixelmatch) on the same RGBA buffers — up to ~90% on 4K; diff counts agree with pixelmatch to within ~0.05%.
 
 [View Detailed Benchmarks](https://github.com/teimurjan/blazediff/blob/main/BENCHMARKS.md)
 
@@ -205,16 +205,16 @@ vs `pixelmatch` on M1 Max, image I/O excluded (pre-decoded RGBA buffers):
 
 | Fixture           | pixelmatch | core-wasm  | Improvement |
 | ----------------- | ---------- | ---------- | ----------- |
-| 4k/1              | 287.72ms   | 51.75ms    | **82.0%**   |
-| 4k/3              | 366.81ms   | 69.90ms    | **80.9%**   |
-| page/2            | 443.83ms   | 109.74ms   | **75.3%**   |
-| blazediff/3       | 14.60ms    | 5.52ms     | **62.2%**   |
-| pixelmatch/1      | 0.87ms     | 0.13ms     | **84.6%**   |
+| 4k/1              | 338.53ms   | 34.42ms    | **89.8%**   |
+| 4k/3              | 415.01ms   | 45.34ms    | **89.1%**   |
+| page/2            | 511.88ms   | 70.89ms    | **86.2%**   |
+| blazediff/3       | 12.08ms    | 5.76ms     | **52.3%**   |
+| pixelmatch/1      | 0.57ms     | 0.11ms     | **80.5%**   |
 
-Average ~58% faster across the full fixture set. Counts agree with pixelmatch within ~0.05% (e.g. `4k/1`: 69 932 vs 69 912 of 17 920 000 pixels; both use YIQ perceptual delta, residual differences are anti-aliasing edge cases).
+Average ~55% faster across the full fixture set (~64% across differing pairs). Counts agree with pixelmatch within ~0.05% (e.g. `4k/1`: 69 932 vs 69 912 of 17 920 000 pixels; both use YIQ perceptual delta, residual differences are anti-aliasing edge cases).
 
 <Callout type="info">
-  **Why so fast?** Block-based two-pass algorithm (cold pass skips unchanged 8×8 blocks via integer compare, hot pass runs YIQ delta only on changed regions) with `v128` SIMD intrinsics: 4-lane vectorized RGBA extraction, YIQ transform, and threshold compare.
+  **Why so fast?** Block-based two-pass algorithm (cold pass skips unchanged blocks via integer compare, hot pass runs YIQ delta only on changed regions) with `v128` SIMD intrinsics: 4-lane vectorized RGBA extraction, YIQ transform, and threshold compare. The cold pass folds four chunks into a single wide test so 16 unchanged pixels cost one branch, and an integer bound derived from the YIQ metric's largest eigenvalue rejects sub-threshold pixels before any float work happens.
 </Callout>
 
 ## Picking the Right Package
