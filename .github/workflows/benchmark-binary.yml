@@ -92,6 +92,10 @@ jobs:
             exit 1
           fi
           ls -l "${nodes[@]}"
+          # Resolve @blazediff/core-native from the benchmark app, which is what
+          # actually loads it. Done with `cd` rather than a step-level
+          # working-directory so the glob above still resolves from the repo root.
+          cd apps/image-benchmark
           node -e '
             const { hasNativeBinding } = require("@blazediff/core-native");
             if (!hasNativeBinding()) {
@@ -100,7 +104,6 @@ jobs:
             }
             console.log("native binding OK");
           '
-        working-directory: apps/image-benchmark
 
       - name: Build
         run: pnpm build
