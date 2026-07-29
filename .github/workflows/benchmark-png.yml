@@ -49,7 +49,21 @@ jobs:
           sudo apt-get install -y cmake zlib1g-dev
 
       - name: Run PNG codec benchmark (blazediff vs spng / image-rs / zune)
-        run: cargo run --release --manifest-path crates/Cargo.toml -p blazediff-png-benchmark
+        shell: bash
+        run: |
+          # Match the RUSTFLAGS the published binaries use (see
+          # crates/blazediff/scripts/_targets.sh). blazediff-png's decode
+          # kernels have no explicit x86 SIMD — they rely on the autovectorizer,
+          # which is gated by -C target-cpu. A plain `cargo run --release`
+          # builds baseline x86-64 (SSE2 only) and understates the codec vs
+          # rivals like zune that ship *runtime* AVX2 dispatch. This measures
+          # blazediff as it actually ships.
+          case "$(uname -m)" in
+            x86_64)  export RUSTFLAGS="-C target-cpu=haswell" ;;
+            aarch64) export RUSTFLAGS="-C target-cpu=cortex-a72" ;;
+          esac
+          echo "RUSTFLAGS=$RUSTFLAGS"
+          cargo run --release --manifest-path crates/Cargo.toml -p blazediff-png-benchmark
 
   corpus-parity:
     name: spng Byte-Identical Corpus Parity (${{ github.event.inputs.platform || 'ubuntu-latest' }})
