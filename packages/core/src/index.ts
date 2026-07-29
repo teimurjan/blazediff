@@ -289,7 +289,7 @@ function diffWithOutput(
 	let changedBlocksCount = 0;
 
 	// Anything under this squared channel distance is provably below
-	// threshold — see YIQ_LAMBDA_MAX.
+	// threshold, see YIQ_LAMBDA_MAX.
 	const reject = maxDelta / YIQ_LAMBDA_MAX;
 
 	// Pass 1: find blocks containing at least one above-threshold diff; fill
@@ -421,7 +421,7 @@ function diffWithOutput(
 					dg = ((av >>> SHIFT_G) & 0xff) - ((bv >>> SHIFT_G) & 0xff);
 					db = ((av >>> SHIFT_B) & 0xff) - ((bv >>> SHIFT_B) & 0xff);
 					// Provably below threshold: same outcome as the full metric
-					// failing the `dist > maxDelta` test — draw gray and move on.
+					// failing the `dist > maxDelta` test, so draw gray and move on.
 					if (dr * dr + dg * dg + db * db <= reject) {
 						if (!diffMask) {
 							const luma =
@@ -631,7 +631,7 @@ const YIQ_COEFF_Q = 0.1957;
  *     Δr² + Δg² + Δb² ≤ maxDelta / λmax   ⟹   δ ≤ maxDelta
  *
  * i.e. any pixel under that bound is *provably* below threshold and can skip
- * the full metric — three integer multiplies instead of twelve float ones.
+ * the full metric: three integer multiplies instead of twelve float ones.
  * Deltas are integers in [-255, 255], so |v|² ≤ 195075 is computed exactly in
  * a double; the bound introduces no rounding of its own.
  *
@@ -650,8 +650,8 @@ const YIQ_LAMBDA_MAX = 0.2560782;
  * RGBA bytes sit in memory in R,G,B,A order on every platform, but reading a
  * pixel as one 32-bit word puts red in the low byte on little-endian CPUs and
  * in the high byte on big-endian ones. These shifts let the hot loops pull
- * channels out of the word they already loaded for the equality test — no
- * extra memory traffic — while staying correct on both.
+ * channels out of the word they already loaded for the equality test (no
+ * extra memory traffic) while staying correct on both.
  *
  * They are module-level constants, so V8 hoists them out of the loops.
  */
@@ -799,7 +799,7 @@ export function antialiased(
 	let maxX = 0;
 	let maxY = 0;
 
-	// Center pixel hoisted out of the neighbour loop — brightnessDelta used to
+	// Center pixel hoisted out of the neighbour loop. brightnessDelta used to
 	// re-read all four of its bytes on each of the 8 iterations.
 	const centerWord = a32[pos];
 	const centerR = (centerWord >>> SHIFT_R) & 0xff;
@@ -814,7 +814,7 @@ export function antialiased(
 
 			// Brightness delta between the center pixel and adjacent one.
 			// When both pixels are opaque the deltas come out of the 32-bit
-			// words directly — 1 load per neighbour instead of 8. The deltas
+			// words directly: 1 load per neighbour instead of 8. The deltas
 			// are still formed on the raw channel values in the same order, so
 			// this is bit-identical to brightnessDelta, not an approximation.
 			const neighborPos = y * width + x;
@@ -959,7 +959,7 @@ function diffCountOnly(
 	excludeAA: boolean,
 ): number {
 	// Anything under this squared channel distance is provably below
-	// threshold — see YIQ_LAMBDA_MAX.
+	// threshold, see YIQ_LAMBDA_MAX.
 	const reject = maxDelta / YIQ_LAMBDA_MAX;
 
 	let diff = 0;
@@ -1063,7 +1063,7 @@ function diffCountOnlyBlocked(
 	let changedBlocksCount = 0;
 
 	// Anything under this squared channel distance is provably below
-	// threshold — see YIQ_LAMBDA_MAX.
+	// threshold, see YIQ_LAMBDA_MAX.
 	const reject = maxDelta / YIQ_LAMBDA_MAX;
 
 	for (let by = 0; by < blocksY; by++) {

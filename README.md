@@ -26,8 +26,8 @@
 ## Available Packages
 
 ### Core Libraries
-- **[@blazediff/core-native](./packages/core-native#readme)** - The fastest single-threaded image diff in the world (Rust + SIMD, 3-4x faster than odiff on 4K images)
-- **[@blazediff/core-wasm](./packages/core-wasm#readme)** - WebAssembly build of the same Rust algorithm (wasm32 + v128 SIMD, ~55% faster than pixelmatch). For browsers, edge runtimes, and any wasm host.
+- **[@blazediff/core-native](./packages/core-native#readme)** - The fastest single-threaded image diff in the world (Rust + SIMD, 4.4-4.9x faster than odiff on 4K images)
+- **[@blazediff/core-wasm](./packages/core-wasm#readme)** - WebAssembly build of the same Rust algorithm (wasm32 + v128 SIMD, ~51% faster than pixelmatch). For browsers, edge runtimes, and any wasm host.
 - **[@blazediff/core](./packages/core#readme)** - Pixel-perfect image comparison (1.5x faster than pixelmatch)
 - **[@blazediff/object](./packages/object#readme)** - High-performance object diffing with detailed change tracking
 - **[@blazediff/ssim](./packages/ssim#readme)** - SSIM, MS-SSIM, and Hitchhiker's SSIM for perceptual quality assessment
@@ -80,8 +80,8 @@ Every package above is available on both registries **except** the test-runner a
 
 BlazeDiff delivers significant performance improvements across all components:
 
-- **Native (Rust)**: 3-4x faster than odiff, 8x faster than pixelmatch on 4K images
-- **WASM**: ~55% faster than pixelmatch, ~10x on 4K (browser, edge, any wasm host)
+- **Native (Rust)**: 4.4-4.9x faster than odiff on 4K images (5.7-6.7x from encoded buffers)
+- **WASM**: ~51% faster than pixelmatch, up to ~10x on 4K (browser, edge, any wasm host)
 - **Image Pixel-by-Pixel (JS)**: ~50% faster than pixelmatch (up to 88% on identical images)
 - **SSIM**: ~25% faster than ssim.js, ~70% faster with Hitchhiker's SSIM
 - **Object Diff**: ~55% faster than microdiff (up to 96% on identical arrays)

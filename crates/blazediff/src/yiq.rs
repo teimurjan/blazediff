@@ -17,7 +17,7 @@ const PHI2: f64 = 2.618033988749895;
 ///
 /// The general form is `48 + 159 * (k & 1)` where `k` is the *byte* offset of
 /// the pixel. Since `k = pixel_index * 4` is always even, `k & 1` is always 0
-/// and this term is constant — matching `@blazediff/core`, where `k` likewise
+/// and this term is constant, matching `@blazediff/core`, where `k` likewise
 /// indexes a byte array.
 const CHECKER_RB: f64 = 48.0;
 
@@ -41,7 +41,7 @@ pub fn is_opaque(pixel: u32) -> bool {
     (pixel >> 24) == 0xFF
 }
 
-/// Per-channel deltas after alpha handling — the shared core of
+/// Per-channel deltas after alpha handling: the shared core of
 /// [`color_delta`] and [`brightness_delta`].
 ///
 /// Returns `None` when the two pixels are byte-identical (including alpha),
@@ -55,7 +55,7 @@ pub fn is_opaque(pixel: u32) -> bool {
 ///
 /// The index term is computed in `f64` deliberately: `f32` carries only a
 /// 24-bit mantissa (exact to 16_777_216), while `k / PHI` exceeds that from
-/// pixel_index 4_000_000 onward — a 2000x2000 image — after which an `f32`
+/// pixel_index 4_000_000 onward (a 2000x2000 image), after which an `f32`
 /// implementation silently selects the wrong checkerboard squares.
 #[inline(always)]
 fn channel_deltas(pixel_a: u32, pixel_b: u32, pixel_index: usize) -> Option<(f64, f64, f64)> {
@@ -88,7 +88,7 @@ fn channel_deltas(pixel_a: u32, pixel_b: u32, pixel_index: usize) -> Option<(f64
     ))
 }
 
-/// Perceptual YIQ delta between two pixels — the canonical scalar kernel.
+/// Perceptual YIQ delta between two pixels: the canonical scalar kernel.
 ///
 /// Bit-for-bit port of `colorDelta` from `@blazediff/core`, computed in `f64`
 /// because the JS reference uses doubles throughout. The sign encodes the
@@ -116,7 +116,7 @@ pub fn color_delta(pixel_a: u32, pixel_b: u32, pixel_index: usize) -> f64 {
 /// Y-only (luminance) delta, used by anti-aliasing detection.
 ///
 /// Port of `brightnessDelta` from `@blazediff/core`. When called on a
-/// centre/neighbour pair, `pixel_index` must be the **centre** pixel's index —
+/// centre/neighbour pair, `pixel_index` must be the **centre** pixel's index.
 /// the JS passes the centre pixel's byte offset for the checkerboard terms even
 /// though the second pixel is the neighbour.
 #[inline]
@@ -180,7 +180,7 @@ mod tests {
     // are the contract between the JS and Rust engines; if one of these drifts,
     // the two packages have started disagreeing again.
 
-    /// Tolerance is tight because both sides compute in f64 — these should
+    /// Tolerance is tight because both sides compute in f64, so these should
     /// agree to near machine epsilon, not merely "close enough".
     const PARITY_EPS: f64 = 1e-9;
 

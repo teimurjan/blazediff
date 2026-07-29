@@ -12,5 +12,5 @@ image with transparency (`fixtures/pixelmatch/5`: 256 diffs native vs 208 JS).
 unaffected, so most baselines will not move.
 
 The AA detector now blends consistently too, and the SIMD kernels gate the blend
-on an all-opaque check instead of running it unconditionally — up to 12% faster
+on an all-opaque check instead of running it unconditionally, up to 12% faster
 on large page screenshots. A cross-engine parity suite covers every fixture.

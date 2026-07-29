@@ -8,7 +8,7 @@
 
 </div>
 
-The fastest single-threaded image diff in the world. Native Rust implementation with SIMD optimization, **3-4x faster** and **3x smaller** than [odiff](https://github.com/dmtrKovalenko/odiff).
+The fastest single-threaded image diff in the world. Native Rust implementation with SIMD optimization, **4.4-4.9x faster** and **3x smaller** than [odiff](https://github.com/dmtrKovalenko/odiff).
 
 **Features:**
 - **PNG, JPEG & QOI support** - auto-detected by file extension or encoded bytes

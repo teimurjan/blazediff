@@ -8,7 +8,7 @@
 
 </div>
 
-WebAssembly build of the BlazeDiff Rust algorithm for browsers, edge runtimes, and any wasm host. Same two-pass block algorithm as [`@blazediff/core-native`](https://www.npmjs.com/package/@blazediff/core-native), compiled to `wasm32` with `v128` SIMD (`+simd128`). **~55%** faster than [pixelmatch](https://github.com/mapbox/pixelmatch) on the same RGBA buffers — up to ~90% on 4K; diff counts agree with pixelmatch to within ~0.05%.
+WebAssembly build of the BlazeDiff Rust algorithm for browsers, edge runtimes, and any wasm host. Same two-pass block algorithm as [`@blazediff/core-native`](https://www.npmjs.com/package/@blazediff/core-native), compiled to `wasm32` with `v128` SIMD (`+simd128`). **~51%** faster than [pixelmatch](https://github.com/mapbox/pixelmatch) on the same RGBA buffers (up to ~90% on 4K); diff counts agree with pixelmatch to within ~0.05%.
 
 **Features:**
 - Same Rust algorithm as `@blazediff/core-native` (YIQ perceptual delta + block-based cold/hot pass)
@@ -277,7 +277,7 @@ vs `pixelmatch` on M1 Max, image I/O excluded (pre-decoded RGBA buffers):
 | blazediff/3   | 12.08ms    | 5.76ms    | **52.3%**   |
 | pixelmatch/1  | 0.57ms     | 0.11ms    | **80.5%**   |
 
-Average **~55%** faster across the full fixture set (~64% across differing pairs). Counts agree with pixelmatch within ~0.05% (e.g. `4k/1`: 69 932 vs 69 912 of 17 920 000 pixels).
+Average **~51%** faster across the full fixture set (~60% across differing pairs). Counts agree with pixelmatch within ~0.05% (e.g. `4k/1`: 69 932 vs 69 912 of 17 920 000 pixels).
  Full benchmarks in [BENCHMARKS.md](https://github.com/teimurjan/blazediff/blob/main/BENCHMARKS.md).
 
 ## Algorithm

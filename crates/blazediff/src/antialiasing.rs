@@ -14,7 +14,7 @@ fn has_many_siblings(image_u32: &[u32], x: u32, y: u32, width: u32, height: u32)
     //
     // The vector paths read a full 4-lane word starting at `row_below - 1`
     // even though only 3 lanes are used, so the bottom-right interior pixel
-    // would load index `width * height` — one past the buffer. Require the
+    // would load index `width * height`, one past the buffer. Require the
     // whole load to be in bounds; the handful of pixels that fails this take
     // the scalar path, which counts identically.
     let pos = (y as usize) * (width as usize) + x as usize;
@@ -22,8 +22,10 @@ fn has_many_siblings(image_u32: &[u32], x: u32, y: u32, width: u32, height: u32)
         return has_many_siblings_simd(image_u32, x, y, width);
     }
 
-    // Boundary fallback - scalar with bounds checking
-    has_many_siblings_scalar(image_u32, x, y, width, height, 1)
+    // Boundary fallback - scalar with bounds checking. Only genuine boundary
+    // pixels get the implicit +1; an interior pixel that merely failed the
+    // load-width check must count from zero.
+    has_many_siblings_scalar(image_u32, x, y, width, height, u32::from(on_boundary))
 }
 
 /// SIMD-accelerated sibling check for interior pixels (no bounds checking needed)
@@ -227,7 +229,7 @@ pub fn is_antialiased(image1: &Image, image2: &Image, x: u32, y: u32) -> bool {
             // Identical pixels have a zero delta by definition, so short-circuit
             // rather than doing the arithmetic. Everything else goes through the
             // canonical kernel, which blends semi-transparent pixels against the
-            // checkerboard using the **centre** pixel's offset — the JS
+            // checkerboard using the **centre** pixel's offset: the JS
             // reference passes `centerPixelOffset` even for the neighbour.
             let delta = if adj_pixel == center_pixel {
                 0.0

@@ -533,10 +533,11 @@ The WebAssembly build of BlazeDiff uses the same Rust algorithm as the native bi
 Byte-identical pairs used to be the one case where `pixelmatch` won. The cause was the
 decoded-equality shortcut: on `wasm32-unknown-unknown` there is no libc, so Rust's
 `Vec<u8> == Vec<u8>` lowered to `compiler_builtins`' scalar byte-loop memcmp, measured at
-~2.4 GB/s — about 30ms for a 4K pair, more than twice the cost of just running the whole
-SIMD diff. The shortcut is now skipped on wasm (the cold block-scan reaches the same
-conclusion with v128 compares), which took `4k/1 (identical)` from 33.40ms to 16.30ms and
-turned every `(identical)` row from a ~60-70% loss into a win.
+~2.4 GB/s: about 30ms for a 4K pair, which on its own costs more than running the whole
+SIMD diff over that pair. The shortcut is now skipped on wasm (the cold block-scan reaches
+the same conclusion with v128 compares), which roughly halved `4k/1 (identical)`, from
+~33ms to the 17.47ms in the table below, and turned every `(identical)` row from a
+~60-70% loss into a win.
 
 <table>
   <thead>
@@ -796,8 +797,8 @@ _Benchmarks run on MacBook Pro M1 Max, Node.js 22_
 
 _25 runs (5 warmup)_
 
-> **3-4x faster than odiff** on 4K images.
-> **~40.0%** performance improvement on average.
+> **4.4-4.9x faster than odiff** on 4K images (5.7-6.7x from encoded buffers).
+> **~38.0%** performance improvement on average.
 
 The native Rust binary with SIMD optimization is the fastest single-threaded image diff in the world.
 

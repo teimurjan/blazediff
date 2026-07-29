@@ -2,7 +2,7 @@
 
 import { Callout } from "nextra/components";
 
-The fastest single-threaded image diff in the world. Native Rust implementation with SIMD optimization, **3-4x faster** and **3x smaller** than [odiff](https://github.com/dmtrKovalenko/odiff).
+The fastest single-threaded image diff in the world. Native Rust implementation with SIMD optimization, **4.4-4.9x faster** and **3x smaller** than [odiff](https://github.com/dmtrKovalenko/odiff).
 
 [View Detailed Benchmarks](https://github.com/teimurjan/blazediff/blob/main/BENCHMARKS.md)
 
@@ -26,7 +26,7 @@ Pre-built binaries are included for all major platforms - no compilation require
 ## Features
 
 - **PNG, JPEG & QOI support** - auto-detected by file extension or encoded bytes
-- **3-4x faster** than odiff, **3x smaller** binaries (~700KB-900KB vs ~2-3MB)
+- **4.4-4.9x faster** than odiff, **3x smaller** binaries (~700KB-900KB vs ~2-3MB)
 - **SIMD-accelerated** - NEON on ARM, SSE4.1 on x86
 - **Block-based optimization** - skips unchanged regions
 - **Interpret mode** - region detection, classification, severity scoring, human-readable summaries

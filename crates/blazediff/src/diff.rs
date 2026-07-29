@@ -184,7 +184,7 @@ unsafe fn chunk_exceeds_neon(
         // Integer reject: the YIQ metric is a positive-definite quadratic form,
         // so delta <= LAMBDA_MAX * (dr^2 + dg^2 + db^2). Any chunk whose every
         // lane is under maxDelta/LAMBDA_MAX is provably below threshold and can
-        // skip the float pipeline entirely — 6 int->float converts and ~9 FMAs
+        // skip the float pipeline entirely: 6 int->float converts and ~9 FMAs
         // replaced by an absolute-difference and a widening square-accumulate.
         let reject = vdupq_n_u32(reject_bound(max_delta));
         let rgb_mask = vreinterpretq_u8_u32(vdupq_n_u32(0x00FF_FFFF));
@@ -315,7 +315,7 @@ unsafe fn chunk_exceeds_sse(
     use std::arch::x86_64::*;
 
     if all_opaque_sse(va, vb) {
-        // Integer reject — see `chunk_exceeds_neon`. x86 has no byte
+        // Integer reject, see `chunk_exceeds_neon`. x86 has no byte
         // absolute-difference either, so it comes from two saturating
         // subtracts; `madd_epi16` then squares and pair-sums in one op.
         let d8 = _mm_and_si128(
@@ -326,7 +326,7 @@ unsafe fn chunk_exceeds_sse(
         let lo = _mm_unpacklo_epi8(d8, zero);
         let hi = _mm_unpackhi_epi8(d8, zero);
         // Each madd gives (r²+g², b²+0) per pixel; hadd folds those pairs into
-        // one squared channel distance per lane. Lane order does not matter —
+        // one squared channel distance per lane. Lane order does not matter,
         // the test below only asks whether *every* lane is under the bound.
         let sums = _mm_hadd_epi32(_mm_madd_epi16(lo, lo), _mm_madd_epi16(hi, hi));
         let over = _mm_cmpgt_epi32(sums, _mm_set1_epi32(reject_bound(max_delta) as i32));
@@ -651,7 +651,7 @@ unsafe fn block_has_perceptual_diff_sse(
         let a_ptr = a32.as_ptr().add(row_start);
         let b_ptr = b32.as_ptr().add(row_start);
 
-        // Wide skip over 16 pixels — see the NEON path.
+        // Wide skip over 16 pixels, see the NEON path.
         while offset + 16 <= row_width && row_width >= WIDE_SKIP_MIN_ROW {
             let a0 = _mm_loadu_si128(a_ptr.add(offset) as *const __m128i);
             let b0 = _mm_loadu_si128(b_ptr.add(offset) as *const __m128i);
@@ -738,7 +738,7 @@ fn block_has_perceptual_diff_scalar(
 /// NEON: YIQ delta for 4 **fully opaque** pixels.
 ///
 /// # Precondition
-/// Every lane in both vectors must have alpha 0xFF — check with
+/// Every lane in both vectors must have alpha 0xFF, checked with
 /// [`all_opaque_neon`] first. Semi-transparent pixels need the procedural
 /// checkerboard background, whose `⌊k/φ⌋` term is position-dependent and is
 /// handled by the scalar path in [`crate::yiq::color_delta`].
@@ -986,7 +986,7 @@ unsafe fn yiq_delta_8_avx2_opaque(
 // SIMD YIQ Delta with sign (for hot pass) - returns signed delta
 // =============================================================================
 
-/// Opaque-only YIQ delta in f32 — the scalar twin of the vector kernels.
+/// Opaque-only YIQ delta in f32: the scalar twin of the vector kernels.
 ///
 /// Kept in f32 so that a pixel's verdict never depends on whether it landed in
 /// the vectorised body or the scalar remainder of a row.
@@ -1015,7 +1015,7 @@ fn color_delta_opaque_f32(pixel_a: u32, pixel_b: u32) -> f32 {
 /// Two precisions on purpose:
 ///   * **Opaque** pixels use f32 and widen. Widening is exact, so comparing the
 ///     widened value against a widened `max_delta` gives the same verdict as
-///     the f32 comparison the vector path performs — the SIMD body and the
+///     the f32 comparison the vector path performs. The SIMD body and the
 ///     scalar remainder stay in agreement.
 ///   * **Semi-transparent** pixels are never vectorised, so they run the
 ///     canonical f64 kernel and match `@blazediff/core` exactly.
@@ -1387,7 +1387,7 @@ fn process_hot_block_neon(
                     if opaque {
                         if vmaxvq_u32(exceeds) == 0 {
                             // No lane crosses the threshold, so every pixel in
-                            // this chunk renders as background — the same
+                            // this chunk renders as background, the same
                             // outcome as the all-identical branch above. Take
                             // the vector gray store and skip the per-lane spill.
                             if draw_background {
@@ -1576,7 +1576,7 @@ fn process_hot_block_wasm(
 
                     if opaque && !v128_any_true(exceeds) {
                         // No lane crosses the threshold, so every pixel in this
-                        // chunk renders as background — same outcome as the
+                        // chunk renders as background, same outcome as the
                         // all-identical branch. Take the vector gray store and
                         // skip the per-lane spill.
                         if draw_background {
@@ -1974,7 +1974,7 @@ unsafe fn process_hot_block_avx2(
 
                 if opaque && exceeds_mask == 0 {
                     // No lane crosses the threshold, so every pixel in this
-                    // chunk renders as background — the same outcome as the
+                    // chunk renders as background, the same outcome as the
                     // all-identical branch. Take the vector gray store and skip
                     // the per-lane spill.
                     if draw_background {
@@ -2387,7 +2387,7 @@ unsafe fn process_hot_chunk_sse(
 
         if opaque && _mm_movemask_ps(exceeds_v) == 0 {
             // No lane crosses the threshold, so every pixel in this chunk
-            // renders as background — the same outcome as the all-identical
+            // renders as background, the same outcome as the all-identical
             // branch. Take the vector gray store and skip the per-lane spill.
             if draw_background {
                 if let Some(ref mut out) = out32 {
@@ -2501,7 +2501,7 @@ unsafe fn compute_gray_4_sse(
         _mm_mul_ps(_mm_sub_ps(luminance, v255), _mm_mul_ps(alpha_vec, a)),
     );
     let gray_clamped = _mm_min_ps(_mm_max_ps(gray_f, zero), v255);
-    // Truncate, not round — see `compute_gray_8_avx2`.
+    // Truncate, not round. See `compute_gray_8_avx2`.
     let gray_u32 = _mm_cvttps_epi32(gray_clamped);
 
     _mm_or_si128(
@@ -2746,7 +2746,7 @@ pub fn diff(
     // block-scan would have done.
     //
     // Not on wasm32: `wasm32-unknown-unknown` has no libc, so this lowers to
-    // `compiler_builtins`' scalar byte-loop memcmp — measured at ~2.4 GB/s,
+    // `compiler_builtins`' scalar byte-loop memcmp, measured at ~2.4 GB/s,
     // i.e. ~30ms for a 4K pair. The cold block-scan below reaches the same
     // "no differing pixel" conclusion with v128 compares in under half that,
     // so the shortcut is a pessimization there rather than an optimization.

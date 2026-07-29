@@ -59,13 +59,13 @@ jobs:
       # The committed platform binaries are release artifacts, refreshed only by
       # `Version Packages` commits, so they lag the source on any feature branch.
       # Deleting them means this job either measures a binary built from this
-      # commit or fails outright — it can no longer report numbers for an older
+      # commit or fails outright. It can no longer report numbers for an older
       # release while appearing to benchmark the branch.
       - name: Remove prebuilt native artifacts
         run: rm -f packages/core-native-*/blazediff packages/core-native-*/blazediff.node
 
       # `--target <host triple>` compiles natively (no cross/Docker) with the
-      # same per-target RUSTFLAGS the published artifacts use — `-C
+      # same per-target RUSTFLAGS the published artifacts use: `-C
       # target-cpu=haswell` on x86-64, which is what makes the AVX2 dispatch
       # path reachable. `--native` would use target-cpu=native and measure a
       # binary no user receives.

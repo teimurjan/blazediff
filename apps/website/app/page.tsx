@@ -43,14 +43,14 @@ const PACKAGES: {
 		name: "@blazediff/core-native",
 		href: "/apis/core-native",
 		blurb:
-			"SIMD-accelerated Rust binary. 3 to 4x faster than odiff, up to 8x faster than pixelmatch on 4K.",
+			"SIMD-accelerated Rust binary. ~4.6x faster than odiff on 4K, up to 8x faster than pixelmatch.",
 		tier: "foundation",
 	},
 	{
 		name: "@blazediff/core-wasm",
 		href: "/apis/core-wasm",
 		blurb:
-			"Same Rust algorithm, wasm32 v128 SIMD. ~5x faster than pixelmatch on 4K. Browser, edge, any wasm host.",
+			"Same Rust algorithm, wasm32 v128 SIMD. Up to ~9x faster than pixelmatch on 4K. Browser, edge, any wasm host.",
 		tier: "foundation",
 	},
 	{
@@ -179,7 +179,7 @@ const FEATURES = [
 	{
 		num: "01",
 		title: "FAST, DETERMINISTIC PIXEL DIFF",
-		body: "Pure-JS core ~1.5x faster than pixelmatch. Rust binary 3 to 4x faster than odiff, up to 8x on 4K. Wasm build (~32 KB, v128 SIMD) ~5x faster than pixelmatch on 4K in the browser. Reproducible on any machine.",
+		body: "Pure-JS core ~1.5x faster than pixelmatch. Rust binary ~4.6x faster than odiff on 4K, up to 8x vs pixelmatch. Wasm build (~32 KB, v128 SIMD) up to ~9x faster than pixelmatch on 4K in the browser. Reproducible on any machine.",
 		illustration: "/home-fast.png",
 	},
 	{

@@ -18,7 +18,7 @@ pub fn _start() {
 /// The parameter is taken by value: wasm-bindgen has already copied the JS
 /// typed array into a wasm-side allocation, and an owned `Vec<u8>` parameter
 /// takes ownership of exactly that allocation. Borrowing it as `&[u8]` and
-/// calling `to_vec()` would copy every input buffer a second time — 143 MB per
+/// calling `to_vec()` would copy every input buffer a second time: 143 MB per
 /// call for a 4K pair, before comparing a single pixel.
 fn image_from_vec(rgba: Vec<u8>, width: u32, height: u32, label: &str) -> Result<Image, JsError> {
     let expected = (width as usize)

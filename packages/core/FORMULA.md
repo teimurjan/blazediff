@@ -94,7 +94,7 @@ have counted as different.
 ### Exactness
 
 The bound is applied only when both pixels are fully opaque, so `ΔR`, `ΔG`, `ΔB` are
-integers in `[-255, 255]` and `‖v‖² ≤ 195075` — computed exactly in a double, with no
+integers in `[-255, 255]` and `‖v‖² ≤ 195075`, computed exactly in a double, with no
 rounding of its own. The implementation constant is rounded **up** from `λmax`, so the
 single division `maxDelta / λmax` can only narrow the rejection window, never widen it
 past the true boundary.
