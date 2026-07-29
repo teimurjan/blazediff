@@ -9,16 +9,17 @@ pub const YIQ_Q: [f64; 3] = [0.21147017, -0.52261711, 0.31114694];
 pub const YIQ_WEIGHTS: [f64; 3] = [0.5053, 0.299, 0.1957];
 pub const MAX_YIQ_DELTA: f64 = 35215.0;
 pub const MAX_YIQ_DELTA_F32: f32 = 35215.0;
-pub const COLOR_DELTA_SHIFT: u32 = 12;
 
 const PHI: f64 = 1.618033988749895;
 const PHI2: f64 = 2.618033988749895;
 
-// f32 YIQ coefficients for hot paths
-const YIQ_Y_F32: [f32; 3] = [0.29889531, 0.58662247, 0.11448223];
-const YIQ_I_F32: [f32; 3] = [0.59597799, -0.2741761, -0.32180189];
-const YIQ_Q_F32: [f32; 3] = [0.21147017, -0.52261711, 0.31114694];
-const YIQ_WEIGHTS_F32: [f32; 3] = [0.5053, 0.299, 0.1957];
+/// Red component of the procedural checkerboard background.
+///
+/// The general form is `48 + 159 * (k & 1)` where `k` is the *byte* offset of
+/// the pixel. Since `k = pixel_index * 4` is always even, `k & 1` is always 0
+/// and this term is constant, matching `@blazediff/core`, where `k` likewise
+/// indexes a byte array.
+const CHECKER_RB: f64 = 48.0;
 
 #[inline(always)]
 pub fn unpack_pixel(pixel: u32) -> (u8, u8, u8, u8) {
@@ -34,74 +35,77 @@ pub fn pack_pixel(r: u8, g: u8, b: u8, a: u8) -> u32 {
     (r as u32) | ((g as u32) << 8) | ((b as u32) << 16) | ((a as u32) << 24)
 }
 
-/// Fast YIQ delta for opaque pixels (no alpha blending needed)
-#[inline(always)]
-pub fn color_delta_opaque(pixel_a: u32, pixel_b: u32) -> f64 {
-    let dr = (pixel_a & 0xFF) as f64 - (pixel_b & 0xFF) as f64;
-    let dg = ((pixel_a >> 8) & 0xFF) as f64 - ((pixel_b >> 8) & 0xFF) as f64;
-    let db = ((pixel_a >> 16) & 0xFF) as f64 - ((pixel_b >> 16) & 0xFF) as f64;
-
-    let y = dr * YIQ_Y[0] + dg * YIQ_Y[1] + db * YIQ_Y[2];
-    let i = dr * YIQ_I[0] + dg * YIQ_I[1] + db * YIQ_I[2];
-    let q = dr * YIQ_Q[0] + dg * YIQ_Q[1] + db * YIQ_Q[2];
-
-    let delta = YIQ_WEIGHTS[0] * y * y + YIQ_WEIGHTS[1] * i * i + YIQ_WEIGHTS[2] * q * q;
-
-    if y > 0.0 {
-        -delta
-    } else {
-        delta
-    }
-}
-
 /// Check if pixel is fully opaque
 #[inline(always)]
 pub fn is_opaque(pixel: u32) -> bool {
     (pixel >> 24) == 0xFF
 }
 
-#[inline]
-pub fn color_delta(pixel_a: u32, pixel_b: u32, pixel_index: usize, y_only: bool) -> f64 {
+/// Per-channel deltas after alpha handling: the shared core of
+/// [`color_delta`] and [`brightness_delta`].
+///
+/// Returns `None` when the two pixels are byte-identical (including alpha),
+/// mirroring the `if (!dr && !dg && !db && !da) return 0` early-out in
+/// `@blazediff/core`.
+///
+/// Semi-transparent pixels are blended against the procedural golden-ratio
+/// checkerboard. `pixel_index` is the **pixel** index; the checkerboard terms
+/// are driven by the byte offset `k = pixel_index * 4`, exactly as in the JS
+/// reference where `k` indexes an RGBA byte array.
+///
+/// The index term is computed in `f64` deliberately: `f32` carries only a
+/// 24-bit mantissa (exact to 16_777_216), while `k / PHI` exceeds that from
+/// pixel_index 4_000_000 onward (a 2000x2000 image), after which an `f32`
+/// implementation silently selects the wrong checkerboard squares.
+#[inline(always)]
+fn channel_deltas(pixel_a: u32, pixel_b: u32, pixel_index: usize) -> Option<(f64, f64, f64)> {
     let (r1, g1, b1, a1) = unpack_pixel(pixel_a);
     let (r2, g2, b2, a2) = unpack_pixel(pixel_b);
 
-    let mut dr = (r1 as f64) - (r2 as f64);
-    let mut dg = (g1 as f64) - (g2 as f64);
-    let mut db = (b1 as f64) - (b2 as f64);
+    let dr = (r1 as f64) - (r2 as f64);
+    let dg = (g1 as f64) - (g2 as f64);
+    let db = (b1 as f64) - (b2 as f64);
     let da = (a1 as f64) - (a2 as f64);
 
-    // Fast path: fully opaque pixels with no difference
     if dr == 0.0 && dg == 0.0 && db == 0.0 && da == 0.0 {
-        return 0.0;
+        return None;
     }
 
-    // Alpha blending with procedural checkerboard background
-    if a1 < 255 || a2 < 255 {
-        // Generate checkerboard background color using golden ratio
-        let rb = 48.0 + 159.0 * ((pixel_index % 2) as f64);
-        let gb = 48.0 + 159.0 * ((((pixel_index as f64) / PHI) as usize & 1) as f64);
-        let bb = 48.0 + 159.0 * ((((pixel_index as f64) / PHI2) as usize & 1) as f64);
-
-        dr = ((r1 as f64) * (a1 as f64) - (r2 as f64) * (a2 as f64) - rb * da) / 255.0;
-        dg = ((g1 as f64) * (a1 as f64) - (g2 as f64) * (a2 as f64) - gb * da) / 255.0;
-        db = ((b1 as f64) * (a1 as f64) - (b2 as f64) * (a2 as f64) - bb * da) / 255.0;
+    if a1 == 255 && a2 == 255 {
+        return Some((dr, dg, db));
     }
 
-    // Calculate Y (luminance) difference
+    let k = (pixel_index as f64) * 4.0;
+    // Truncation toward zero matches JS `| 0`. Only the low bit is consumed,
+    // which `| 0`'s 32-bit wraparound would preserve anyway.
+    let gb = 48.0 + 159.0 * (((k / PHI) as u64 & 1) as f64);
+    let bb = 48.0 + 159.0 * (((k / PHI2) as u64 & 1) as f64);
+
+    Some((
+        ((r1 as f64) * (a1 as f64) - (r2 as f64) * (a2 as f64) - CHECKER_RB * da) / 255.0,
+        ((g1 as f64) * (a1 as f64) - (g2 as f64) * (a2 as f64) - gb * da) / 255.0,
+        ((b1 as f64) * (a1 as f64) - (b2 as f64) * (a2 as f64) - bb * da) / 255.0,
+    ))
+}
+
+/// Perceptual YIQ delta between two pixels: the canonical scalar kernel.
+///
+/// Bit-for-bit port of `colorDelta` from `@blazediff/core`, computed in `f64`
+/// because the JS reference uses doubles throughout. The sign encodes the
+/// direction of change: negative lightens, positive darkens.
+#[inline]
+pub fn color_delta(pixel_a: u32, pixel_b: u32, pixel_index: usize) -> f64 {
+    let (dr, dg, db) = match channel_deltas(pixel_a, pixel_b, pixel_index) {
+        Some(d) => d,
+        None => return 0.0,
+    };
+
     let y = dr * YIQ_Y[0] + dg * YIQ_Y[1] + db * YIQ_Y[2];
-
-    if y_only {
-        return y;
-    }
-
-    // Calculate I and Q differences
     let i = dr * YIQ_I[0] + dg * YIQ_I[1] + db * YIQ_I[2];
     let q = dr * YIQ_Q[0] + dg * YIQ_Q[1] + db * YIQ_Q[2];
 
-    // Weighted perceptual difference
     let delta = YIQ_WEIGHTS[0] * y * y + YIQ_WEIGHTS[1] * i * i + YIQ_WEIGHTS[2] * q * q;
 
-    // Encode lightening/darkening in sign
     if y > 0.0 {
         -delta
     } else {
@@ -109,64 +113,18 @@ pub fn color_delta(pixel_a: u32, pixel_b: u32, pixel_index: usize, y_only: bool)
     }
 }
 
+/// Y-only (luminance) delta, used by anti-aliasing detection.
+///
+/// Port of `brightnessDelta` from `@blazediff/core`. When called on a
+/// centre/neighbour pair, `pixel_index` must be the **centre** pixel's index.
+/// the JS passes the centre pixel's byte offset for the checkerboard terms even
+/// though the second pixel is the neighbour.
 #[inline]
-pub fn color_delta_fixed(pixel_a: u32, pixel_b: u32) -> i64 {
-    const SHIFT: i64 = 1 << COLOR_DELTA_SHIFT;
-
-    // Pre-computed fixed-point coefficients
-    const Y_R: i64 = (YIQ_Y[0] * (SHIFT as f64)) as i64;
-    const Y_G: i64 = (YIQ_Y[1] * (SHIFT as f64)) as i64;
-    const Y_B: i64 = (YIQ_Y[2] * (SHIFT as f64)) as i64;
-    const I_R: i64 = (YIQ_I[0] * (SHIFT as f64)) as i64;
-    const I_G: i64 = (YIQ_I[1] * (SHIFT as f64)) as i64;
-    const I_B: i64 = (YIQ_I[2] * (SHIFT as f64)) as i64;
-    const Q_R: i64 = (YIQ_Q[0] * (SHIFT as f64)) as i64;
-    const Q_G: i64 = (YIQ_Q[1] * (SHIFT as f64)) as i64;
-    const Q_B: i64 = (YIQ_Q[2] * (SHIFT as f64)) as i64;
-    const W_Y: i64 = (YIQ_WEIGHTS[0] * (SHIFT as f64)) as i64;
-    const W_I: i64 = (YIQ_WEIGHTS[1] * (SHIFT as f64)) as i64;
-    const W_Q: i64 = (YIQ_WEIGHTS[2] * (SHIFT as f64)) as i64;
-
-    let r1 = (pixel_a & 0xFF) as i64;
-    let g1 = ((pixel_a >> 8) & 0xFF) as i64;
-    let b1 = ((pixel_a >> 16) & 0xFF) as i64;
-    let a1 = ((pixel_a >> 24) & 0xFF) as i64;
-
-    let r2 = (pixel_b & 0xFF) as i64;
-    let g2 = ((pixel_b >> 8) & 0xFF) as i64;
-    let b2 = ((pixel_b >> 16) & 0xFF) as i64;
-    let a2 = ((pixel_b >> 24) & 0xFF) as i64;
-
-    // Blend with white if alpha < 255
-    let blend = |c: i64, a: i64| -> i64 {
-        if a == 0 {
-            255 << COLOR_DELTA_SHIFT
-        } else if a < 255 {
-            (255 << COLOR_DELTA_SHIFT) + ((c - 255) * a * SHIFT) / 255
-        } else {
-            c << COLOR_DELTA_SHIFT
-        }
-    };
-
-    let br1 = blend(r1, a1);
-    let bg1 = blend(g1, a1);
-    let bb1 = blend(b1, a1);
-
-    let br2 = blend(r2, a2);
-    let bg2 = blend(g2, a2);
-    let bb2 = blend(b2, a2);
-
-    // YIQ calculation in fixed-point
-    let dr = br1 - br2;
-    let dg = bg1 - bg2;
-    let db = bb1 - bb2;
-
-    let y = (dr * Y_R + dg * Y_G + db * Y_B) >> COLOR_DELTA_SHIFT;
-    let i = (dr * I_R + dg * I_G + db * I_B) >> COLOR_DELTA_SHIFT;
-    let q = (dr * Q_R + dg * Q_G + db * Q_B) >> COLOR_DELTA_SHIFT;
-
-    // Weighted sum (result still shifted)
-    (y * y * W_Y + i * i * W_I + q * q * W_Q) >> (2 * COLOR_DELTA_SHIFT)
+pub fn brightness_delta(pixel_a: u32, pixel_b: u32, pixel_index: usize) -> f64 {
+    match channel_deltas(pixel_a, pixel_b, pixel_index) {
+        Some((dr, dg, db)) => dr * YIQ_Y[0] + dg * YIQ_Y[1] + db * YIQ_Y[2],
+        None => 0.0,
+    }
 }
 
 #[inline]
@@ -177,60 +135,6 @@ pub fn threshold_to_max_delta(threshold: f64) -> f64 {
 #[inline]
 pub fn threshold_to_max_delta_f32(threshold: f64) -> f32 {
     MAX_YIQ_DELTA_F32 * (threshold * threshold) as f32
-}
-
-#[inline]
-pub fn threshold_to_max_delta_fixed(threshold: f64) -> i64 {
-    let max_delta = threshold_to_max_delta(threshold);
-    (max_delta * ((1 << COLOR_DELTA_SHIFT) as f64)) as i64
-}
-
-/// Fast f32 YIQ delta for hot paths (handles alpha with white background blend)
-#[inline]
-pub fn color_delta_f32(pixel_a: u32, pixel_b: u32) -> f32 {
-    if pixel_a == pixel_b {
-        return 0.0;
-    }
-
-    let r1 = (pixel_a & 0xFF) as f32;
-    let g1 = ((pixel_a >> 8) & 0xFF) as f32;
-    let b1 = ((pixel_a >> 16) & 0xFF) as f32;
-    let a1 = ((pixel_a >> 24) & 0xFF) as f32;
-
-    let r2 = (pixel_b & 0xFF) as f32;
-    let g2 = ((pixel_b >> 8) & 0xFF) as f32;
-    let b2 = ((pixel_b >> 16) & 0xFF) as f32;
-    let a2 = ((pixel_b >> 24) & 0xFF) as f32;
-
-    // Alpha blending with white background (fast path for opaque)
-    let (dr, dg, db) = if a1 >= 255.0 && a2 >= 255.0 {
-        (r1 - r2, g1 - g2, b1 - b2)
-    } else {
-        // Blend with white: result = 255 + (color - 255) * alpha/255
-        let inv255 = 1.0 / 255.0;
-        let br1 = 255.0 + (r1 - 255.0) * a1 * inv255;
-        let bg1 = 255.0 + (g1 - 255.0) * a1 * inv255;
-        let bb1 = 255.0 + (b1 - 255.0) * a1 * inv255;
-        let br2 = 255.0 + (r2 - 255.0) * a2 * inv255;
-        let bg2 = 255.0 + (g2 - 255.0) * a2 * inv255;
-        let bb2 = 255.0 + (b2 - 255.0) * a2 * inv255;
-        (br1 - br2, bg1 - bg2, bb1 - bb2)
-    };
-
-    // YIQ calculation
-    let y = dr * YIQ_Y_F32[0] + dg * YIQ_Y_F32[1] + db * YIQ_Y_F32[2];
-    let i = dr * YIQ_I_F32[0] + dg * YIQ_I_F32[1] + db * YIQ_I_F32[2];
-    let q = dr * YIQ_Q_F32[0] + dg * YIQ_Q_F32[1] + db * YIQ_Q_F32[2];
-
-    let delta =
-        YIQ_WEIGHTS_F32[0] * y * y + YIQ_WEIGHTS_F32[1] * i * i + YIQ_WEIGHTS_F32[2] * q * q;
-
-    // Encode lightening/darkening in sign
-    if y > 0.0 {
-        -delta
-    } else {
-        delta
-    }
 }
 
 #[cfg(test)]
@@ -256,7 +160,7 @@ mod tests {
     #[test]
     fn test_identical_pixels_zero_delta() {
         let pixel = 0xFF8080FF; // Opaque pixel
-        let delta = color_delta(pixel, pixel, 0, false);
+        let delta = color_delta(pixel, pixel, 0);
         assert_eq!(delta, 0.0);
     }
 
@@ -264,9 +168,85 @@ mod tests {
     fn test_black_white_delta() {
         let black = 0xFF000000; // Opaque black
         let white = 0xFFFFFFFF; // Opaque white
-        let delta = color_delta(black, white, 0, false);
+        let delta = color_delta(black, white, 0);
         // Should be close to max delta
         assert!(delta.abs() > 30000.0);
+    }
+
+    // ── Parity with @blazediff/core ──────────────────────────────────────────
+    //
+    // Every expected value below was produced by running the reference
+    // `colorDelta` / `brightnessDelta` from packages/core/src/index.ts. They
+    // are the contract between the JS and Rust engines; if one of these drifts,
+    // the two packages have started disagreeing again.
+
+    /// Tolerance is tight because both sides compute in f64, so these should
+    /// agree to near machine epsilon, not merely "close enough".
+    const PARITY_EPS: f64 = 1e-9;
+
+    #[test]
+    fn test_opaque_matches_js_reference() {
+        // (128,128,128,255) vs (100,100,100,255)
+        let a = pack_pixel(128, 128, 128, 255);
+        let b = pack_pixel(100, 100, 100, 255);
+        assert!((color_delta(a, b, 0) - -396.15520792310406).abs() < PARITY_EPS);
+    }
+
+    #[test]
+    fn test_blended_matches_js_reference() {
+        let a = pack_pixel(200, 100, 50, 128);
+        let b = pack_pixel(200, 100, 50, 255);
+        // Same pixels, different positions: the checkerboard shifts the result.
+        assert!((color_delta(a, b, 0) - 1153.478327410409).abs() < PARITY_EPS);
+        assert!((color_delta(a, b, 1) - 1708.0302351603877).abs() < PARITY_EPS);
+        assert!((color_delta(a, b, 2) - 1708.0302351603877).abs() < PARITY_EPS);
+        assert!((color_delta(a, b, 3) - -1473.7036513888258).abs() < PARITY_EPS);
+    }
+
+    #[test]
+    fn test_both_semi_transparent_matches_js_reference() {
+        let a = pack_pixel(10, 20, 30, 64);
+        let b = pack_pixel(40, 50, 60, 192);
+        assert!((color_delta(a, b, 7) - -1214.8615274328758).abs() < PARITY_EPS);
+    }
+
+    /// Guards the f64 index math. An f32 implementation diverges from
+    /// pixel_index 4_000_000 onward (a 2000x2000 image): `k / PHI` passes f32's
+    /// 24-bit exact-integer limit and selects the wrong checkerboard square.
+    /// At index 4_000_000 f32 computes gbit=0 where f64 gives gbit=1.
+    #[test]
+    fn test_large_pixel_index_uses_f64_checkerboard() {
+        let a = pack_pixel(10, 20, 30, 64);
+        let b = pack_pixel(40, 50, 60, 192);
+        assert!((color_delta(a, b, 4_000_000) - -1214.8615274328758).abs() < PARITY_EPS);
+        assert!((color_delta(a, b, 4_000_001) - -249.8771422513972).abs() < PARITY_EPS);
+    }
+
+    #[test]
+    fn test_identical_semi_transparent_is_zero() {
+        let p = pack_pixel(10, 20, 30, 64);
+        assert_eq!(color_delta(p, p, 5), 0.0);
+        assert_eq!(brightness_delta(p, p, 5), 0.0);
+    }
+
+    #[test]
+    fn test_brightness_delta_matches_js_reference() {
+        let a = pack_pixel(200, 100, 50, 128);
+        let b = pack_pixel(200, 100, 50, 255);
+        assert!((brightness_delta(a, b, 0) - -37.93336604917647).abs() < PARITY_EPS);
+        assert!((brightness_delta(a, b, 3) - 8.520232133999997).abs() < PARITY_EPS);
+
+        let oa = pack_pixel(128, 128, 128, 255);
+        let ob = pack_pixel(100, 100, 100, 255);
+        assert!((brightness_delta(oa, ob, 0) - 28.000000280000002).abs() < PARITY_EPS);
+    }
+
+    #[test]
+    fn test_alpha_only_difference_is_detected() {
+        // Identical RGB, differing alpha: must not be treated as identical.
+        let a = pack_pixel(100, 150, 200, 128);
+        let b = pack_pixel(100, 150, 200, 129);
+        assert_ne!(color_delta(a, b, 0), 0.0);
     }
 
     #[test]

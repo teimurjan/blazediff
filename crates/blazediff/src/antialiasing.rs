@@ -2,9 +2,7 @@
 //! by V. Vysniauskas (2009). Examines 3x3 neighborhood to find gradient patterns.
 
 use crate::types::Image;
-
-// f32 YIQ coefficients for Y-only calculation
-const YIQ_Y_F32: [f32; 3] = [0.29889531, 0.58662247, 0.11448223];
+use crate::yiq::brightness_delta;
 
 /// Check if pixel has more than 2 identical neighbors (not anti-aliased edge)
 #[inline]
@@ -12,13 +10,22 @@ fn has_many_siblings(image_u32: &[u32], x: u32, y: u32, width: u32, height: u32)
     // Boundary pixels get +1 implicit match
     let on_boundary = x == 0 || x == width - 1 || y == 0 || y == height - 1;
 
-    // Interior pixels can use fast SIMD path
-    if !on_boundary {
+    // Interior pixels can use fast SIMD path.
+    //
+    // The vector paths read a full 4-lane word starting at `row_below - 1`
+    // even though only 3 lanes are used, so the bottom-right interior pixel
+    // would load index `width * height`, one past the buffer. Require the
+    // whole load to be in bounds; the handful of pixels that fails this take
+    // the scalar path, which counts identically.
+    let pos = (y as usize) * (width as usize) + x as usize;
+    if !on_boundary && pos + width as usize + 2 < image_u32.len() {
         return has_many_siblings_simd(image_u32, x, y, width);
     }
 
-    // Boundary fallback - scalar with bounds checking
-    has_many_siblings_scalar(image_u32, x, y, width, height, 1)
+    // Boundary fallback - scalar with bounds checking. Only genuine boundary
+    // pixels get the implicit +1; an interior pixel that merely failed the
+    // load-width check must count from zero.
+    has_many_siblings_scalar(image_u32, x, y, width, height, u32::from(on_boundary))
 }
 
 /// SIMD-accelerated sibling check for interior pixels (no bounds checking needed)
@@ -179,24 +186,6 @@ fn has_many_siblings_scalar(
     count > 2
 }
 
-/// Fast f32 Y-only delta for AA detection
-#[inline(always)]
-fn brightness_delta_f32(pixel_a: u32, pixel_b: u32) -> f32 {
-    let r1 = (pixel_a & 0xFF) as f32;
-    let g1 = ((pixel_a >> 8) & 0xFF) as f32;
-    let b1 = ((pixel_a >> 16) & 0xFF) as f32;
-
-    let r2 = (pixel_b & 0xFF) as f32;
-    let g2 = ((pixel_b >> 8) & 0xFF) as f32;
-    let b2 = ((pixel_b >> 16) & 0xFF) as f32;
-
-    let dr = r1 - r2;
-    let dg = g1 - g2;
-    let db = b1 - b2;
-
-    dr * YIQ_Y_F32[0] + dg * YIQ_Y_F32[1] + db * YIQ_Y_F32[2]
-}
-
 pub fn is_antialiased(image1: &Image, image2: &Image, x: u32, y: u32) -> bool {
     let a32 = image1.as_u32();
     let b32 = image2.as_u32();
@@ -220,8 +209,8 @@ pub fn is_antialiased(image1: &Image, image2: &Image, x: u32, y: u32) -> bool {
         0
     };
 
-    let mut min_delta = 0.0f32;
-    let mut max_delta = 0.0f32;
+    let mut min_delta = 0.0f64;
+    let mut max_delta = 0.0f64;
     let mut min_x = 0u32;
     let mut min_y = 0u32;
     let mut max_x = 0u32;
@@ -237,25 +226,34 @@ pub fn is_antialiased(image1: &Image, image2: &Image, x: u32, y: u32) -> bool {
             let idx = (ny * width + nx) as usize;
             let adj_pixel = a32[idx];
 
-            if adj_pixel == center_pixel {
+            // Identical pixels have a zero delta by definition, so short-circuit
+            // rather than doing the arithmetic. Everything else goes through the
+            // canonical kernel, which blends semi-transparent pixels against the
+            // checkerboard using the **centre** pixel's offset: the JS
+            // reference passes `centerPixelOffset` even for the neighbour.
+            let delta = if adj_pixel == center_pixel {
+                0.0
+            } else {
+                brightness_delta(center_pixel, adj_pixel, pos)
+            };
+
+            // Branch on the delta, not on pixel equality: two different pixels
+            // can still yield a zero brightness delta, and the JS reference
+            // counts those toward `zeroes` too.
+            if delta == 0.0 {
                 zeroes += 1;
                 // If found more than 2 equal siblings, it's definitely not anti-aliasing
                 if zeroes > 2 {
                     return false;
                 }
-            } else {
-                // Calculate brightness delta (Y only) - using f32 for speed
-                let delta = brightness_delta_f32(center_pixel, adj_pixel);
-
-                if delta < min_delta {
-                    min_delta = delta;
-                    min_x = nx;
-                    min_y = ny;
-                } else if delta > max_delta {
-                    max_delta = delta;
-                    max_x = nx;
-                    max_y = ny;
-                }
+            } else if delta < min_delta {
+                min_delta = delta;
+                min_x = nx;
+                min_y = ny;
+            } else if delta > max_delta {
+                max_delta = delta;
+                max_x = nx;
+                max_y = ny;
             }
         }
     }

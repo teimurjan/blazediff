@@ -1,0 +1,146 @@
+name: Benchmark WASM
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: 'Platform to benchmark on'
+        required: true
+        type: choice
+        options:
+          - ubuntu-latest
+          - ubuntu-24.04-arm
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.inputs.platform }}
+  cancel-in-progress: true
+
+jobs:
+  benchmark-wasm:
+    name: WASM Benchmark (${{ github.event.inputs.platform }})
+    runs-on: ${{ github.event.inputs.platform }}
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v5
+        with:
+          # No `submodules` here on purpose: the wasm build runs with
+          # --no-default-features --features wasm, so `io` is off and build.rs
+          # returns before touching the vendored C. Verified by building with
+          # crates/blazediff/vendor absent.
+          lfs: true
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version-file: ".node-version"
+          cache: "pnpm"
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Cache Rust build
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: crates
+          cache-bin: true
+
+      # Version must match the `wasm-bindgen` pin in crates/blazediff/Cargo.toml
+      # and the default in scripts/build-wasm.sh; the CLI errors out on a
+      # mismatch at the post-process step. Installed from source rather than a
+      # prebuilt-binary action because upstream does not publish an
+      # aarch64-unknown-linux-gnu asset, and this workflow can run on an arm
+      # runner. `cache-bin` above keeps this to a one-off cost.
+      - name: Install wasm-bindgen-cli
+        shell: bash
+        run: |
+          set -euo pipefail
+          WANT=0.2.100
+          HAVE=$(wasm-bindgen --version 2>/dev/null | awk '{print $2}' || true)
+          if [ "$HAVE" != "$WANT" ]; then
+            cargo install wasm-bindgen-cli --version "$WANT" --locked
+          fi
+          wasm-bindgen --version
+
+      # build-wasm.sh skips wasm-opt when it is not on PATH, which would leave
+      # an unoptimized artifact and make the benchmark meaningless. Install it
+      # and assert it is present rather than silently measuring the wrong wasm.
+      - name: Install binaryen (wasm-opt)
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y binaryen
+          wasm-opt --version
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Same reasoning as the binary benchmark: the checked-in wasm is a release
+      # artifact and lags the source on feature branches. Remove it so the job
+      # cannot silently benchmark a stale module.
+      - name: Remove prebuilt wasm artifacts
+        run: rm -f packages/core-wasm/wasm/blazediff_bg.wasm packages/core-wasm/wasm/blazediff.js
+
+      - name: Build wasm from source
+        run: pnpm build:wasm
+
+      - name: Verify the benchmark will use the freshly built wasm
+        shell: bash
+        run: |
+          set -euo pipefail
+          for f in packages/core-wasm/wasm/blazediff_bg.wasm packages/core-wasm/wasm/blazediff.js; do
+            if [ ! -s "$f" ]; then
+              echo "::error::$f missing or empty after build"
+              exit 1
+            fi
+          done
+          ls -l packages/core-wasm/wasm/
+
+      - name: Build
+        run: pnpm build
+
+      # After `pnpm build`: core-wasm's entry point is dist/index.js (ESM),
+      # emitted by tsup during the build. Load it and the freshly built module,
+      # so a broken bundle or glue fails here rather than mid-benchmark.
+      - name: Verify the wasm module loads
+        shell: bash
+        working-directory: apps/image-benchmark
+        run: |
+          set -euo pipefail
+          node --input-type=module -e '
+            const { initBlazediff, diff } = await import("@blazediff/core-wasm");
+            const { readFileSync } = await import("node:fs");
+            const { createRequire } = await import("node:module");
+            const wasmPath = createRequire(import.meta.url).resolve(
+              "@blazediff/core-wasm/wasm/blazediff_bg.wasm",
+            );
+            await initBlazediff(readFileSync(wasmPath));
+            const a = new Uint8Array(16), b = new Uint8Array(16);
+            const n = await diff(a, b, 2, 2);
+            if (n !== 0) { console.error("::error::unexpected diff count " + n); process.exit(1); }
+            console.log("wasm module OK");
+          '
+
+      - name: Run Benchmark (@blazediff/core-wasm)
+        run: pnpm benchmark:core-wasm -- --format=json --output=blazediff-wasm.json
+
+      - name: Run Benchmark (pixelmatch)
+        run: pnpm benchmark:pixelmatch -- --format=json --output=pixelmatch.json
+
+      - name: Compare and Print Combined Markdown Table
+        if: always()
+        shell: bash
+        run: |
+          # See the binary benchmark: skip rather than ENOENT when an earlier
+          # step failed, so the real error stays the visible one.
+          for f in blazediff-wasm.json pixelmatch.json; do
+            if [ ! -s "apps/image-benchmark/$f" ]; then
+              echo "::warning::apps/image-benchmark/$f missing - skipping comparison (an earlier step failed)"
+              exit 0
+            fi
+          done
+          node .github/workflows/scripts/compare-and-print-core-wasm.js

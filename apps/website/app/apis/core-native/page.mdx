@@ -2,7 +2,7 @@
 
 import { Callout } from "nextra/components";
 
-The fastest single-threaded image diff in the world. Native Rust implementation with SIMD optimization, **3-4x faster** and **3x smaller** than [odiff](https://github.com/dmtrKovalenko/odiff).
+The fastest single-threaded image diff in the world. Native Rust implementation with SIMD optimization, **4.4-4.9x faster** and **3x smaller** than [odiff](https://github.com/dmtrKovalenko/odiff).
 
 [View Detailed Benchmarks](https://github.com/teimurjan/blazediff/blob/main/BENCHMARKS.md)
 
@@ -26,7 +26,7 @@ Pre-built binaries are included for all major platforms - no compilation require
 ## Features
 
 - **PNG, JPEG & QOI support** - auto-detected by file extension or encoded bytes
-- **3-4x faster** than odiff, **3x smaller** binaries (~700KB-900KB vs ~2-3MB)
+- **4.4-4.9x faster** than odiff, **3x smaller** binaries (~700KB-900KB vs ~2-3MB)
 - **SIMD-accelerated** - NEON on ARM, SSE4.1 on x86
 - **Block-based optimization** - skips unchanged regions
 - **Interpret mode** - region detection, classification, severity scoring, human-readable summaries
@@ -248,8 +248,13 @@ Benchmarked on Apple M1 Max with 5600×3200 4K images (25 runs, 5 warmup, image 
 
 | Tool | Time | Comparison |
 |------|------|------------|
-| **blazediff** | ~359ms | - |
-| odiff | ~1221ms | 3.4x slower |
+| **blazediff** (encoded buffer input) | ~203ms | - |
+| **blazediff** (file paths) | ~275ms | - |
+| odiff | ~1266ms | 4.6x slower |
+
+These are end-to-end times, so PNG decode and encode dominate them. The diff kernel
+itself is 27–37% faster than the previous release on 4K buffers; that gain is diluted
+here because IO is the larger share of the total.
 
 Binary sizes (stripped, LTO optimized):
 
@@ -260,7 +265,7 @@ Binary sizes (stripped, LTO optimized):
 | Windows x64 | 915 KB | 3.0 MB |
 
 <Callout type="info">
-  **Why so fast?** BlazeDiff uses a two-pass block-based algorithm with SIMD acceleration. The cold pass quickly identifies unchanged 8x8 blocks using 32-bit integer comparison, then the hot pass only processes changed regions with YIQ perceptual color difference.
+  **Why so fast?** BlazeDiff uses a two-pass block-based algorithm with SIMD acceleration. The cold pass quickly identifies unchanged blocks using 32-bit integer comparison, then the hot pass only processes changed regions with YIQ perceptual color difference. Three refinements keep the common paths cheap: the cold pass folds four SIMD chunks into one wide test, so 16 unchanged pixels cost a single branch; an integer bound derived from the YIQ metric's largest eigenvalue rejects sub-threshold pixels before any floating-point work; and chunks where nothing crosses the threshold take a vectorized background write instead of falling back to per-pixel handling.
 </Callout>
 
 ## Links

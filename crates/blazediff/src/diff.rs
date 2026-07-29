@@ -33,7 +33,6 @@ const YIQ_Y_F32: [f32; 3] = [0.29889531, 0.58662247, 0.11448223];
 const YIQ_I_F32: [f32; 3] = [0.59597799, -0.2741761, -0.32180189];
 const YIQ_Q_F32: [f32; 3] = [0.21147017, -0.52261711, 0.31114694];
 const YIQ_WEIGHTS_F32: [f32; 3] = [0.5053, 0.299, 0.1957];
-const INV_255: f32 = 1.0 / 255.0;
 
 #[inline]
 fn calculate_block_size(width: u32, height: u32) -> u32 {
@@ -143,6 +142,82 @@ fn block_has_perceptual_diff(
     block_has_perceptual_diff_scalar(a32, b32, width, start_x, start_y, end_x, end_y, max_delta)
 }
 
+/// Minimum block-row width for the cold pass's 16-wide skip to pay off. Below
+/// this the extra loop and the 8 live loads cost more than the three
+/// cross-lane reduces they save. Block size is derived from image area, so in
+/// practice this selects the wide path for large images (128-px blocks) and
+/// leaves small ones (16/32-px blocks) on the plain 4-wide loop.
+#[allow(dead_code)]
+const WIDE_SKIP_MIN_ROW: usize = 64;
+
+/// Largest eigenvalue of the YIQ metric's quadratic form, rounded up so the
+/// derived bound can only ever shrink the reject window. Mirrors
+/// `YIQ_LAMBDA_MAX` in `@blazediff/core`.
+const YIQ_LAMBDA_MAX: f64 = 0.2560782;
+
+/// Squared channel distance below which a pixel is provably under `max_delta`.
+///
+/// The bound is exact in real arithmetic; the vector kernels evaluate the
+/// metric in f32, so it is shaved by 1e-5 relative to keep a pixel sitting on
+/// the boundary from being rejected where the f32 metric would have counted it.
+#[inline(always)]
+fn reject_bound(max_delta: f32) -> u32 {
+    ((max_delta as f64) / YIQ_LAMBDA_MAX * (1.0 - 1e-5)) as u32
+}
+
+/// Threshold test for one 4-pixel chunk that is known to contain at least one
+/// differing pixel. Shared by the cold pass's wide-skip fallback and its
+/// 4-wide loop so both spell the test exactly once.
+#[cfg(target_arch = "aarch64")]
+#[inline(always)]
+unsafe fn chunk_exceeds_neon(
+    a32: &[u32],
+    b32: &[u32],
+    va: std::arch::aarch64::uint32x4_t,
+    vb: std::arch::aarch64::uint32x4_t,
+    chunk_start: usize,
+    max_delta: f32,
+) -> bool {
+    use std::arch::aarch64::*;
+
+    if all_opaque_neon(va, vb) {
+        // Integer reject: the YIQ metric is a positive-definite quadratic form,
+        // so delta <= LAMBDA_MAX * (dr^2 + dg^2 + db^2). Any chunk whose every
+        // lane is under maxDelta/LAMBDA_MAX is provably below threshold and can
+        // skip the float pipeline entirely: 6 int->float converts and ~9 FMAs
+        // replaced by an absolute-difference and a widening square-accumulate.
+        let reject = vdupq_n_u32(reject_bound(max_delta));
+        let rgb_mask = vreinterpretq_u8_u32(vdupq_n_u32(0x00FF_FFFF));
+        let d8 = vandq_u8(
+            vabdq_u8(vreinterpretq_u8_u32(va), vreinterpretq_u8_u32(vb)),
+            rgb_mask,
+        );
+        let sq_lo = vmull_u8(vget_low_u8(d8), vget_low_u8(d8));
+        let sq_hi = vmull_u8(vget_high_u8(d8), vget_high_u8(d8));
+        let sums = vpaddq_u32(vpaddlq_u16(sq_lo), vpaddlq_u16(sq_hi));
+        if vminvq_u32(vcleq_u32(sums, reject)) != 0 {
+            return false;
+        }
+
+        let deltas = yiq_delta_4_neon_opaque(va, vb);
+        let max_vec = vdupq_n_f32(max_delta);
+        let abs_deltas = vabsq_f32(deltas);
+        let exceeds = vcgtq_f32(abs_deltas, max_vec);
+        return vmaxvq_u32(exceeds) != 0;
+    }
+    // A lane is semi-transparent: the checkerboard background depends on pixel
+    // position, so fall back to the exact scalar kernel for this chunk.
+    for lane in 0..4 {
+        let idx = chunk_start + lane;
+        let pa = a32[idx];
+        let pb = b32[idx];
+        if pa != pb && color_delta_scalar(pa, pb, idx).abs() > max_delta as f64 {
+            return true;
+        }
+    }
+    false
+}
+
 #[cfg(target_arch = "aarch64")]
 #[inline]
 fn block_has_perceptual_diff_neon(
@@ -167,21 +242,46 @@ fn block_has_perceptual_diff_neon(
             let a_ptr = a32.as_ptr().add(row_start);
             let b_ptr = b32.as_ptr().add(row_start);
 
+            // Wide skip: XOR four chunks, OR the results, and do a single
+            // cross-lane reduce for 16 pixels instead of one per 4. The reduce
+            // is a serializing dependency feeding a branch, and on the
+            // dominant all-identical path its result is always "no diff".
+            while offset + 16 <= row_width && row_width >= WIDE_SKIP_MIN_ROW {
+                let a0 = vld1q_u32(a_ptr.add(offset));
+                let b0 = vld1q_u32(b_ptr.add(offset));
+                let a1 = vld1q_u32(a_ptr.add(offset + 4));
+                let b1 = vld1q_u32(b_ptr.add(offset + 4));
+                let a2 = vld1q_u32(a_ptr.add(offset + 8));
+                let b2 = vld1q_u32(b_ptr.add(offset + 8));
+                let a3 = vld1q_u32(a_ptr.add(offset + 12));
+                let b3 = vld1q_u32(b_ptr.add(offset + 12));
+
+                let acc = vorrq_u32(
+                    vorrq_u32(veorq_u32(a0, b0), veorq_u32(a1, b1)),
+                    vorrq_u32(veorq_u32(a2, b2), veorq_u32(a3, b3)),
+                );
+
+                if vmaxvq_u32(acc) != 0
+                    && (chunk_exceeds_neon(a32, b32, a0, b0, row_start + offset, max_delta)
+                        || chunk_exceeds_neon(a32, b32, a1, b1, row_start + offset + 4, max_delta)
+                        || chunk_exceeds_neon(a32, b32, a2, b2, row_start + offset + 8, max_delta)
+                        || chunk_exceeds_neon(a32, b32, a3, b3, row_start + offset + 12, max_delta))
+                {
+                    return true;
+                }
+                offset += 16;
+            }
+
             while offset + 4 <= row_width {
                 let va = vld1q_u32(a_ptr.add(offset));
                 let vb = vld1q_u32(b_ptr.add(offset));
                 let cmp = vceqq_u32(va, vb);
                 let not_cmp = vmvnq_u32(cmp);
 
-                if vmaxvq_u32(not_cmp) != 0 {
-                    // At least one pixel differs - check with SIMD YIQ
-                    let deltas = yiq_delta_4_neon_direct(va, vb);
-                    let max_vec = vdupq_n_f32(max_delta);
-                    let abs_deltas = vabsq_f32(deltas);
-                    let exceeds = vcgtq_f32(abs_deltas, max_vec);
-                    if vmaxvq_u32(vreinterpretq_u32_f32(vreinterpretq_f32_u32(exceeds))) != 0 {
-                        return true;
-                    }
+                if vmaxvq_u32(not_cmp) != 0
+                    && chunk_exceeds_neon(a32, b32, va, vb, row_start + offset, max_delta)
+                {
+                    return true;
                 }
                 offset += 4;
             }
@@ -192,9 +292,165 @@ fn block_has_perceptual_diff_neon(
             let idx = row_start + i;
             let pa = a32[idx];
             let pb = b32[idx];
-            if pa != pb && color_delta_f32(pa, pb).abs() > max_delta {
+            if pa != pb && color_delta_scalar(pa, pb, idx).abs() > max_delta as f64 {
                 return true;
             }
+        }
+    }
+    false
+}
+
+/// SSE4.1 twin of [`chunk_exceeds_neon`], over 4 pixels.
+#[cfg(target_arch = "x86_64")]
+#[target_feature(enable = "sse4.1")]
+#[inline]
+unsafe fn chunk_exceeds_sse(
+    a32: &[u32],
+    b32: &[u32],
+    va: std::arch::x86_64::__m128i,
+    vb: std::arch::x86_64::__m128i,
+    chunk_start: usize,
+    max_delta: f32,
+) -> bool {
+    use std::arch::x86_64::*;
+
+    if all_opaque_sse(va, vb) {
+        // Integer reject, see `chunk_exceeds_neon`. x86 has no byte
+        // absolute-difference either, so it comes from two saturating
+        // subtracts; `madd_epi16` then squares and pair-sums in one op.
+        let d8 = _mm_and_si128(
+            _mm_or_si128(_mm_subs_epu8(va, vb), _mm_subs_epu8(vb, va)),
+            _mm_set1_epi32(0x00FF_FFFF),
+        );
+        let zero = _mm_setzero_si128();
+        let lo = _mm_unpacklo_epi8(d8, zero);
+        let hi = _mm_unpackhi_epi8(d8, zero);
+        // Each madd gives (r²+g², b²+0) per pixel; hadd folds those pairs into
+        // one squared channel distance per lane. Lane order does not matter,
+        // the test below only asks whether *every* lane is under the bound.
+        let sums = _mm_hadd_epi32(_mm_madd_epi16(lo, lo), _mm_madd_epi16(hi, hi));
+        let over = _mm_cmpgt_epi32(sums, _mm_set1_epi32(reject_bound(max_delta) as i32));
+        if _mm_movemask_ps(_mm_castsi128_ps(over)) == 0 {
+            return false;
+        }
+
+        let deltas = yiq_delta_4_sse_opaque(va, vb);
+        let max_vec = _mm_set1_ps(max_delta);
+        let abs_mask = _mm_castsi128_ps(_mm_set1_epi32(0x7FFFFFFF));
+        let abs_deltas = _mm_and_ps(deltas, abs_mask);
+        let exceeds = _mm_cmpgt_ps(abs_deltas, max_vec);
+        return _mm_movemask_ps(exceeds) != 0;
+    }
+    // A lane is semi-transparent: the checkerboard background depends on pixel
+    // position, so fall back to the exact scalar kernel for this chunk.
+    for lane in 0..4 {
+        let idx = chunk_start + lane;
+        let pa = a32[idx];
+        let pb = b32[idx];
+        if pa != pb && color_delta_scalar(pa, pb, idx).abs() > max_delta as f64 {
+            return true;
+        }
+    }
+    false
+}
+
+/// AVX2 twin of [`chunk_exceeds_neon`], over 8 pixels.
+#[cfg(target_arch = "x86_64")]
+#[target_feature(enable = "avx2")]
+#[inline]
+unsafe fn chunk_exceeds_avx2(
+    a32: &[u32],
+    b32: &[u32],
+    va: std::arch::x86_64::__m256i,
+    vb: std::arch::x86_64::__m256i,
+    chunk_start: usize,
+    max_delta: f32,
+) -> bool {
+    use std::arch::x86_64::*;
+
+    if all_opaque_avx2(va, vb) {
+        let d8 = _mm256_and_si256(
+            _mm256_or_si256(_mm256_subs_epu8(va, vb), _mm256_subs_epu8(vb, va)),
+            _mm256_set1_epi32(0x00FF_FFFF),
+        );
+        let zero = _mm256_setzero_si256();
+        let lo = _mm256_unpacklo_epi8(d8, zero);
+        let hi = _mm256_unpackhi_epi8(d8, zero);
+        // `hadd` folds within 128-bit halves, so the 8 sums come out permuted.
+        // Irrelevant here: the test is "is every lane under the bound".
+        let sums = _mm256_hadd_epi32(_mm256_madd_epi16(lo, lo), _mm256_madd_epi16(hi, hi));
+        let over = _mm256_cmpgt_epi32(sums, _mm256_set1_epi32(reject_bound(max_delta) as i32));
+        if _mm256_movemask_ps(_mm256_castsi256_ps(over)) == 0 {
+            return false;
+        }
+
+        let deltas = yiq_delta_8_avx2_opaque(va, vb);
+        let max_vec = _mm256_set1_ps(max_delta);
+        let abs_mask = _mm256_castsi256_ps(_mm256_set1_epi32(0x7FFFFFFF));
+        let abs_deltas = _mm256_and_ps(deltas, abs_mask);
+        let exceeds = _mm256_cmp_ps(abs_deltas, max_vec, _CMP_GT_OQ);
+        return _mm256_movemask_ps(exceeds) != 0;
+    }
+    for lane in 0..8 {
+        let idx = chunk_start + lane;
+        let pa = a32[idx];
+        let pb = b32[idx];
+        if pa != pb && color_delta_scalar(pa, pb, idx).abs() > max_delta as f64 {
+            return true;
+        }
+    }
+    false
+}
+
+/// wasm twin of [`chunk_exceeds_neon`].
+#[cfg(all(target_arch = "wasm32", target_feature = "simd128"))]
+#[inline(always)]
+unsafe fn chunk_exceeds_wasm(
+    a32: &[u32],
+    b32: &[u32],
+    va: std::arch::wasm32::v128,
+    vb: std::arch::wasm32::v128,
+    chunk_start: usize,
+    max_delta: f32,
+) -> bool {
+    use std::arch::wasm32::*;
+
+    if all_opaque_wasm(va, vb) {
+        // See `chunk_exceeds_neon`: reject provably-below-threshold chunks with
+        // integer arithmetic before touching the float pipeline. wasm has no
+        // absolute-difference op, so it is built from two saturating subtracts.
+        let d8 = v128_and(
+            v128_or(u8x16_sub_sat(va, vb), u8x16_sub_sat(vb, va)),
+            u32x4_splat(0x00FF_FFFF),
+        );
+        let sq_lo = u16x8_extmul_low_u8x16(d8, d8);
+        let sq_hi = u16x8_extmul_high_u8x16(d8, d8);
+        let plo = u32x4_extadd_pairwise_u16x8(sq_lo);
+        let phi = u32x4_extadd_pairwise_u16x8(sq_hi);
+        // plo/phi hold (r²+g², b²+0) per pixel; fold the pairs together so
+        // each lane ends up with one pixel's squared channel distance.
+        let sums = u32x4_add(
+            u32x4_shuffle::<0, 2, 4, 6>(plo, phi),
+            u32x4_shuffle::<1, 3, 5, 7>(plo, phi),
+        );
+        if u32x4_all_true(u32x4_le(sums, u32x4_splat(reject_bound(max_delta)))) {
+            return false;
+        }
+
+        let deltas = yiq_delta_4_wasm_opaque(va, vb);
+        let max_vec = f32x4_splat(max_delta);
+        let abs_deltas = f32x4_abs(deltas);
+        let exceeds = f32x4_gt(abs_deltas, max_vec);
+        return v128_any_true(exceeds);
+    }
+    // A lane is semi-transparent: the checkerboard background depends on pixel
+    // position, so fall back to the exact scalar kernel for this chunk.
+    for lane in 0..4 {
+        let idx = chunk_start + lane;
+        let pa = a32[idx];
+        let pb = b32[idx];
+        if pa != pb && color_delta_scalar(pa, pb, idx).abs() > max_delta as f64 {
+            return true;
         }
     }
     false
@@ -224,20 +480,43 @@ fn block_has_perceptual_diff_wasm(
             let a_ptr = a32.as_ptr().add(row_start);
             let b_ptr = b32.as_ptr().add(row_start);
 
+            // See the NEON path: one reduce per 16 pixels instead of per 4.
+            while offset + 16 <= row_width && row_width >= WIDE_SKIP_MIN_ROW {
+                let a0 = v128_load(a_ptr.add(offset) as *const v128);
+                let b0 = v128_load(b_ptr.add(offset) as *const v128);
+                let a1 = v128_load(a_ptr.add(offset + 4) as *const v128);
+                let b1 = v128_load(b_ptr.add(offset + 4) as *const v128);
+                let a2 = v128_load(a_ptr.add(offset + 8) as *const v128);
+                let b2 = v128_load(b_ptr.add(offset + 8) as *const v128);
+                let a3 = v128_load(a_ptr.add(offset + 12) as *const v128);
+                let b3 = v128_load(b_ptr.add(offset + 12) as *const v128);
+
+                let acc = v128_or(
+                    v128_or(v128_xor(a0, b0), v128_xor(a1, b1)),
+                    v128_or(v128_xor(a2, b2), v128_xor(a3, b3)),
+                );
+
+                if v128_any_true(acc)
+                    && (chunk_exceeds_wasm(a32, b32, a0, b0, row_start + offset, max_delta)
+                        || chunk_exceeds_wasm(a32, b32, a1, b1, row_start + offset + 4, max_delta)
+                        || chunk_exceeds_wasm(a32, b32, a2, b2, row_start + offset + 8, max_delta)
+                        || chunk_exceeds_wasm(a32, b32, a3, b3, row_start + offset + 12, max_delta))
+                {
+                    return true;
+                }
+                offset += 16;
+            }
+
             while offset + 4 <= row_width {
                 let va = v128_load(a_ptr.add(offset) as *const v128);
                 let vb = v128_load(b_ptr.add(offset) as *const v128);
                 let cmp = i32x4_eq(va, vb);
                 let not_cmp = v128_not(cmp);
 
-                if v128_any_true(not_cmp) {
-                    let deltas = yiq_delta_4_wasm_direct(va, vb);
-                    let max_vec = f32x4_splat(max_delta);
-                    let abs_deltas = f32x4_abs(deltas);
-                    let exceeds = f32x4_gt(abs_deltas, max_vec);
-                    if v128_any_true(exceeds) {
-                        return true;
-                    }
+                if v128_any_true(not_cmp)
+                    && chunk_exceeds_wasm(a32, b32, va, vb, row_start + offset, max_delta)
+                {
+                    return true;
                 }
                 offset += 4;
             }
@@ -248,7 +527,7 @@ fn block_has_perceptual_diff_wasm(
             let idx = row_start + i;
             let pa = a32[idx];
             let pb = b32[idx];
-            if pa != pb && color_delta_f32(pa, pb).abs() > max_delta {
+            if pa != pb && color_delta_scalar(pa, pb, idx).abs() > max_delta as f64 {
                 return true;
             }
         }
@@ -280,6 +559,34 @@ unsafe fn block_has_perceptual_diff_avx2(
         let a_ptr = a32.as_ptr().add(row_start);
         let b_ptr = b32.as_ptr().add(row_start);
 
+        // Wide skip: OR four 8-pixel chunks together and test once, so 32
+        // identical pixels cost one branch instead of four. See the NEON path.
+        while offset + 32 <= row_width && row_width >= WIDE_SKIP_MIN_ROW {
+            let a0 = _mm256_loadu_si256(a_ptr.add(offset) as *const __m256i);
+            let b0 = _mm256_loadu_si256(b_ptr.add(offset) as *const __m256i);
+            let a1 = _mm256_loadu_si256(a_ptr.add(offset + 8) as *const __m256i);
+            let b1 = _mm256_loadu_si256(b_ptr.add(offset + 8) as *const __m256i);
+            let a2 = _mm256_loadu_si256(a_ptr.add(offset + 16) as *const __m256i);
+            let b2 = _mm256_loadu_si256(b_ptr.add(offset + 16) as *const __m256i);
+            let a3 = _mm256_loadu_si256(a_ptr.add(offset + 24) as *const __m256i);
+            let b3 = _mm256_loadu_si256(b_ptr.add(offset + 24) as *const __m256i);
+
+            let acc = _mm256_or_si256(
+                _mm256_or_si256(_mm256_xor_si256(a0, b0), _mm256_xor_si256(a1, b1)),
+                _mm256_or_si256(_mm256_xor_si256(a2, b2), _mm256_xor_si256(a3, b3)),
+            );
+
+            if _mm256_testz_si256(acc, acc) == 0
+                && (chunk_exceeds_avx2(a32, b32, a0, b0, row_start + offset, max_delta)
+                    || chunk_exceeds_avx2(a32, b32, a1, b1, row_start + offset + 8, max_delta)
+                    || chunk_exceeds_avx2(a32, b32, a2, b2, row_start + offset + 16, max_delta)
+                    || chunk_exceeds_avx2(a32, b32, a3, b3, row_start + offset + 24, max_delta))
+            {
+                return true;
+            }
+            offset += 32;
+        }
+
         // Process 8 pixels at a time with AVX2
         while offset + 8 <= row_width {
             let va = _mm256_loadu_si256(a_ptr.add(offset) as *const __m256i);
@@ -287,16 +594,8 @@ unsafe fn block_has_perceptual_diff_avx2(
             let cmp = _mm256_cmpeq_epi32(va, vb);
             let mask = _mm256_movemask_ps(_mm256_castsi256_ps(cmp));
 
-            if mask != 0xFF {
-                // At least one pixel differs - compute YIQ deltas
-                let deltas = yiq_delta_8_avx2_direct(va, vb);
-                let max_vec = _mm256_set1_ps(max_delta);
-                let abs_mask = _mm256_castsi256_ps(_mm256_set1_epi32(0x7FFFFFFF));
-                let abs_deltas = _mm256_and_ps(deltas, abs_mask);
-                let exceeds = _mm256_cmp_ps(abs_deltas, max_vec, _CMP_GT_OQ);
-                if _mm256_movemask_ps(exceeds) != 0 {
-                    return true;
-                }
+            if mask != 0xFF && chunk_exceeds_avx2(a32, b32, va, vb, row_start + offset, max_delta) {
+                return true;
             }
             offset += 8;
         }
@@ -308,15 +607,9 @@ unsafe fn block_has_perceptual_diff_avx2(
             let cmp = _mm_cmpeq_epi32(va, vb);
             let mask = _mm_movemask_epi8(cmp);
 
-            if mask != 0xFFFF {
-                let deltas = yiq_delta_4_sse_direct(va, vb);
-                let max_vec = _mm_set1_ps(max_delta);
-                let abs_mask = _mm_castsi128_ps(_mm_set1_epi32(0x7FFFFFFF));
-                let abs_deltas = _mm_and_ps(deltas, abs_mask);
-                let exceeds = _mm_cmpgt_ps(abs_deltas, max_vec);
-                if _mm_movemask_ps(exceeds) != 0 {
-                    return true;
-                }
+            if mask != 0xFFFF && chunk_exceeds_sse(a32, b32, va, vb, row_start + offset, max_delta)
+            {
+                return true;
             }
             offset += 4;
         }
@@ -326,7 +619,7 @@ unsafe fn block_has_perceptual_diff_avx2(
             let idx = row_start + i;
             let pa = a32[idx];
             let pb = b32[idx];
-            if pa != pb && color_delta_f32(pa, pb).abs() > max_delta {
+            if pa != pb && color_delta_scalar(pa, pb, idx).abs() > max_delta as f64 {
                 return true;
             }
         }
@@ -358,21 +651,42 @@ unsafe fn block_has_perceptual_diff_sse(
         let a_ptr = a32.as_ptr().add(row_start);
         let b_ptr = b32.as_ptr().add(row_start);
 
+        // Wide skip over 16 pixels, see the NEON path.
+        while offset + 16 <= row_width && row_width >= WIDE_SKIP_MIN_ROW {
+            let a0 = _mm_loadu_si128(a_ptr.add(offset) as *const __m128i);
+            let b0 = _mm_loadu_si128(b_ptr.add(offset) as *const __m128i);
+            let a1 = _mm_loadu_si128(a_ptr.add(offset + 4) as *const __m128i);
+            let b1 = _mm_loadu_si128(b_ptr.add(offset + 4) as *const __m128i);
+            let a2 = _mm_loadu_si128(a_ptr.add(offset + 8) as *const __m128i);
+            let b2 = _mm_loadu_si128(b_ptr.add(offset + 8) as *const __m128i);
+            let a3 = _mm_loadu_si128(a_ptr.add(offset + 12) as *const __m128i);
+            let b3 = _mm_loadu_si128(b_ptr.add(offset + 12) as *const __m128i);
+
+            let acc = _mm_or_si128(
+                _mm_or_si128(_mm_xor_si128(a0, b0), _mm_xor_si128(a1, b1)),
+                _mm_or_si128(_mm_xor_si128(a2, b2), _mm_xor_si128(a3, b3)),
+            );
+
+            if _mm_testz_si128(acc, acc) == 0
+                && (chunk_exceeds_sse(a32, b32, a0, b0, row_start + offset, max_delta)
+                    || chunk_exceeds_sse(a32, b32, a1, b1, row_start + offset + 4, max_delta)
+                    || chunk_exceeds_sse(a32, b32, a2, b2, row_start + offset + 8, max_delta)
+                    || chunk_exceeds_sse(a32, b32, a3, b3, row_start + offset + 12, max_delta))
+            {
+                return true;
+            }
+            offset += 16;
+        }
+
         while offset + 4 <= row_width {
             let va = _mm_loadu_si128(a_ptr.add(offset) as *const __m128i);
             let vb = _mm_loadu_si128(b_ptr.add(offset) as *const __m128i);
             let cmp = _mm_cmpeq_epi32(va, vb);
             let mask = _mm_movemask_epi8(cmp);
 
-            if mask != 0xFFFF {
-                let deltas = yiq_delta_4_sse_direct(va, vb);
-                let max_vec = _mm_set1_ps(max_delta);
-                let abs_mask = _mm_castsi128_ps(_mm_set1_epi32(0x7FFFFFFF));
-                let abs_deltas = _mm_and_ps(deltas, abs_mask);
-                let exceeds = _mm_cmpgt_ps(abs_deltas, max_vec);
-                if _mm_movemask_ps(exceeds) != 0 {
-                    return true;
-                }
+            if mask != 0xFFFF && chunk_exceeds_sse(a32, b32, va, vb, row_start + offset, max_delta)
+            {
+                return true;
             }
             offset += 4;
         }
@@ -381,7 +695,7 @@ unsafe fn block_has_perceptual_diff_sse(
             let idx = row_start + i;
             let pa = a32[idx];
             let pb = b32[idx];
-            if pa != pb && color_delta_f32(pa, pb).abs() > max_delta {
+            if pa != pb && color_delta_scalar(pa, pb, idx).abs() > max_delta as f64 {
                 return true;
             }
         }
@@ -409,7 +723,7 @@ fn block_has_perceptual_diff_scalar(
             let idx = (y * width + x) as usize;
             let pa = a32[idx];
             let pb = b32[idx];
-            if pa != pb && color_delta_f32(pa, pb).abs() > max_delta {
+            if pa != pb && color_delta_scalar(pa, pb, idx).abs() > max_delta as f64 {
                 return true;
             }
         }
@@ -421,53 +735,38 @@ fn block_has_perceptual_diff_scalar(
 // SIMD YIQ Delta - Pure SIMD RGB extraction (no scalar loops)
 // =============================================================================
 
-/// NEON: Extract RGB and compute YIQ delta for 4 pixels - pure SIMD with alpha handling
+/// NEON: YIQ delta for 4 **fully opaque** pixels.
+///
+/// # Precondition
+/// Every lane in both vectors must have alpha 0xFF, checked with
+/// [`all_opaque_neon`] first. Semi-transparent pixels need the procedural
+/// checkerboard background, whose `⌊k/φ⌋` term is position-dependent and is
+/// handled by the scalar path in [`crate::yiq::color_delta`].
+///
+/// Skipping the blend is why this is cheaper than blending unconditionally:
+/// it drops 2 alpha conversions, 2 multiplies and 12 blend ops per chunk.
 #[cfg(target_arch = "aarch64")]
 #[inline]
-unsafe fn yiq_delta_4_neon_direct(
+unsafe fn yiq_delta_4_neon_opaque(
     va: std::arch::aarch64::uint32x4_t,
     vb: std::arch::aarch64::uint32x4_t,
 ) -> std::arch::aarch64::float32x4_t {
     use std::arch::aarch64::*;
 
     let mask_ff = vdupq_n_u32(0xFF);
-    let v255 = vdupq_n_f32(255.0);
-    let inv255 = vdupq_n_f32(INV_255);
 
-    let r_a = vandq_u32(va, mask_ff);
-    let g_a = vandq_u32(vshrq_n_u32(va, 8), mask_ff);
-    let b_a = vandq_u32(vshrq_n_u32(va, 16), mask_ff);
-    let a_a = vshrq_n_u32(va, 24);
-
-    let r_b = vandq_u32(vb, mask_ff);
-    let g_b = vandq_u32(vshrq_n_u32(vb, 8), mask_ff);
-    let b_b = vandq_u32(vshrq_n_u32(vb, 16), mask_ff);
-    let a_b = vshrq_n_u32(vb, 24);
-
-    let r_a_f = vcvtq_f32_u32(r_a);
-    let g_a_f = vcvtq_f32_u32(g_a);
-    let b_a_f = vcvtq_f32_u32(b_a);
-    let a_a_f = vcvtq_f32_u32(a_a);
-
-    let r_b_f = vcvtq_f32_u32(r_b);
-    let g_b_f = vcvtq_f32_u32(g_b);
-    let b_b_f = vcvtq_f32_u32(b_b);
-    let a_b_f = vcvtq_f32_u32(a_b);
-
-    let alpha_norm_a = vmulq_f32(a_a_f, inv255);
-    let alpha_norm_b = vmulq_f32(a_b_f, inv255);
-
-    let br_a = vfmaq_f32(v255, vsubq_f32(r_a_f, v255), alpha_norm_a);
-    let bg_a = vfmaq_f32(v255, vsubq_f32(g_a_f, v255), alpha_norm_a);
-    let bb_a = vfmaq_f32(v255, vsubq_f32(b_a_f, v255), alpha_norm_a);
-
-    let br_b = vfmaq_f32(v255, vsubq_f32(r_b_f, v255), alpha_norm_b);
-    let bg_b = vfmaq_f32(v255, vsubq_f32(g_b_f, v255), alpha_norm_b);
-    let bb_b = vfmaq_f32(v255, vsubq_f32(b_b_f, v255), alpha_norm_b);
-
-    let dr = vsubq_f32(br_a, br_b);
-    let dg = vsubq_f32(bg_a, bg_b);
-    let db = vsubq_f32(bb_a, bb_b);
+    let dr = vsubq_f32(
+        vcvtq_f32_u32(vandq_u32(va, mask_ff)),
+        vcvtq_f32_u32(vandq_u32(vb, mask_ff)),
+    );
+    let dg = vsubq_f32(
+        vcvtq_f32_u32(vandq_u32(vshrq_n_u32(va, 8), mask_ff)),
+        vcvtq_f32_u32(vandq_u32(vshrq_n_u32(vb, 8), mask_ff)),
+    );
+    let db = vsubq_f32(
+        vcvtq_f32_u32(vandq_u32(vshrq_n_u32(va, 16), mask_ff)),
+        vcvtq_f32_u32(vandq_u32(vshrq_n_u32(vb, 16), mask_ff)),
+    );
 
     let vy = vfmaq_n_f32(
         vfmaq_n_f32(vmulq_n_f32(dr, YIQ_Y_F32[0]), dg, YIQ_Y_F32[1]),
@@ -504,50 +803,29 @@ unsafe fn yiq_delta_4_neon_direct(
 #[cfg(all(target_arch = "wasm32", target_feature = "simd128"))]
 #[inline]
 #[target_feature(enable = "simd128")]
-unsafe fn yiq_delta_4_wasm_direct(
+unsafe fn yiq_delta_4_wasm_opaque(
     va: std::arch::wasm32::v128,
     vb: std::arch::wasm32::v128,
 ) -> std::arch::wasm32::v128 {
     use std::arch::wasm32::*;
 
     let mask_ff = u32x4_splat(0xFF);
-    let v255 = f32x4_splat(255.0);
-    let inv255 = f32x4_splat(INV_255);
-
-    let r_a = v128_and(va, mask_ff);
-    let g_a = v128_and(u32x4_shr(va, 8), mask_ff);
-    let b_a = v128_and(u32x4_shr(va, 16), mask_ff);
-    let a_a = u32x4_shr(va, 24);
-
-    let r_b = v128_and(vb, mask_ff);
-    let g_b = v128_and(u32x4_shr(vb, 8), mask_ff);
-    let b_b = v128_and(u32x4_shr(vb, 16), mask_ff);
-    let a_b = u32x4_shr(vb, 24);
-
-    let r_a_f = f32x4_convert_u32x4(r_a);
-    let g_a_f = f32x4_convert_u32x4(g_a);
-    let b_a_f = f32x4_convert_u32x4(b_a);
-    let a_a_f = f32x4_convert_u32x4(a_a);
-
-    let r_b_f = f32x4_convert_u32x4(r_b);
-    let g_b_f = f32x4_convert_u32x4(g_b);
-    let b_b_f = f32x4_convert_u32x4(b_b);
-    let a_b_f = f32x4_convert_u32x4(a_b);
-
-    let alpha_norm_a = f32x4_mul(a_a_f, inv255);
-    let alpha_norm_b = f32x4_mul(a_b_f, inv255);
-
-    let br_a = f32x4_add(v255, f32x4_mul(f32x4_sub(r_a_f, v255), alpha_norm_a));
-    let bg_a = f32x4_add(v255, f32x4_mul(f32x4_sub(g_a_f, v255), alpha_norm_a));
-    let bb_a = f32x4_add(v255, f32x4_mul(f32x4_sub(b_a_f, v255), alpha_norm_a));
-
-    let br_b = f32x4_add(v255, f32x4_mul(f32x4_sub(r_b_f, v255), alpha_norm_b));
-    let bg_b = f32x4_add(v255, f32x4_mul(f32x4_sub(g_b_f, v255), alpha_norm_b));
-    let bb_b = f32x4_add(v255, f32x4_mul(f32x4_sub(b_b_f, v255), alpha_norm_b));
-
-    let dr = f32x4_sub(br_a, br_b);
-    let dg = f32x4_sub(bg_a, bg_b);
-    let db = f32x4_sub(bb_a, bb_b);
+    // Callers guarantee every lane is opaque (see `all_opaque_*`), so no
+    // background blending is needed: the deltas are the raw channel
+    // differences. Skipping the blend is what makes this cheaper than
+    // blending unconditionally.
+    let dr = f32x4_sub(
+        f32x4_convert_u32x4(v128_and(va, mask_ff)),
+        f32x4_convert_u32x4(v128_and(vb, mask_ff)),
+    );
+    let dg = f32x4_sub(
+        f32x4_convert_u32x4(v128_and(u32x4_shr(va, 8), mask_ff)),
+        f32x4_convert_u32x4(v128_and(u32x4_shr(vb, 8), mask_ff)),
+    );
+    let db = f32x4_sub(
+        f32x4_convert_u32x4(v128_and(u32x4_shr(va, 16), mask_ff)),
+        f32x4_convert_u32x4(v128_and(u32x4_shr(vb, 16), mask_ff)),
+    );
 
     let y_r = f32x4_splat(YIQ_Y_F32[0]);
     let y_g = f32x4_splat(YIQ_Y_F32[1]);
@@ -590,7 +868,7 @@ unsafe fn yiq_delta_4_wasm_direct(
 #[cfg(target_arch = "x86_64")]
 #[target_feature(enable = "sse4.1")]
 #[inline]
-unsafe fn yiq_delta_4_sse_direct(
+unsafe fn yiq_delta_4_sse_opaque(
     va: std::arch::x86_64::__m128i,
     vb: std::arch::x86_64::__m128i,
 ) -> std::arch::x86_64::__m128 {
@@ -598,43 +876,22 @@ unsafe fn yiq_delta_4_sse_direct(
 
     let mask_ff = _mm_set1_epi32(0xFF);
 
-    let r_a = _mm_and_si128(va, mask_ff);
-    let g_a = _mm_and_si128(_mm_srli_epi32(va, 8), mask_ff);
-    let b_a = _mm_and_si128(_mm_srli_epi32(va, 16), mask_ff);
-    let a_a = _mm_srli_epi32(va, 24);
-
-    let r_b = _mm_and_si128(vb, mask_ff);
-    let g_b = _mm_and_si128(_mm_srli_epi32(vb, 8), mask_ff);
-    let b_b = _mm_and_si128(_mm_srli_epi32(vb, 16), mask_ff);
-    let a_b = _mm_srli_epi32(vb, 24);
-
-    let r_a_f = _mm_cvtepi32_ps(r_a);
-    let g_a_f = _mm_cvtepi32_ps(g_a);
-    let b_a_f = _mm_cvtepi32_ps(b_a);
-    let a_a_f = _mm_cvtepi32_ps(a_a);
-
-    let r_b_f = _mm_cvtepi32_ps(r_b);
-    let g_b_f = _mm_cvtepi32_ps(g_b);
-    let b_b_f = _mm_cvtepi32_ps(b_b);
-    let a_b_f = _mm_cvtepi32_ps(a_b);
-
-    let v255 = _mm_set1_ps(255.0);
-    let inv255 = _mm_set1_ps(INV_255);
-
-    let alpha_norm_a = _mm_mul_ps(a_a_f, inv255);
-    let alpha_norm_b = _mm_mul_ps(a_b_f, inv255);
-
-    let br_a = _mm_add_ps(v255, _mm_mul_ps(_mm_sub_ps(r_a_f, v255), alpha_norm_a));
-    let bg_a = _mm_add_ps(v255, _mm_mul_ps(_mm_sub_ps(g_a_f, v255), alpha_norm_a));
-    let bb_a = _mm_add_ps(v255, _mm_mul_ps(_mm_sub_ps(b_a_f, v255), alpha_norm_a));
-
-    let br_b = _mm_add_ps(v255, _mm_mul_ps(_mm_sub_ps(r_b_f, v255), alpha_norm_b));
-    let bg_b = _mm_add_ps(v255, _mm_mul_ps(_mm_sub_ps(g_b_f, v255), alpha_norm_b));
-    let bb_b = _mm_add_ps(v255, _mm_mul_ps(_mm_sub_ps(b_b_f, v255), alpha_norm_b));
-
-    let dr = _mm_sub_ps(br_a, br_b);
-    let dg = _mm_sub_ps(bg_a, bg_b);
-    let db = _mm_sub_ps(bb_a, bb_b);
+    // Callers guarantee every lane is opaque (see `all_opaque_*`), so no
+    // background blending is needed: the deltas are the raw channel
+    // differences. Skipping the blend is what makes this cheaper than
+    // blending unconditionally.
+    let dr = _mm_sub_ps(
+        _mm_cvtepi32_ps(_mm_and_si128(va, mask_ff)),
+        _mm_cvtepi32_ps(_mm_and_si128(vb, mask_ff)),
+    );
+    let dg = _mm_sub_ps(
+        _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(va, 8), mask_ff)),
+        _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(vb, 8), mask_ff)),
+    );
+    let db = _mm_sub_ps(
+        _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(va, 16), mask_ff)),
+        _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(vb, 16), mask_ff)),
+    );
 
     let y_r = _mm_set1_ps(YIQ_Y_F32[0]);
     let y_g = _mm_set1_ps(YIQ_Y_F32[1]);
@@ -676,7 +933,7 @@ unsafe fn yiq_delta_4_sse_direct(
 #[cfg(target_arch = "x86_64")]
 #[target_feature(enable = "avx2", enable = "fma")]
 #[inline]
-unsafe fn yiq_delta_8_avx2_direct(
+unsafe fn yiq_delta_8_avx2_opaque(
     va: std::arch::x86_64::__m256i,
     vb: std::arch::x86_64::__m256i,
 ) -> std::arch::x86_64::__m256 {
@@ -684,43 +941,22 @@ unsafe fn yiq_delta_8_avx2_direct(
 
     let mask_ff = _mm256_set1_epi32(0xFF);
 
-    let r_a = _mm256_and_si256(va, mask_ff);
-    let g_a = _mm256_and_si256(_mm256_srli_epi32(va, 8), mask_ff);
-    let b_a = _mm256_and_si256(_mm256_srli_epi32(va, 16), mask_ff);
-    let a_a = _mm256_srli_epi32(va, 24);
-
-    let r_b = _mm256_and_si256(vb, mask_ff);
-    let g_b = _mm256_and_si256(_mm256_srli_epi32(vb, 8), mask_ff);
-    let b_b = _mm256_and_si256(_mm256_srli_epi32(vb, 16), mask_ff);
-    let a_b = _mm256_srli_epi32(vb, 24);
-
-    let r_a_f = _mm256_cvtepi32_ps(r_a);
-    let g_a_f = _mm256_cvtepi32_ps(g_a);
-    let b_a_f = _mm256_cvtepi32_ps(b_a);
-    let a_a_f = _mm256_cvtepi32_ps(a_a);
-
-    let r_b_f = _mm256_cvtepi32_ps(r_b);
-    let g_b_f = _mm256_cvtepi32_ps(g_b);
-    let b_b_f = _mm256_cvtepi32_ps(b_b);
-    let a_b_f = _mm256_cvtepi32_ps(a_b);
-
-    let v255 = _mm256_set1_ps(255.0);
-    let inv255 = _mm256_set1_ps(INV_255);
-
-    let alpha_norm_a = _mm256_mul_ps(a_a_f, inv255);
-    let alpha_norm_b = _mm256_mul_ps(a_b_f, inv255);
-
-    let br_a = _mm256_fmadd_ps(_mm256_sub_ps(r_a_f, v255), alpha_norm_a, v255);
-    let bg_a = _mm256_fmadd_ps(_mm256_sub_ps(g_a_f, v255), alpha_norm_a, v255);
-    let bb_a = _mm256_fmadd_ps(_mm256_sub_ps(b_a_f, v255), alpha_norm_a, v255);
-
-    let br_b = _mm256_fmadd_ps(_mm256_sub_ps(r_b_f, v255), alpha_norm_b, v255);
-    let bg_b = _mm256_fmadd_ps(_mm256_sub_ps(g_b_f, v255), alpha_norm_b, v255);
-    let bb_b = _mm256_fmadd_ps(_mm256_sub_ps(b_b_f, v255), alpha_norm_b, v255);
-
-    let dr = _mm256_sub_ps(br_a, br_b);
-    let dg = _mm256_sub_ps(bg_a, bg_b);
-    let db = _mm256_sub_ps(bb_a, bb_b);
+    // Callers guarantee every lane is opaque (see `all_opaque_*`), so no
+    // background blending is needed: the deltas are the raw channel
+    // differences. Skipping the blend is what makes this cheaper than
+    // blending unconditionally.
+    let dr = _mm256_sub_ps(
+        _mm256_cvtepi32_ps(_mm256_and_si256(va, mask_ff)),
+        _mm256_cvtepi32_ps(_mm256_and_si256(vb, mask_ff)),
+    );
+    let dg = _mm256_sub_ps(
+        _mm256_cvtepi32_ps(_mm256_and_si256(_mm256_srli_epi32(va, 8), mask_ff)),
+        _mm256_cvtepi32_ps(_mm256_and_si256(_mm256_srli_epi32(vb, 8), mask_ff)),
+    );
+    let db = _mm256_sub_ps(
+        _mm256_cvtepi32_ps(_mm256_and_si256(_mm256_srli_epi32(va, 16), mask_ff)),
+        _mm256_cvtepi32_ps(_mm256_and_si256(_mm256_srli_epi32(vb, 16), mask_ff)),
+    );
 
     let y_r = _mm256_set1_ps(YIQ_Y_F32[0]);
     let y_g = _mm256_set1_ps(YIQ_Y_F32[1]);
@@ -750,35 +986,15 @@ unsafe fn yiq_delta_8_avx2_direct(
 // SIMD YIQ Delta with sign (for hot pass) - returns signed delta
 // =============================================================================
 
-/// Scalar f32 YIQ delta (handles alpha)
+/// Opaque-only YIQ delta in f32: the scalar twin of the vector kernels.
+///
+/// Kept in f32 so that a pixel's verdict never depends on whether it landed in
+/// the vectorised body or the scalar remainder of a row.
 #[inline(always)]
-fn color_delta_f32(pixel_a: u32, pixel_b: u32) -> f32 {
-    if pixel_a == pixel_b {
-        return 0.0;
-    }
-
-    let r1 = (pixel_a & 0xFF) as f32;
-    let g1 = ((pixel_a >> 8) & 0xFF) as f32;
-    let b1 = ((pixel_a >> 16) & 0xFF) as f32;
-    let a1 = ((pixel_a >> 24) & 0xFF) as f32;
-
-    let r2 = (pixel_b & 0xFF) as f32;
-    let g2 = ((pixel_b >> 8) & 0xFF) as f32;
-    let b2 = ((pixel_b >> 16) & 0xFF) as f32;
-    let a2 = ((pixel_b >> 24) & 0xFF) as f32;
-
-    let (dr, dg, db) = if a1 >= 255.0 && a2 >= 255.0 {
-        (r1 - r2, g1 - g2, b1 - b2)
-    } else {
-        let inv255 = 1.0 / 255.0;
-        let br1 = 255.0 + (r1 - 255.0) * a1 * inv255;
-        let bg1 = 255.0 + (g1 - 255.0) * a1 * inv255;
-        let bb1 = 255.0 + (b1 - 255.0) * a1 * inv255;
-        let br2 = 255.0 + (r2 - 255.0) * a2 * inv255;
-        let bg2 = 255.0 + (g2 - 255.0) * a2 * inv255;
-        let bb2 = 255.0 + (b2 - 255.0) * a2 * inv255;
-        (br1 - br2, bg1 - bg2, bb1 - bb2)
-    };
+fn color_delta_opaque_f32(pixel_a: u32, pixel_b: u32) -> f32 {
+    let dr = (pixel_a & 0xFF) as f32 - (pixel_b & 0xFF) as f32;
+    let dg = ((pixel_a >> 8) & 0xFF) as f32 - ((pixel_b >> 8) & 0xFF) as f32;
+    let db = ((pixel_a >> 16) & 0xFF) as f32 - ((pixel_b >> 16) & 0xFF) as f32;
 
     let y = dr * YIQ_Y_F32[0] + dg * YIQ_Y_F32[1] + db * YIQ_Y_F32[2];
     let i = dr * YIQ_I_F32[0] + dg * YIQ_I_F32[1] + db * YIQ_I_F32[2];
@@ -792,6 +1008,84 @@ fn color_delta_f32(pixel_a: u32, pixel_b: u32) -> f32 {
     } else {
         delta
     }
+}
+
+/// Scalar YIQ delta for the diff hot loops, returned as f64.
+///
+/// Two precisions on purpose:
+///   * **Opaque** pixels use f32 and widen. Widening is exact, so comparing the
+///     widened value against a widened `max_delta` gives the same verdict as
+///     the f32 comparison the vector path performs. The SIMD body and the
+///     scalar remainder stay in agreement.
+///   * **Semi-transparent** pixels are never vectorised, so they run the
+///     canonical f64 kernel and match `@blazediff/core` exactly.
+#[inline(always)]
+fn color_delta_scalar(pixel_a: u32, pixel_b: u32, pixel_index: usize) -> f64 {
+    if pixel_a == pixel_b {
+        return 0.0;
+    }
+    if all_opaque_pair(pixel_a, pixel_b) {
+        return color_delta_opaque_f32(pixel_a, pixel_b) as f64;
+    }
+    crate::yiq::color_delta(pixel_a, pixel_b, pixel_index)
+}
+
+/// True when both pixels are fully opaque, i.e. neither needs background
+/// blending. `a & b` has 0xFF in the alpha byte only when both do.
+#[inline(always)]
+fn all_opaque_pair(pixel_a: u32, pixel_b: u32) -> bool {
+    ((pixel_a & pixel_b) >> 24) == 0xFF
+}
+
+/// Vector form of [`all_opaque_pair`]: true when *every* lane of both vectors
+/// is fully opaque, meaning the chunk can take the cheap no-blend kernel.
+///
+/// Three instructions (and, shift, horizontal min) to save the 16 blend ops
+/// the kernel would otherwise run on every pixel.
+#[cfg(target_arch = "aarch64")]
+#[inline(always)]
+unsafe fn all_opaque_neon(
+    va: std::arch::aarch64::uint32x4_t,
+    vb: std::arch::aarch64::uint32x4_t,
+) -> bool {
+    use std::arch::aarch64::*;
+    vminvq_u32(vshrq_n_u32(vandq_u32(va, vb), 24)) == 0xFF
+}
+
+/// SSE4.1 form of [`all_opaque_pair`]. `movemask_epi8` collects the sign bit of
+/// every byte; comparing `(a & b)` against an all-0xFF alpha pattern and
+/// checking the alpha byte lanes is cheaper than extracting each lane.
+#[cfg(target_arch = "x86_64")]
+#[target_feature(enable = "sse4.1")]
+#[inline]
+unsafe fn all_opaque_sse(va: std::arch::x86_64::__m128i, vb: std::arch::x86_64::__m128i) -> bool {
+    use std::arch::x86_64::*;
+    let alpha_mask = _mm_set1_epi32(0xFF00_0000u32 as i32);
+    let both = _mm_and_si128(_mm_and_si128(va, vb), alpha_mask);
+    // Every alpha byte must still be 0xFF after the AND.
+    _mm_movemask_epi8(_mm_cmpeq_epi32(both, alpha_mask)) == 0xFFFF
+}
+
+/// AVX2 form of [`all_opaque_pair`] over 8 lanes.
+#[cfg(target_arch = "x86_64")]
+#[target_feature(enable = "avx2")]
+#[inline]
+unsafe fn all_opaque_avx2(va: std::arch::x86_64::__m256i, vb: std::arch::x86_64::__m256i) -> bool {
+    use std::arch::x86_64::*;
+    let alpha_mask = _mm256_set1_epi32(0xFF00_0000u32 as i32);
+    let both = _mm256_and_si256(_mm256_and_si256(va, vb), alpha_mask);
+    _mm256_movemask_epi8(_mm256_cmpeq_epi32(both, alpha_mask)) == -1
+}
+
+/// wasm simd128 form of [`all_opaque_pair`].
+#[cfg(all(target_arch = "wasm32", target_feature = "simd128"))]
+#[inline]
+#[target_feature(enable = "simd128")]
+unsafe fn all_opaque_wasm(va: std::arch::wasm32::v128, vb: std::arch::wasm32::v128) -> bool {
+    use std::arch::wasm32::*;
+    let alpha_mask = u32x4_splat(0xFF00_0000);
+    let both = v128_and(v128_and(va, vb), alpha_mask);
+    u32x4_all_true(u32x4_eq(both, alpha_mask))
 }
 
 // =============================================================================
@@ -1079,59 +1373,80 @@ fn process_hot_block_neon(
                     }
                 } else {
                     // At least one pixel differs - compute deltas
-                    let deltas = yiq_delta_4_neon_signed(va, vb, mask_ff);
-                    let abs_deltas = vabsq_f32(deltas);
-                    let exceeds = vcgtq_f32(abs_deltas, max_delta_vec);
+                    let opaque = all_opaque_neon(va, vb);
+                    // Computed once and shared by the early-out below and the
+                    // per-lane spill further down, so the fast path adds no
+                    // duplicate work on chunks that do contain a diff.
+                    let deltas = if opaque {
+                        yiq_delta_4_neon_opaque_signed(va, vb, mask_ff)
+                    } else {
+                        vdupq_n_f32(0.0)
+                    };
+                    let exceeds = vcgtq_f32(vabsq_f32(deltas), max_delta_vec);
+
+                    if opaque {
+                        if vmaxvq_u32(exceeds) == 0 {
+                            // No lane crosses the threshold, so every pixel in
+                            // this chunk renders as background, the same
+                            // outcome as the all-identical branch above. Take
+                            // the vector gray store and skip the per-lane spill.
+                            if draw_background {
+                                if let Some(ref mut out) = out32 {
+                                    let grays = compute_gray_4_neon(va, alpha_vec, mask_ff, v255);
+                                    vst1q_u32(out.as_mut_ptr().add(base_offset + offset), grays);
+                                }
+                            }
+                            offset += 4;
+                            continue;
+                        }
+                    }
 
                     let mut delta_arr: [f32; 4] = [0.0f32; 4];
                     let mut pa_arr: [u32; 4] = [0u32; 4];
                     let mut pb_arr: [u32; 4] = [0u32; 4];
-                    vst1q_f32(delta_arr.as_mut_ptr(), deltas);
+                    let mut exceeds_arr = [false; 4];
                     vst1q_u32(pa_arr.as_mut_ptr(), va);
                     vst1q_u32(pb_arr.as_mut_ptr(), vb);
 
-                    let any_exceeds = vmaxvq_u32(exceeds) != 0;
+                    if opaque {
+                        vst1q_f32(delta_arr.as_mut_ptr(), deltas);
+                        let mut lane_flags: [u32; 4] = [0u32; 4];
+                        vst1q_u32(lane_flags.as_mut_ptr(), exceeds);
+                        for i in 0..4 {
+                            exceeds_arr[i] = lane_flags[i] != 0;
+                        }
+                    } else {
+                        // A lane is semi-transparent: the checkerboard
+                        // background depends on pixel position, so fall back to
+                        // the exact scalar kernel for this chunk.
+                        for i in 0..4 {
+                            let idx = base_offset + offset + i;
+                            let d = color_delta_scalar(pa_arr[i], pb_arr[i], idx);
+                            delta_arr[i] = d as f32;
+                            exceeds_arr[i] = d.abs() > max_delta as f64;
+                        }
+                    }
 
                     for i in 0..4 {
                         let pixel_index = base_offset + offset + i;
                         let pa = pa_arr[i];
                         let pb = pb_arr[i];
 
-                        if pa == pb {
-                            if draw_background {
-                                if let Some(ref mut out) = out32 {
-                                    let g = compute_gray_pixel_f32(pa, alpha_scaled);
-                                    out[pixel_index] = pack_gray_pixel(g);
-                                }
-                            }
-                        } else if any_exceeds {
-                            let lane_exceeds = match i {
-                                0 => vgetq_lane_u32(exceeds, 0),
-                                1 => vgetq_lane_u32(exceeds, 1),
-                                2 => vgetq_lane_u32(exceeds, 2),
-                                _ => vgetq_lane_u32(exceeds, 3),
-                            };
-                            if lane_exceeds != 0 {
-                                diff_count += process_diff_pixel(
-                                    pixel_index,
-                                    delta_arr[i],
-                                    include_aa,
-                                    draw_background,
-                                    diff_color,
-                                    diff_color_alt,
-                                    aa_color,
-                                    start_x + offset as u32 + i as u32,
-                                    y,
-                                    image1,
-                                    image2,
-                                    out32.as_deref_mut(),
-                                );
-                            } else if draw_background {
-                                if let Some(ref mut out) = out32 {
-                                    let g = compute_gray_pixel_f32(pa, alpha_scaled);
-                                    out[pixel_index] = pack_gray_pixel(g);
-                                }
-                            }
+                        if pa != pb && exceeds_arr[i] {
+                            diff_count += process_diff_pixel(
+                                pixel_index,
+                                delta_arr[i],
+                                include_aa,
+                                draw_background,
+                                diff_color,
+                                diff_color_alt,
+                                aa_color,
+                                start_x + offset as u32 + i as u32,
+                                y,
+                                image1,
+                                image2,
+                                out32.as_deref_mut(),
+                            );
                         } else if draw_background {
                             if let Some(ref mut out) = out32 {
                                 let g = compute_gray_pixel_f32(pa, alpha_scaled);
@@ -1158,11 +1473,11 @@ fn process_hot_block_neon(
                     }
                 }
             } else {
-                let delta = color_delta_f32(pa, pb);
-                if delta.abs() > max_delta {
+                let delta = color_delta_scalar(pa, pb, pixel_index);
+                if delta.abs() > max_delta as f64 {
                     diff_count += process_diff_pixel(
                         pixel_index,
-                        delta,
+                        delta as f32,
                         include_aa,
                         draw_background,
                         diff_color,
@@ -1249,59 +1564,79 @@ fn process_hot_block_wasm(
                     }
                 } else {
                     // At least one pixel differs - compute deltas
-                    let deltas = yiq_delta_4_wasm_signed(va, vb);
-                    let abs_deltas = f32x4_abs(deltas);
-                    let exceeds = f32x4_gt(abs_deltas, max_delta_vec);
+                    let opaque = all_opaque_wasm(va, vb);
+                    // Computed once and shared by the early-out below and the
+                    // per-lane spill further down.
+                    let deltas = if opaque {
+                        yiq_delta_4_wasm_opaque_signed(va, vb)
+                    } else {
+                        f32x4_splat(0.0)
+                    };
+                    let exceeds = f32x4_gt(f32x4_abs(deltas), max_delta_vec);
+
+                    if opaque && !v128_any_true(exceeds) {
+                        // No lane crosses the threshold, so every pixel in this
+                        // chunk renders as background, same outcome as the
+                        // all-identical branch. Take the vector gray store and
+                        // skip the per-lane spill.
+                        if draw_background {
+                            if let Some(ref mut out) = out32 {
+                                let grays = compute_gray_4_wasm(va, alpha_vec, mask_ff, v255);
+                                v128_store(
+                                    out.as_mut_ptr().add(base_offset + offset) as *mut v128,
+                                    grays,
+                                );
+                            }
+                        }
+                        offset += 4;
+                        continue;
+                    }
 
                     let mut delta_arr: [f32; 4] = [0.0f32; 4];
                     let mut pa_arr: [u32; 4] = [0u32; 4];
                     let mut pb_arr: [u32; 4] = [0u32; 4];
-                    v128_store(delta_arr.as_mut_ptr() as *mut v128, deltas);
+                    let mut exceeds_arr = [false; 4];
                     v128_store(pa_arr.as_mut_ptr() as *mut v128, va);
                     v128_store(pb_arr.as_mut_ptr() as *mut v128, vb);
 
-                    let any_exceeds = v128_any_true(exceeds);
+                    if opaque {
+                        v128_store(delta_arr.as_mut_ptr() as *mut v128, deltas);
+                        exceeds_arr[0] = u32x4_extract_lane::<0>(exceeds) != 0;
+                        exceeds_arr[1] = u32x4_extract_lane::<1>(exceeds) != 0;
+                        exceeds_arr[2] = u32x4_extract_lane::<2>(exceeds) != 0;
+                        exceeds_arr[3] = u32x4_extract_lane::<3>(exceeds) != 0;
+                    } else {
+                        // A lane is semi-transparent: the checkerboard
+                        // background depends on pixel position, so fall back to
+                        // the exact scalar kernel for this chunk.
+                        for i in 0..4 {
+                            let idx = base_offset + offset + i;
+                            let d = color_delta_scalar(pa_arr[i], pb_arr[i], idx);
+                            delta_arr[i] = d as f32;
+                            exceeds_arr[i] = d.abs() > max_delta as f64;
+                        }
+                    }
 
                     for i in 0..4 {
                         let pixel_index = base_offset + offset + i;
                         let pa = pa_arr[i];
                         let pb = pb_arr[i];
 
-                        if pa == pb {
-                            if draw_background {
-                                if let Some(ref mut out) = out32 {
-                                    let g = compute_gray_pixel_f32(pa, alpha_scaled);
-                                    out[pixel_index] = pack_gray_pixel(g);
-                                }
-                            }
-                        } else if any_exceeds {
-                            let lane_exceeds = match i {
-                                0 => u32x4_extract_lane::<0>(exceeds),
-                                1 => u32x4_extract_lane::<1>(exceeds),
-                                2 => u32x4_extract_lane::<2>(exceeds),
-                                _ => u32x4_extract_lane::<3>(exceeds),
-                            };
-                            if lane_exceeds != 0 {
-                                diff_count += process_diff_pixel(
-                                    pixel_index,
-                                    delta_arr[i],
-                                    include_aa,
-                                    draw_background,
-                                    diff_color,
-                                    diff_color_alt,
-                                    aa_color,
-                                    start_x + offset as u32 + i as u32,
-                                    y,
-                                    image1,
-                                    image2,
-                                    out32.as_deref_mut(),
-                                );
-                            } else if draw_background {
-                                if let Some(ref mut out) = out32 {
-                                    let g = compute_gray_pixel_f32(pa, alpha_scaled);
-                                    out[pixel_index] = pack_gray_pixel(g);
-                                }
-                            }
+                        if pa != pb && exceeds_arr[i] {
+                            diff_count += process_diff_pixel(
+                                pixel_index,
+                                delta_arr[i],
+                                include_aa,
+                                draw_background,
+                                diff_color,
+                                diff_color_alt,
+                                aa_color,
+                                start_x + offset as u32 + i as u32,
+                                y,
+                                image1,
+                                image2,
+                                out32.as_deref_mut(),
+                            );
                         } else if draw_background {
                             if let Some(ref mut out) = out32 {
                                 let g = compute_gray_pixel_f32(pa, alpha_scaled);
@@ -1328,11 +1663,11 @@ fn process_hot_block_wasm(
                     }
                 }
             } else {
-                let delta = color_delta_f32(pa, pb);
-                if delta.abs() > max_delta {
+                let delta = color_delta_scalar(pa, pb, pixel_index);
+                if delta.abs() > max_delta as f64 {
                     diff_count += process_diff_pixel(
                         pixel_index,
-                        delta,
+                        delta as f32,
                         include_aa,
                         draw_background,
                         diff_color,
@@ -1438,50 +1773,25 @@ unsafe fn compute_gray_4_wasm(
 /// NEON: YIQ delta with sign for 4 pixels (with alpha handling)
 #[cfg(target_arch = "aarch64")]
 #[inline]
-unsafe fn yiq_delta_4_neon_signed(
+unsafe fn yiq_delta_4_neon_opaque_signed(
     va: std::arch::aarch64::uint32x4_t,
     vb: std::arch::aarch64::uint32x4_t,
     mask_ff: std::arch::aarch64::uint32x4_t,
 ) -> std::arch::aarch64::float32x4_t {
     use std::arch::aarch64::*;
 
-    let v255 = vdupq_n_f32(255.0);
-    let inv255 = vdupq_n_f32(INV_255);
-
-    let r_a = vandq_u32(va, mask_ff);
-    let g_a = vandq_u32(vshrq_n_u32(va, 8), mask_ff);
-    let b_a = vandq_u32(vshrq_n_u32(va, 16), mask_ff);
-    let a_a = vshrq_n_u32(va, 24);
-
-    let r_b = vandq_u32(vb, mask_ff);
-    let g_b = vandq_u32(vshrq_n_u32(vb, 8), mask_ff);
-    let b_b = vandq_u32(vshrq_n_u32(vb, 16), mask_ff);
-    let a_b = vshrq_n_u32(vb, 24);
-
-    let r_a_f = vcvtq_f32_u32(r_a);
-    let g_a_f = vcvtq_f32_u32(g_a);
-    let b_a_f = vcvtq_f32_u32(b_a);
-    let a_a_f = vcvtq_f32_u32(a_a);
-
-    let r_b_f = vcvtq_f32_u32(r_b);
-    let g_b_f = vcvtq_f32_u32(g_b);
-    let b_b_f = vcvtq_f32_u32(b_b);
-    let a_b_f = vcvtq_f32_u32(a_b);
-
-    let alpha_norm_a = vmulq_f32(a_a_f, inv255);
-    let alpha_norm_b = vmulq_f32(a_b_f, inv255);
-
-    let br_a = vfmaq_f32(v255, vsubq_f32(r_a_f, v255), alpha_norm_a);
-    let bg_a = vfmaq_f32(v255, vsubq_f32(g_a_f, v255), alpha_norm_a);
-    let bb_a = vfmaq_f32(v255, vsubq_f32(b_a_f, v255), alpha_norm_a);
-
-    let br_b = vfmaq_f32(v255, vsubq_f32(r_b_f, v255), alpha_norm_b);
-    let bg_b = vfmaq_f32(v255, vsubq_f32(g_b_f, v255), alpha_norm_b);
-    let bb_b = vfmaq_f32(v255, vsubq_f32(b_b_f, v255), alpha_norm_b);
-
-    let dr = vsubq_f32(br_a, br_b);
-    let dg = vsubq_f32(bg_a, bg_b);
-    let db = vsubq_f32(bb_a, bb_b);
+    let dr = vsubq_f32(
+        vcvtq_f32_u32(vandq_u32(va, mask_ff)),
+        vcvtq_f32_u32(vandq_u32(vb, mask_ff)),
+    );
+    let dg = vsubq_f32(
+        vcvtq_f32_u32(vandq_u32(vshrq_n_u32(va, 8), mask_ff)),
+        vcvtq_f32_u32(vandq_u32(vshrq_n_u32(vb, 8), mask_ff)),
+    );
+    let db = vsubq_f32(
+        vcvtq_f32_u32(vandq_u32(vshrq_n_u32(va, 16), mask_ff)),
+        vcvtq_f32_u32(vandq_u32(vshrq_n_u32(vb, 16), mask_ff)),
+    );
 
     let vy = vfmaq_n_f32(
         vfmaq_n_f32(vmulq_n_f32(dr, YIQ_Y_F32[0]), dg, YIQ_Y_F32[1]),
@@ -1522,50 +1832,29 @@ unsafe fn yiq_delta_4_neon_signed(
 #[cfg(all(target_arch = "wasm32", target_feature = "simd128"))]
 #[inline]
 #[target_feature(enable = "simd128")]
-unsafe fn yiq_delta_4_wasm_signed(
+unsafe fn yiq_delta_4_wasm_opaque_signed(
     va: std::arch::wasm32::v128,
     vb: std::arch::wasm32::v128,
 ) -> std::arch::wasm32::v128 {
     use std::arch::wasm32::*;
 
     let mask_ff = u32x4_splat(0xFF);
-    let v255 = f32x4_splat(255.0);
-    let inv255 = f32x4_splat(INV_255);
-
-    let r_a = v128_and(va, mask_ff);
-    let g_a = v128_and(u32x4_shr(va, 8), mask_ff);
-    let b_a = v128_and(u32x4_shr(va, 16), mask_ff);
-    let a_a = u32x4_shr(va, 24);
-
-    let r_b = v128_and(vb, mask_ff);
-    let g_b = v128_and(u32x4_shr(vb, 8), mask_ff);
-    let b_b = v128_and(u32x4_shr(vb, 16), mask_ff);
-    let a_b = u32x4_shr(vb, 24);
-
-    let r_a_f = f32x4_convert_u32x4(r_a);
-    let g_a_f = f32x4_convert_u32x4(g_a);
-    let b_a_f = f32x4_convert_u32x4(b_a);
-    let a_a_f = f32x4_convert_u32x4(a_a);
-
-    let r_b_f = f32x4_convert_u32x4(r_b);
-    let g_b_f = f32x4_convert_u32x4(g_b);
-    let b_b_f = f32x4_convert_u32x4(b_b);
-    let a_b_f = f32x4_convert_u32x4(a_b);
-
-    let alpha_norm_a = f32x4_mul(a_a_f, inv255);
-    let alpha_norm_b = f32x4_mul(a_b_f, inv255);
-
-    let br_a = f32x4_add(v255, f32x4_mul(f32x4_sub(r_a_f, v255), alpha_norm_a));
-    let bg_a = f32x4_add(v255, f32x4_mul(f32x4_sub(g_a_f, v255), alpha_norm_a));
-    let bb_a = f32x4_add(v255, f32x4_mul(f32x4_sub(b_a_f, v255), alpha_norm_a));
-
-    let br_b = f32x4_add(v255, f32x4_mul(f32x4_sub(r_b_f, v255), alpha_norm_b));
-    let bg_b = f32x4_add(v255, f32x4_mul(f32x4_sub(g_b_f, v255), alpha_norm_b));
-    let bb_b = f32x4_add(v255, f32x4_mul(f32x4_sub(b_b_f, v255), alpha_norm_b));
-
-    let dr = f32x4_sub(br_a, br_b);
-    let dg = f32x4_sub(bg_a, bg_b);
-    let db = f32x4_sub(bb_a, bb_b);
+    // Callers guarantee every lane is opaque (see `all_opaque_*`), so no
+    // background blending is needed: the deltas are the raw channel
+    // differences. Skipping the blend is what makes this cheaper than
+    // blending unconditionally.
+    let dr = f32x4_sub(
+        f32x4_convert_u32x4(v128_and(va, mask_ff)),
+        f32x4_convert_u32x4(v128_and(vb, mask_ff)),
+    );
+    let dg = f32x4_sub(
+        f32x4_convert_u32x4(v128_and(u32x4_shr(va, 8), mask_ff)),
+        f32x4_convert_u32x4(v128_and(u32x4_shr(vb, 8), mask_ff)),
+    );
+    let db = f32x4_sub(
+        f32x4_convert_u32x4(v128_and(u32x4_shr(va, 16), mask_ff)),
+        f32x4_convert_u32x4(v128_and(u32x4_shr(vb, 16), mask_ff)),
+    );
 
     let y_r = f32x4_splat(YIQ_Y_F32[0]);
     let y_g = f32x4_splat(YIQ_Y_F32[1]);
@@ -1670,18 +1959,60 @@ unsafe fn process_hot_block_avx2(
                 }
             } else {
                 // At least one pixel differs
-                let deltas = yiq_delta_8_avx2_signed(va, vb, mask_ff, v255, zero);
+                let opaque = all_opaque_avx2(va, vb);
+                // Computed once and shared by the early-out below and the
+                // per-lane spill further down.
+                let deltas = if opaque {
+                    yiq_delta_8_avx2_opaque_signed(va, vb, mask_ff, v255, zero)
+                } else {
+                    _mm256_setzero_ps()
+                };
                 let abs_mask = _mm256_castsi256_ps(_mm256_set1_epi32(0x7FFFFFFF));
-                let abs_deltas = _mm256_and_ps(deltas, abs_mask);
-                let exceeds = _mm256_cmp_ps(abs_deltas, max_delta_vec, _CMP_GT_OQ);
+                let exceeds =
+                    _mm256_cmp_ps(_mm256_and_ps(deltas, abs_mask), max_delta_vec, _CMP_GT_OQ);
                 let exceeds_mask = _mm256_movemask_ps(exceeds) as u8;
+
+                if opaque && exceeds_mask == 0 {
+                    // No lane crosses the threshold, so every pixel in this
+                    // chunk renders as background, the same outcome as the
+                    // all-identical branch. Take the vector gray store and skip
+                    // the per-lane spill.
+                    if draw_background {
+                        if let Some(ref mut out) = out32 {
+                            let grays = compute_gray_8_avx2(va, alpha_vec, mask_ff, v255, zero);
+                            _mm256_storeu_si256(
+                                out.as_mut_ptr().add(base_offset + offset) as *mut __m256i,
+                                grays,
+                            );
+                        }
+                    }
+                    offset += 8;
+                    continue;
+                }
 
                 let mut delta_arr: [f32; 8] = [0.0f32; 8];
                 let mut pa_arr: [u32; 8] = [0u32; 8];
                 let mut pb_arr: [u32; 8] = [0u32; 8];
-                _mm256_storeu_ps(delta_arr.as_mut_ptr(), deltas);
+                let mut exceeds_arr = [false; 8];
                 _mm256_storeu_si256(pa_arr.as_mut_ptr() as *mut __m256i, va);
                 _mm256_storeu_si256(pb_arr.as_mut_ptr() as *mut __m256i, vb);
+
+                if opaque {
+                    _mm256_storeu_ps(delta_arr.as_mut_ptr(), deltas);
+                    for i in 0..8 {
+                        exceeds_arr[i] = (exceeds_mask >> i) & 1 != 0;
+                    }
+                } else {
+                    // A lane is semi-transparent: the checkerboard background
+                    // depends on pixel position, so fall back to the exact
+                    // scalar kernel for this chunk.
+                    for i in 0..8 {
+                        let idx = base_offset + offset + i;
+                        let d = color_delta_scalar(pa_arr[i], pb_arr[i], idx);
+                        delta_arr[i] = d as f32;
+                        exceeds_arr[i] = d.abs() > max_delta as f64;
+                    }
+                }
 
                 for i in 0..8 {
                     let pixel_index = base_offset + offset + i;
@@ -1695,7 +2026,7 @@ unsafe fn process_hot_block_avx2(
                                 out[pixel_index] = pack_gray_pixel(g);
                             }
                         }
-                    } else if (exceeds_mask >> i) & 1 != 0 {
+                    } else if exceeds_arr[i] {
                         diff_count += process_diff_pixel(
                             pixel_index,
                             delta_arr[i],
@@ -1759,11 +2090,11 @@ unsafe fn process_hot_block_avx2(
                     }
                 }
             } else {
-                let delta = color_delta_f32(pa, pb);
-                if delta.abs() > max_delta {
+                let delta = color_delta_scalar(pa, pb, pixel_index);
+                if delta.abs() > max_delta as f64 {
                     diff_count += process_diff_pixel(
                         pixel_index,
-                        delta,
+                        delta as f32,
                         include_aa,
                         draw_background,
                         diff_color,
@@ -1818,7 +2149,12 @@ unsafe fn compute_gray_8_avx2(
         v255,
     );
     let gray_clamped = _mm256_min_ps(_mm256_max_ps(gray_f, zero), v255);
-    let gray_u32 = _mm256_cvtps_epi32(gray_clamped);
+    // Truncate, don't round: the scalar path (`as u8`) and NEON's `vcvtq_u32_f32`
+    // both truncate toward zero, and `_mm256_cvtps_epi32` would instead follow
+    // the current rounding mode (nearest-even by default). Using it made the
+    // gray background differ by 1 between vector-path and scalar-path pixels of
+    // the same image, and between x86 and ARM output.
+    let gray_u32 = _mm256_cvttps_epi32(gray_clamped);
 
     _mm256_or_si256(
         _mm256_or_si256(
@@ -1833,7 +2169,7 @@ unsafe fn compute_gray_8_avx2(
 #[cfg(target_arch = "x86_64")]
 #[target_feature(enable = "avx2", enable = "fma")]
 #[inline]
-unsafe fn yiq_delta_8_avx2_signed(
+unsafe fn yiq_delta_8_avx2_opaque_signed(
     va: std::arch::x86_64::__m256i,
     vb: std::arch::x86_64::__m256i,
     mask_ff: std::arch::x86_64::__m256i,
@@ -1842,43 +2178,22 @@ unsafe fn yiq_delta_8_avx2_signed(
 ) -> std::arch::x86_64::__m256 {
     use std::arch::x86_64::*;
 
-    let v255 = _mm256_set1_ps(255.0);
-    let inv255 = _mm256_set1_ps(INV_255);
-
-    let r_a = _mm256_and_si256(va, mask_ff);
-    let g_a = _mm256_and_si256(_mm256_srli_epi32(va, 8), mask_ff);
-    let b_a = _mm256_and_si256(_mm256_srli_epi32(va, 16), mask_ff);
-    let a_a = _mm256_srli_epi32(va, 24);
-
-    let r_b = _mm256_and_si256(vb, mask_ff);
-    let g_b = _mm256_and_si256(_mm256_srli_epi32(vb, 8), mask_ff);
-    let b_b = _mm256_and_si256(_mm256_srli_epi32(vb, 16), mask_ff);
-    let a_b = _mm256_srli_epi32(vb, 24);
-
-    let r_a_f = _mm256_cvtepi32_ps(r_a);
-    let g_a_f = _mm256_cvtepi32_ps(g_a);
-    let b_a_f = _mm256_cvtepi32_ps(b_a);
-    let a_a_f = _mm256_cvtepi32_ps(a_a);
-
-    let r_b_f = _mm256_cvtepi32_ps(r_b);
-    let g_b_f = _mm256_cvtepi32_ps(g_b);
-    let b_b_f = _mm256_cvtepi32_ps(b_b);
-    let a_b_f = _mm256_cvtepi32_ps(a_b);
-
-    let alpha_norm_a = _mm256_mul_ps(a_a_f, inv255);
-    let alpha_norm_b = _mm256_mul_ps(a_b_f, inv255);
-
-    let br_a = _mm256_fmadd_ps(_mm256_sub_ps(r_a_f, v255), alpha_norm_a, v255);
-    let bg_a = _mm256_fmadd_ps(_mm256_sub_ps(g_a_f, v255), alpha_norm_a, v255);
-    let bb_a = _mm256_fmadd_ps(_mm256_sub_ps(b_a_f, v255), alpha_norm_a, v255);
-
-    let br_b = _mm256_fmadd_ps(_mm256_sub_ps(r_b_f, v255), alpha_norm_b, v255);
-    let bg_b = _mm256_fmadd_ps(_mm256_sub_ps(g_b_f, v255), alpha_norm_b, v255);
-    let bb_b = _mm256_fmadd_ps(_mm256_sub_ps(b_b_f, v255), alpha_norm_b, v255);
-
-    let dr = _mm256_sub_ps(br_a, br_b);
-    let dg = _mm256_sub_ps(bg_a, bg_b);
-    let db = _mm256_sub_ps(bb_a, bb_b);
+    // Callers guarantee every lane is opaque (see `all_opaque_*`), so no
+    // background blending is needed: the deltas are the raw channel
+    // differences. Skipping the blend is what makes this cheaper than
+    // blending unconditionally.
+    let dr = _mm256_sub_ps(
+        _mm256_cvtepi32_ps(_mm256_and_si256(va, mask_ff)),
+        _mm256_cvtepi32_ps(_mm256_and_si256(vb, mask_ff)),
+    );
+    let dg = _mm256_sub_ps(
+        _mm256_cvtepi32_ps(_mm256_and_si256(_mm256_srli_epi32(va, 8), mask_ff)),
+        _mm256_cvtepi32_ps(_mm256_and_si256(_mm256_srli_epi32(vb, 8), mask_ff)),
+    );
+    let db = _mm256_sub_ps(
+        _mm256_cvtepi32_ps(_mm256_and_si256(_mm256_srli_epi32(va, 16), mask_ff)),
+        _mm256_cvtepi32_ps(_mm256_and_si256(_mm256_srli_epi32(vb, 16), mask_ff)),
+    );
 
     let y_r = _mm256_set1_ps(YIQ_Y_F32[0]);
     let y_g = _mm256_set1_ps(YIQ_Y_F32[1]);
@@ -1977,11 +2292,11 @@ unsafe fn process_hot_block_sse(
                     }
                 }
             } else {
-                let delta = color_delta_f32(pa, pb);
-                if delta.abs() > max_delta {
+                let delta = color_delta_scalar(pa, pb, pixel_index);
+                if delta.abs() > max_delta as f64 {
                     diff_count += process_diff_pixel(
                         pixel_index,
-                        delta,
+                        delta as f32,
                         include_aa,
                         draw_background,
                         diff_color,
@@ -2059,19 +2374,62 @@ unsafe fn process_hot_chunk_sse(
             }
         }
     } else {
-        let deltas = yiq_delta_4_sse_signed(va, vb, mask_ff, zero);
-        let max_delta_vec = _mm_set1_ps(max_delta);
-        let abs_mask = _mm_castsi128_ps(_mm_set1_epi32(0x7FFFFFFF));
-        let abs_deltas = _mm_and_ps(deltas, abs_mask);
-        let exceeds = _mm_cmpgt_ps(abs_deltas, max_delta_vec);
-        let exceeds_mask = _mm_movemask_ps(exceeds) as u8;
+        let opaque = all_opaque_sse(va, vb);
+        // Computed once and shared by the early-out below and the per-lane
+        // spill further down.
+        let deltas_v = if opaque {
+            yiq_delta_4_sse_opaque_signed(va, vb, mask_ff, zero)
+        } else {
+            _mm_setzero_ps()
+        };
+        let abs_mask_v = _mm_castsi128_ps(_mm_set1_epi32(0x7FFFFFFF));
+        let exceeds_v = _mm_cmpgt_ps(_mm_and_ps(deltas_v, abs_mask_v), _mm_set1_ps(max_delta));
+
+        if opaque && _mm_movemask_ps(exceeds_v) == 0 {
+            // No lane crosses the threshold, so every pixel in this chunk
+            // renders as background, the same outcome as the all-identical
+            // branch. Take the vector gray store and skip the per-lane spill.
+            if draw_background {
+                if let Some(ref mut out) = out32 {
+                    let grays = compute_gray_4_sse(va, alpha_vec, mask_ff, v255, zero);
+                    _mm_storeu_si128(
+                        out.as_mut_ptr().add(base_offset + offset) as *mut __m128i,
+                        grays,
+                    );
+                }
+            }
+            return 0;
+        }
 
         let mut delta_arr: [f32; 4] = [0.0f32; 4];
         let mut pa_arr: [u32; 4] = [0u32; 4];
         let mut pb_arr: [u32; 4] = [0u32; 4];
-        _mm_storeu_ps(delta_arr.as_mut_ptr(), deltas);
+        let mut exceeds_arr = [false; 4];
         _mm_storeu_si128(pa_arr.as_mut_ptr() as *mut __m128i, va);
         _mm_storeu_si128(pb_arr.as_mut_ptr() as *mut __m128i, vb);
+
+        if opaque {
+            let deltas = deltas_v;
+            let max_delta_vec = _mm_set1_ps(max_delta);
+            let abs_mask = _mm_castsi128_ps(_mm_set1_epi32(0x7FFFFFFF));
+            let abs_deltas = _mm_and_ps(deltas, abs_mask);
+            let exceeds = _mm_cmpgt_ps(abs_deltas, max_delta_vec);
+            let exceeds_mask = _mm_movemask_ps(exceeds) as u8;
+            _mm_storeu_ps(delta_arr.as_mut_ptr(), deltas);
+            for i in 0..4 {
+                exceeds_arr[i] = (exceeds_mask >> i) & 1 != 0;
+            }
+        } else {
+            // A lane is semi-transparent: the checkerboard background depends
+            // on pixel position, so fall back to the exact scalar kernel for
+            // this chunk.
+            for i in 0..4 {
+                let idx = base_offset + offset + i;
+                let d = color_delta_scalar(pa_arr[i], pb_arr[i], idx);
+                delta_arr[i] = d as f32;
+                exceeds_arr[i] = d.abs() > max_delta as f64;
+            }
+        }
 
         for i in 0..4 {
             let pixel_index = base_offset + offset + i;
@@ -2085,7 +2443,7 @@ unsafe fn process_hot_chunk_sse(
                         out[pixel_index] = pack_gray_pixel(g);
                     }
                 }
-            } else if (exceeds_mask >> i) & 1 != 0 {
+            } else if exceeds_arr[i] {
                 diff_count += process_diff_pixel(
                     pixel_index,
                     delta_arr[i],
@@ -2143,7 +2501,8 @@ unsafe fn compute_gray_4_sse(
         _mm_mul_ps(_mm_sub_ps(luminance, v255), _mm_mul_ps(alpha_vec, a)),
     );
     let gray_clamped = _mm_min_ps(_mm_max_ps(gray_f, zero), v255);
-    let gray_u32 = _mm_cvtps_epi32(gray_clamped);
+    // Truncate, not round. See `compute_gray_8_avx2`.
+    let gray_u32 = _mm_cvttps_epi32(gray_clamped);
 
     _mm_or_si128(
         _mm_or_si128(
@@ -2158,7 +2517,7 @@ unsafe fn compute_gray_4_sse(
 #[cfg(target_arch = "x86_64")]
 #[target_feature(enable = "sse4.1")]
 #[inline]
-unsafe fn yiq_delta_4_sse_signed(
+unsafe fn yiq_delta_4_sse_opaque_signed(
     va: std::arch::x86_64::__m128i,
     vb: std::arch::x86_64::__m128i,
     mask_ff: std::arch::x86_64::__m128i,
@@ -2166,43 +2525,22 @@ unsafe fn yiq_delta_4_sse_signed(
 ) -> std::arch::x86_64::__m128 {
     use std::arch::x86_64::*;
 
-    let v255 = _mm_set1_ps(255.0);
-    let inv255 = _mm_set1_ps(INV_255);
-
-    let r_a = _mm_and_si128(va, mask_ff);
-    let g_a = _mm_and_si128(_mm_srli_epi32(va, 8), mask_ff);
-    let b_a = _mm_and_si128(_mm_srli_epi32(va, 16), mask_ff);
-    let a_a = _mm_srli_epi32(va, 24);
-
-    let r_b = _mm_and_si128(vb, mask_ff);
-    let g_b = _mm_and_si128(_mm_srli_epi32(vb, 8), mask_ff);
-    let b_b = _mm_and_si128(_mm_srli_epi32(vb, 16), mask_ff);
-    let a_b = _mm_srli_epi32(vb, 24);
-
-    let r_a_f = _mm_cvtepi32_ps(r_a);
-    let g_a_f = _mm_cvtepi32_ps(g_a);
-    let b_a_f = _mm_cvtepi32_ps(b_a);
-    let a_a_f = _mm_cvtepi32_ps(a_a);
-
-    let r_b_f = _mm_cvtepi32_ps(r_b);
-    let g_b_f = _mm_cvtepi32_ps(g_b);
-    let b_b_f = _mm_cvtepi32_ps(b_b);
-    let a_b_f = _mm_cvtepi32_ps(a_b);
-
-    let alpha_norm_a = _mm_mul_ps(a_a_f, inv255);
-    let alpha_norm_b = _mm_mul_ps(a_b_f, inv255);
-
-    let br_a = _mm_add_ps(v255, _mm_mul_ps(_mm_sub_ps(r_a_f, v255), alpha_norm_a));
-    let bg_a = _mm_add_ps(v255, _mm_mul_ps(_mm_sub_ps(g_a_f, v255), alpha_norm_a));
-    let bb_a = _mm_add_ps(v255, _mm_mul_ps(_mm_sub_ps(b_a_f, v255), alpha_norm_a));
-
-    let br_b = _mm_add_ps(v255, _mm_mul_ps(_mm_sub_ps(r_b_f, v255), alpha_norm_b));
-    let bg_b = _mm_add_ps(v255, _mm_mul_ps(_mm_sub_ps(g_b_f, v255), alpha_norm_b));
-    let bb_b = _mm_add_ps(v255, _mm_mul_ps(_mm_sub_ps(b_b_f, v255), alpha_norm_b));
-
-    let dr = _mm_sub_ps(br_a, br_b);
-    let dg = _mm_sub_ps(bg_a, bg_b);
-    let db = _mm_sub_ps(bb_a, bb_b);
+    // Callers guarantee every lane is opaque (see `all_opaque_*`), so no
+    // background blending is needed: the deltas are the raw channel
+    // differences. Skipping the blend is what makes this cheaper than
+    // blending unconditionally.
+    let dr = _mm_sub_ps(
+        _mm_cvtepi32_ps(_mm_and_si128(va, mask_ff)),
+        _mm_cvtepi32_ps(_mm_and_si128(vb, mask_ff)),
+    );
+    let dg = _mm_sub_ps(
+        _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(va, 8), mask_ff)),
+        _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(vb, 8), mask_ff)),
+    );
+    let db = _mm_sub_ps(
+        _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(va, 16), mask_ff)),
+        _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(vb, 16), mask_ff)),
+    );
 
     let y_r = _mm_set1_ps(YIQ_Y_F32[0]);
     let y_g = _mm_set1_ps(YIQ_Y_F32[1]);
@@ -2286,11 +2624,11 @@ fn process_hot_block_scalar(
                     }
                 }
             } else {
-                let delta = color_delta_f32(pa, pb);
-                if delta.abs() > max_delta {
+                let delta = color_delta_scalar(pa, pb, pixel_index);
+                if delta.abs() > max_delta as f64 {
                     diff_count += process_diff_pixel(
                         pixel_index,
-                        delta,
+                        delta as f32,
                         include_aa,
                         draw_background,
                         diff_color,
@@ -2406,6 +2744,13 @@ pub fn diff(
     // first cache line); for identical images it walks both buffers once
     // at memory-bandwidth speed, which is no more work than the cold
     // block-scan would have done.
+    //
+    // Not on wasm32: `wasm32-unknown-unknown` has no libc, so this lowers to
+    // `compiler_builtins`' scalar byte-loop memcmp, measured at ~2.4 GB/s,
+    // i.e. ~30ms for a 4K pair. The cold block-scan below reaches the same
+    // "no differing pixel" conclusion with v128 compares in under half that,
+    // so the shortcut is a pessimization there rather than an optimization.
+    #[cfg(not(target_arch = "wasm32"))]
     if image1.data == image2.data {
         return Ok(DiffResult::new(0, total_pixels));
     }

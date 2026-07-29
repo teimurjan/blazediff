@@ -1,5 +1,5 @@
 use crate::types::Image;
-use crate::yiq::{color_delta_f32, MAX_YIQ_DELTA_F32};
+use crate::yiq::{color_delta, MAX_YIQ_DELTA_F32};
 
 use super::types::{BoundingBox, ColorDeltaStats};
 
@@ -27,7 +27,7 @@ pub fn compute_color_delta(
                 continue;
             }
 
-            let delta = color_delta_f32(pixels1[idx], pixels2[idx]).abs();
+            let delta = color_delta(pixels1[idx], pixels2[idx], idx).abs() as f32;
             let normalized = delta as f64 / MAX_YIQ_DELTA_F32 as f64;
             sum += normalized;
             sum_sq += normalized * normalized;

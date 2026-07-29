@@ -20,7 +20,7 @@ pub mod types;
 
 use crate::diff::diff;
 use crate::types::{DiffError, DiffOptions, Image};
-use crate::yiq::color_delta_f32;
+use crate::yiq::color_delta;
 use color_delta::compute_color_delta;
 use content_analysis::analyze_content;
 use gradient::{compute_gradient_stats, compute_luminance_ncc};
@@ -64,7 +64,7 @@ fn refine_change_mask_in_bboxes(
                 if !refined[idx] {
                     continue;
                 }
-                let delta = color_delta_f32(pixels1[idx], pixels2[idx]).abs();
+                let delta = color_delta(pixels1[idx], pixels2[idx], idx).abs() as f32;
                 if delta < REFINE_DELTA_FLOOR_SQ {
                     refined[idx] = false;
                 }

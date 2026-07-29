@@ -8,7 +8,7 @@
 
 </div>
 
-The fastest single-threaded image diff in the world. Native Rust implementation with SIMD optimization, **3-4x faster** and **3x smaller** than [odiff](https://github.com/dmtrKovalenko/odiff).
+The fastest single-threaded image diff in the world. Native Rust implementation with SIMD optimization, **4.4-4.9x faster** and **3x smaller** than [odiff](https://github.com/dmtrKovalenko/odiff).
 
 **Features:**
 - **PNG, JPEG & QOI support** - auto-detected by file extension or encoded bytes
@@ -327,8 +327,9 @@ Benchmarked on Apple M1 Max (25 runs, 5 warmup, image IO included) against `odif
 
 | Tool | 4k/1 | 4k/2 | 4k/3 | vs blazediff |
 |------|-----:|-----:|-----:|-------------|
-| **blazediff** | ~359ms | ~452ms | ~506ms | - |
-| odiff | ~1221ms | ~1525ms | ~1750ms | 3.4-3.5x slower |
+| **blazediff** | ~275ms | ~342ms | ~347ms | - |
+| **blazediff** (encoded buffer input) | ~203ms | ~256ms | ~270ms | - |
+| odiff | ~1266ms | ~1538ms | ~1799ms | 4.5-5.2x slower |
 
 Binary sizes (stripped, LTO optimized) - **~3x smaller than odiff**:
 

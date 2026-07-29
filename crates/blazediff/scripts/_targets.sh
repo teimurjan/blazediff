@@ -50,7 +50,14 @@ get_package_name() {
 # Enabling evex512 for the C TUs on the x86_64 Linux triple unblocks the build.
 # Namespaced to the triple, so other targets (and native macOS clang) are
 # untouched. Only matters for zig cross-builds, which is how every wheel is made.
-export CFLAGS_x86_64_unknown_linux_gnu="${CFLAGS_x86_64_unknown_linux_gnu:-} -mevex512"
+#
+# Set BLAZEDIFF_SKIP_EVEX512=1 when compiling this triple *natively* with GCC:
+# the flag only exists in GCC 14+, so on e.g. Ubuntu 24.04 (gcc 13) every C TU
+# fails with "unrecognized command-line option '-mevex512'". Since the flag is
+# only needed to appease zig's clang, dropping it for a native build is safe.
+if [[ "${BLAZEDIFF_SKIP_EVEX512:-0}" != "1" ]]; then
+    export CFLAGS_x86_64_unknown_linux_gnu="${CFLAGS_x86_64_unknown_linux_gnu:-} -mevex512"
+fi
 
 # RUSTFLAGS per target for distribution (optimized but compatible)
 get_rustflags() {

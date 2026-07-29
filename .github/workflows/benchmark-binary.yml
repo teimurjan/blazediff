@@ -23,6 +23,10 @@ jobs:
       - name: Checkout Repo
         uses: actions/checkout@v5
         with:
+          # The vendored C (libspng, libjpeg-turbo, miniz) lives in submodules,
+          # and build.rs compiles it whenever the `io` feature is on. Without
+          # this the native build dies on a missing vendor/libspng/spng/spng.c.
+          submodules: recursive
           lfs: true
 
       - name: Setup pnpm
@@ -34,11 +38,82 @@ jobs:
           node-version-file: ".node-version"
           cache: "pnpm"
 
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust build
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: crates
+
+      - name: Install native build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake zlib1g-dev
+          # libjpeg-turbo assembles its x86 SIMD paths with nasm.
+          if [ "$(uname -m)" = "x86_64" ]; then sudo apt-get install -y nasm; fi
+
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
 
+      # The committed platform binaries are release artifacts, refreshed only by
+      # `Version Packages` commits, so they lag the source on any feature branch.
+      # Deleting them means this job either measures a binary built from this
+      # commit or fails outright. It can no longer report numbers for an older
+      # release while appearing to benchmark the branch.
+      - name: Remove prebuilt native artifacts
+        run: rm -f packages/core-native-*/blazediff packages/core-native-*/blazediff.node
+
+      # `--target <host triple>` compiles natively (no cross/Docker) with the
+      # same per-target RUSTFLAGS the published artifacts use: `-C
+      # target-cpu=haswell` on x86-64, which is what makes the AVX2 dispatch
+      # path reachable. `--native` would use target-cpu=native and measure a
+      # binary no user receives.
+      - name: Build native binary from source
+        shell: bash
+        env:
+          # `_targets.sh` adds -mevex512 to the x86_64 Linux C flags for zig's
+          # clang; the runner's native cc is GCC 13, which has no such flag.
+          BLAZEDIFF_SKIP_EVEX512: "1"
+        run: |
+          set -euo pipefail
+          HOST=$(rustc -vV | awk '/^host:/{print $2}')
+          echo "Building for $HOST"
+          ./crates/blazediff/scripts/build-all.sh --target "$HOST" --napi
+
+      # A .node can only exist here if this job built it (the prebuilt ones were
+      # deleted above), so this asserts the build actually emitted the binding.
+      - name: Verify a native binary was produced
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          nodes=(packages/core-native-*/blazediff.node)
+          if [ ${#nodes[@]} -eq 0 ]; then
+            echo "::error::No .node produced; the benchmark would have no native binding."
+            exit 1
+          fi
+          ls -l "${nodes[@]}"
+
       - name: Build
         run: pnpm build
+
+      # Must run AFTER `pnpm build`: @blazediff/core-native's entry point is
+      # dist/index.js, which tsup emits during the build. Requiring the package
+      # before that fails with MODULE_NOT_FOUND even though the .node exists.
+      - name: Verify the native binding loads
+        shell: bash
+        working-directory: apps/image-benchmark
+        run: |
+          set -euo pipefail
+          node -e '
+            const { hasNativeBinding } = require("@blazediff/core-native");
+            if (!hasNativeBinding()) {
+              console.error("::error::native binding not loadable; benchmark would fall back to JS");
+              process.exit(1);
+            }
+            console.log("native binding OK");
+          '
 
       - name: Run Benchmark (@blazediff/core-native)
         run: pnpm benchmark:core-native -- --format=json --output=blazediff.json
@@ -51,4 +126,15 @@ jobs:
 
       - name: Compare and Print Combined Markdown Table
         if: always()
-        run: node .github/workflows/scripts/compare-and-print-core-native.js
+        shell: bash
+        run: |
+          # Runs on failure too, so an earlier crash still reports whatever
+          # completed. Bail out quietly when a series is missing rather than
+          # dying on ENOENT, which would bury the real error under a stack trace.
+          for f in blazediff.json blazediff-next.json odiff.json; do
+            if [ ! -s "apps/image-benchmark/$f" ]; then
+              echo "::warning::apps/image-benchmark/$f missing - skipping comparison (an earlier step failed)"
+              exit 0
+            fi
+          done
+          node .github/workflows/scripts/compare-and-print-core-native.js
