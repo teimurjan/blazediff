@@ -1,11 +1,14 @@
+import type { ImageSource } from "@blazediff/ui";
+
 export interface BaseBlazeDiffProps {
-	src1: string;
-	src2: string;
+	src1: ImageSource;
+	src2: ImageSource;
 	className?: string;
 	containerClassName?: string;
 }
 
 export interface DifferenceModeProps extends BaseBlazeDiffProps {
+	diff?: Uint8Array;
 	threshold?: number;
 	includeAA?: boolean;
 	alpha?: number;
@@ -54,3 +57,5 @@ export interface OnionSkinModeProps extends BaseBlazeDiffProps {
 	}) => void;
 	onLoadError?: (error: unknown) => void;
 }
+
+export type { ImageSource };

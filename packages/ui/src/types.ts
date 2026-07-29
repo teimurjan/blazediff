@@ -1,5 +1,7 @@
 import type { DiffStats, Dimensions } from "./engine/types";
 
+export type ImageSource = string | Uint8Array;
+
 export interface MountHandle<O> {
 	update(options: Partial<O>): void;
 	destroy(): void;
@@ -11,8 +13,9 @@ export interface ImagesLoadedDetail {
 }
 
 export interface DifferenceMountOptions {
-	src1: string;
-	src2: string;
+	src1: ImageSource;
+	src2: ImageSource;
+	diff?: Uint8Array;
 	threshold?: number;
 	includeAA?: boolean;
 	alpha?: number;
@@ -29,8 +32,8 @@ export interface DifferenceMountOptions {
 }
 
 export interface SwipeMountOptions {
-	src1: string;
-	src2: string;
+	src1: ImageSource;
+	src2: ImageSource;
 	alt1?: string;
 	alt2?: string;
 	initialPosition?: number;
@@ -43,8 +46,8 @@ export interface SwipeMountOptions {
 }
 
 export interface TwoUpMountOptions {
-	src1: string;
-	src2: string;
+	src1: ImageSource;
+	src2: ImageSource;
 	crossOrigin?: string | null;
 	className?: string;
 	containerClassName?: string;
@@ -57,8 +60,8 @@ export interface TwoUpMountOptions {
 }
 
 export interface OnionSkinMountOptions {
-	src1: string;
-	src2: string;
+	src1: ImageSource;
+	src2: ImageSource;
 	opacity?: number;
 	crossOrigin?: string | null;
 	sliderLabelText?: string;

@@ -3,6 +3,7 @@ import type React from "react";
 import { useEffect } from "react";
 import type { TwoUpModeProps } from "./types";
 import { useEngine } from "./useEngine";
+import { useImageSourceUrl } from "./useImageSourceUrl";
 import { useLatestRef } from "./useLatestRef";
 
 export const TwoUpMode: React.FC<TwoUpModeProps> = ({
@@ -17,6 +18,8 @@ export const TwoUpMode: React.FC<TwoUpModeProps> = ({
 	onImagesLoaded,
 	onLoadError,
 }) => {
+	const src1Url = useImageSourceUrl(src1);
+	const src2Url = useImageSourceUrl(src2);
 	const [engine, state] = useEngine(() => createTwoUpEngine({ src1, src2 }));
 	const onImagesLoadedRef = useLatestRef(onImagesLoaded);
 	const onLoadErrorRef = useLatestRef(onLoadError);
@@ -41,7 +44,7 @@ export const TwoUpMode: React.FC<TwoUpModeProps> = ({
 					<div className={panelClassName}>
 						<img
 							className={imageClassName}
-							src={src1}
+							src={src1Url}
 							crossOrigin="anonymous"
 							alt=""
 						/>
@@ -49,7 +52,7 @@ export const TwoUpMode: React.FC<TwoUpModeProps> = ({
 					<div className={panelClassName}>
 						<img
 							className={imageClassName}
-							src={src2}
+							src={src2Url}
 							crossOrigin="anonymous"
 							alt=""
 						/>

@@ -32,6 +32,8 @@ npm install @blazediff/ui
 
 Every mode is a `mount*(target, options)` function. It appends the UI into `target` and returns a handle with `update(options)` and `destroy()`.
 
+`src1` and `src2` accept either image URLs or `Uint8Array` values containing encoded image bytes in every mode.
+
 ```js
 import { mountSwipe } from "@blazediff/ui";
 
@@ -56,8 +58,8 @@ Compare two images with a draggable divider.
 
 | Option             | Type                         | Default    | Description                          |
 | ------------------ | ---------------------------- | ---------- | ------------------------------------ |
-| `src1`             | `string`                     | -          | URL of the first image               |
-| `src2`             | `string`                     | -          | URL of the second image              |
+| `src1`             | `string \| Uint8Array`        | -          | URL or encoded bytes for the first image |
+| `src2`             | `string \| Uint8Array`        | -          | URL or encoded bytes for the second image |
 | `alt1`             | `string`                     | `"Before"` | Alt text for the first image         |
 | `alt2`             | `string`                     | `"After"`  | Alt text for the second image        |
 | `initialPosition`  | `number`                     | `50`       | Initial divider position (0–100)     |
@@ -74,8 +76,8 @@ Two images side by side, with dimension-change detection.
 
 | Option                    | Type                                              | Default | Description                       |
 | ------------------------- | ------------------------------------------------- | ------- | --------------------------------- |
-| `src1`                    | `string`                                          | -       | URL of the first image            |
-| `src2`                    | `string`                                          | -       | URL of the second image           |
+| `src1`                    | `string \| Uint8Array`                            | -       | URL or encoded bytes for the first image |
+| `src2`                    | `string \| Uint8Array`                            | -       | URL or encoded bytes for the second image |
 | `crossOrigin`             | `string \| null`                                  | `"anonymous"` | `crossOrigin` for image loads |
 | `className`               | `string`                                          | -       | Class for the root element        |
 | `containerClassName`      | `string`                                          | -       | Class for the main container      |
@@ -92,8 +94,8 @@ Overlay two images with an opacity slider.
 
 | Option                     | Type                        | Default      | Description                      |
 | -------------------------- | --------------------------- | ------------ | -------------------------------- |
-| `src1`                     | `string`                    | -            | URL of the base image            |
-| `src2`                     | `string`                    | -            | URL of the overlay image         |
+| `src1`                     | `string \| Uint8Array`       | -            | URL or encoded bytes for the base image |
+| `src2`                     | `string \| Uint8Array`       | -            | URL or encoded bytes for the overlay image |
 | `opacity`                  | `number`                    | `50`         | Initial opacity (0–100)          |
 | `crossOrigin`              | `string \| null`            | `"anonymous"`| `crossOrigin` for image loads    |
 | `className`                | `string`                    | -            | Class for the root element       |
@@ -110,12 +112,13 @@ Overlay two images with an opacity slider.
 
 ### `mountDifference(target, options)`
 
-Show pixel differences using the BlazeDiff algorithm.
+Show pixel differences using the BlazeDiff algorithm, or render a precomputed diff without running BlazeDiff in the browser.
 
 | Option               | Type                       | Default | Description                 |
 | -------------------- | -------------------------- | ------- | --------------------------- |
-| `src1`               | `string`                   | -       | URL of the first image      |
-| `src2`               | `string`                   | -       | URL of the second image     |
+| `src1`               | `string \| Uint8Array`      | -       | URL or encoded bytes for the first image |
+| `src2`               | `string \| Uint8Array`      | -       | URL or encoded bytes for the second image |
+| `diff`               | `Uint8Array`                | -       | Encoded precomputed diff image bytes |
 | `threshold`          | `number`                   | `0.1`   | Difference threshold (0–1)  |
 | `includeAA`          | `boolean`                  | `false` | Include anti-aliased pixels |
 | `alpha`              | `number`                   | `0.1`   | Opacity of the original     |

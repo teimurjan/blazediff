@@ -34,6 +34,8 @@ function App() {
 }
 ```
 
+All components accept image URLs or `Uint8Array` values containing encoded image bytes through `src1` and `src2`.
+
 ## API Reference
 
 ### `<SwipeMode />`
@@ -44,8 +46,8 @@ Interactive swipe component for comparing two images with a draggable divider.
 
 | Prop               | Type                              | Default | Description                          |
 | ------------------ | --------------------------------- | ------- | ------------------------------------ |
-| `src1`             | `string` (required)               | -       | URL of the first image               |
-| `src2`             | `string` (required)               | -       | URL of the second image              |
+| `src1`             | `string \| Uint8Array` (required) | -       | URL or encoded bytes for the first image |
+| `src2`             | `string \| Uint8Array` (required) | -       | URL or encoded bytes for the second image |
 | `alt1`             | `string`                          | -       | Alt text for the first image         |
 | `alt2`             | `string`                          | -       | Alt text for the second image        |
 | `className`        | `string`                          | -       | CSS class for the root element       |
@@ -63,8 +65,8 @@ Side-by-side comparison component with dimension information.
 
 | Prop                      | Type                                                        | Default | Description                       |
 | ------------------------- | ----------------------------------------------------------- | ------- | --------------------------------- |
-| `src1`                    | `string` (required)                                         | -       | URL of the first image            |
-| `src2`                    | `string` (required)                                         | -       | URL of the second image           |
+| `src1`                    | `string \| Uint8Array` (required)                     | -       | URL or encoded bytes for the first image |
+| `src2`                    | `string \| Uint8Array` (required)                     | -       | URL or encoded bytes for the second image |
 | `className`               | `string`                                                    | -       | CSS class for the root element    |
 | `containerClassName`      | `string`                                                    | -       | CSS class for the main container  |
 | `containerInnerClassName` | `string`                                                    | -       | CSS class for the inner container |
@@ -82,8 +84,8 @@ Overlay comparison with opacity control slider.
 
 | Prop                       | Type                                                        | Default | Description                      |
 | -------------------------- | ----------------------------------------------------------- | ------- | -------------------------------- |
-| `src1`                     | `string` (required)                                         | -       | URL of the base image            |
-| `src2`                     | `string` (required)                                         | -       | URL of the overlay image         |
+| `src1`                     | `string \| Uint8Array` (required)                     | -       | URL or encoded bytes for the base image |
+| `src2`                     | `string \| Uint8Array` (required)                     | -       | URL or encoded bytes for the overlay image |
 | `opacity`                  | `number`                                                    | -       | Initial opacity (0-100)          |
 | `className`                | `string`                                                    | -       | CSS class for the root element   |
 | `containerClassName`       | `string`                                                    | -       | CSS class for the main container |
@@ -99,14 +101,15 @@ Overlay comparison with opacity control slider.
 
 ### `<DifferenceMode />`
 
-Shows pixel differences using the BlazeDiff comparison algorithm.
+Shows pixel differences using the BlazeDiff comparison algorithm. Pass encoded diff image bytes to display a precomputed result without running BlazeDiff in the browser.
 
 #### Props
 
 | Prop                | Type                                                              | Default | Description                     |
 | ------------------- | ----------------------------------------------------------------- | ------- | ------------------------------- |
-| `src1`              | `string` (required)                                               | -       | URL of the first image          |
-| `src2`              | `string` (required)                                               | -       | URL of the second image         |
+| `src1`              | `string \| Uint8Array` (required)                                | -       | URL or encoded bytes for the first image |
+| `src2`              | `string \| Uint8Array` (required)                                | -       | URL or encoded bytes for the second image |
+| `diff`              | `Uint8Array`                                                     | -       | Encoded precomputed diff image bytes |
 | `threshold`         | `number`                                                          | -       | Difference threshold (0-1)      |
 | `includeAA`         | `boolean`                                                         | -       | Include anti-aliased pixels     |
 | `alpha`             | `number`                                                          | -       | Opacity of original image       |

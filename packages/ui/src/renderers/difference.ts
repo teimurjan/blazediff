@@ -1,4 +1,5 @@
 import { createDifferenceEngine } from "../engine/difference";
+import { bindImageSource } from "../engine/image";
 import type { Status } from "../engine/types";
 import type { DifferenceMountOptions, MountHandle } from "../types";
 import { applyClassName, createElement } from "./dom";
@@ -15,7 +16,17 @@ export function mountDifference(
 	});
 	const canvas = createElement("canvas", { className: opts.canvasClassName });
 	const ctx = canvas.getContext("2d");
-	container.appendChild(canvas);
+	const diffImage = createElement("img", { className: opts.canvasClassName });
+	diffImage.alt = "";
+	const diffImageSource = bindImageSource(diffImage, opts.diff);
+	const hasProvidedDiff = opts.diff !== undefined;
+	canvas.hidden = hasProvidedDiff;
+	diffImage.hidden = !hasProvidedDiff;
+	const onProvidedDiffError = (error: Event) => {
+		if (opts.diff !== undefined) opts.onDiffError?.(error);
+	};
+	diffImage.addEventListener("error", onProvidedDiffError);
+	container.append(canvas, diffImage);
 	root.appendChild(container);
 	target.appendChild(root);
 
@@ -26,6 +37,7 @@ export function mountDifference(
 		includeAA: opts.includeAA,
 		alpha: opts.alpha,
 		crossOrigin: opts.crossOrigin,
+		enabled: !hasProvidedDiff,
 	});
 
 	let lastStatus: Status | null = null;
@@ -65,6 +77,11 @@ export function mountDifference(
 			applyClassName(root, opts.className);
 			applyClassName(container, opts.containerClassName);
 			applyClassName(canvas, opts.canvasClassName);
+			applyClassName(diffImage, opts.canvasClassName);
+			const hasProvidedDiff = opts.diff !== undefined;
+			canvas.hidden = hasProvidedDiff;
+			diffImage.hidden = !hasProvidedDiff;
+			diffImageSource.update(opts.diff);
 			engine.setConfig({
 				src1: opts.src1,
 				src2: opts.src2,
@@ -72,11 +89,14 @@ export function mountDifference(
 				includeAA: opts.includeAA,
 				alpha: opts.alpha,
 				crossOrigin: opts.crossOrigin,
+				enabled: !hasProvidedDiff,
 			});
 		},
 		destroy() {
 			unsubscribe();
 			engine.destroy();
+			diffImage.removeEventListener("error", onProvidedDiffError);
+			diffImageSource.destroy();
 			root.remove();
 		},
 	};

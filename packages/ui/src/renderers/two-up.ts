@@ -1,3 +1,4 @@
+import { bindImageSource } from "../engine/image";
 import { createTwoUpEngine } from "../engine/two-up";
 import type { Status } from "../engine/types";
 import type { MountHandle, TwoUpMountOptions } from "../types";
@@ -30,8 +31,8 @@ export function mountTwoUp(
 	img2.crossOrigin = crossOrigin;
 	img1.alt = "";
 	img2.alt = "";
-	img1.src = opts.src1;
-	img2.src = opts.src2;
+	const image1Source = bindImageSource(img1, opts.src1);
+	const image2Source = bindImageSource(img2, opts.src2);
 
 	const dimensionInfo = createElement("div", {
 		className: opts.dimensionInfoClassName,
@@ -80,8 +81,8 @@ export function mountTwoUp(
 			applyClassName(img1, opts.imageClassName);
 			applyClassName(img2, opts.imageClassName);
 			applyClassName(dimensionInfo, opts.dimensionInfoClassName);
-			if (img1.src !== opts.src1) img1.src = opts.src1;
-			if (img2.src !== opts.src2) img2.src = opts.src2;
+			image1Source.update(opts.src1);
+			image2Source.update(opts.src2);
 			engine.setConfig({
 				src1: opts.src1,
 				src2: opts.src2,
@@ -91,6 +92,8 @@ export function mountTwoUp(
 		destroy() {
 			unsubscribe();
 			engine.destroy();
+			image1Source.destroy();
+			image2Source.destroy();
 			root.remove();
 		},
 	};

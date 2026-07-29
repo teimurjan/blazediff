@@ -3,6 +3,7 @@ import type React from "react";
 import { useCallback, useEffect, useRef } from "react";
 import type { SwipeModeProps } from "./types";
 import { useEngine } from "./useEngine";
+import { useImageSourceUrl } from "./useImageSourceUrl";
 import { useLatestRef } from "./useLatestRef";
 
 const sharedImageStyle: React.CSSProperties = {
@@ -24,6 +25,8 @@ export const SwipeMode: React.FC<SwipeModeProps> = ({
 	dividerClassName,
 	onPositionChange,
 }) => {
+	const src1Url = useImageSourceUrl(src1);
+	const src2Url = useImageSourceUrl(src2);
 	const [engine, state] = useEngine(() => createSwipeEngine(50));
 	const containerRef = useRef<HTMLDivElement>(null);
 	const isFirstPosition = useRef(true);
@@ -85,13 +88,13 @@ export const SwipeMode: React.FC<SwipeModeProps> = ({
 			>
 				<img
 					className={image1ClassName}
-					src={src1}
+					src={src1Url}
 					alt={alt1}
 					style={sharedImageStyle}
 				/>
 				<img
 					className={image2ClassName}
-					src={src2}
+					src={src2Url}
 					alt={alt2}
 					style={{
 						...sharedImageStyle,

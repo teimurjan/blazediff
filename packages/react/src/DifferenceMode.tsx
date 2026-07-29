@@ -3,11 +3,13 @@ import type React from "react";
 import { useEffect, useRef } from "react";
 import type { DifferenceModeProps } from "./types";
 import { useEngine } from "./useEngine";
+import { useImageSourceUrl } from "./useImageSourceUrl";
 import { useLatestRef } from "./useLatestRef";
 
 export const DifferenceMode: React.FC<DifferenceModeProps> = ({
 	src1,
 	src2,
+	diff,
 	threshold = 0.1,
 	includeAA = false,
 	alpha = 0.1,
@@ -17,16 +19,31 @@ export const DifferenceMode: React.FC<DifferenceModeProps> = ({
 	onDiffComplete,
 	onDiffError,
 }) => {
+	const diffUrl = useImageSourceUrl(diff);
 	const [engine, state] = useEngine(() =>
-		createDifferenceEngine({ src1, src2, threshold, includeAA, alpha }),
+		createDifferenceEngine({
+			src1,
+			src2,
+			threshold,
+			includeAA,
+			alpha,
+			enabled: diff === undefined,
+		}),
 	);
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const onDiffCompleteRef = useLatestRef(onDiffComplete);
 	const onDiffErrorRef = useLatestRef(onDiffError);
 
 	useEffect(() => {
-		engine.setConfig({ src1, src2, threshold, includeAA, alpha });
-	}, [engine, src1, src2, threshold, includeAA, alpha]);
+		engine.setConfig({
+			src1,
+			src2,
+			threshold,
+			includeAA,
+			alpha,
+			enabled: diff === undefined,
+		});
+	}, [engine, src1, src2, threshold, includeAA, alpha, diff]);
 
 	useEffect(() => {
 		const canvas = canvasRef.current;
@@ -61,7 +78,16 @@ export const DifferenceMode: React.FC<DifferenceModeProps> = ({
 	return (
 		<div className={className}>
 			<div className={containerClassName}>
-				<canvas ref={canvasRef} className={canvasClassName} />
+				{diff === undefined ? (
+					<canvas ref={canvasRef} className={canvasClassName} />
+				) : (
+					<img
+						src={diffUrl}
+						className={canvasClassName}
+						alt=""
+						onError={(event) => onDiffErrorRef.current?.(event.nativeEvent)}
+					/>
+				)}
 			</div>
 		</div>
 	);

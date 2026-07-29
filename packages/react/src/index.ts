@@ -5,6 +5,7 @@ export { TwoUpMode } from "./TwoUpMode";
 export type {
 	BaseBlazeDiffProps,
 	DifferenceModeProps,
+	ImageSource,
 	OnionSkinModeProps,
 	SwipeModeProps,
 	TwoUpModeProps,

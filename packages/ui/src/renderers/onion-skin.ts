@@ -1,3 +1,4 @@
+import { bindImageSource } from "../engine/image";
 import { createOnionSkinEngine, normalizedOpacity } from "../engine/onion-skin";
 import type { Status } from "../engine/types";
 import type { MountHandle, OnionSkinMountOptions } from "../types";
@@ -30,8 +31,8 @@ export function mountOnionSkin(
 	img2.crossOrigin = crossOrigin;
 	img1.alt = "";
 	img2.alt = "";
-	img1.src = opts.src1;
-	img2.src = opts.src2;
+	const image1Source = bindImageSource(img1, opts.src1);
+	const image2Source = bindImageSource(img2, opts.src2);
 
 	imageContainer.append(img1, img2);
 
@@ -100,8 +101,8 @@ export function mountOnionSkin(
 			applyClassName(sliderLabel, opts.sliderLabelClassName);
 			applyClassName(slider, opts.sliderClassName);
 			sliderLabel.textContent = opts.sliderLabelText ?? "Opacity:";
-			if (img1.src !== opts.src1) img1.src = opts.src1;
-			if (img2.src !== opts.src2) img2.src = opts.src2;
+			image1Source.update(opts.src1);
+			image2Source.update(opts.src2);
 			if (
 				opts.opacity !== undefined &&
 				opts.opacity !== engine.getState().opacity
@@ -118,6 +119,8 @@ export function mountOnionSkin(
 			unsubscribe();
 			slider.removeEventListener("input", onInput);
 			engine.destroy();
+			image1Source.destroy();
+			image2Source.destroy();
 			root.remove();
 		},
 	};

@@ -1,3 +1,5 @@
+export type ImageSource = string | Uint8Array;
+
 export type Status = "idle" | "loading" | "ready" | "error";
 
 export interface Dimensions {
@@ -37,12 +39,13 @@ export interface DifferenceState {
 }
 
 export interface DifferenceConfig {
-	src1: string;
-	src2: string;
+	src1: ImageSource;
+	src2: ImageSource;
 	threshold?: number;
 	includeAA?: boolean;
 	alpha?: number;
 	crossOrigin?: string | null;
+	enabled?: boolean;
 }
 
 export type DifferenceEngine = Engine<
@@ -85,8 +88,8 @@ export interface TwoUpState {
 }
 
 export interface TwoUpConfig {
-	src1: string;
-	src2: string;
+	src1: ImageSource;
+	src2: ImageSource;
 	crossOrigin?: string | null;
 }
 
@@ -107,8 +110,8 @@ export interface OnionSkinState {
 }
 
 export interface OnionSkinConfig {
-	src1: string;
-	src2: string;
+	src1: ImageSource;
+	src2: ImageSource;
 	crossOrigin?: string | null;
 }
 
