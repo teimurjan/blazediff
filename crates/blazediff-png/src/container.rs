@@ -4,6 +4,7 @@
 
 use std::io::{self, Write};
 
+use crate::backend::Crc;
 use crate::chunks::PNG_SIG;
 
 /// Write the 8-byte PNG signature.
@@ -18,7 +19,7 @@ pub fn write_chunk<W: Write>(out: &mut W, ty: &[u8; 4], payload: &[u8]) -> io::R
     out.write_all(&(payload.len() as u32).to_be_bytes())?;
     out.write_all(ty)?;
     out.write_all(payload)?;
-    let mut h = crc32fast::Hasher::new();
+    let mut h = Crc::new();
     h.update(ty);
     h.update(payload);
     out.write_all(&h.finalize().to_be_bytes())
@@ -31,7 +32,7 @@ pub fn write_chunk<W: Write>(out: &mut W, ty: &[u8; 4], payload: &[u8]) -> io::R
 /// buffering the whole payload.
 pub struct IdatStreamer<'w, W: Write> {
     out: &'w mut W,
-    crc: crc32fast::Hasher,
+    crc: Crc,
     remaining: usize,
 }
 
@@ -42,7 +43,7 @@ impl<'w, W: Write> IdatStreamer<'w, W> {
     pub fn new(out: &'w mut W, payload_len: u32) -> io::Result<Self> {
         out.write_all(&payload_len.to_be_bytes())?;
         out.write_all(b"IDAT")?;
-        let mut crc = crc32fast::Hasher::new();
+        let mut crc = Crc::new();
         crc.update(b"IDAT");
         Ok(Self {
             out,
@@ -79,5 +80,29 @@ impl<'w, W: Write> IdatStreamer<'w, W> {
             ));
         }
         self.out.write_all(&self.crc.finalize().to_be_bytes())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // A miscomputed payload length must be caught, not silently misframe the
+    // chunk: overrunning the declared length and finishing short both error.
+    #[test]
+    fn write_beyond_declared_length_errors() {
+        let mut out = Vec::new();
+        let mut s = IdatStreamer::new(&mut out, 3).unwrap();
+        s.write(&[1, 2]).unwrap();
+        let err = s.write(&[3, 4]).unwrap_err(); // 2 > 1 remaining
+        assert_eq!(err.kind(), io::ErrorKind::InvalidInput);
+    }
+
+    #[test]
+    fn finish_before_declared_length_errors() {
+        let mut out = Vec::new();
+        let s = IdatStreamer::new(&mut out, 5).unwrap(); // nothing written
+        let err = s.finish().unwrap_err();
+        assert_eq!(err.kind(), io::ErrorKind::InvalidInput);
     }
 }

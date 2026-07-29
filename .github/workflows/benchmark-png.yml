@@ -1,0 +1,83 @@
+name: Benchmark PNG
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: "Platform to run on"
+        required: true
+        default: ubuntu-latest
+        type: choice
+        options:
+          - ubuntu-latest
+          - ubuntu-24.04-arm
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.inputs.platform }}
+  cancel-in-progress: true
+
+jobs:
+  benchmark:
+    name: PNG Codec Benchmark (${{ github.event.inputs.platform }})
+    runs-on: ${{ github.event.inputs.platform }}
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v5
+        with:
+          # The spng oracle links the vendored libspng (+ libjpeg-turbo, miniz)
+          # that build.rs compiles for the `io` feature; it lives in submodules.
+          submodules: recursive
+          lfs: true # the fixtures/ PNG corpus the benchmark times
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust build
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: crates
+
+      - name: Install native build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake zlib1g-dev
+
+      - name: Run PNG codec benchmark (blazediff vs spng / image-rs / zune)
+        run: cargo run --release --manifest-path crates/Cargo.toml -p blazediff-png-benchmark
+
+  corpus-parity:
+    name: spng Byte-Identical Corpus Parity (${{ github.event.inputs.platform }})
+    runs-on: ${{ github.event.inputs.platform }}
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v5
+        with:
+          # libspng submodule for the spng oracle; the corpus is downloaded
+          # below, so no LFS fixtures are needed here.
+          submodules: recursive
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust build
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: crates
+
+      - name: Install native build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake zlib1g-dev
+
+      - name: Fetch public-image corpus (Urban100/BSD100/Set14/Set5 + PngSuite)
+        run: crates/blazediff-png/scripts/fetch-corpus.sh
+
+      # Every corpus PNG must decode byte-identically to spng at RGBA8 and every
+      # SPNG_FMT_*, malformed files reject in lockstep, and every accepted image
+      # must survive a blazediff encode -> blazediff/spng decode round-trip.
+      - name: Verify byte-identical spng parity on the corpus
+        env:
+          BLAZEDIFF_PNG_CORPUS: ${{ github.workspace }}/crates/blazediff-png/.corpus
+        run: >
+          cargo test --release --manifest-path crates/Cargo.toml
+          -p blazediff-png --test corpus_differential -- --nocapture

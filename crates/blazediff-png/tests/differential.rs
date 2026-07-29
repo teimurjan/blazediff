@@ -869,10 +869,15 @@ fn lookahead_stops_at_write_gate_like_zlib() {
 
 /// Found by fuzz_decode_differential (round 3): classic zlib's "invalid
 /// distance too far back" verdict depends on the avail_out gating — this
-/// stream passes with spng's per-scanline windows but fails with one big
-/// output buffer (and zlib-ng/zlib-rs reject it under any gating). The
-/// exact inflate path must link the same zlib as spng AND replicate its
-/// per-scanline gate sequence.
+/// stream is accepted by the classic zlib it was captured against when
+/// inflated through spng's per-scanline windows, yet rejected under one big
+/// output buffer (and by zlib-ng/zlib-rs, which fixed classic zlib's window
+/// bookkeeping). The exact inflate path must link the same zlib as spng AND
+/// replicate its per-scanline gate sequence, so whatever verdict the linked
+/// zlib reaches, blazediff_png must reach spng's — that identity is the
+/// portable invariant. (The accept/reject itself is zlib-version-specific:
+/// Apple's zlib 1.2.12, say, rejects this fixture; spng links the same zlib
+/// and rejects it too, so parity still holds.)
 #[test]
 fn gated_too_far_distance_matches_spng() {
     let bytes = std::fs::read(
@@ -881,10 +886,6 @@ fn gated_too_far_distance_matches_spng() {
     )
     .unwrap();
     assert_parity(&bytes, "gated too-far distance");
-    assert!(
-        decode(&bytes).is_ok(),
-        "spng accepts this under scanline gating"
-    );
 }
 
 /// Found by fuzz_decode_differential (round 5, pixel mismatch): spng's

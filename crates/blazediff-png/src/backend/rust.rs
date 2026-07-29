@@ -135,3 +135,43 @@ pub fn inflate_stream(input: &[u8], max: u64) -> Result<Vec<u8>, StreamInflateEr
 pub fn compress(raw: &[u8], _level: u8) -> Vec<u8> {
     fdeflate::compress_to_vec(raw)
 }
+
+/// Incremental CRC-32/ISO-HDLC (crc32fast) for the C-free backend. The zlib
+/// backend uses libdeflate's faster carry-less-folding kernel instead; both
+/// produce identical checksums.
+#[derive(Default)]
+pub struct Crc(crc32fast::Hasher);
+
+impl Crc {
+    #[inline]
+    pub fn new() -> Self {
+        Self(crc32fast::Hasher::new())
+    }
+    #[inline]
+    pub fn update(&mut self, data: &[u8]) {
+        self.0.update(data);
+    }
+    #[inline]
+    pub fn finalize(self) -> u32 {
+        self.0.finalize()
+    }
+}
+
+/// Incremental Adler-32 (`simd-adler32`) for the C-free backend, mirroring the
+/// zlib backend's libdeflate-based [`Adler`](super::zlib::Adler).
+pub struct Adler(simd_adler32::Adler32);
+
+impl Adler {
+    #[inline]
+    pub fn new() -> Self {
+        Self(simd_adler32::Adler32::new())
+    }
+    #[inline]
+    pub fn write(&mut self, data: &[u8]) {
+        self.0.write(data);
+    }
+    #[inline]
+    pub fn finish(&self) -> u32 {
+        self.0.finish()
+    }
+}

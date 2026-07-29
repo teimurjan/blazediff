@@ -1,20 +1,25 @@
 #!/usr/bin/env node
 /**
  * One-shot orchestrator: runs a benchmark pair, runs the compare script,
- * patches BENCHMARKS.md. All paths resolved from the repo root.
+ * patches the target Markdown file, regenerates the chart. All paths resolved
+ * from the repo root.
+ *
+ * Standalone benches (`pairs.js` → `STANDALONE`) don't have a left/right pair;
+ * they own their whole pipeline and are dispatched by key with the same flags.
  *
  * Usage (from repo root):
- *   node .claude/skills/bench/run.js <pair> [--iterations N] [--warmup N]
- *                                    [--skip-run] [--skip-compare] [--skip-md]
+ *   pnpm bench <bench> [--iterations N] [--warmup N]
+ *                      [--skip-run] [--skip-compare] [--skip-md] [--skip-chart]
  *
- * Example:
- *   node .claude/skills/bench/run.js core --iterations 50
+ * Examples:
+ *   pnpm bench core --iterations 50
+ *   pnpm bench png --skip-run
  */
 
 const { execSync } = require("node:child_process");
 const path = require("node:path");
 const fs = require("node:fs");
-const { PAIRS, seriesOf } = require("./pairs.js");
+const { PAIRS, STANDALONE, seriesOf } = require("./pairs.js");
 const { update } = require("./update-benchmarks-md.js");
 const { render: renderChart } = require("./render-chart.js");
 
@@ -60,15 +65,24 @@ function sideJsonPath(side) {
 
 function main() {
 	const { positional, flags } = parseArgs(process.argv);
-	const pairKey = positional[0];
-	if (!pairKey || !PAIRS[pairKey]) {
+	const benchKey = positional[0];
+
+	// Standalone benches skip the pair pipeline entirely.
+	if (STANDALONE[benchKey]) {
+		require(STANDALONE[benchKey]).run(flags);
+		return;
+	}
+
+	if (!benchKey || !PAIRS[benchKey]) {
 		console.error(
-			`Usage: node ${path.relative(REPO_ROOT, __filename)} <pair> [flags]`,
+			`Usage: node ${path.relative(REPO_ROOT, __filename)} <bench> [flags]`,
 		);
-		console.error(`Known pairs: ${Object.keys(PAIRS).join(", ")}`);
+		console.error(
+			`Known benches: ${[...Object.keys(PAIRS), ...Object.keys(STANDALONE)].join(", ")}`,
+		);
 		process.exit(2);
 	}
-	const pair = PAIRS[pairKey];
+	const pair = PAIRS[benchKey];
 	const iterations =
 		flags.iterations != null ? Number(flags.iterations) : pair.iterations;
 	const warmup = flags.warmup != null ? Number(flags.warmup) : pair.warmup;
@@ -136,7 +150,7 @@ function main() {
 	const targetFile = pair.targetFile || "BENCHMARKS.md";
 	if (!flags["skip-md"]) {
 		const result = update({
-			pairKey,
+			pairKey: benchKey,
 			leftPath,
 			rightPath,
 			iterations,

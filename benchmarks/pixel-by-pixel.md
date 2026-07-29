@@ -798,7 +798,7 @@ _Benchmarks run on MacBook Pro M1 Max, Node.js 22_
 _25 runs (5 warmup)_
 
 > **4.4-4.9x faster than odiff** on 4K images (5.7-6.7x from encoded buffers).
-> **~38.0%** performance improvement on average.
+> **~41.2%** performance improvement on average.
 
 The native Rust binary with SIMD optimization is the fastest single-threaded image diff in the world.
 
@@ -818,343 +818,343 @@ The native Rust binary with SIMD optimization is the fastest single-threaded ima
   <tbody>
     <tr>
       <td>4k/1</td>
-      <td>1202.84ms</td>
-      <td>272.97ms</td>
-      <td>207.70ms</td>
-      <td>929.88ms</td>
-      <td>77.3%</td>
-      <td>995.14ms</td>
-      <td>82.7%</td>
+      <td>1157.12ms</td>
+      <td>288.01ms</td>
+      <td>215.31ms</td>
+      <td>869.10ms</td>
+      <td>75.1%</td>
+      <td>941.81ms</td>
+      <td>81.4%</td>
     </tr>
     <tr>
       <td>4k/1 (identical)</td>
-      <td>267.49ms</td>
-      <td>202.10ms</td>
-      <td>151.59ms</td>
-      <td>65.39ms</td>
-      <td>24.4%</td>
-      <td>115.90ms</td>
-      <td>43.3%</td>
+      <td>269.36ms</td>
+      <td>183.94ms</td>
+      <td>142.02ms</td>
+      <td>85.42ms</td>
+      <td>31.7%</td>
+      <td>127.34ms</td>
+      <td>47.3%</td>
     </tr>
     <tr>
       <td>4k/2</td>
-      <td>1489.73ms</td>
-      <td>339.10ms</td>
-      <td>261.37ms</td>
-      <td>1150.63ms</td>
-      <td>77.2%</td>
-      <td>1228.36ms</td>
-      <td>82.5%</td>
+      <td>1473.44ms</td>
+      <td>348.26ms</td>
+      <td>260.31ms</td>
+      <td>1125.19ms</td>
+      <td>76.4%</td>
+      <td>1213.14ms</td>
+      <td>82.3%</td>
     </tr>
     <tr>
       <td>4k/2 (identical)</td>
-      <td>330.64ms</td>
-      <td>226.71ms</td>
-      <td>170.52ms</td>
-      <td>103.93ms</td>
-      <td>31.4%</td>
-      <td>160.12ms</td>
-      <td>48.4%</td>
+      <td>329.18ms</td>
+      <td>223.18ms</td>
+      <td>164.84ms</td>
+      <td>105.99ms</td>
+      <td>32.2%</td>
+      <td>164.33ms</td>
+      <td>49.9%</td>
     </tr>
     <tr>
       <td>4k/3</td>
-      <td>1717.80ms</td>
-      <td>349.13ms</td>
-      <td>257.32ms</td>
-      <td>1368.67ms</td>
-      <td>79.7%</td>
-      <td>1460.49ms</td>
-      <td>85.0%</td>
+      <td>1677.13ms</td>
+      <td>349.43ms</td>
+      <td>269.41ms</td>
+      <td>1327.70ms</td>
+      <td>79.2%</td>
+      <td>1407.72ms</td>
+      <td>83.9%</td>
     </tr>
     <tr>
       <td>4k/3 (identical)</td>
-      <td>384.77ms</td>
-      <td>239.54ms</td>
-      <td>186.85ms</td>
-      <td>145.22ms</td>
-      <td>37.7%</td>
-      <td>197.92ms</td>
-      <td>51.4%</td>
+      <td>366.79ms</td>
+      <td>230.29ms</td>
+      <td>168.72ms</td>
+      <td>136.51ms</td>
+      <td>37.2%</td>
+      <td>198.08ms</td>
+      <td>54.0%</td>
     </tr>
     <tr>
       <td>blazediff/1</td>
       <td>3.40ms</td>
-      <td>2.29ms</td>
-      <td>1.94ms</td>
-      <td>1.11ms</td>
-      <td>32.6%</td>
-      <td>1.46ms</td>
-      <td>42.9%</td>
+      <td>2.11ms</td>
+      <td>1.72ms</td>
+      <td>1.28ms</td>
+      <td>37.8%</td>
+      <td>1.68ms</td>
+      <td>49.3%</td>
     </tr>
     <tr>
       <td>blazediff/1 (identical)</td>
-      <td>1.33ms</td>
-      <td>0.90ms</td>
-      <td>0.81ms</td>
-      <td>0.43ms</td>
-      <td>32.3%</td>
+      <td>1.43ms</td>
+      <td>0.91ms</td>
+      <td>0.82ms</td>
       <td>0.52ms</td>
-      <td>38.8%</td>
+      <td>36.2%</td>
+      <td>0.61ms</td>
+      <td>42.7%</td>
     </tr>
     <tr>
       <td>blazediff/2</td>
-      <td>3.85ms</td>
-      <td>2.41ms</td>
-      <td>2.04ms</td>
-      <td>1.45ms</td>
-      <td>37.5%</td>
-      <td>1.81ms</td>
-      <td>47.0%</td>
+      <td>3.44ms</td>
+      <td>2.19ms</td>
+      <td>1.75ms</td>
+      <td>1.25ms</td>
+      <td>36.4%</td>
+      <td>1.69ms</td>
+      <td>49.1%</td>
     </tr>
     <tr>
       <td>blazediff/2 (identical)</td>
-      <td>1.39ms</td>
-      <td>1.04ms</td>
+      <td>1.34ms</td>
+      <td>1.00ms</td>
       <td>0.77ms</td>
-      <td>0.35ms</td>
+      <td>0.33ms</td>
       <td>25.0%</td>
-      <td>0.62ms</td>
-      <td>44.5%</td>
+      <td>0.57ms</td>
+      <td>42.3%</td>
     </tr>
     <tr>
       <td>blazediff/3</td>
-      <td>48.33ms</td>
-      <td>23.66ms</td>
-      <td>20.03ms</td>
-      <td>24.67ms</td>
-      <td>51.1%</td>
-      <td>28.30ms</td>
-      <td>58.6%</td>
+      <td>45.23ms</td>
+      <td>21.76ms</td>
+      <td>18.10ms</td>
+      <td>23.46ms</td>
+      <td>51.9%</td>
+      <td>27.12ms</td>
+      <td>60.0%</td>
     </tr>
     <tr>
       <td>blazediff/3 (identical)</td>
-      <td>19.24ms</td>
-      <td>14.03ms</td>
-      <td>11.70ms</td>
-      <td>5.21ms</td>
-      <td>27.1%</td>
-      <td>7.54ms</td>
-      <td>39.2%</td>
+      <td>19.04ms</td>
+      <td>13.94ms</td>
+      <td>11.35ms</td>
+      <td>5.11ms</td>
+      <td>26.8%</td>
+      <td>7.69ms</td>
+      <td>40.4%</td>
     </tr>
     <tr>
       <td>blazediff/4</td>
-      <td>22.50ms</td>
-      <td>23.53ms</td>
-      <td>14.87ms</td>
-      <td>-1.03ms</td>
-      <td>-4.6%</td>
-      <td>7.63ms</td>
-      <td>33.9%</td>
+      <td>23.19ms</td>
+      <td>19.71ms</td>
+      <td>12.64ms</td>
+      <td>3.48ms</td>
+      <td>15.0%</td>
+      <td>10.55ms</td>
+      <td>45.5%</td>
     </tr>
     <tr>
       <td>blazediff/4 (identical)</td>
-      <td>7.72ms</td>
-      <td>4.51ms</td>
-      <td>3.70ms</td>
-      <td>3.20ms</td>
-      <td>41.5%</td>
-      <td>4.02ms</td>
-      <td>52.1%</td>
+      <td>7.69ms</td>
+      <td>4.64ms</td>
+      <td>3.73ms</td>
+      <td>3.05ms</td>
+      <td>39.6%</td>
+      <td>3.96ms</td>
+      <td>51.5%</td>
     </tr>
     <tr>
       <td>page/1</td>
-      <td>985.10ms</td>
-      <td>482.88ms</td>
-      <td>340.15ms</td>
-      <td>502.22ms</td>
-      <td>51.0%</td>
-      <td>644.96ms</td>
-      <td>65.5%</td>
+      <td>975.23ms</td>
+      <td>460.66ms</td>
+      <td>317.14ms</td>
+      <td>514.58ms</td>
+      <td>52.8%</td>
+      <td>658.09ms</td>
+      <td>67.5%</td>
     </tr>
     <tr>
       <td>page/1 (identical)</td>
-      <td>567.65ms</td>
-      <td>252.75ms</td>
-      <td>170.82ms</td>
-      <td>314.90ms</td>
-      <td>55.5%</td>
-      <td>396.84ms</td>
-      <td>69.9%</td>
+      <td>519.27ms</td>
+      <td>244.84ms</td>
+      <td>165.31ms</td>
+      <td>274.43ms</td>
+      <td>52.8%</td>
+      <td>353.97ms</td>
+      <td>68.2%</td>
     </tr>
     <tr>
       <td>page/2</td>
-      <td>608.84ms</td>
-      <td>252.40ms</td>
-      <td>178.41ms</td>
-      <td>356.44ms</td>
-      <td>58.5%</td>
-      <td>430.43ms</td>
-      <td>70.7%</td>
+      <td>567.59ms</td>
+      <td>272.01ms</td>
+      <td>198.35ms</td>
+      <td>295.58ms</td>
+      <td>52.1%</td>
+      <td>369.24ms</td>
+      <td>65.1%</td>
     </tr>
     <tr>
       <td>page/2 (identical)</td>
-      <td>115.32ms</td>
-      <td>45.53ms</td>
-      <td>33.61ms</td>
-      <td>69.80ms</td>
-      <td>60.5%</td>
-      <td>81.71ms</td>
-      <td>70.9%</td>
+      <td>112.32ms</td>
+      <td>42.47ms</td>
+      <td>32.75ms</td>
+      <td>69.85ms</td>
+      <td>62.2%</td>
+      <td>79.57ms</td>
+      <td>70.8%</td>
     </tr>
     <tr>
       <td>pixelmatch/1</td>
-      <td>3.06ms</td>
-      <td>1.51ms</td>
-      <td>1.15ms</td>
-      <td>1.54ms</td>
-      <td>50.5%</td>
-      <td>1.91ms</td>
-      <td>62.4%</td>
+      <td>3.15ms</td>
+      <td>1.58ms</td>
+      <td>1.22ms</td>
+      <td>1.57ms</td>
+      <td>49.9%</td>
+      <td>1.93ms</td>
+      <td>61.2%</td>
     </tr>
     <tr>
       <td>pixelmatch/1 (identical)</td>
-      <td>1.72ms</td>
-      <td>1.08ms</td>
-      <td>0.82ms</td>
-      <td>0.64ms</td>
-      <td>37.4%</td>
-      <td>0.91ms</td>
-      <td>52.5%</td>
+      <td>1.67ms</td>
+      <td>1.11ms</td>
+      <td>0.84ms</td>
+      <td>0.56ms</td>
+      <td>33.8%</td>
+      <td>0.84ms</td>
+      <td>50.0%</td>
     </tr>
     <tr>
       <td>pixelmatch/2</td>
-      <td>3.65ms</td>
-      <td>1.75ms</td>
-      <td>1.52ms</td>
-      <td>1.89ms</td>
-      <td>51.9%</td>
-      <td>2.12ms</td>
-      <td>58.2%</td>
+      <td>3.34ms</td>
+      <td>1.77ms</td>
+      <td>1.43ms</td>
+      <td>1.57ms</td>
+      <td>47.1%</td>
+      <td>1.90ms</td>
+      <td>57.0%</td>
     </tr>
     <tr>
       <td>pixelmatch/2 (identical)</td>
       <td>0.45ms</td>
-      <td>0.50ms</td>
-      <td>0.23ms</td>
-      <td>-0.05ms</td>
-      <td>-12.3%</td>
+      <td>0.48ms</td>
       <td>0.22ms</td>
-      <td>49.5%</td>
+      <td>-0.03ms</td>
+      <td>-6.4%</td>
+      <td>0.23ms</td>
+      <td>50.9%</td>
     </tr>
     <tr>
       <td>pixelmatch/3</td>
-      <td>2.65ms</td>
-      <td>1.32ms</td>
-      <td>1.03ms</td>
-      <td>1.33ms</td>
-      <td>50.1%</td>
-      <td>1.62ms</td>
-      <td>61.3%</td>
+      <td>2.63ms</td>
+      <td>1.27ms</td>
+      <td>0.97ms</td>
+      <td>1.36ms</td>
+      <td>51.8%</td>
+      <td>1.66ms</td>
+      <td>63.0%</td>
     </tr>
     <tr>
       <td>pixelmatch/3 (identical)</td>
       <td>1.48ms</td>
-      <td>0.96ms</td>
-      <td>0.63ms</td>
-      <td>0.52ms</td>
-      <td>35.3%</td>
       <td>0.85ms</td>
-      <td>57.4%</td>
+      <td>0.63ms</td>
+      <td>0.63ms</td>
+      <td>42.4%</td>
+      <td>0.85ms</td>
+      <td>57.5%</td>
     </tr>
     <tr>
       <td>pixelmatch/4</td>
-      <td>11.91ms</td>
-      <td>4.94ms</td>
-      <td>4.20ms</td>
-      <td>6.97ms</td>
-      <td>58.5%</td>
-      <td>7.70ms</td>
-      <td>64.7%</td>
+      <td>9.48ms</td>
+      <td>4.71ms</td>
+      <td>7.13ms</td>
+      <td>4.77ms</td>
+      <td>50.3%</td>
+      <td>2.36ms</td>
+      <td>24.8%</td>
     </tr>
     <tr>
       <td>pixelmatch/4 (identical)</td>
-      <td>3.16ms</td>
-      <td>2.31ms</td>
-      <td>1.26ms</td>
-      <td>0.85ms</td>
-      <td>26.8%</td>
-      <td>1.90ms</td>
-      <td>60.0%</td>
+      <td>2.92ms</td>
+      <td>2.06ms</td>
+      <td>1.25ms</td>
+      <td>0.86ms</td>
+      <td>29.6%</td>
+      <td>1.67ms</td>
+      <td>57.3%</td>
     </tr>
     <tr>
       <td>pixelmatch/5</td>
-      <td>0.91ms</td>
-      <td>0.88ms</td>
-      <td>0.64ms</td>
-      <td>0.03ms</td>
-      <td>3.5%</td>
-      <td>0.27ms</td>
-      <td>29.6%</td>
+      <td>0.79ms</td>
+      <td>0.59ms</td>
+      <td>0.45ms</td>
+      <td>0.20ms</td>
+      <td>25.3%</td>
+      <td>0.34ms</td>
+      <td>42.8%</td>
     </tr>
     <tr>
       <td>pixelmatch/5 (identical)</td>
-      <td>0.74ms</td>
-      <td>0.54ms</td>
-      <td>0.41ms</td>
-      <td>0.20ms</td>
-      <td>26.7%</td>
-      <td>0.33ms</td>
-      <td>44.5%</td>
+      <td>0.86ms</td>
+      <td>0.56ms</td>
+      <td>0.40ms</td>
+      <td>0.30ms</td>
+      <td>34.8%</td>
+      <td>0.45ms</td>
+      <td>53.0%</td>
     </tr>
     <tr>
       <td>pixelmatch/6</td>
-      <td>5.39ms</td>
-      <td>2.00ms</td>
-      <td>1.44ms</td>
-      <td>3.39ms</td>
-      <td>63.0%</td>
-      <td>3.95ms</td>
-      <td>73.3%</td>
+      <td>5.45ms</td>
+      <td>1.72ms</td>
+      <td>1.27ms</td>
+      <td>3.73ms</td>
+      <td>68.5%</td>
+      <td>4.18ms</td>
+      <td>76.7%</td>
     </tr>
     <tr>
       <td>pixelmatch/6 (identical)</td>
-      <td>0.99ms</td>
-      <td>0.80ms</td>
-      <td>0.49ms</td>
-      <td>0.18ms</td>
-      <td>18.5%</td>
-      <td>0.50ms</td>
-      <td>50.3%</td>
+      <td>0.98ms</td>
+      <td>0.78ms</td>
+      <td>0.48ms</td>
+      <td>0.20ms</td>
+      <td>20.3%</td>
+      <td>0.51ms</td>
+      <td>51.7%</td>
     </tr>
     <tr>
       <td>pixelmatch/7</td>
-      <td>3.60ms</td>
-      <td>3.32ms</td>
-      <td>1.31ms</td>
-      <td>0.28ms</td>
-      <td>7.8%</td>
-      <td>2.29ms</td>
-      <td>63.5%</td>
+      <td>3.53ms</td>
+      <td>1.56ms</td>
+      <td>1.14ms</td>
+      <td>1.97ms</td>
+      <td>55.8%</td>
+      <td>2.39ms</td>
+      <td>67.6%</td>
     </tr>
     <tr>
       <td>pixelmatch/7 (identical)</td>
-      <td>0.80ms</td>
+      <td>0.67ms</td>
       <td>0.60ms</td>
-      <td>0.30ms</td>
-      <td>0.19ms</td>
-      <td>24.1%</td>
-      <td>0.50ms</td>
-      <td>62.6%</td>
+      <td>0.33ms</td>
+      <td>0.07ms</td>
+      <td>9.8%</td>
+      <td>0.34ms</td>
+      <td>50.7%</td>
     </tr>
     <tr>
       <td>same/1</td>
-      <td>4.90ms</td>
-      <td>4.08ms</td>
-      <td>2.82ms</td>
-      <td>0.82ms</td>
-      <td>16.7%</td>
-      <td>2.07ms</td>
-      <td>42.3%</td>
+      <td>5.11ms</td>
+      <td>3.49ms</td>
+      <td>2.63ms</td>
+      <td>1.62ms</td>
+      <td>31.7%</td>
+      <td>2.48ms</td>
+      <td>48.5%</td>
     </tr>
     <tr>
       <td>same/1 (identical)</td>
-      <td>5.50ms</td>
-      <td>3.42ms</td>
+      <td>5.14ms</td>
+      <td>3.36ms</td>
       <td>2.57ms</td>
-      <td>2.08ms</td>
-      <td>37.7%</td>
-      <td>2.93ms</td>
-      <td>53.3%</td>
+      <td>1.79ms</td>
+      <td>34.7%</td>
+      <td>2.57ms</td>
+      <td>50.0%</td>
     </tr>
   </tbody>
 </table>
