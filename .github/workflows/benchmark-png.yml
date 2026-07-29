@@ -1,6 +1,12 @@
 name: Benchmark PNG
 
 on:
+  # TEMPORARY: lets this PR run the workflow before it's on the default branch
+  # (workflow_dispatch only registers from `main`). Remove this `push:` block
+  # before merge — `workflow_dispatch` below is the permanent trigger.
+  push:
+    branches:
+      - feat/speed-up-and-correct-blazediff-png
   workflow_dispatch:
     inputs:
       platform:
@@ -13,13 +19,13 @@ on:
           - ubuntu-24.04-arm
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.inputs.platform }}
+  group: ${{ github.workflow }}-${{ github.event.inputs.platform || 'ubuntu-latest' }}
   cancel-in-progress: true
 
 jobs:
   benchmark:
-    name: PNG Codec Benchmark (${{ github.event.inputs.platform }})
-    runs-on: ${{ github.event.inputs.platform }}
+    name: PNG Codec Benchmark (${{ github.event.inputs.platform || 'ubuntu-latest' }})
+    runs-on: ${{ github.event.inputs.platform || 'ubuntu-latest' }}
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v5
@@ -46,8 +52,8 @@ jobs:
         run: cargo run --release --manifest-path crates/Cargo.toml -p blazediff-png-benchmark
 
   corpus-parity:
-    name: spng Byte-Identical Corpus Parity (${{ github.event.inputs.platform }})
-    runs-on: ${{ github.event.inputs.platform }}
+    name: spng Byte-Identical Corpus Parity (${{ github.event.inputs.platform || 'ubuntu-latest' }})
+    runs-on: ${{ github.event.inputs.platform || 'ubuntu-latest' }}
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v5
