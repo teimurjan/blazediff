@@ -1,5 +1,15 @@
 # @blazediff/matcher
 
+## 2.0.5
+
+### Patch Changes
+
+- Updated dependencies [7a377ed]
+- Updated dependencies [7a377ed]
+  - @blazediff/core-native@5.4.0
+  - @blazediff/core-wasm@5.4.0
+  - @blazediff/core@1.10.0
+
 ## 2.0.4
 
 ### Patch Changes

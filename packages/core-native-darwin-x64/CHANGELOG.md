@@ -1,5 +1,7 @@
 # @blazediff/core-native-darwin-x64
 
+## 5.4.0
+
 ## 5.3.0
 
 ## 5.2.0
