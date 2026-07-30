@@ -3,6 +3,7 @@ import type React from "react";
 import { useEffect, useRef } from "react";
 import type { OnionSkinModeProps } from "./types";
 import { useEngine } from "./useEngine";
+import { useImageSourceUrl } from "./useImageSourceUrl";
 import { useLatestRef } from "./useLatestRef";
 
 export const OnionSkinMode: React.FC<OnionSkinModeProps> = ({
@@ -21,6 +22,8 @@ export const OnionSkinMode: React.FC<OnionSkinModeProps> = ({
 	onImagesLoaded,
 	onLoadError,
 }) => {
+	const src1Url = useImageSourceUrl(src1);
+	const src2Url = useImageSourceUrl(src2);
 	const [engine, state] = useEngine(() =>
 		createOnionSkinEngine({ src1, src2 }, opacity),
 	);
@@ -63,13 +66,13 @@ export const OnionSkinMode: React.FC<OnionSkinModeProps> = ({
 				>
 					<img
 						className={imageClassName}
-						src={src1}
+						src={src1Url}
 						crossOrigin="anonymous"
 						alt=""
 					/>
 					<img
 						className={imageClassName}
-						src={src2}
+						src={src2Url}
 						crossOrigin="anonymous"
 						alt=""
 						style={{

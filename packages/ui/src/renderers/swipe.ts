@@ -1,3 +1,4 @@
+import { bindImageSource } from "../engine/image";
 import { createSwipeEngine } from "../engine/swipe";
 import type { MountHandle, SwipeMountOptions } from "../types";
 import { applyClassName, createElement } from "./dom";
@@ -31,7 +32,7 @@ export function mountSwipe(
 		className: opts.image1ClassName,
 		style: { ...sharedImageStyle },
 	});
-	image1.src = opts.src1;
+	const image1Source = bindImageSource(image1, opts.src1);
 	image1.alt = opts.alt1 ?? "Before";
 
 	const image2 = createElement("img", {
@@ -43,7 +44,7 @@ export function mountSwipe(
 			left: "0",
 		},
 	});
-	image2.src = opts.src2;
+	const image2Source = bindImageSource(image2, opts.src2);
 	image2.alt = opts.alt2 ?? "After";
 
 	const divider = createElement("div", {
@@ -129,8 +130,8 @@ export function mountSwipe(
 			applyClassName(image1, opts.image1ClassName);
 			applyClassName(image2, opts.image2ClassName);
 			applyClassName(divider, opts.dividerClassName);
-			if (image1.src !== opts.src1) image1.src = opts.src1;
-			if (image2.src !== opts.src2) image2.src = opts.src2;
+			image1Source.update(opts.src1);
+			image2Source.update(opts.src2);
 			image1.alt = opts.alt1 ?? "Before";
 			image2.alt = opts.alt2 ?? "After";
 		},
@@ -139,6 +140,8 @@ export function mountSwipe(
 			container.removeEventListener("mousedown", onMouseDown);
 			container.removeEventListener("touchstart", onTouchStart);
 			removeDocumentListeners();
+			image1Source.destroy();
+			image2Source.destroy();
 			engine.destroy();
 			root.remove();
 		},

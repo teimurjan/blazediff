@@ -35,6 +35,8 @@ interface MountHandle<Options> {
 
 Layout needed for a mode to function (overlay, side-by-side, etc.) is built in — classes are purely for theming.
 
+`src1` and `src2` accept image URLs or `Uint8Array` values containing encoded image bytes. Both forms work in every mode.
+
 ### Swipe Mode
 
 Drag a divider to compare two images.
@@ -56,6 +58,7 @@ const handle = mountSwipe(document.getElementById("app")!, {
 ### Difference Mode
 
 Highlights pixel differences using the BlazeDiff algorithm and paints them to a canvas.
+Pass encoded diff image bytes through `diff` to render a precomputed diff instead. When `diff` is present, the browser does not run BlazeDiff.
 
 ```ts
 import { mountDifference } from "@blazediff/ui";
@@ -72,7 +75,7 @@ mountDifference(document.getElementById("app")!, {
 });
 ```
 
-**Options:** `src1`, `src2`, `threshold` (`0.1`), `includeAA` (`false`), `alpha` (`0.1`), `crossOrigin` (`"anonymous"`), `className`, `containerClassName`, `canvasClassName`, `onDiffComplete({ diffCount, totalPixels, percentage })`, `onDiffError(error)`.
+**Options:** `src1`, `src2`, `diff` (encoded diff image `Uint8Array`), `threshold` (`0.1`), `includeAA` (`false`), `alpha` (`0.1`), `crossOrigin` (`"anonymous"`), `className`, `containerClassName`, `canvasClassName`, `onDiffComplete({ diffCount, totalPixels, percentage })`, `onDiffError(error)`.
 
 ### Two-Up Mode
 

@@ -14,6 +14,7 @@ const LOAD_RELEVANT: (keyof DifferenceConfig)[] = [
 	"includeAA",
 	"alpha",
 	"crossOrigin",
+	"enabled",
 ];
 
 export function createDifferenceEngine(
@@ -32,9 +33,10 @@ export function createDifferenceEngine(
 			threshold = 0.1,
 			includeAA = false,
 			alpha = 0.1,
+			enabled = true,
 		} = current;
 
-		if (!src1 || !src2) {
+		if (!enabled || !src1 || !src2) {
 			store.set({ status: "idle" });
 			return;
 		}

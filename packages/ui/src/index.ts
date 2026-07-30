@@ -6,6 +6,7 @@ export type {
 	DifferenceMountOptions,
 	DiffStats,
 	Dimensions,
+	ImageSource,
 	ImagesLoadedDetail,
 	MountHandle,
 	OnionSkinMountOptions,

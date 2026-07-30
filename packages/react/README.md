@@ -17,6 +17,8 @@ npm install @blazediff/react
 
 ## Usage
 
+`src1` and `src2` accept image URLs or `Uint8Array` values containing encoded image bytes in every component.
+
 ```tsx
 import { DifferenceMode, SwipeMode, TwoUpMode, OnionSkinMode } from '@blazediff/react';
 
@@ -59,11 +61,12 @@ import { DifferenceMode, SwipeMode, TwoUpMode, OnionSkinMode } from '@blazediff/
 
 ### DifferenceMode
 
-Highlights pixel differences between two images using the blazediff algorithm.
+Highlights pixel differences between two images using the blazediff algorithm. Pass encoded diff image bytes through `diff` to display a precomputed diff without running BlazeDiff in the browser.
 
 **Props:**
-- `src1` (string): URL of the first image
-- `src2` (string): URL of the second image
+- `src1` (`string | Uint8Array`): URL or encoded bytes for the first image
+- `src2` (`string | Uint8Array`): URL or encoded bytes for the second image
+- `diff` (`Uint8Array`, optional): Encoded precomputed diff image bytes
 - `threshold` (number): Matching threshold (0-1, default: 0.1)
 - `includeAA` (boolean): Include anti-aliasing in diff (default: false)
 - `alpha` (number): Blending factor for unchanged pixels (0-1, default: 0.1)
@@ -75,8 +78,8 @@ Highlights pixel differences between two images using the blazediff algorithm.
 Interactive slider to compare two images.
 
 **Props:**
-- `src1` (string): URL of the first image
-- `src2` (string): URL of the second image
+- `src1` (`string | Uint8Array`): URL or encoded bytes for the first image
+- `src2` (`string | Uint8Array`): URL or encoded bytes for the second image
 - `alt1` (string): Alt text for first image (default: "Before")
 - `alt2` (string): Alt text for second image (default: "After")
 - `onPositionChange` (function): Callback when slider position changes
@@ -86,8 +89,8 @@ Interactive slider to compare two images.
 Side-by-side image comparison with dimension change detection.
 
 **Props:**
-- `src1` (string): URL of the first image
-- `src2` (string): URL of the second image
+- `src1` (`string | Uint8Array`): URL or encoded bytes for the first image
+- `src2` (`string | Uint8Array`): URL or encoded bytes for the second image
 - `onImagesLoaded` (function): Callback when images are loaded
 - `onLoadError` (function): Callback when loading fails
 
@@ -96,8 +99,8 @@ Side-by-side image comparison with dimension change detection.
 Overlay images with adjustable opacity.
 
 **Props:**
-- `src1` (string): URL of the first image
-- `src2` (string): URL of the second image
+- `src1` (`string | Uint8Array`): URL or encoded bytes for the first image
+- `src2` (`string | Uint8Array`): URL or encoded bytes for the second image
 - `opacity` (number): Initial opacity (0-100, default: 50)
 - `onOpacityChange` (function): Callback when opacity changes
 - `onImagesLoaded` (function): Callback when images are loaded
