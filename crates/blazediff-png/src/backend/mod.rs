@@ -21,7 +21,7 @@ pub use shared::{IdatInflate, StreamInflateError};
 #[cfg(feature = "zlib-backend")]
 mod zlib;
 #[cfg(feature = "zlib-backend")]
-pub use zlib::{compress, inflate_exact, inflate_idat, inflate_stream};
+pub use zlib::{compress, inflate_exact, inflate_idat, inflate_stream, Adler, Crc};
 
 // strict-window reference inflate is a fuzzing-only, zlib-only concept.
 #[cfg(feature = "fuzzing")]
@@ -30,4 +30,4 @@ pub use zlib::strict;
 #[cfg(feature = "rust-backend")]
 mod rust;
 #[cfg(all(feature = "rust-backend", not(feature = "zlib-backend")))]
-pub use rust::{compress, inflate_exact, inflate_idat, inflate_stream};
+pub use rust::{compress, inflate_exact, inflate_idat, inflate_stream, Adler, Crc};

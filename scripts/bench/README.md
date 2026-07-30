@@ -3,12 +3,12 @@
 Refresh one section of the benchmark docs from a fresh local benchmark run, then regenerate the matching summary chart PNG. Use when you've changed code that affects performance and want the published numbers to follow.
 
 ```sh
-pnpm bench <pair>
+pnpm bench <bench>
 # equivalent:
-node scripts/bench/run.js <pair>
+node scripts/bench/run.js <bench>
 ```
 
-The orchestrator (`run.js`) only knows the keys below — pass exactly one positional argument.
+`run.js` is the only entry point for every benchmark — pass exactly one positional argument, from the pair keys below or the standalone keys (`png`). It only knows those keys.
 
 ## Pair keys
 
@@ -24,6 +24,14 @@ The orchestrator (`run.js`) only knows the keys below — pass exactly one posit
 | `python-opencv`      | `benchmarks/pixel-by-pixel.md` → vs `opencv-python` (`cv2.absdiff`)                                                                       | `pnpm build:python`                                                                         |
 
 `pairs.js` is the source of truth — every entry carries the `targetFile`, section heading, pnpm command, JSON output filename, and default iteration count.
+
+## Standalone keys
+
+Benches that don't fit the left/right pair model own their whole pipeline (run → Markdown → chart). They're registered in `pairs.js` under `STANDALONE` as `key → module`, and `run.js` dispatches `pnpm bench <key>` to that module's `run(flags)`.
+
+| Key   | Target file                | Module                 | Build prerequisite               |
+| ----- | -------------------------- | ---------------------- | -------------------------------- |
+| `png` | `benchmarks/png-codec.md`  | `scripts/bench/png.js` | none — it `cargo run`s the crate |
 
 ## Variants (multi-table pairs)
 
@@ -82,17 +90,18 @@ node scripts/bench/render-chart.js --target structural
 node scripts/bench/render-chart.js --target object
 ```
 
-## PNG codec (`png.js`)
+## PNG codec (`png` standalone)
 
-The `blazediff-png` codec benchmark doesn't fit the pair model (it's a Rust binary comparing four codecs — blazediff / spng / image-rs / zune — for decode, encode, and output size), so it has its own orchestrator:
+The `blazediff-png` codec benchmark doesn't fit the pair model — it's a Rust binary comparing four codecs (blazediff / spng / image-rs / zune) for decode, encode, and output size — so it's a standalone bench backed by `png.js`:
 
 ```sh
-node scripts/bench/png.js              # cargo build + run, then regenerate
-node scripts/bench/png.js --skip-run   # reuse the last JSON
-node scripts/bench/png.js --json <p>   # read/write a specific JSON path
+pnpm bench png              # cargo build + run, then regenerate
+pnpm bench png --skip-run   # reuse the last JSON
+pnpm bench png --json <p>   # read/write a specific JSON path
+pnpm bench png --skip-chart # markdown only
 ```
 
-It runs `blazediff-png-benchmark -- --json <tmp>` (from `crates/`), then writes `benchmarks/png-codec.md` and `benchmarks/charts/png-codec.png`, reusing `drawGroupedChart` from `render-chart.js`. The Rust side gained a `--json <path>` flag for this.
+It runs `blazediff-png-benchmark -- --json <tmp>` (from `crates/`), then writes `benchmarks/png-codec.md` and `benchmarks/charts/png-codec.png`, reusing `drawGroupedChart` from `render-chart.js`. The Rust side gained a `--json <path>` flag for this. Without `--json` the JSON lands in the OS temp dir, so `--skip-run` reuses whatever the last run wrote there.
 
 Encode is measured at **two compression modes** so the speed/size trade-off is explicit and zune's stored-only encoder is compared fairly:
 

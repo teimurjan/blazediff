@@ -100,9 +100,22 @@ with spng on malformed/adversarial streams.
 | --- | --- |
 | Exhaustive matrix | every {depth × color × interlace × filter × tRNS} at edge sizes, byte-parity with spng |
 | PngSuite conformance | 176/176 — 164 decode at parity, 12 corrupt files reject in lockstep |
+| Real-image corpus | Urban100 · BSD100 · Set14 · Set5 + PngSuite (~395 files) decode byte-identically to spng at RGBA8 and every `SPNG_FMT_*`; every accepted image encode-round-trips |
 | Differential fuzzing | 40M+ execs vs spng, **0 unresolved divergences** |
 | Encode round-trip fuzzing | 5M+ execs, round-trip + spng cross-decode clean |
 | Line coverage | **98.89%** (residual lines are unreachable defensive arms) |
+
+The real-image corpus check is the `corpus_differential` test — opt in with a
+public-dataset download and an env var:
+
+```sh
+crates/blazediff-png/scripts/fetch-corpus.sh
+BLAZEDIFF_PNG_CORPUS=crates/blazediff-png/.corpus \
+  cargo test -p blazediff-png --release --test corpus_differential -- --nocapture
+```
+
+It's a no-op when `BLAZEDIFF_PNG_CORPUS` is unset, so the default `cargo test`
+needs no network. CI runs it via the `Benchmark PNG` workflow.
 
 ## Status
 

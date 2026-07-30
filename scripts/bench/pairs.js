@@ -227,6 +227,16 @@ const PAIRS = {
 };
 
 /**
+ * Benches that don't fit the left/right pair model — a single command owns the
+ * whole run and writes its own Markdown + chart. `run.js` dispatches these by
+ * key to `require(<module>).run(flags)`, so `pnpm bench <key>` stays the one
+ * entry point for every benchmark.
+ */
+const STANDALONE = {
+	png: "./png.js",
+};
+
+/**
  * Ordered series for a pair: `[left, right, ...extra]`. The first entry is the
  * baseline that "Time Saved" / "% Improvement" columns are measured against.
  * Multi-variant pairs don't carry `extra` — they stay strictly two-sided.
@@ -235,4 +245,4 @@ function seriesOf(pair) {
 	return [pair.left, pair.right, ...(pair.extra || [])];
 }
 
-module.exports = { PAIRS, seriesOf };
+module.exports = { PAIRS, STANDALONE, seriesOf };

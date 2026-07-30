@@ -5,3 +5,5 @@ node_modules
 dist
 data
 .lethe
+# blazediff-png differential corpus (downloaded on demand, never committed)
+.corpus

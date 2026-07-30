@@ -544,7 +544,7 @@ fn write_stored_rgba8<W: Write>(image: ImageRef, out: &mut W) -> io::Result<bool
     let mut idat = container::IdatStreamer::new(out, zlib_len as u32)?;
     idat.write(&[0x78, 0x01])?; // zlib header
 
-    let mut adler = simd_adler32::Adler32::new();
+    let mut adler = crate::backend::Adler::new();
     let mut produced = 0usize; // logical bytes emitted so far
     let mut row = 0usize; // current source row
     let mut col = 0usize; // 0 => filter byte pending, else (col-1) into row bytes
@@ -1677,7 +1677,7 @@ fn stored_zlib(raw: &[u8]) -> Vec<u8> {
         off += n;
     }
 
-    let mut adler = simd_adler32::Adler32::new();
+    let mut adler = crate::backend::Adler::new();
     adler.write(raw);
     out[out_len - 4..].copy_from_slice(&adler.finish().to_be_bytes());
     out

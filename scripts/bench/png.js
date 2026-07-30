@@ -1,7 +1,7 @@
-#!/usr/bin/env node
 /**
- * Orchestrate the blazediff-png codec benchmark and render it into the same
- * Markdown + chart style as the JS benchmark suite.
+ * The `png` standalone bench: orchestrate the blazediff-png codec benchmark and
+ * render it into the same Markdown + chart style as the JS benchmark suite.
+ * Dispatched by `run.js` (see `STANDALONE` in `pairs.js`) — not a CLI itself.
  *
  * Pipeline:
  *   1. Run the Rust benchmark (`blazediff-png-benchmark`) with `--json`, which
@@ -13,9 +13,9 @@
  *      reusing the shared chart renderer.
  *
  * Usage (from repo root):
- *   node scripts/bench/png.js                 # build + run, then regenerate
- *   node scripts/bench/png.js --skip-run      # reuse the last JSON
- *   node scripts/bench/png.js --json <path>   # read/write a specific JSON
+ *   pnpm bench png                 # build + run, then regenerate
+ *   pnpm bench png --skip-run      # reuse the last JSON
+ *   pnpm bench png --json <path>   # read/write a specific JSON
  */
 
 const { execSync } = require("node:child_process");
@@ -39,19 +39,6 @@ const ROLES = {
 };
 const LEGEND =
 	"LOWER IS BETTER  |  ORANGE = BLAZEDIFF  |  GREY = SPNG  |  MAGENTA = IMAGE-RS  |  CYAN = ZUNE";
-
-function parseArgs(argv) {
-	const flags = {};
-	for (let i = 2; i < argv.length; i++) {
-		const a = argv[i];
-		if (!a.startsWith("--")) continue;
-		const k = a.replace(/^--/, "");
-		const next = argv[i + 1];
-		if (next == null || next.startsWith("--")) flags[k] = true;
-		else (flags[k] = next), i++;
-	}
-	return flags;
-}
 
 function runBenchmark(jsonPath) {
 	const cmd = `cargo run --release -p blazediff-png-benchmark -- --json ${JSON.stringify(jsonPath)}`;
@@ -178,6 +165,8 @@ function buildMarkdown(data) {
 		"",
 		"Encode is measured at two settings so the speed/size trade-off is explicit and zune's stored-only encoder is compared fairly: **no compression** (stored deflate blocks) and **half compression** (half of each codec's own max deflate level — libdeflate 12 → 6, zlib 9 → 4).",
 		"",
+		"**Speed here, correctness elsewhere.** These are timing numbers. Byte-identical *decode* parity with spng is verified separately on a large public-image corpus — Urban100, BSD100, Set14, Set5 (real high-res photos) plus the full [PngSuite](http://www.schaik.com/pngsuite/) (every format corner and the intentionally-malformed files), ~395 files — by the `corpus_differential` test: every file decodes byte-identically to spng at RGBA8 and at every `SPNG_FMT_*`, malformed files reject in lockstep, and every accepted image survives a blazediff encode → decode round-trip. Fetch the corpus with `crates/blazediff-png/scripts/fetch-corpus.sh` and run with `BLAZEDIFF_PNG_CORPUS` set; the `Benchmark PNG` GitHub workflow runs the benchmark and this verification.",
+		"",
 		"![PNG codec summary](./charts/png-codec.png)",
 		"",
 		"## Decode",
@@ -233,8 +222,9 @@ function buildGroups(data) {
 	];
 }
 
-function main() {
-	const flags = parseArgs(process.argv);
+// Flags come from `run.js`'s parser, so `--skip-run` / `--skip-md` /
+// `--skip-chart` mean the same here as they do for pair benches.
+function run(flags = {}) {
 	const jsonPath = flags.json
 		? path.resolve(REPO_ROOT, flags.json)
 		: path.join(os.tmpdir(), "blazediff-png-bench.json");
@@ -246,19 +236,23 @@ function main() {
 	}
 	const data = JSON.parse(fs.readFileSync(jsonPath, "utf8"));
 
-	fs.writeFileSync(MD_PATH, buildMarkdown(data));
-	console.log(
-		`\n${path.relative(REPO_ROOT, MD_PATH)} written (${data.rows.length} fixtures).`,
-	);
+	if (!flags["skip-md"]) {
+		fs.writeFileSync(MD_PATH, buildMarkdown(data));
+		console.log(
+			`\n${path.relative(REPO_ROOT, MD_PATH)} written (${data.rows.length} fixtures).`,
+		);
+	}
 
-	drawGroupedChart(buildGroups(data), {
-		title: "PNG Codec",
-		subtitle:
-			"Total time, then output size, per codec across the corpus (lower is better)",
-		outPath: CHART_PATH,
-		legend: LEGEND,
-	});
-	console.log(`${path.relative(REPO_ROOT, CHART_PATH)} written.`);
+	if (!flags["skip-chart"]) {
+		drawGroupedChart(buildGroups(data), {
+			title: "PNG Codec",
+			subtitle:
+				"Total time, then output size, per codec across the corpus (lower is better)",
+			outPath: CHART_PATH,
+			legend: LEGEND,
+		});
+		console.log(`${path.relative(REPO_ROOT, CHART_PATH)} written.`);
+	}
 }
 
-if (require.main === module) main();
+module.exports = { run };
