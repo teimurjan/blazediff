@@ -50,7 +50,8 @@ jobs:
           # token exchange and turns every publish into a 404.
 
       - name: Setup npm for trusted publishing
-        run: npm install --global npm@latest
+        # 11.5.1 is the floor for OIDC; npm 12 needs a newer Node than .node-version
+        run: npm install --global npm@11
 
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
