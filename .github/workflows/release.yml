@@ -75,4 +75,3 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.CHANGESETS_PAT }}
           CRATES_IO_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
-          NPM_CONFIG_LOGLEVEL: verbose
