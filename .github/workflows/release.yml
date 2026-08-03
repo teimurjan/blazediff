@@ -45,10 +45,12 @@ jobs:
         with:
           node-version-file: ".node-version"
           cache: "pnpm"
-          registry-url: "https://registry.npmjs.org"
+          # No registry-url on purpose: it makes setup-node write an .npmrc
+          # with a dummy NODE_AUTH_TOKEN, which npm prefers over the OIDC
+          # token exchange and turns every publish into a 404.
 
       - name: Setup npm for trusted publishing
-        run: npm install --global npm@11.5.1
+        run: npm install --global npm@latest
 
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
