@@ -1,5 +1,18 @@
 # @blazediff/react
 
+## 1.8.0
+
+### Minor Changes
+
+- 36c2914: Accept image URLs or encoded `Uint8Array` values as comparison sources.
+
+  Difference mode now accepts precomputed diff image bytes and renders them without running BlazeDiff in the browser.
+
+### Patch Changes
+
+- Updated dependencies [36c2914]
+  - @blazediff/ui@2.1.0
+
 ## 1.7.0
 
 ### Minor Changes

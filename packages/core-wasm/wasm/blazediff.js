@@ -112,10 +112,6 @@ function takeObject(idx) {
     return ret;
 }
 
-export function _start() {
-    wasm._start();
-}
-
 function passArray8ToWasm0(arg, malloc) {
     const ptr = malloc(arg.length * 1, 1) >>> 0;
     getUint8ArrayMemory0().set(arg, ptr / 1);
@@ -126,45 +122,6 @@ function passArray8ToWasm0(arg, malloc) {
 function isLikeNone(x) {
     return x === undefined || x === null;
 }
-/**
- * Diff two RGBA buffers. Returns the count of differing pixels.
- *
- * If `out_diff` is provided, the visualization is written into it in-place
- * (must be width*height*4 bytes). Pass `null`/`undefined` to skip the
- * visualization and just get a count.
- * @param {Uint8Array} rgba_a
- * @param {Uint8Array} rgba_b
- * @param {number} width
- * @param {number} height
- * @param {number} threshold
- * @param {boolean} include_aa
- * @param {boolean} diff_mask
- * @param {Uint8Array | null} [diff_color_alt]
- * @param {Uint8Array | null} [out_diff]
- * @returns {number}
- */
-export function diffRgba(rgba_a, rgba_b, width, height, threshold, include_aa, diff_mask, diff_color_alt, out_diff) {
-    try {
-        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
-        const ptr0 = passArray8ToWasm0(rgba_a, wasm.__wbindgen_export_0);
-        const len0 = WASM_VECTOR_LEN;
-        const ptr1 = passArray8ToWasm0(rgba_b, wasm.__wbindgen_export_0);
-        const len1 = WASM_VECTOR_LEN;
-        var ptr2 = isLikeNone(diff_color_alt) ? 0 : passArray8ToWasm0(diff_color_alt, wasm.__wbindgen_export_0);
-        var len2 = WASM_VECTOR_LEN;
-        wasm.diffRgba(retptr, ptr0, len0, ptr1, len1, width, height, threshold, include_aa, diff_mask, ptr2, len2, isLikeNone(out_diff) ? 0 : addHeapObject(out_diff));
-        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
-        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
-        var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
-        if (r2) {
-            throw takeObject(r1);
-        }
-        return r0 >>> 0;
-    } finally {
-        wasm.__wbindgen_add_to_stack_pointer(16);
-    }
-}
-
 /**
  * Interpret the diff between two RGBA buffers into structured change regions.
  *
@@ -199,6 +156,49 @@ export function interpretRgba(rgba_a, rgba_b, width, height, threshold, include_
             throw takeObject(r1);
         }
         return takeObject(r0);
+    } finally {
+        wasm.__wbindgen_add_to_stack_pointer(16);
+    }
+}
+
+export function _start() {
+    wasm._start();
+}
+
+/**
+ * Diff two RGBA buffers. Returns the count of differing pixels.
+ *
+ * If `out_diff` is provided, the visualization is written into it in-place
+ * (must be width*height*4 bytes). Pass `null`/`undefined` to skip the
+ * visualization and just get a count.
+ * @param {Uint8Array} rgba_a
+ * @param {Uint8Array} rgba_b
+ * @param {number} width
+ * @param {number} height
+ * @param {number} threshold
+ * @param {boolean} include_aa
+ * @param {boolean} diff_mask
+ * @param {Uint8Array | null} [diff_color_alt]
+ * @param {Uint8Array | null} [out_diff]
+ * @returns {number}
+ */
+export function diffRgba(rgba_a, rgba_b, width, height, threshold, include_aa, diff_mask, diff_color_alt, out_diff) {
+    try {
+        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+        const ptr0 = passArray8ToWasm0(rgba_a, wasm.__wbindgen_export_0);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passArray8ToWasm0(rgba_b, wasm.__wbindgen_export_0);
+        const len1 = WASM_VECTOR_LEN;
+        var ptr2 = isLikeNone(diff_color_alt) ? 0 : passArray8ToWasm0(diff_color_alt, wasm.__wbindgen_export_0);
+        var len2 = WASM_VECTOR_LEN;
+        wasm.diffRgba(retptr, ptr0, len0, ptr1, len1, width, height, threshold, include_aa, diff_mask, ptr2, len2, isLikeNone(out_diff) ? 0 : addHeapObject(out_diff));
+        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+        var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
+        if (r2) {
+            throw takeObject(r1);
+        }
+        return r0 >>> 0;
     } finally {
         wasm.__wbindgen_add_to_stack_pointer(16);
     }
