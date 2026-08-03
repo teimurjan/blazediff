@@ -18,9 +18,22 @@ import { compare } from "./index";
 
 const FIXTURES_PATH = join(__dirname, "../../../fixtures");
 
-/** Every `<dir>/<n>` whose `a.png`/`b.png` pair exists and has matching dimensions. */
-function fixturePairs(): string[] {
-	const pairs: string[] = [];
+interface FixturePair {
+	name: string;
+	/** Whether `a.png` has any non-opaque pixel. */
+	hasAlpha: boolean;
+}
+
+/**
+ * Every `<dir>/<n>` whose `a.png`/`b.png` pair exists and has matching
+ * dimensions.
+ *
+ * Alpha is recorded here rather than re-derived in a test body: decoding the
+ * 4k fixtures takes seconds, and a second pass over them blew the default
+ * per-test timeout on CI hardware.
+ */
+function fixturePairs(): FixturePair[] {
+	const pairs: FixturePair[] = [];
 	for (const dir of readdirSync(FIXTURES_PATH)) {
 		const dirPath = join(FIXTURES_PATH, dir);
 		if (!statSync(dirPath).isDirectory()) continue;
@@ -34,19 +47,20 @@ function fixturePairs(): string[] {
 				const b = PNG.sync.read(
 					readFileSync(join(FIXTURES_PATH, `${name}b.png`)),
 				);
-				if (a.width === b.width && a.height === b.height) pairs.push(name);
+				if (a.width === b.width && a.height === b.height)
+					pairs.push({ name, hasAlpha: hasNonOpaquePixel(a) });
 			} catch {
 				// unreadable or unpaired, so not a parity case
 			}
 		}
 	}
-	return pairs.sort();
+	return pairs.sort((x, y) => x.name.localeCompare(y.name));
 }
 
-function countNonOpaque(png: PNG): number {
-	let n = 0;
-	for (let i = 3; i < png.data.length; i += 4) if (png.data[i] !== 255) n++;
-	return n;
+function hasNonOpaquePixel(png: PNG): boolean {
+	for (let i = 3; i < png.data.length; i += 4)
+		if (png.data[i] !== 255) return true;
+	return false;
 }
 
 /**
@@ -85,7 +99,9 @@ async function bothEngines(
 	return { js, native };
 }
 
-const PAIRS = fixturePairs();
+const FIXTURES = fixturePairs();
+const PAIRS = FIXTURES.map(({ name }) => name);
+const PAIRS_WITH_ALPHA = FIXTURES.filter(({ hasAlpha }) => hasAlpha);
 const THRESHOLDS = [0.05, 0.1, 0.2];
 
 describe("JS/native parity", () => {
@@ -107,13 +123,7 @@ describe("JS/native parity", () => {
 	it("covers fixtures that actually contain transparency", () => {
 		// Guards against the blended branch silently losing coverage: the bug
 		// this suite exists for is invisible on fully opaque images.
-		const withAlpha = PAIRS.filter((name) => {
-			const a = PNG.sync.read(
-				readFileSync(join(FIXTURES_PATH, `${name}a.png`)),
-			);
-			return countNonOpaque(a) > 0;
-		});
-		expect(withAlpha.length).toBeGreaterThanOrEqual(2);
+		expect(PAIRS_WITH_ALPHA.length).toBeGreaterThanOrEqual(2);
 	});
 
 	it("agrees on the semi-transparent regression fixture", async () => {
