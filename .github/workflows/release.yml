@@ -66,12 +66,6 @@ jobs:
       - name: Build Packages
         run: pnpm build
 
-      # TEMPORARY: isolates whether the OIDC token exchange is rejected by the
-      # registry or never attempted. Remove once trusted publishing works.
-      - name: Debug OIDC token exchange
-        working-directory: packages/core
-        run: npm publish --dry-run --ignore-scripts --loglevel silly 2>&1 | grep -iE "oidc|token/exchange|need auth|npm ver" || true
-
       - name: Create Release Pull Request or Publish
         id: changesets
         uses: changesets/action@v1
