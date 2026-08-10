@@ -1,0 +1,162 @@
+---
+title: What Is SSIM? Structural Similarity vs Pixel-by-Pixel Diffing
+description: SSIM scores how similar two images look by comparing brightness, contrast, and structure inside local windows, instead of counting changed pixels. Formula, score ranges, the three variants, and when to use it in visual regression tests.
+---
+
+# What Is SSIM?
+
+import { Callout } from "nextra/components";
+
+**SSIM (Structural Similarity Index) scores how similar two images look, on a
+scale from 0 to 1.** Instead of counting pixels that changed, it slides a window
+over both images and compares three things inside each window: brightness,
+contrast, and structure. `1` means identical. Pixel diffing answers "how many
+pixels changed". SSIM answers "would a person see a difference".
+
+## SSIM vs pixel-by-pixel comparison
+
+|                            | Pixel-by-pixel                          | SSIM                                  |
+| -------------------------- | --------------------------------------- | ------------------------------------- |
+| What it measures           | How many pixels changed                 | How different the images look         |
+| Output                     | Pixel count and percentage              | One score, 0 to 1, higher is better   |
+| Unit of work               | One pixel at a time                     | A window of pixels (11x11 by default) |
+| Compression artifacts      | Counted as real changes                 | Mostly ignored                        |
+| Anti-aliasing on edges     | Counted unless you filter it            | Mostly ignored                        |
+| A block of text moved 1px  | Every pixel in and around it counts     | Scored as one local structure change  |
+| Shows you where            | Yes, a diff image                       | Yes, an SSIM map                      |
+| Speed                      | Fastest                                 | Slower, more math per pixel           |
+
+Pixel diffing is exact and cheap, so it stays the right default. Reach for SSIM
+when exact matching is too strict: JPEG artifacts, font and GPU rendering that
+differs between machines, or screenshots that get re-encoded somewhere in the
+pipeline.
+
+## How the score is computed
+
+For each window, SSIM takes the mean, the variance, and the covariance of the two
+images:
+
+```
+mu_x  = mean(x)      mu_y  = mean(y)
+var_x = var(x)       var_y = var(y)
+cov   = cov(x, y)
+```
+
+Those feed three terms - luminance, contrast, and structure - which are
+multiplied together:
+
+```
+SSIM(x,y) = l(x,y) * c(x,y) * s(x,y)
+
+l(x,y) = (2 * mu_x * mu_y + C1) / (mu_x^2 + mu_y^2 + C1)
+c(x,y) = (2 * sd_x * sd_y + C2) / (var_x + var_y + C2)
+s(x,y) = (cov + C2/2) / (sd_x * sd_y + C2/2)
+```
+
+Which collapses to the form usually quoted:
+
+```
+SSIM(x,y) = ((2*mu_x*mu_y + C1) * (2*cov + C2))
+          / ((mu_x^2 + mu_y^2 + C1) * (var_x + var_y + C2))
+```
+
+`C1` and `C2` only exist to stop the fractions blowing up when a window is flat
+(a solid background, where the means and variances are near zero):
+
+```
+C1 = (K1 * L)^2      K1 = 0.01
+C2 = (K2 * L)^2      K2 = 0.03
+L  = 255             dynamic range for 8-bit images
+```
+
+The default window is 11x11 Gaussian with sigma 1.5, so pixels near the middle of
+the window count more than pixels at its edge. The final score is the mean of
+every window's SSIM.
+
+`@blazediff/ssim` matches the reference MATLAB implementation to within 0.01%.
+
+## Reading the score
+
+| Score       | Meaning                    |
+| ----------- | -------------------------- |
+| `1.00`      | Identical                  |
+| `0.95-1.00` | Excellent, safe to pass    |
+| `0.85-0.95` | Good, small visible change |
+| `0.70-0.85` | Fair, clearly different    |
+| `< 0.70`    | Poor, large change         |
+
+For UI screenshots the useful band is narrow. A real regression on a page that is
+mostly whitespace can still score above `0.98`, so pick your threshold from your
+own baselines rather than from this table.
+
+## Three variants
+
+| Variant             | Import                              | What changes                                                    | Use it for                       |
+| ------------------- | ----------------------------------- | --------------------------------------------------------------- | -------------------------------- |
+| SSIM                | `@blazediff/ssim/ssim`              | Gaussian windows, one scale                                      | Matching published/MATLAB results |
+| MS-SSIM             | `@blazediff/ssim/msssim`            | 5 scales, downsampled 2x each step, weighted geometric mean       | Images seen at different sizes   |
+| Hitchhiker's SSIM   | `@blazediff/ssim/hitchhikers-ssim`  | Rectangular non-overlapping windows via integral images, ~4x faster | Large batches in CI            |
+
+MS-SSIM computes contrast and structure at every scale but luminance only at the
+coarsest one, then combines them with the default weights
+`[0.0448, 0.2856, 0.3001, 0.2363, 0.1333]`. It correlates better with human
+judgement when the image will be viewed at more than one size.
+
+Hitchhiker's SSIM swaps the Gaussian window for a rectangular one and uses
+integral images, which makes each window O(1) instead of O(window size). Windows
+do not overlap by default (`windowStride` defaults to `windowSize`). It pools with
+coefficient of variation rather than a plain mean.
+
+## Run it
+
+```bash npm2yarn
+npm install @blazediff/ssim
+```
+
+```ts
+import ssim from "@blazediff/ssim/ssim";
+
+const score = ssim(image1, image2, undefined, width, height);
+if (score < 0.98) throw new Error(`too different: ${score}`);
+```
+
+Pass an output buffer as the third argument to get the SSIM map back as a
+grayscale image - dark areas are where the two images disagree.
+
+From the CLI:
+
+```bash
+blazediff-cli ssim baseline.png current.png
+blazediff-cli ssim baseline.png current.png --output ssim-map.png
+```
+
+In a test:
+
+```ts
+await expect(screenshot).toMatchImageSnapshot({ method: "ssim" });
+```
+
+<Callout type="info">
+  Options: `windowSize` (default `11`), `k1` (`0.01`), `k2` (`0.03`), `L` (`255`).
+  Full signature in the [`@blazediff/ssim` reference](/apis/ssim).
+</Callout>
+
+## When SSIM is the wrong tool
+
+- **You need to know exactly what changed.** SSIM gives one number. Use
+  [pixel diffing](/docs/pixel-comparison/vanilla-javascript) or
+  [interpret mode](/docs/difference-analysis) for regions and change types.
+- **The change is tiny but important.** A single wrong character in a heading
+  barely moves the score on a full-page screenshot.
+- **Only the colors changed.** SSIM works on luminance, so a red button turning
+  green can score near `1.0`. Pixel diffing catches that; SSIM does not.
+- **You need speed above all.** The native pixel core is faster by a wide margin.
+
+## Reference
+
+Wang, Z., Bovik, A. C., Sheikh, H. R., & Simoncelli, E. P. (2004). "Image quality
+assessment: from error visibility to structural similarity." *IEEE Transactions on
+Image Processing*, 13(4), 600-612.
+
+Next: [How GMSD works →](/docs/metrics/gmsd) ·
+[Choosing a metric →](/docs/metrics/choosing-a-metric)

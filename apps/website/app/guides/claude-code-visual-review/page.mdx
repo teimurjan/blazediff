@@ -1,0 +1,142 @@
+---
+title: Let Claude Code Review Your Visual Diffs
+description: Install a skill that lets Claude Code judge ambiguous screenshot diffs - decide if a rendering change is a regression or intentional, and re-baseline it. No API key, screenshots never leave your machine.
+---
+
+# Let Claude Code Review Your Visual Diffs
+
+import { Callout } from "nextra/components";
+
+**`@blazediff/agent` installs a skill into your repo that lets Claude Code look at
+failing screenshot diffs and decide whether they are real regressions.** BlazeDiff
+does the deterministic part - capture, diff, classify. Claude Code only sees the
+cases the thresholds could not settle, and answers pass or fail with a reason. No
+API key, no hosted vision service, and no screenshot leaves your machine.
+
+## Set it up
+
+```bash npm2yarn
+npm install --save-dev @blazediff/agent
+```
+
+```bash
+blazediff-agent onboard --stack claude
+```
+
+That writes three things:
+
+| Path                                    | What it is                                  |
+| --------------------------------------- | ------------------------------------------- |
+| `.claude/skills/blazediff/SKILL.md`     | The skill Claude Code loads                 |
+| `.blazediff/config.json`                | Dev server command, port, base URL          |
+| `.blazediff/`                           | Baselines and manifest, committed to git     |
+
+Onboarding auto-detects the stack when it finds `.claude/`, `CLAUDE.md`, or
+`AGENTS.md`, so `--stack claude` is only needed when you want to be explicit. Pass
+`--stack all` to install for Claude Code, Codex, and Cursor at once.
+
+## Use it
+
+In Claude Code:
+
+```
+/blazediff
+```
+
+The skill picks its own mode. No `.blazediff/manifest.json` yet means authoring:
+it discovers routes, captures baselines, and commits them. A manifest already
+there means checking: re-capture, diff, and report.
+
+Under the hood it is running the same CLI you would run by hand:
+
+```bash
+blazediff-agent check --judge host --json
+```
+
+## What Claude Code actually sees
+
+This is the part that decides whether the review is any good. BlazeDiff does not
+hand over two full-page PNGs and ask "spot the difference" - that is the setup
+where agents hallucinate. Instead, for each ambiguous entry it writes a judgment
+request to `.blazediff/judgments/<id>/request.json` containing:
+
+- `regions[]` - a bounding box, pixel count, and change type for each changed area
+- `locator.png` - a ~400px overview with those regions outlined in red
+- `regions.png` - a vertical stack of `[baseline | actual]` crops, one per region
+- the full-page PNGs, as a fallback only
+
+The region tiles are 10 to 100x smaller than the full-page images. Claude Code
+reads the crops, not the page, so the decision is cheap and the relevant pixels
+fill the frame.
+
+<Callout type="info">
+  Most diffs never reach Claude Code. A heuristic pass labels each failure
+  `regression-likely`, `intentional-likely`, `noise-likely`, or `ambiguous`. Only
+  `ambiguous` is handed over.
+</Callout>
+
+## The verdict loop
+
+Claude Code writes its answer to `.blazediff/judgments/<id>/verdict.json`:
+
+```json
+{
+  "id": "pricing",
+  "verdict": {
+    "label": "intentional-likely",
+    "headline": "Button padding increased, no layout break",
+    "action": "rewrite-if-intended"
+  },
+  "confidence": 0.92
+}
+```
+
+Then the run resumes without re-screenshotting anything:
+
+```bash
+blazediff-agent check --apply-judgments --json
+```
+
+If the change was intended, accept it:
+
+```bash
+blazediff-agent rewrite pricing --json     # one entry
+blazediff-agent rewrite --failed --json    # everything that failed
+```
+
+`rewrite` regenerates only the PNG. Mask, viewport, and wait conditions are
+preserved.
+
+The check itself is suspendable. It runs as a graph that pauses on the first
+ambiguous entry and resumes from an on-disk checkpoint, so a long suite does not
+restart from zero every time a verdict comes in.
+
+## Why not just paste screenshots into the chat
+
+| Pasting screenshots            | This                                              |
+| ------------------------------ | ------------------------------------------------- |
+| Agent compares whole pages     | Agent compares one cropped region at a time        |
+| No record of the decision      | Verdict, reason, and confidence written to disk    |
+| Re-run means re-explaining     | Checkpointed, resumes where it stopped             |
+| Agent judges every diff        | Thresholds settle most of them first               |
+| Costs scale with page size     | Tiles are 10 to 100x smaller than full pages       |
+
+## Keeping it honest
+
+The agent decides; it does not get to quietly change the baseline. `rewrite` is a
+separate command, blocked in CI, and every baseline change lands in git as a PNG
+diff a human can look at in the pull request.
+
+<Callout type="warning">
+  In CI (`CI=1` or no TTY) only `check` runs. `onboard`, `capture`, `rewrite`, and
+  `reset` are blocked, so baselines only change on a developer machine where the
+  change can be reviewed.
+</Callout>
+
+## Next
+
+- [Setting up →](/docs/agentic-testing/setting-up)
+- [Judging and harnesses →](/docs/agentic-testing/judging-and-harnesses)
+- [Running it in GitHub Actions →](/guides/github-actions-agent-judged-screenshots)
+- [Same loop in Cursor →](/guides/cursor-visual-qa) ·
+  [in Codex →](/guides/codex-visual-review)

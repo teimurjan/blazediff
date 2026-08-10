@@ -7,8 +7,8 @@
 
 ## Performance
 
-- **Native (Rust)**: 3-4x faster than odiff, 8x faster than pixelmatch on 4K images
-- **WASM**: ~58% faster than pixelmatch, up to ~5x on 4K (browser, edge, any wasm host)
+- **Native (Rust)**: 4.4-4.9x faster than odiff on 4K images (5.7-6.7x from encoded buffers)
+- **WASM**: ~51% faster than pixelmatch, up to ~10x on 4K (browser, edge, any wasm host)
 - **Image Pixel-by-Pixel (JS)**: ~50% faster than pixelmatch (up to 88% on identical images)
 - **SSIM**: ~25% faster than ssim.js, ~70% faster with Hitchhiker's SSIM
 - **Object Diff**: ~55% faster than microdiff (up to 96% on identical arrays)
@@ -1273,7 +1273,7 @@ Exit codes:
 
 # @blazediff/core-native
 
-The fastest single-threaded image diff in the world. Native Rust implementation with SIMD optimization, **3-4x faster** and **3x smaller** than [odiff](https://github.com/dmtrKovalenko/odiff).
+The fastest single-threaded image diff in the world. Native Rust implementation with SIMD optimization, **4.4-4.9x faster** and **3x smaller** than [odiff](https://github.com/dmtrKovalenko/odiff).
 
 [View Detailed Benchmarks](https://github.com/teimurjan/blazediff/blob/main/BENCHMARKS.md)
 
@@ -1295,7 +1295,7 @@ Pre-built binaries are included for all major platforms - no compilation require
 ## Features
 
 - **PNG, JPEG & QOI support** - auto-detected by file extension or encoded bytes
-- **3-4x faster** than odiff, **3x smaller** binaries (~700KB-900KB vs ~2-3MB)
+- **4.4-4.9x faster** than odiff, **3x smaller** binaries (~700KB-900KB vs ~2-3MB)
 - **SIMD-accelerated** - NEON on ARM, SSE4.1 on x86
 - **Block-based optimization** - skips unchanged regions
 - **Interpret mode** - region detection, classification, severity scoring, human-readable summaries
@@ -1505,8 +1505,13 @@ Benchmarked on Apple M1 Max with 5600×3200 4K images (25 runs, 5 warmup, image 
 
 | Tool | Time | Comparison |
 |------|------|------------|
-| **blazediff** | ~359ms | - |
-| odiff | ~1221ms | 3.4x slower |
+| **blazediff** (encoded buffer input) | ~203ms | - |
+| **blazediff** (file paths) | ~275ms | - |
+| odiff | ~1266ms | 4.6x slower |
+
+These are end-to-end times, so PNG decode and encode dominate them. The diff kernel
+itself is 27–37% faster than the previous release on 4K buffers; that gain is diluted
+here because IO is the larger share of the total.
 
 Binary sizes (stripped, LTO optimized):
 
@@ -1516,7 +1521,7 @@ Binary sizes (stripped, LTO optimized):
 | Linux x64 | 869 KB | 2.9 MB |
 | Windows x64 | 915 KB | 3.0 MB |
 
-> **Info:** **Why so fast?** BlazeDiff uses a two-pass block-based algorithm with SIMD acceleration. The cold pass quickly identifies unchanged 8x8 blocks using 32-bit integer comparison, then the hot pass only processes changed regions with YIQ perceptual color difference.
+> **Info:** **Why so fast?** BlazeDiff uses a two-pass block-based algorithm with SIMD acceleration. The cold pass quickly identifies unchanged blocks using 32-bit integer comparison, then the hot pass only processes changed regions with YIQ perceptual color difference. Three refinements keep the common paths cheap: the cold pass folds four SIMD chunks into one wide test, so 16 unchanged pixels cost a single branch; an integer bound derived from the YIQ metric's largest eigenvalue rejects sub-threshold pixels before any floating-point work; and chunks where nothing crosses the threshold take a vectorized background write instead of falling back to per-pixel handling.
 
 ## Links
 
@@ -1529,7 +1534,7 @@ Binary sizes (stripped, LTO optimized):
 
 # @blazediff/core-wasm
 
-WebAssembly build of the BlazeDiff Rust algorithm for browsers, edge runtimes, and any wasm host. Same two-pass block algorithm as [`@blazediff/core-native`](/apis/core-native), compiled to `wasm32` with `v128` SIMD (`+simd128`). ~58% faster than [pixelmatch](https://github.com/mapbox/pixelmatch) on the same RGBA buffers; diff counts agree with pixelmatch to within ~0.05%.
+WebAssembly build of the BlazeDiff Rust algorithm for browsers, edge runtimes, and any wasm host. Same two-pass block algorithm as [`@blazediff/core-native`](/apis/core-native), compiled to `wasm32` with `v128` SIMD (`+simd128`). ~51% faster than [pixelmatch](https://github.com/mapbox/pixelmatch) on the same RGBA buffers (up to ~90% on 4K); diff counts agree with pixelmatch to within ~0.05%.
 
 [View Detailed Benchmarks](https://github.com/teimurjan/blazediff/blob/main/BENCHMARKS.md)
 
@@ -1730,15 +1735,15 @@ vs `pixelmatch` on M1 Max, image I/O excluded (pre-decoded RGBA buffers):
 
 | Fixture           | pixelmatch | core-wasm  | Improvement |
 | ----------------- | ---------- | ---------- | ----------- |
-| 4k/1              | 287.72ms   | 51.75ms    | **82.0%**   |
-| 4k/3              | 366.81ms   | 69.90ms    | **80.9%**   |
-| page/2            | 443.83ms   | 109.74ms   | **75.3%**   |
-| blazediff/3       | 14.60ms    | 5.52ms     | **62.2%**   |
-| pixelmatch/1      | 0.87ms     | 0.13ms     | **84.6%**   |
+| 4k/1              | 338.53ms   | 34.42ms    | **89.8%**   |
+| 4k/3              | 415.01ms   | 45.34ms    | **89.1%**   |
+| page/2            | 511.88ms   | 70.89ms    | **86.2%**   |
+| blazediff/3       | 12.08ms    | 5.76ms     | **52.3%**   |
+| pixelmatch/1      | 0.57ms     | 0.11ms     | **80.5%**   |
 
-Average ~58% faster across the full fixture set. Counts agree with pixelmatch within ~0.05% (e.g. `4k/1`: 69 932 vs 69 912 of 17 920 000 pixels; both use YIQ perceptual delta, residual differences are anti-aliasing edge cases).
+Average ~51% faster across the full fixture set (~60% across differing pairs). Counts agree with pixelmatch within ~0.05% (e.g. `4k/1`: 69 932 vs 69 912 of 17 920 000 pixels; both use YIQ perceptual delta, residual differences are anti-aliasing edge cases).
 
-> **Info:** **Why so fast?** Block-based two-pass algorithm (cold pass skips unchanged 8×8 blocks via integer compare, hot pass runs YIQ delta only on changed regions) with `v128` SIMD intrinsics: 4-lane vectorized RGBA extraction, YIQ transform, and threshold compare.
+> **Info:** **Why so fast?** Block-based two-pass algorithm (cold pass skips unchanged blocks via integer compare, hot pass runs YIQ delta only on changed regions) with `v128` SIMD intrinsics: 4-lane vectorized RGBA extraction, YIQ transform, and threshold compare. The cold pass folds four chunks into a single wide test so 16 unchanged pixels cost one branch, and an integer bound derived from the YIQ metric's largest eigenvalue rejects sub-threshold pixels before any float work happens.
 
 ## Picking the Right Package
 
@@ -2537,6 +2542,8 @@ npm install @blazediff/ui
 
 Every mode is a `mount*(target, options)` function. It appends the UI into `target` and returns a handle with `update(options)` and `destroy()`.
 
+`src1` and `src2` accept either image URLs or `Uint8Array` values containing encoded image bytes in every mode.
+
 ```js
 import { mountSwipe } from "@blazediff/ui";
 
@@ -2561,8 +2568,8 @@ Compare two images with a draggable divider.
 
 | Option             | Type                         | Default    | Description                          |
 | ------------------ | ---------------------------- | ---------- | ------------------------------------ |
-| `src1`             | `string`                     | -          | URL of the first image               |
-| `src2`             | `string`                     | -          | URL of the second image              |
+| `src1`             | `string \| Uint8Array`        | -          | URL or encoded bytes for the first image |
+| `src2`             | `string \| Uint8Array`        | -          | URL or encoded bytes for the second image |
 | `alt1`             | `string`                     | `"Before"` | Alt text for the first image         |
 | `alt2`             | `string`                     | `"After"`  | Alt text for the second image        |
 | `initialPosition`  | `number`                     | `50`       | Initial divider position (0–100)     |
@@ -2579,8 +2586,8 @@ Two images side by side, with dimension-change detection.
 
 | Option                    | Type                                              | Default | Description                       |
 | ------------------------- | ------------------------------------------------- | ------- | --------------------------------- |
-| `src1`                    | `string`                                          | -       | URL of the first image            |
-| `src2`                    | `string`                                          | -       | URL of the second image           |
+| `src1`                    | `string \| Uint8Array`                            | -       | URL or encoded bytes for the first image |
+| `src2`                    | `string \| Uint8Array`                            | -       | URL or encoded bytes for the second image |
 | `crossOrigin`             | `string \| null`                                  | `"anonymous"` | `crossOrigin` for image loads |
 | `className`               | `string`                                          | -       | Class for the root element        |
 | `containerClassName`      | `string`                                          | -       | Class for the main container      |
@@ -2597,8 +2604,8 @@ Overlay two images with an opacity slider.
 
 | Option                     | Type                        | Default      | Description                      |
 | -------------------------- | --------------------------- | ------------ | -------------------------------- |
-| `src1`                     | `string`                    | -            | URL of the base image            |
-| `src2`                     | `string`                    | -            | URL of the overlay image         |
+| `src1`                     | `string \| Uint8Array`       | -            | URL or encoded bytes for the base image |
+| `src2`                     | `string \| Uint8Array`       | -            | URL or encoded bytes for the overlay image |
 | `opacity`                  | `number`                    | `50`         | Initial opacity (0–100)          |
 | `crossOrigin`              | `string \| null`            | `"anonymous"`| `crossOrigin` for image loads    |
 | `className`                | `string`                    | -            | Class for the root element       |
@@ -2615,12 +2622,13 @@ Overlay two images with an opacity slider.
 
 ### `mountDifference(target, options)`
 
-Show pixel differences using the BlazeDiff algorithm.
+Show pixel differences using the BlazeDiff algorithm, or render a precomputed diff without running BlazeDiff in the browser.
 
 | Option               | Type                       | Default | Description                 |
 | -------------------- | -------------------------- | ------- | --------------------------- |
-| `src1`               | `string`                   | -       | URL of the first image      |
-| `src2`               | `string`                   | -       | URL of the second image     |
+| `src1`               | `string \| Uint8Array`      | -       | URL or encoded bytes for the first image |
+| `src2`               | `string \| Uint8Array`      | -       | URL or encoded bytes for the second image |
+| `diff`               | `Uint8Array`                | -       | Encoded precomputed diff image bytes |
 | `threshold`          | `number`                   | `0.1`   | Difference threshold (0–1)  |
 | `includeAA`          | `boolean`                  | `false` | Include anti-aliased pixels |
 | `alpha`              | `number`                   | `0.1`   | Opacity of the original     |
@@ -2706,6 +2714,8 @@ function App() {
 }
 ```
 
+All components accept image URLs or `Uint8Array` values containing encoded image bytes through `src1` and `src2`.
+
 ## API Reference
 
 ### `<SwipeMode />`
@@ -2716,8 +2726,8 @@ Interactive swipe component for comparing two images with a draggable divider.
 
 | Prop               | Type                              | Default | Description                          |
 | ------------------ | --------------------------------- | ------- | ------------------------------------ |
-| `src1`             | `string` (required)               | -       | URL of the first image               |
-| `src2`             | `string` (required)               | -       | URL of the second image              |
+| `src1`             | `string \| Uint8Array` (required) | -       | URL or encoded bytes for the first image |
+| `src2`             | `string \| Uint8Array` (required) | -       | URL or encoded bytes for the second image |
 | `alt1`             | `string`                          | -       | Alt text for the first image         |
 | `alt2`             | `string`                          | -       | Alt text for the second image        |
 | `className`        | `string`                          | -       | CSS class for the root element       |
@@ -2735,8 +2745,8 @@ Side-by-side comparison component with dimension information.
 
 | Prop                      | Type                                                        | Default | Description                       |
 | ------------------------- | ----------------------------------------------------------- | ------- | --------------------------------- |
-| `src1`                    | `string` (required)                                         | -       | URL of the first image            |
-| `src2`                    | `string` (required)                                         | -       | URL of the second image           |
+| `src1`                    | `string \| Uint8Array` (required)                     | -       | URL or encoded bytes for the first image |
+| `src2`                    | `string \| Uint8Array` (required)                     | -       | URL or encoded bytes for the second image |
 | `className`               | `string`                                                    | -       | CSS class for the root element    |
 | `containerClassName`      | `string`                                                    | -       | CSS class for the main container  |
 | `containerInnerClassName` | `string`                                                    | -       | CSS class for the inner container |
@@ -2754,8 +2764,8 @@ Overlay comparison with opacity control slider.
 
 | Prop                       | Type                                                        | Default | Description                      |
 | -------------------------- | ----------------------------------------------------------- | ------- | -------------------------------- |
-| `src1`                     | `string` (required)                                         | -       | URL of the base image            |
-| `src2`                     | `string` (required)                                         | -       | URL of the overlay image         |
+| `src1`                     | `string \| Uint8Array` (required)                     | -       | URL or encoded bytes for the base image |
+| `src2`                     | `string \| Uint8Array` (required)                     | -       | URL or encoded bytes for the overlay image |
 | `opacity`                  | `number`                                                    | -       | Initial opacity (0-100)          |
 | `className`                | `string`                                                    | -       | CSS class for the root element   |
 | `containerClassName`       | `string`                                                    | -       | CSS class for the main container |
@@ -2771,14 +2781,15 @@ Overlay comparison with opacity control slider.
 
 ### `<DifferenceMode />`
 
-Shows pixel differences using the BlazeDiff comparison algorithm.
+Shows pixel differences using the BlazeDiff comparison algorithm. Pass encoded diff image bytes to display a precomputed result without running BlazeDiff in the browser.
 
 #### Props
 
 | Prop                | Type                                                              | Default | Description                     |
 | ------------------- | ----------------------------------------------------------------- | ------- | ------------------------------- |
-| `src1`              | `string` (required)                                               | -       | URL of the first image          |
-| `src2`              | `string` (required)                                               | -       | URL of the second image         |
+| `src1`              | `string \| Uint8Array` (required)                                | -       | URL or encoded bytes for the first image |
+| `src2`              | `string \| Uint8Array` (required)                                | -       | URL or encoded bytes for the second image |
+| `diff`              | `Uint8Array`                                                     | -       | Encoded precomputed diff image bytes |
 | `threshold`         | `number`                                                          | -       | Difference threshold (0-1)      |
 | `includeAA`         | `boolean`                                                         | -       | Include anti-aliased pixels     |
 | `alpha`             | `number`                                                          | -       | Opacity of original image       |
@@ -3267,6 +3278,7 @@ So for the malformed-input edge cases the decoder **links the same system zlib s
 | --- | --- |
 | Exhaustive matrix | every `{depth × color × interlace × filter × tRNS}` at edge sizes, byte-parity with spng |
 | PngSuite conformance | 176/176 — 164 decode at parity, 12 corrupt files reject in lockstep |
+| Real-image corpus | Urban100 · BSD100 · Set14 · Set5 + PngSuite (~395 files) decode byte-identically to spng at RGBA8 and every `SPNG_FMT_*`; every accepted image encode-round-trips — run by the `Benchmark PNG` workflow (`corpus_differential`) |
 | Differential fuzzing | 40M+ execs vs spng, **0 unresolved divergences** |
 | Encode round-trip fuzzing | 5M+ execs, round-trip + spng cross-decode clean |
 | Line coverage | **98.89%** (residual lines are unreachable defensive arms) |
@@ -3362,7 +3374,7 @@ See the [full API reference →](/apis/core).
 # Pixel-by-pixel Comparison - Rust + WASM in JavaScript
 
 The same diff core, compiled to WebAssembly with SIMD. `@blazediff/core-wasm` runs
-in browsers, Workers, Deno, Bun, and edge runtimes - ~58% faster than pixelmatch
+in browsers, Workers, Deno, Bun, and edge runtimes - ~51% faster than pixelmatch
 from a 32KB binary. Reach for it when you want native-grade speed in the browser
 without a native dependency. The API takes pre-decoded RGBA buffers, so you decode
 images yourself with `createImageBitmap` + a canvas (or the `ImageDecoder` API).
@@ -3515,6 +3527,10 @@ when an exact pixel match is too strict.
 BlazeDiff ships two: **GMSD** (gradient-based, fast) and **SSIM** (the classic
 structural index, with a 4× faster Hitchhiker's variant).
 
+New to these metrics? Start with [what SSIM is](/docs/metrics/ssim),
+[how GMSD works](/docs/metrics/gmsd), or
+[which one to pick](/docs/metrics/choosing-a-metric).
+
 ## Installation
 
 ```bash
@@ -3593,6 +3609,437 @@ const score = hitchhikersSSIM(img1, img2, output, width, height);
 ```
 
 See the [SSIM API reference →](/apis/ssim).
+
+---
+
+# Choosing a Metric
+
+**Start with pixel diffing. Move to a structural metric only when exact matching
+is too strict.** Pixel diffing is the fastest and the only one that tells you
+exactly what changed. SSIM and GMSD trade that detail for tolerance: they score
+how different two images *look*, so they shrug off compression artifacts and
+rendering noise that pixel counting flags as failures.
+
+## The five options
+
+| Metric                | Answers                        | Output              | Direction         | Relative cost | Best for                                    |
+| --------------------- | ------------------------------ | ------------------- | ----------------- | ------------- | ------------------------------------------- |
+| **Pixel diff**        | How many pixels changed        | Count and percent   | Lower is better   | Fastest       | The default. CI gates, exact rendering       |
+| **GMSD**              | Did the edges change           | Score, `0` to `~1`  | Lower is better   | Low           | Layout and shape changes, compressed images  |
+| **SSIM**              | Does it look different         | Score, `0` to `1`   | Higher is better  | Medium        | Perceived quality, matching published results |
+| **MS-SSIM**           | Does it look different at any size | Score, `0` to `1` | Higher is better | High          | Images viewed at several resolutions         |
+| **Hitchhiker's SSIM** | Same as SSIM, faster           | Score, `0` to `1`   | Higher is better  | Low           | Large batches where SSIM is the bottleneck   |
+
+Read the details: [what SSIM measures](/docs/metrics/ssim) ·
+[how GMSD works](/docs/metrics/gmsd).
+
+## Pick by problem
+
+| Your problem                                                | Use                                              |
+| ----------------------------------------------------------- | ------------------------------------------------ |
+| Standard CI screenshot gate                                  | Pixel diff (`core-native`) with `threshold: 0.1`  |
+| Failures from anti-aliasing on text and edges                | Pixel diff with `antialiasing: true` first, then GMSD |
+| Screenshots re-encoded as JPEG somewhere in the pipeline     | GMSD, gate around `0.15`                          |
+| Same page rendered on macOS locally and Linux in CI          | Pixel diff with a percentage threshold, then GMSD |
+| A "did the design get worse" score for a report              | SSIM or MS-SSIM                                   |
+| Thousands of images per run and SSIM is too slow             | Hitchhiker's SSIM                                 |
+| A brand color changed                                        | Pixel diff. SSIM and GMSD are near-blind to it    |
+| You need to know *what* changed, not just how much           | [Interpret mode](/docs/difference-analysis)       |
+
+> **Warning:** **Both structural metrics are weak on color.** SSIM and GMSD work on luminance. Two colors with the same brightness can swap and barely move either score. If color correctness matters, keep a pixel diff in the pipeline.
+
+## Structural metrics instead of RGB thresholds
+
+A raw RGB threshold asks one question per pixel: is this channel more than N away
+from the baseline. That has no idea whether the pixel sits on the edge of a
+letter, inside a gradient, or in the middle of a flat background. So the noise you
+want to ignore and the change you want to catch look the same to it, and the only
+knob you have is "be less strict everywhere".
+
+Structural metrics score a neighborhood instead of a pixel. SSIM compares the
+brightness, contrast, and structure of a window; GMSD compares the edge strength
+around each pixel. Both stay stable when a render is subtly noisy and both react
+when the shape of something actually changes - which is the distinction an RGB
+threshold cannot express.
+
+The practical setup for a noisy pipeline:
+
+```ts
+import { compare } from "@blazediff/core-native";
+import gmsd from "@blazediff/gmsd";
+
+// 1. Cheap exact gate. Most runs stop here.
+const result = await compare("baseline.png", "current.png", "diff.png", {
+  threshold: 0.1,
+  antialiasing: true,
+});
+if (result.match) return "pass";
+
+// 2. Something changed. Is it perceptible?
+const score = gmsd(baselinePixels, currentPixels, undefined, width, height);
+if (score < 0.05) return "pass-with-noise";
+
+return "fail";
+```
+
+## Setting a threshold
+
+Do not copy a number from a table. Run your own baselines twice with no code
+change and see what score the noise alone produces, then set the gate above it.
+
+| Comparison           | Knob                                             | Sane starting point         |
+| -------------------- | ------------------------------------------------ | --------------------------- |
+| Pixel diff           | `threshold` (per-pixel color distance, `0`-`1`)  | `0.1`                       |
+| Pixel diff           | `failureThreshold` + `failureThresholdType`      | `0.1` with `'percent'`      |
+| GMSD                 | Gate on the returned score                       | `0.05`, or `0.15` if compressed |
+| SSIM / MS-SSIM       | Gate on the returned score                       | `0.98` for full-page shots  |
+
+Percentage thresholds travel better than pixel counts, because a pixel budget
+tuned on a 1280px viewport becomes far too strict at 4K.
+
+## Using them from a test
+
+Every metric is available through the same matcher:
+
+```ts
+import "@blazediff/vitest"; // or @blazediff/jest, @blazediff/bun
+
+await expect(screenshot).toMatchImageSnapshot({ method: "core-native" });
+await expect(screenshot).toMatchImageSnapshot({ method: "gmsd" });
+await expect(screenshot).toMatchImageSnapshot({ method: "ssim" });
+await expect(screenshot).toMatchImageSnapshot({ method: "hitchhikers-ssim" });
+```
+
+And from the CLI:
+
+```bash
+blazediff-cli baseline.png current.png diff.png   # core-native, the default
+blazediff-cli gmsd baseline.png current.png
+blazediff-cli ssim baseline.png current.png
+blazediff-cli hitchhikers-ssim baseline.png current.png
+```
+
+## Measured cost
+
+Numbers from the [pixel benchmarks](/benchmarks/pixel-by-pixel) and
+[structural benchmarks](/benchmarks/structural), M1 Max, Node 22:
+
+- Pixel diff, 4K pair, native Rust with image IO included: **215-269ms**
+- Pixel diff, 4K pair, pure JS with IO excluded: **97-136ms**
+- Hitchhiker's SSIM: about **4x faster** than standard SSIM
+- GMSD: a single pass with two 3x3 convolutions, cheaper than SSIM
+
+Next: [What is SSIM →](/docs/metrics/ssim) ·
+[How GMSD works →](/docs/metrics/gmsd) ·
+[Structural comparison examples →](/docs/structural-comparison)
+
+---
+
+# What Is SSIM?
+
+**SSIM (Structural Similarity Index) scores how similar two images look, on a
+scale from 0 to 1.** Instead of counting pixels that changed, it slides a window
+over both images and compares three things inside each window: brightness,
+contrast, and structure. `1` means identical. Pixel diffing answers "how many
+pixels changed". SSIM answers "would a person see a difference".
+
+## SSIM vs pixel-by-pixel comparison
+
+|                            | Pixel-by-pixel                          | SSIM                                  |
+| -------------------------- | --------------------------------------- | ------------------------------------- |
+| What it measures           | How many pixels changed                 | How different the images look         |
+| Output                     | Pixel count and percentage              | One score, 0 to 1, higher is better   |
+| Unit of work               | One pixel at a time                     | A window of pixels (11x11 by default) |
+| Compression artifacts      | Counted as real changes                 | Mostly ignored                        |
+| Anti-aliasing on edges     | Counted unless you filter it            | Mostly ignored                        |
+| A block of text moved 1px  | Every pixel in and around it counts     | Scored as one local structure change  |
+| Shows you where            | Yes, a diff image                       | Yes, an SSIM map                      |
+| Speed                      | Fastest                                 | Slower, more math per pixel           |
+
+Pixel diffing is exact and cheap, so it stays the right default. Reach for SSIM
+when exact matching is too strict: JPEG artifacts, font and GPU rendering that
+differs between machines, or screenshots that get re-encoded somewhere in the
+pipeline.
+
+## How the score is computed
+
+For each window, SSIM takes the mean, the variance, and the covariance of the two
+images:
+
+```
+mu_x  = mean(x)      mu_y  = mean(y)
+var_x = var(x)       var_y = var(y)
+cov   = cov(x, y)
+```
+
+Those feed three terms - luminance, contrast, and structure - which are
+multiplied together:
+
+```
+SSIM(x,y) = l(x,y) * c(x,y) * s(x,y)
+
+l(x,y) = (2 * mu_x * mu_y + C1) / (mu_x^2 + mu_y^2 + C1)
+c(x,y) = (2 * sd_x * sd_y + C2) / (var_x + var_y + C2)
+s(x,y) = (cov + C2/2) / (sd_x * sd_y + C2/2)
+```
+
+Which collapses to the form usually quoted:
+
+```
+SSIM(x,y) = ((2*mu_x*mu_y + C1) * (2*cov + C2))
+          / ((mu_x^2 + mu_y^2 + C1) * (var_x + var_y + C2))
+```
+
+`C1` and `C2` only exist to stop the fractions blowing up when a window is flat
+(a solid background, where the means and variances are near zero):
+
+```
+C1 = (K1 * L)^2      K1 = 0.01
+C2 = (K2 * L)^2      K2 = 0.03
+L  = 255             dynamic range for 8-bit images
+```
+
+The default window is 11x11 Gaussian with sigma 1.5, so pixels near the middle of
+the window count more than pixels at its edge. The final score is the mean of
+every window's SSIM.
+
+`@blazediff/ssim` matches the reference MATLAB implementation to within 0.01%.
+
+## Reading the score
+
+| Score       | Meaning                    |
+| ----------- | -------------------------- |
+| `1.00`      | Identical                  |
+| `0.95-1.00` | Excellent, safe to pass    |
+| `0.85-0.95` | Good, small visible change |
+| `0.70-0.85` | Fair, clearly different    |
+| `< 0.70`    | Poor, large change         |
+
+For UI screenshots the useful band is narrow. A real regression on a page that is
+mostly whitespace can still score above `0.98`, so pick your threshold from your
+own baselines rather than from this table.
+
+## Three variants
+
+| Variant             | Import                              | What changes                                                    | Use it for                       |
+| ------------------- | ----------------------------------- | --------------------------------------------------------------- | -------------------------------- |
+| SSIM                | `@blazediff/ssim/ssim`              | Gaussian windows, one scale                                      | Matching published/MATLAB results |
+| MS-SSIM             | `@blazediff/ssim/msssim`            | 5 scales, downsampled 2x each step, weighted geometric mean       | Images seen at different sizes   |
+| Hitchhiker's SSIM   | `@blazediff/ssim/hitchhikers-ssim`  | Rectangular non-overlapping windows via integral images, ~4x faster | Large batches in CI            |
+
+MS-SSIM computes contrast and structure at every scale but luminance only at the
+coarsest one, then combines them with the default weights
+`[0.0448, 0.2856, 0.3001, 0.2363, 0.1333]`. It correlates better with human
+judgement when the image will be viewed at more than one size.
+
+Hitchhiker's SSIM swaps the Gaussian window for a rectangular one and uses
+integral images, which makes each window O(1) instead of O(window size). Windows
+do not overlap by default (`windowStride` defaults to `windowSize`). It pools with
+coefficient of variation rather than a plain mean.
+
+## Run it
+
+```bash
+npm install @blazediff/ssim
+```
+
+```ts
+import ssim from "@blazediff/ssim/ssim";
+
+const score = ssim(image1, image2, undefined, width, height);
+if (score < 0.98) throw new Error(`too different: ${score}`);
+```
+
+Pass an output buffer as the third argument to get the SSIM map back as a
+grayscale image - dark areas are where the two images disagree.
+
+From the CLI:
+
+```bash
+blazediff-cli ssim baseline.png current.png
+blazediff-cli ssim baseline.png current.png --output ssim-map.png
+```
+
+In a test:
+
+```ts
+await expect(screenshot).toMatchImageSnapshot({ method: "ssim" });
+```
+
+> **Info:** Options: `windowSize` (default `11`), `k1` (`0.01`), `k2` (`0.03`), `L` (`255`). Full signature in the [`@blazediff/ssim` reference](/apis/ssim).
+
+## When SSIM is the wrong tool
+
+- **You need to know exactly what changed.** SSIM gives one number. Use
+  [pixel diffing](/docs/pixel-comparison/vanilla-javascript) or
+  [interpret mode](/docs/difference-analysis) for regions and change types.
+- **The change is tiny but important.** A single wrong character in a heading
+  barely moves the score on a full-page screenshot.
+- **Only the colors changed.** SSIM works on luminance, so a red button turning
+  green can score near `1.0`. Pixel diffing catches that; SSIM does not.
+- **You need speed above all.** The native pixel core is faster by a wide margin.
+
+## Reference
+
+Wang, Z., Bovik, A. C., Sheikh, H. R., & Simoncelli, E. P. (2004). "Image quality
+assessment: from error visibility to structural similarity." *IEEE Transactions on
+Image Processing*, 13(4), 600-612.
+
+Next: [How GMSD works →](/docs/metrics/gmsd) ·
+[Choosing a metric →](/docs/metrics/choosing-a-metric)
+
+---
+
+# How GMSD Works
+
+**GMSD (Gradient Magnitude Similarity Deviation) scores how different two images
+are by comparing their edges.** It runs an edge filter over both images, measures
+how well the edge strengths agree at every pixel, then returns the standard
+deviation of those agreements. `0` means identical, and lower is better - the
+opposite direction from SSIM.
+
+The idea behind it: what people notice in a broken render is distorted structure -
+shifted text, a missing border, a control that changed shape. Edges are where
+structure lives, so comparing edges catches those changes and ignores flat areas
+where nothing interesting happens.
+
+## The four steps
+
+### 1. Downsample (optional)
+
+Average each 2x2 block, then keep every second pixel. This halves each dimension
+and removes high-frequency noise before anything else runs. Off by default
+(`downsample: 0`).
+
+```
+aveKernel = [0.25  0.25]
+            [0.25  0.25]
+```
+
+### 2. Find the edges with a Prewitt filter
+
+Both images are converted to luminance and convolved with two 3x3 kernels, one for
+horizontal change and one for vertical:
+
+```
+dx = [ 1  0  -1]  / 3       dy = [ 1   1   1]  / 3
+     [ 1  0  -1]                 [ 0   0   0]
+     [ 1  0  -1]                 [-1  -1  -1]
+```
+
+The gradient magnitude at each pixel is how strong the edge is there, in any
+direction:
+
+```
+gradient = sqrt(Ix^2 + Iy^2)
+```
+
+You now have two edge maps, one per image.
+
+### 3. Compare the two edge maps
+
+For every pixel, gradient magnitude similarity (GMS) compares the two edge
+strengths:
+
+```
+GMS = (2 * g1 * g2 + C) / (g1^2 + g2^2 + C)
+```
+
+`C = 170` is a stability constant tuned for the Prewitt operator on 8-bit images.
+It stops the fraction from being noisy in flat regions where both gradients are
+near zero. GMS lands between 0 and 1, where 1 means the two images have the same
+edge strength at that pixel.
+
+### 4. Take the standard deviation
+
+```
+GMSD = std(GMS)
+```
+
+This is the part that surprises people: GMSD reports the *spread* of the
+similarity map, not its average. That is deliberate. A page where one component
+is badly broken and everything else is fine has a high spread, and that is what a
+reviewer would flag. A mean would average that damage away against the thousands
+of pixels that are fine.
+
+## Reading the score
+
+| Score       | Meaning                    |
+| ----------- | -------------------------- |
+| `0.00`      | Identical                  |
+| `0.00-0.05` | Very low, likely artifacts |
+| `0.05-0.15` | Low but visible            |
+| `0.15-0.35` | Moderate, clearly changed  |
+| `> 0.35`    | Large structural change    |
+
+For visual regression, treat anything above `0.0` as worth looking at when you
+control the render, and raise the gate to about `0.15` if screenshots pass through
+lossy compression.
+
+## GMSD vs SSIM
+
+|                   | GMSD                            | SSIM                                   |
+| ----------------- | ------------------------------- | -------------------------------------- |
+| Direction         | Lower is better, `0` = identical | Higher is better, `1` = identical      |
+| Looks at          | Edge strength                   | Brightness, contrast, structure        |
+| Aggregation       | Standard deviation of the map   | Mean of the map                        |
+| Cost              | One pass, two 3x3 convolutions  | Windowed statistics over the whole image |
+| Strong at         | Layout and shape changes        | General perceived quality              |
+| Blind to          | Color-only changes, uniform shifts in brightness | Color-only changes |
+
+They disagree in a useful way. GMSD reacts to a control that moved; SSIM reacts to
+a section that got blurrier. Running both is cheap and the pair is more honest
+than either alone.
+
+## Run it
+
+```bash
+npm install @blazediff/gmsd
+```
+
+```ts
+import gmsd from "@blazediff/gmsd";
+
+const score = gmsd(image1, image2, undefined, width, height);
+if (score > 0.05) throw new Error(`too different: ${score}`);
+```
+
+Pass an output buffer as the third argument to get the GMS map back as a grayscale
+image, which shows exactly which edges disagreed.
+
+From the CLI:
+
+```bash
+blazediff-cli gmsd baseline.png current.png
+blazediff-cli gmsd baseline.png current.png --output gms-map.png
+```
+
+In a test:
+
+```ts
+await expect(screenshot).toMatchImageSnapshot({ method: "gmsd" });
+```
+
+> **Info:** Options: `downsample` (`0` or `1`, default `0`) and `c` (default `170`). Raising `c` makes the metric more forgiving in low-contrast areas. Full signature in the [`@blazediff/gmsd` reference](/apis/gmsd).
+
+## When GMSD is the wrong tool
+
+- **Color-only changes.** GMSD works on luminance gradients. Swapping a brand
+  color for another of the same brightness barely registers.
+- **You need to know where and what.** One number will not tell you a button
+  moved. Use [interpret mode](/docs/difference-analysis) for regions and change
+  types.
+- **Exact matching is the requirement.** For byte-level correctness, use
+  [pixel diffing](/docs/pixel-comparison/vanilla-javascript).
+
+## Reference
+
+Xue, W., Zhang, L., Mou, X., & Bovik, A. C. (2013). "Gradient Magnitude Similarity
+Deviation: A Highly Efficient Perceptual Image Quality Index." *IEEE Transactions
+on Image Processing*, 22(2), 684-695.
+
+Next: [What is SSIM →](/docs/metrics/ssim) ·
+[Choosing a metric →](/docs/metrics/choosing-a-metric)
 
 ---
 
@@ -3922,6 +4369,37 @@ blazediff-agent rewrite agent --json       # by id
 blazediff-agent rewrite --failed --json    # all failures from the last check
 ```
 
+## Why agents fail at visual review
+
+Handing a coding agent two screenshots and asking "what changed" fails reliably.
+The failures have specific causes, and the judgment request is shaped to avoid
+each one.
+
+| Failure                                                                                      | Cause                                                                                    | What BlazeDiff does                                                                          |
+| -------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| Agent invents differences that are not there                                                  | Asked to compare two images in one pass, it narrates a plausible diff instead of reading one | Regions are found deterministically first; the agent only labels changes that were measured    |
+| Agent misses a real change                                                                    | On a full-page 4K PNG the change is a fraction of a percent of the pixels                  | `regions.png` crops each changed area to `[baseline \| actual]` pairs, so it fills the frame   |
+| Agent cannot say where on the page something is                                               | Crops have no context                                                                      | `locator.png` is a ~400px overview with every region outlined in red                           |
+| Verdicts contradict each other between runs                                                   | Every diff gets asked, including obvious ones                                              | A heuristic settles the confident cases; only `ambiguous` reaches the agent                    |
+| Review burns tokens or times out                                                              | Full-page PNGs, re-sent on every retry                                                     | Tiles are 10–100× smaller; the run is checkpointed and resumes instead of restarting           |
+| Agent "fixes" the failure by re-baselining                                                    | Judging and accepting are the same action                                                  | Verdicts are advisory. `rewrite` is a separate command, blocked in CI                          |
+
+The rule underneath all of it: **describe each side separately, then diff the
+descriptions**. A model asked to compare two images in one step will fill gaps
+with what it expects to see. A model asked what a single crop contains is
+answering a much easier question, and the comparison afterwards is arithmetic.
+The `--judge local` backend follows the same shape - Moondream describes, then a
+deterministic word diff runs, then Qwen classifies the result.
+
+If your agent is still returning bad verdicts, check in this order:
+
+1. Is it reading `regions.png` and `locator.png`, or reaching straight for the
+   full-page PNGs? The full pages are a fallback, not the input.
+2. Is the entry actually `ambiguous`? A `regression-likely` entry does not need a
+   verdict, it needs a look.
+3. Is the diff real, or is the region non-deterministic? Masking a flake is
+   correct; asking an agent to rule on a spinner is not.
+
 ## Harnesses
 
 A **harness** is a pluggable ESM script in `.blazediff/harnesses/<name>.js`,
@@ -4184,5 +4662,1629 @@ const newObj = {
 
 const changes = diff(oldObj, newObj);
 ```
+
+---
+
+# Guides
+
+# Let Claude Code Review Your Visual Diffs
+
+**`@blazediff/agent` installs a skill into your repo that lets Claude Code look at
+failing screenshot diffs and decide whether they are real regressions.** BlazeDiff
+does the deterministic part - capture, diff, classify. Claude Code only sees the
+cases the thresholds could not settle, and answers pass or fail with a reason. No
+API key, no hosted vision service, and no screenshot leaves your machine.
+
+## Set it up
+
+```bash
+npm install --save-dev @blazediff/agent
+```
+
+```bash
+blazediff-agent onboard --stack claude
+```
+
+That writes three things:
+
+| Path                                    | What it is                                  |
+| --------------------------------------- | ------------------------------------------- |
+| `.claude/skills/blazediff/SKILL.md`     | The skill Claude Code loads                 |
+| `.blazediff/config.json`                | Dev server command, port, base URL          |
+| `.blazediff/`                           | Baselines and manifest, committed to git     |
+
+Onboarding auto-detects the stack when it finds `.claude/`, `CLAUDE.md`, or
+`AGENTS.md`, so `--stack claude` is only needed when you want to be explicit. Pass
+`--stack all` to install for Claude Code, Codex, and Cursor at once.
+
+## Use it
+
+In Claude Code:
+
+```
+/blazediff
+```
+
+The skill picks its own mode. No `.blazediff/manifest.json` yet means authoring:
+it discovers routes, captures baselines, and commits them. A manifest already
+there means checking: re-capture, diff, and report.
+
+Under the hood it is running the same CLI you would run by hand:
+
+```bash
+blazediff-agent check --judge host --json
+```
+
+## What Claude Code actually sees
+
+This is the part that decides whether the review is any good. BlazeDiff does not
+hand over two full-page PNGs and ask "spot the difference" - that is the setup
+where agents hallucinate. Instead, for each ambiguous entry it writes a judgment
+request to `.blazediff/judgments/<id>/request.json` containing:
+
+- `regions[]` - a bounding box, pixel count, and change type for each changed area
+- `locator.png` - a ~400px overview with those regions outlined in red
+- `regions.png` - a vertical stack of `[baseline | actual]` crops, one per region
+- the full-page PNGs, as a fallback only
+
+The region tiles are 10 to 100x smaller than the full-page images. Claude Code
+reads the crops, not the page, so the decision is cheap and the relevant pixels
+fill the frame.
+
+> **Info:** Most diffs never reach Claude Code. A heuristic pass labels each failure `regression-likely`, `intentional-likely`, `noise-likely`, or `ambiguous`. Only `ambiguous` is handed over.
+
+## The verdict loop
+
+Claude Code writes its answer to `.blazediff/judgments/<id>/verdict.json`:
+
+```json
+{
+  "id": "pricing",
+  "verdict": {
+    "label": "intentional-likely",
+    "headline": "Button padding increased, no layout break",
+    "action": "rewrite-if-intended"
+  },
+  "confidence": 0.92
+}
+```
+
+Then the run resumes without re-screenshotting anything:
+
+```bash
+blazediff-agent check --apply-judgments --json
+```
+
+If the change was intended, accept it:
+
+```bash
+blazediff-agent rewrite pricing --json     # one entry
+blazediff-agent rewrite --failed --json    # everything that failed
+```
+
+`rewrite` regenerates only the PNG. Mask, viewport, and wait conditions are
+preserved.
+
+The check itself is suspendable. It runs as a graph that pauses on the first
+ambiguous entry and resumes from an on-disk checkpoint, so a long suite does not
+restart from zero every time a verdict comes in.
+
+## Why not just paste screenshots into the chat
+
+| Pasting screenshots            | This                                              |
+| ------------------------------ | ------------------------------------------------- |
+| Agent compares whole pages     | Agent compares one cropped region at a time        |
+| No record of the decision      | Verdict, reason, and confidence written to disk    |
+| Re-run means re-explaining     | Checkpointed, resumes where it stopped             |
+| Agent judges every diff        | Thresholds settle most of them first               |
+| Costs scale with page size     | Tiles are 10 to 100x smaller than full pages       |
+
+## Keeping it honest
+
+The agent decides; it does not get to quietly change the baseline. `rewrite` is a
+separate command, blocked in CI, and every baseline change lands in git as a PNG
+diff a human can look at in the pull request.
+
+> **Warning:** In CI (`CI=1` or no TTY) only `check` runs. `onboard`, `capture`, `rewrite`, and `reset` are blocked, so baselines only change on a developer machine where the change can be reviewed.
+
+## Next
+
+- [Setting up →](/docs/agentic-testing/setting-up)
+- [Judging and harnesses →](/docs/agentic-testing/judging-and-harnesses)
+- [Running it in GitHub Actions →](/guides/github-actions-agent-judged-screenshots)
+- [Same loop in Cursor →](/guides/cursor-visual-qa) ·
+  [in Codex →](/guides/codex-visual-review)
+
+---
+
+# Use Cursor as a Visual QA Agent
+
+**`@blazediff/agent` installs a Cursor rule that lets the agent act as a visual QA
+reviewer on your local screenshots.** BlazeDiff captures the pages, diffs them
+against committed baselines, and classifies what changed. Cursor only gets the
+diffs the thresholds could not settle, as cropped before/after tiles, and returns
+a pass or fail with a reason. Everything stays on disk in your repo.
+
+## Set it up
+
+```bash
+npm install --save-dev @blazediff/agent
+```
+
+```bash
+blazediff-agent onboard --stack cursor
+```
+
+This writes `.cursor/rules/blazediff.mdc` alongside `.blazediff/config.json` and
+your baselines. Detection triggers on `.cursor/` or `.cursorrules`, so plain
+`onboard` usually picks Cursor on its own.
+
+The rule ships with `alwaysApply: false`. It loads when you mention visual tests,
+screenshot regressions, or type `/blazediff` - it does not sit in your context on
+every unrelated request.
+
+## Use it
+
+Ask in the Cursor chat:
+
+```
+run the visual tests and tell me if anything actually broke
+```
+
+Or trigger it directly with `/blazediff`. The rule handles both jobs: authoring
+baselines when `.blazediff/manifest.json` does not exist yet, and checking when it
+does.
+
+## What Cursor reviews
+
+Not full-page screenshots. For each ambiguous entry, BlazeDiff writes
+`.blazediff/judgments/<id>/request.json` with:
+
+- `regions[]` - bounding box, pixel count, and change type per changed area
+- `locator.png` - a ~400px overview with the regions outlined in red
+- `regions.png` - a vertical stack of `[baseline | actual]` crops
+- the full-page PNGs, as fallback
+
+Cursor reads the crops first. They are 10 to 100x smaller than the full pages, so
+the changed pixels fill the frame instead of being three percent of a 4K
+screenshot.
+
+> **Info:** A heuristic pass labels every failure `regression-likely`, `intentional-likely`, `noise-likely`, or `ambiguous` before the agent is involved. Only `ambiguous` entries are handed over.
+
+## The loop
+
+1. `blazediff-agent check --judge host --json` runs and suspends on the first
+   ambiguous entry.
+2. Cursor reads the request, looks at the tiles, and writes
+   `.blazediff/judgments/<id>/verdict.json`.
+3. `blazediff-agent check --apply-judgments --json` merges verdicts in. Nothing is
+   re-screenshotted.
+4. Intentional changes get accepted with `blazediff-agent rewrite <id>`.
+
+The run is checkpointed, so step 3 picks up where step 1 stopped instead of
+starting the suite over.
+
+## Reviewing by hand instead
+
+The agent is not required. To look at the diffs yourself:
+
+```bash
+blazediff-agent review
+```
+
+That serves a local approve/reject webapp on `127.0.0.1`. Same report, no agent,
+nothing uploaded.
+
+## What this costs
+
+Nothing beyond the Cursor subscription you already pay for. There is no BlazeDiff
+API key, no per-snapshot pricing, and no vision service in the loop. Screenshots
+are files in your repo.
+
+## Next
+
+- [Setting up →](/docs/agentic-testing/setting-up)
+- [Judging and harnesses →](/docs/agentic-testing/judging-and-harnesses)
+- [Same loop in Claude Code →](/guides/claude-code-visual-review) ·
+  [in Codex →](/guides/codex-visual-review)
+- [Running it in CI →](/guides/github-actions-agent-judged-screenshots)
+
+---
+
+# Codex Visual Review
+
+**`@blazediff/agent` installs a Codex skill that judges failing screenshot diffs
+from the terminal.** Every command is a plain CLI verb with `--json` output, so
+the same loop works inside Codex, inside a shell script, or inside CI. BlazeDiff
+handles capture, diff, and classification; Codex only decides the cases the
+thresholds could not.
+
+## Set it up
+
+```bash
+npm install --save-dev @blazediff/agent
+```
+
+```bash
+blazediff-agent onboard --stack codex
+```
+
+> **Warning:** The Codex skill installs at **user scope**, to `~/.codex/skills/blazediff/SKILL.md`, not into the repo. It applies to every project on the machine. Restart Codex after installing so it picks the skill up.
+
+Detection triggers on `AGENTS.md`, `.codex/`, or `~/.codex`. Project files -
+`.blazediff/config.json`, the manifest, and baselines - still live in the repo and
+still get committed.
+
+## The terminal loop
+
+Every step is a command, and every command takes `--json`:
+
+```bash
+blazediff-agent check --judge host --json      # suspends on the first ambiguous diff
+# ... agent writes .blazediff/judgments/<id>/verdict.json ...
+blazediff-agent check --apply-judgments --json # resume, no re-screenshot
+blazediff-agent rewrite <id> --json            # accept an intentional change
+```
+
+`check --json` returns a slim payload on purpose - `summaryPath`, `totalEntries`,
+`passed`, `failed`, `pendingJudgments`, and a `results` array that lists non-pass
+entries only. Full per-entry detail stays on disk in `.blazediff/summary.md` and
+`.blazediff/judgments/<id>/request.json`, so a terminal agent parses a few fields
+instead of swallowing a report.
+
+## Hooking in your own inspection logic
+
+Three extension points, in order of how deep they go.
+
+### 1. Harnesses - drive the page before the screenshot
+
+A harness is an ESM module in `.blazediff/harnesses/<name>.js` that gets the
+Playwright `page`. Use it to log in, open a menu, seed state, or take extra named
+screenshots.
+
+```js
+// .blazediff/harnesses/dark-mode.js
+/** @type {import("@blazediff/agent").Harness} */
+export default {
+  async run({ page, screenshot }) {
+    await page.emulateMedia({ colorScheme: "dark" });
+    await screenshot("dark"); // becomes its own baseline entry
+  },
+};
+```
+
+Attach per entry:
+
+```json
+{ "id": "home", "url": "/", "harnesses": ["dark-mode"] }
+```
+
+`phase: "setup"` runs before navigation (for auth); the default `interact` phase
+runs after the base screenshot.
+
+### 2. Judge backend - who decides ambiguous diffs
+
+```bash
+blazediff-agent check --judge host    # your coding agent decides
+blazediff-agent check --judge local   # local models decide, no host round-trip
+blazediff-agent check --judge none    # no judgment, ambiguous entries just fail
+```
+
+`--judge local` runs Moondream to describe each region and Qwen to classify it,
+entirely on your machine. Useful for headless runs with no agent attached.
+
+### 3. Your own logic on top of the JSON
+
+The report is a file. Anything that reads JSON can gate on it:
+
+```bash
+blazediff-agent check --judge none --json > report.json
+node ./scripts/my-inspection.mjs report.json
+```
+
+Region data, change types, severity, and file paths for baseline, actual, and diff
+are all in `.blazediff/judgments/<id>/request.json`.
+
+## Exit codes
+
+| Code             | Meaning                                                     |
+| ---------------- | ----------------------------------------------------------- |
+| `0`              | Every entry passed                                           |
+| `1`              | A regression, intentional, noise, or pending-judgment entry  |
+| non-zero + JSON  | Infra failure (missing manifest, no Chromium)                |
+
+A route that times out is logged once and skipped. It never blocks the run.
+
+## Next
+
+- [Judging and harnesses →](/docs/agentic-testing/judging-and-harnesses)
+- [Running it in GitHub Actions →](/guides/github-actions-agent-judged-screenshots)
+- [Same loop in Claude Code →](/guides/claude-code-visual-review) ·
+  [in Cursor →](/guides/cursor-visual-qa)
+
+---
+
+# Agent-Judged Screenshots in GitHub Actions
+
+**CI detects, an agent judges.** `blazediff-agent check` re-captures every route,
+diffs it against the committed baseline, and classifies each failure. Ambiguous
+diffs go to a judge - either local models running inside the job, or the
+developer's coding agent on their own machine. Nothing is uploaded to a vision
+service and there is no API key.
+
+## Pick where judgment happens
+
+| Backend         | Runs where             | Use it when                                            |
+| --------------- | ---------------------- | ------------------------------------------------------ |
+| `--judge none`  | Nowhere                | Default CI gate. Ambiguous entries fail; a human looks  |
+| `--judge local` | Inside the CI job      | You want a verdict without a human, no keys, no network |
+| `--judge host`  | Developer's machine    | The coding agent reviews the diff during the PR         |
+
+Most teams run `none` in CI and `host` locally. `local` is the option when the job
+itself has to decide.
+
+## The workflow
+
+```yaml
+name: visual
+on: pull_request
+
+jobs:
+  visual:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: pnpm install
+
+      - run: npx blazediff-agent browsers install
+
+      - run: npx blazediff-agent check --json --junit visual.xml
+        env:
+          # Only if an entry uses a login harness. One pair per persona.
+          BLAZEDIFF_AUTH_DEFAULT_EMAIL: ${{ secrets.BLAZEDIFF_AUTH_DEFAULT_EMAIL }}
+          BLAZEDIFF_AUTH_DEFAULT_PASSWORD: ${{ secrets.BLAZEDIFF_AUTH_DEFAULT_PASSWORD }}
+
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: blazediff
+          path: .blazediff/
+```
+
+`browsers install` pulls the bundled Chromium - no `sudo`, no
+`playwright install --with-deps`. In a monorepo, point the run at one app with
+`--cwd`:
+
+```yaml
+- run: npx blazediff-agent --cwd apps/website check --json
+```
+
+> **Warning:** **CI is check-only.** When `CI=1` or there is no TTY, `onboard`, `capture`, `rewrite`, and `reset` are blocked. Baselines can only change on a developer machine, where the change shows up as a PNG diff in the pull request.
+
+## Judging inside the job
+
+To get a verdict without a human, run the local judge:
+
+```yaml
+- run: npx blazediff-agent check --judge local --json
+```
+
+Moondream describes each changed region, Qwen classifies it, both on the runner.
+No API key, no network call, nothing leaves the job. It is slower than `--judge
+none` because the models have to load, so use it on the visual job rather than on
+every job.
+
+## Judging from the pull request
+
+The other pattern keeps CI dumb and puts the agent where the developer is.
+
+1. CI runs `check --judge none` and fails. The `.blazediff/` artifact holds the
+   judgment requests, region tiles, and diffs.
+2. The developer pulls the branch and runs their agent - `/blazediff` in Claude
+   Code, Cursor, or Codex.
+3. The agent reads `.blazediff/judgments/<id>/request.json`, looks at the cropped
+   `[baseline | actual]` tiles, and writes a verdict.
+4. `blazediff-agent check --apply-judgments` merges the verdicts. Intentional
+   changes get `blazediff-agent rewrite <id>`, which updates the baseline PNG.
+5. The updated baseline is committed, and the next CI run is green.
+
+The agent never has to re-run the browser. Step 4 works purely from files on disk.
+
+## Making the failure readable
+
+```bash
+blazediff-agent check --junit visual.xml --json
+```
+
+`--junit` writes JUnit XML that GitHub's test reporters and most CI dashboards
+render natively. The human-readable version is `.blazediff/summary.md`, which is
+in the uploaded artifact.
+
+For local review of a downloaded artifact:
+
+```bash
+blazediff-agent review
+```
+
+That serves an approve/reject webapp on `127.0.0.1` - the report, the diffs, and
+nothing on the network.
+
+## Keeping the job fast and stable
+
+| Problem                             | Fix                                                        |
+| ----------------------------------- | ----------------------------------------------------------- |
+| Job is slow                         | `--concurrency <n>`, defaults to CPU count capped at 8      |
+| Diff PNGs not needed on green runs  | `--no-diff-png`                                             |
+| Fonts render differently than local | Capture baselines in the same Linux container CI uses        |
+| A widget flickers between runs      | Mask it, do not re-baseline it                              |
+| Slow route blocks everything        | Timeouts are logged once and skipped, never fatal            |
+
+Rendering differences between a developer's macOS and CI's Linux are the most
+common source of noise here. That has its own guide:
+[cross-OS false positives](/guides/cross-os-false-positives).
+
+## Next
+
+- [Running in CI →](/docs/agentic-testing/running-in-ci)
+- [Judging and harnesses →](/docs/agentic-testing/judging-and-harnesses)
+- [Claude Code →](/guides/claude-code-visual-review) ·
+  [Cursor →](/guides/cursor-visual-qa) ·
+  [Codex →](/guides/codex-visual-review)
+
+---
+
+# Fix Cross-OS False Positives
+
+**The same page rendered on macOS and on Linux is not the same image, and no
+threshold makes that go away cleanly.** Fonts are hinted differently, text is
+anti-aliased differently, and color profiles differ. The fix, in order: capture
+baselines on the platform CI uses, harden the browser so rendering is
+deterministic, mask what is genuinely non-deterministic, and only then loosen
+thresholds.
+
+## Why it happens
+
+| Cause                     | What it looks like                                        |
+| ------------------------- | ---------------------------------------------------------- |
+| Font hinting              | Every glyph shifts a fraction of a pixel. Whole page differs |
+| Subpixel anti-aliasing    | Colored fringes on text edges (LCD text)                   |
+| Missing fonts             | A fallback font renders. Large, obvious diff                |
+| Color profile             | Every color off by one or two. 100% of pixels differ        |
+| GPU vs software raster    | Gradients, shadows, and blurs differ slightly               |
+| Scrollbars                | A scrollbar appears on one OS and shifts the layout         |
+| Device pixel ratio        | The whole screenshot is a different size                    |
+
+Note the pattern: most of these change *every* pixel a little, not a few pixels a
+lot. That is why a pixel-count threshold is the wrong tool - the diff is 100% of
+the page at very low intensity.
+
+## 1. Capture baselines where CI runs
+
+This is the actual fix. Everything below reduces leftover noise; this removes the
+category.
+
+```bash
+docker run --rm -v "$PWD":/app -w /app node:22-bookworm \
+  npx blazediff-agent onboard --yes
+```
+
+Use the same image CI uses. Commit `.blazediff/` from that run. Developers on
+macOS then run `check` against Linux baselines - which will fail locally, and
+should. Local runs are for authoring; the verdict that matters is CI's.
+
+> **Info:** If developers need green local runs too, capture two baseline sets in separate directories and point `--cwd` at the right one per environment. It costs a second set of PNGs in git and removes the argument entirely.
+
+## 2. Pin the browser
+
+`@blazediff/agent` bundles its own Chromium:
+
+```bash
+blazediff-agent browsers install
+```
+
+One binary, same version everywhere. A system Chrome that auto-updates will change
+your renders under you.
+
+## 3. Harden the render
+
+`@blazediff/agent` already launches Chromium with the flags that remove
+OS-dependent rendering:
+
+| Flag                          | Removes                                     |
+| ----------------------------- | -------------------------------------------- |
+| `--font-render-hinting=none`  | OS font hinting differences                  |
+| `--disable-lcd-text`          | Subpixel anti-aliasing colored fringes       |
+| `--force-color-profile=srgb`  | Display color profile differences            |
+| `--disable-skia-runtime-opts` | CPU-feature-dependent rasterization paths    |
+| `--hide-scrollbars`           | Scrollbar-induced layout shift               |
+
+Rolling your own Playwright setup? Copy that list. It is most of the battle.
+
+## 4. Freeze everything that moves
+
+Layout shift and animation cause the other half of nightly flakes. The agent
+injects CSS that zeroes every `animation-duration` and `transition-duration`,
+pins `animation-iteration-count` to 1, makes the text caret transparent, and
+disables smooth scrolling. Screenshots are also taken with Playwright's
+`animations: "disabled"`.
+
+It also freezes the sources of per-run randomness before any page script runs:
+
+| Source             | Replaced with                        |
+| ------------------ | ------------------------------------ |
+| `Date.now()`       | A fixed timestamp                    |
+| `performance.now()`| A counter ticking 16.6667ms per call |
+| `Math.random()`    | A seeded generator                    |
+| `crypto.randomUUID()` | A counter                         |
+
+That kills "posted 3 minutes ago", randomized placeholder content, and
+animation timing that depends on wall-clock time.
+
+## 5. Wait for the page to settle
+
+Set `waitFor` per entry. It accepts `"networkidle"`, `"fonts"`, or a selector:
+
+```json
+{
+  "id": "dashboard",
+  "url": "/dashboard",
+  "waitFor": ["fonts", "networkidle", { "selector": "[data-loaded]" }]
+}
+```
+
+`"fonts"` is the one people forget. A screenshot taken before webfonts load
+captures the fallback font, and that is a full-page diff.
+
+## 6. Mask what is genuinely non-deterministic
+
+Do not re-baseline a flake - that just resets the clock. Mask it.
+
+```tsx
+<div data-blazediff-agent-mask="live-feed">...</div>
+```
+
+Any element with `data-blazediff-agent-mask` is masked on every route with no
+manifest change. For third-party embeds you cannot edit, use a per-entry selector:
+
+```json
+{ "id": "home", "url": "/", "mask": ["iframe", ".ticker"] }
+```
+
+Mask carousels, live data, third-party iframes, and personalization. Do not mask
+real content that happens to change - that is the change you want caught.
+
+## 7. Only now, loosen the gate
+
+If residue remains, use a percentage threshold rather than a pixel count. A pixel
+budget tuned at 1280px is far too strict at 4K.
+
+```ts
+await expect(screenshot).toMatchImageSnapshot({
+  method: "core-native",
+  failureThreshold: 0.1,
+  failureThresholdType: "percent",
+});
+```
+
+For the low-intensity, everywhere-at-once diff that cross-OS rendering produces, a
+structural metric works better than any pixel threshold:
+
+```bash
+blazediff-cli gmsd baseline.png current.png   # gate around 0.05
+```
+
+[GMSD](/docs/metrics/gmsd) scores edge structure, so uniform sub-pixel differences
+across the whole page barely move it while a component that actually moved does.
+
+## 8. Send what is left to an agent
+
+After all of the above, a handful of diffs per run will still be genuinely
+ambiguous. Those are the ones worth a judgment rather than a threshold:
+
+```bash
+blazediff-agent check --judge host --json
+```
+
+The agent gets cropped `[baseline | actual]` region tiles and answers regression
+or intentional, with a reason.
+[How that works →](/guides/claude-code-visual-review)
+
+## Order of operations
+
+1. Capture baselines in CI's container.
+2. Use the bundled Chromium.
+3. Keep the hardening flags.
+4. Add `waitFor: ["fonts", "networkidle"]`.
+5. Mask non-deterministic regions.
+6. Switch to a percentage threshold.
+7. Add GMSD for low-intensity full-page noise.
+8. Route the remainder to an agent.
+
+Steps 1 through 5 remove causes. Steps 6 and 7 only hide symptoms, so do them
+last, or you will hide a real regression along with the noise.
+
+## Next
+
+- [Anti-aliasing and 1px shifts →](/guides/anti-aliasing-false-positives)
+- [Running in CI →](/docs/agentic-testing/running-in-ci)
+- [Choosing a metric →](/docs/metrics/choosing-a-metric)
+
+---
+
+# Stop Anti-Aliasing and 1px Shifts From Failing CI
+
+**Turn on anti-aliasing detection first.** It finds pixels that differ only
+because an edge was smoothed differently and excludes them from the diff count,
+without loosening anything else. That alone clears most of the churn teams get
+after a CSS framework upgrade. What is left - a block of text that actually moved
+one pixel - is a different problem, and thresholds are the wrong fix for it.
+
+## The defaults are inverted between cores
+
+This trips people up, so check which one you are using:
+
+| Package                                | Option          | Default | Anti-aliased pixels are |
+| -------------------------------------- | --------------- | ------- | ----------------------- |
+| `@blazediff/core` (JS)                 | `includeAA`     | `false` | **ignored**             |
+| `@blazediff/core-native` (Rust, N-API) | `antialiasing`  | `false` | **counted**             |
+| `blazediff-cli core-native`            | `-a, --antialiasing` | off | **counted**             |
+| `blazediff` (Python)                   | `antialiasing`  | `False` | **counted**             |
+| `@blazediff/agent`                     | -               | on      | **ignored**             |
+
+The two options are named for opposite things. `includeAA: true` means "count
+them". `antialiasing: true` means "detect them, so they can be skipped". Both
+default to `false`, which is why the JS core ignores AA out of the box and the
+native core does not.
+
+```ts
+// JS core - already ignoring AA
+import diff from "@blazediff/core";
+const changed = diff(img1, img2, output, width, height);
+
+// Native core - opt in
+import { compare } from "@blazediff/core-native";
+const result = await compare("baseline.png", "current.png", "diff.png", {
+  antialiasing: true,
+});
+```
+
+```bash
+blazediff-cli baseline.png current.png diff.png --antialiasing
+```
+
+## What detection actually does
+
+For each differing pixel, BlazeDiff looks at its eight neighbors and asks whether
+the pixel sits on a smoothed edge:
+
+1. **Count neighbors with no brightness difference.** More than two and this is a
+   flat region, not an edge. Not anti-aliasing.
+2. **Find the darkest and the brightest neighbor.** If there is no gradient at
+   all, it is not anti-aliasing.
+3. **Check that one end of that gradient is solid color.** The pixel counts as
+   anti-aliased if either the darkest or the brightest neighbor has three or more
+   identical neighbors of its own, **in both images**.
+
+That last condition is what makes it safe. An anti-aliased pixel is a blend
+between two solid regions, so at least one end of its gradient must be solid in
+the baseline *and* the current image. A pixel where the surrounding content
+genuinely changed fails that test and still counts.
+
+The check runs in both directions, baseline against current and current against
+baseline. The algorithm is Vysniauskas's anti-aliased pixel and intensity slope
+detector (2009), the same one pixelmatch uses.
+
+A pixel that passes counts as `0` and is painted yellow in the diff image. A pixel
+that fails counts as `1` and is painted red.
+
+So the diff image still shows you every AA pixel. They just do not fail the build.
+Open a diff and look at the color: **yellow is ignored anti-aliasing, red is a
+counted difference.**
+
+> **Info:** Detection costs time - it inspects the neighborhood of every differing pixel. On a clean run with no differences, that cost is zero, because there are no differing pixels to inspect.
+
+## After a CSS framework upgrade
+
+The specific case where teams lose hours: a Tailwind or design-system bump changes
+line height or letter spacing by a fraction, every text block re-flows by a
+sub-pixel, and hundreds of snapshots fail with nothing visibly wrong.
+
+Work through it in this order:
+
+1. **Turn on anti-aliasing detection.** Removes edge-smoothing noise.
+2. **Look at one diff image.** If it is mostly yellow, step 1 solved it. If it is
+   red text outlines, the text genuinely moved.
+3. **Decide once, not per snapshot.** If the shift is real and intended, it is one
+   intentional change across the whole suite, not 300 reviews:
+
+   ```bash
+   blazediff-agent check --judge host --json   # confirm what changed
+   blazediff-agent rewrite --failed --json     # accept all of it
+   ```
+
+4. **Check the diff in the PR.** Baselines are PNGs in git, so the re-baseline is
+   reviewable as a single commit.
+
+## When the content actually shifted one pixel
+
+Anti-aliasing detection will not help here, because the pixels really are
+different. Three options, worst to best:
+
+**Raise the threshold.** Fast, blunt, and hides real regressions in the same band.
+If you do it, use a percentage so it scales with viewport size:
+
+```ts
+await expect(screenshot).toMatchImageSnapshot({
+  method: "core-native",
+  failureThreshold: 0.1,
+  failureThresholdType: "percent",
+});
+```
+
+**Use a structural metric.** [GMSD](/docs/metrics/gmsd) scores edge structure
+rather than counting pixels, so a uniform sub-pixel shift barely moves it while a
+component that changed shape does:
+
+```bash
+blazediff-cli gmsd baseline.png current.png    # gate around 0.05
+```
+
+**Let an agent decide.** A one-pixel shift in a footer and a one-pixel shift that
+breaks a button's alignment are the same number of pixels and completely
+different problems. That distinction needs judgment, not a threshold:
+
+```bash
+blazediff-agent check --judge host --json
+```
+
+The heuristic pass classifies each failure as `regression-likely`,
+`intentional-likely`, `noise-likely`, or `ambiguous`, and only `ambiguous` reaches
+the agent. Most runs hand over nothing.
+
+## Tuning the color threshold
+
+`threshold` is a different knob from anti-aliasing. It sets how far apart two
+pixels must be, in perceptual color distance, before they count as different at
+all.
+
+| Value  | Behavior                                  |
+| ------ | ----------------------------------------- |
+| `0.0`  | Exact match only                          |
+| `0.05` | Strict                                    |
+| `0.1`  | Default, balanced                         |
+| `0.2`  | Lenient                                   |
+
+Raising `threshold` makes every pixel more forgiving, including the ones you care
+about. Prefer anti-aliasing detection, which is targeted, over a higher threshold,
+which is not.
+
+## Quick reference
+
+| Symptom                                        | Fix                                        |
+| ---------------------------------------------- | ------------------------------------------ |
+| Diff image is mostly yellow                    | Already handled. Anti-aliasing is ignored  |
+| Diff image is red text outlines everywhere     | Text moved. Re-baseline once, deliberately |
+| A few red pixels on curved edges               | Turn on anti-aliasing detection            |
+| Every pixel differs slightly                   | Cross-OS rendering, not anti-aliasing      |
+| Fails on 4K, passes on 1280px                  | Use a percentage threshold, not a count    |
+
+## Next
+
+- [Cross-OS false positives →](/guides/cross-os-false-positives)
+- [Choosing a metric →](/docs/metrics/choosing-a-metric)
+- [Judging and harnesses →](/docs/agentic-testing/judging-and-harnesses)
+
+---
+
+# Self-Hosted Visual Regression
+
+**Baselines are PNGs in your git repo, the diff runs on your CI machine, and
+review happens in the pull request or a local webapp.** There is no account, no
+API key, and no per-snapshot charge, so adding a new screen state costs you disk
+space instead of a line item. BlazeDiff is MIT licensed, including commercial and
+closed-source use.
+
+## How the pieces sit
+
+| Concern         | Hosted platform                      | Self-hosted with BlazeDiff              |
+| --------------- | ------------------------------------- | ---------------------------------------- |
+| Baseline storage | Vendor's object storage              | `.blazediff/` in your repo, in git       |
+| Diff compute     | Vendor's workers                     | Your CI runner                           |
+| Review UI        | Vendor's dashboard                   | PR diff, or `blazediff-agent review` locally |
+| Approval record  | Vendor's database                    | A git commit                             |
+| Cost per snapshot| Metered                              | Zero marginal cost                       |
+| Concurrency limit| Plan tier                            | Your runner's CPU count                  |
+| Data location    | Vendor's cloud                       | Your machines                            |
+
+## The cost shape is different
+
+Hosted visual testing bills per snapshot, and a snapshot is one screenshot in one
+browser at one viewport. So cost grows with the product of routes, viewports,
+browsers, and pull requests. Teams notice this when they add a breakpoint or a
+theme, because that multiplies the whole suite at once.
+
+Self-hosting moves the cost into CI minutes, which you were already paying for and
+which grow linearly with routes rather than multiplicatively. A 4K pair diffs in
+215-269ms with image IO included on the native core, so the diff itself is not
+where the time goes - the browser is.
+
+> **Info:** The honest version: you are trading a metered bill for storage and maintenance you own. For a small suite that is clearly better. For 10,000 baselines it means git LFS and a retention policy. Neither is hard, but neither is free of work.
+
+## Set it up
+
+```bash
+npm install --save-dev @blazediff/agent
+```
+
+```bash
+blazediff-agent onboard
+blazediff-agent check --json
+```
+
+`onboard` writes `.blazediff/config.json`, installs the bundled Chromium, and
+captures baselines. Commit `.blazediff/` - config, manifest, and baseline PNGs are
+the source of truth.
+
+In CI, one verb:
+
+```yaml
+- run: npx blazediff-agent browsers install
+- run: npx blazediff-agent check --json --junit visual.xml
+```
+
+Or skip the agent entirely and diff files you already have:
+
+```bash
+blazediff-cli baseline.png current.png diff.png --threshold 0.1
+```
+
+Exit code `0` means match, `1` means differences, `2` means error. That is enough
+to gate any pipeline.
+
+## Review without a dashboard
+
+Two options, both local.
+
+**In the pull request.** Baselines are PNGs in git, so an accepted change shows up
+as an image diff in the PR. The approval record is the commit and its reviewer.
+
+**In a local webapp.**
+
+```bash
+blazediff-agent review
+```
+
+Serves an approve/reject UI on `127.0.0.1` reading the report on disk. Nothing is
+uploaded. Useful for triaging a downloaded CI artifact.
+
+For machine-readable output, `check --json` returns a slim payload and `--junit`
+writes JUnit XML that CI dashboards render natively.
+
+## Who decides on ambiguous diffs
+
+This is the part self-hosting usually loses, because the hosted platforms bundle
+a review workflow. BlazeDiff's answer is a heuristic pass plus your own coding
+agent:
+
+```bash
+blazediff-agent check --judge host --json
+```
+
+Confident cases are labelled automatically. Genuinely ambiguous ones get handed to
+Claude Code, Cursor, or Codex as cropped `[baseline | actual]` tiles, and the
+agent returns a verdict with a reason. No vision service, no API key - it uses the
+agent you already run.
+[How that works →](/guides/claude-code-visual-review)
+
+## Keeping the repo from bloating
+
+Baseline PNGs are the one real cost.
+
+- Capture at one viewport per breakpoint you actually support, not per device.
+- Use `mask` instead of extra entries for regions that vary.
+- Turn on git LFS once you pass a few hundred baselines.
+- `blazediff-agent reset` clears generated artifacts; `actual/`, `judgments/`, and
+  `report.json` are regenerated and do not belong in git.
+
+## What you give up
+
+Worth knowing before you migrate:
+
+- **No hosted history.** Trend charts over months come from your git log, not a
+  dashboard.
+- **No cross-browser cloud grid.** You run the browsers you install. The agent
+  bundles Chromium.
+- **You own storage.** Large suites need git LFS.
+- **No built-in team workflow.** Approval is your PR review process.
+
+If your team's requirement is a hosted approval dashboard with named reviewers and
+retention policies, a SaaS platform genuinely does that better. If your
+requirement is a build gate that does not bill per screenshot, self-hosting is
+less work than it looks.
+
+## Next
+
+- [Offline with zero API keys →](/guides/offline-visual-regression)
+- [Monorepo setup →](/guides/monorepo-visual-regression)
+- [Running in CI →](/docs/agentic-testing/running-in-ci)
+
+---
+
+# Offline Visual Regression, Zero API Keys
+
+**BlazeDiff has no account, no API key, and no telemetry.** The comparison
+libraries never open a socket. The agent talks only to the app you point it at.
+The one thing that can leave your machine is a diff you explicitly hand to a
+coding agent, and that is an opt-in backend you can turn off. This page is the
+exact network inventory, so a security review can check it rather than trust it.
+
+## What touches the network
+
+| Step                             | Network                              | When            |
+| -------------------------------- | ------------------------------------ | --------------- |
+| `npm install @blazediff/*`        | Your npm registry                    | Install only    |
+| `blazediff-agent browsers install`| Chromium download                    | Install only    |
+| `blazediff-cli` / core / ssim / gmsd | **None**                          | Never           |
+| `blazediff-agent capture` / `check` | Your own base URL only            | Every run       |
+| `blazediff-agent review`          | Binds `127.0.0.1`                    | Local only      |
+| `check --judge none`              | **None**                             | Never           |
+| `check --judge local`             | Model download on first use, then none | First run only |
+| `check --judge host`              | **Your coding agent's provider**     | Per ambiguous diff |
+
+> **Warning:** **Read this before choosing a judge backend.** `--judge host` hands cropped diff regions to Claude Code, Cursor, or Codex, which sends them to whatever model provider that tool uses. BlazeDiff does not upload anything, but your agent does. For an air-gapped or restricted environment, use `--judge none` or `--judge local`.
+
+## The diff libraries are fully offline
+
+`@blazediff/core`, `@blazediff/core-native`, `@blazediff/core-wasm`,
+`@blazediff/ssim`, `@blazediff/gmsd`, `@blazediff/cli`, and the Rust and Python
+builds do no network I/O at all. They take pixels in and return numbers. There is
+no key to configure because there is nothing to authenticate to.
+
+```bash
+blazediff-cli baseline.png current.png diff.png --threshold 0.1
+```
+
+If your requirement is only "compare two 4K screenshots fast without sending them
+anywhere", that command is the whole answer, and the native core does it in
+215-269ms with image IO included.
+
+## Air-gapped install
+
+Two artifacts need to cross the boundary once.
+
+**1. Packages.** Mirror them into your internal registry, or pack them:
+
+```bash
+npm pack @blazediff/agent @blazediff/core-native @blazediff/cli
+# move the tarballs across, then
+npm install ./blazediff-agent-*.tgz
+```
+
+**2. Chromium.** Playwright's browser download honors a cache directory. Fetch it
+on a connected machine, then move the cache:
+
+```bash
+# connected machine
+PLAYWRIGHT_BROWSERS_PATH=./pw-browsers npx blazediff-agent browsers install
+# air-gapped machine, after copying pw-browsers across
+export PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers
+blazediff-agent browsers install --check --json
+```
+
+Then confirm nothing else is needed:
+
+```bash
+blazediff-agent check --judge none --json
+```
+
+## Judging without leaving the machine
+
+Three levels, pick by policy.
+
+### `--judge none`
+
+Ambiguous diffs simply fail. A human looks at `.blazediff/summary.md` or runs
+`blazediff-agent review` for a local approve/reject UI on `127.0.0.1`. No model
+involved anywhere. This is the default and the right choice for most restricted
+environments.
+
+### `--judge local`
+
+Verdicts from models that run on your hardware:
+
+```bash
+blazediff-agent onboard --stack local
+blazediff-agent check --judge local --json
+```
+
+Moondream describes each changed region, then a deterministic word diff runs, then
+Qwen classifies the result. No host round-trip, no key.
+
+The models are ONNX builds fetched from Hugging Face on first use and cached
+afterwards. On an air-gapped machine, warm that cache on a connected machine first
+and copy it across, the same way as the browser. After that, `--judge local` is
+fully offline.
+
+### `--judge host`
+
+Your coding agent reviews. Fastest and most accurate, and the one option where
+image crops leave the machine. Use it where policy allows.
+
+## Where the data sits
+
+- **Baselines**: `.blazediff/baselines/`, committed to your repo.
+- **Current captures and diffs**: `.blazediff/actual/<id>.png` and
+  `.blazediff/actual/<id>.diff.png`, regenerated each run, not committed.
+- **Judgment requests**: `.blazediff/judgments/<id>/`, local files.
+- **Checkpoints**: `.blazediff/checkpoints/`, so a suspended run can resume.
+- **Report**: `.blazediff/report.json` and `.blazediff/summary.md`.
+
+Everything is a file under your repo. Deleting the directory deletes the data.
+There is no server-side copy because there is no server.
+
+## Credentials for authenticated routes
+
+Routes behind a login use a harness that reads credentials from environment
+variables. Credentials never enter the manifest, the harness file, or any model's
+context:
+
+```bash
+BLAZEDIFF_AUTH_DEFAULT_EMAIL=...
+BLAZEDIFF_AUTH_DEFAULT_PASSWORD=...
+```
+
+In CI, set them as secrets. Locally they go in `.blazediff/.env`, which is
+gitignored automatically.
+
+## For the security review
+
+- MIT licensed, source on GitHub, no obfuscated binaries beyond compiled Rust
+  cores you can build yourself with `cargo build`.
+- No analytics, no crash reporting, no license check, no phone-home.
+- No API key exists in the product, so there is no credential to rotate or leak.
+- Baseline changes are git commits, giving you an audit trail for free.
+- CI is check-only: with `CI=1` or no TTY, `onboard`, `capture`, `rewrite`, and
+  `reset` are blocked, so a pipeline cannot silently rewrite a baseline.
+
+## Next
+
+- [Self-hosted setup →](/guides/self-hosted-visual-regression)
+- [Running in CI →](/docs/agentic-testing/running-in-ci)
+- [Judging and harnesses →](/docs/agentic-testing/judging-and-harnesses)
+
+---
+
+# Visual Regression in a Monorepo
+
+**Each app gets its own `.blazediff/` directory, and every command is scoped with
+`--cwd`.** There is no central config to keep in sync and no per-app subscription,
+because the whole thing is a CLI reading files in a directory.
+
+## Scope every command
+
+```bash
+TARGET="$(cd apps/website && pwd -P)"
+
+blazediff-agent --cwd "$TARGET" onboard
+blazediff-agent --cwd "$TARGET" check --json
+```
+
+> **Warning:** **Always pass an absolute path.** A relative `--cwd` resolves against the current directory, which produces `apps/website/apps/website` the second time you run it from inside the app. The CLI catches that specific case, but absolute paths avoid the class of bug. Do not `cd` into the target either - use `--cwd`.
+
+Each app ends up with its own committed state:
+
+```
+apps/
+  website/.blazediff/{config.json,manifest.json,baselines/}
+  admin/.blazediff/{config.json,manifest.json,baselines/}
+packages/
+  ui/.blazediff/{config.json,manifest.json,baselines/}
+```
+
+Config is per app because dev server command, port, and framework are per app.
+
+## CI, one job per app
+
+```yaml
+jobs:
+  visual:
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [website, admin]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: pnpm install
+      - run: npx blazediff-agent browsers install
+      - run: npx blazediff-agent --cwd "$PWD/apps/${{ matrix.app }}" check --json
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: blazediff-${{ matrix.app }}
+          path: apps/${{ matrix.app }}/.blazediff/
+```
+
+`fail-fast: false` matters - you want every app's result, not just the first
+failure.
+
+## Only test what changed
+
+Wire it into your task runner so untouched apps are skipped. As a package script:
+
+```json
+{
+  "scripts": {
+    "test:visual": "blazediff-agent check --json"
+  }
+}
+```
+
+```bash
+pnpm --filter ...[origin/main] test:visual   # changed packages and dependents
+turbo run test:visual --filter='...[origin/main]'
+```
+
+Because state lives in each package directory, the filter is doing all the work.
+No orchestration layer needed.
+
+## Comparing images without the agent
+
+For files you already have - a design-token render, a chart snapshot, a canvas
+
+```bash
+blazediff-cli baseline.png current.png diff.png --threshold 0.05 --antialiasing
+```
+
+| Exit code | Meaning        |
+| --------- | -------------- |
+| `0`       | Identical      |
+| `1`       | Differences    |
+| `2`       | Error          |
+
+## Choosing a threshold algorithm
+
+One CLI, several algorithms. Pick per package rather than forcing one on the repo:
+
+| Command                          | Output                       | Good for                            |
+| -------------------------------- | ---------------------------- | ----------------------------------- |
+| `blazediff-cli` (`core-native`)  | Changed pixel count          | The default. Fastest, exact          |
+| `blazediff-cli core`             | Changed pixel count          | Custom diff colors, no native binary |
+| `blazediff-cli gmsd`             | Score, lower is better       | Compressed or noisy renders          |
+| `blazediff-cli ssim`             | Score, higher is better      | Perceived quality                    |
+| `blazediff-cli hitchhikers-ssim` | Score, higher is better      | Large batches, ~4x faster than SSIM  |
+
+Knobs on the pixel path are `--threshold` (per-pixel color distance, `0`-`1`) and
+`--antialiasing` (ignore smoothed-edge pixels). Details in
+[choosing a metric](/docs/metrics/choosing-a-metric).
+
+## In component tests
+
+Packages that render components rather than pages can skip the browser layer
+entirely and use the matcher:
+
+```ts
+import "@blazediff/vitest"; // or @blazediff/jest, @blazediff/bun
+
+await expect(pngBuffer).toMatchImageSnapshot({
+  method: "core-native",
+  failureThreshold: 0.1,
+  failureThresholdType: "percent",
+});
+```
+
+Snapshots land in `__snapshots__` next to the test. Mixing this with the agent in
+the same repo is normal: the matcher for components, the agent for full routes.
+
+## Shared masks across apps
+
+Anything matching `data-blazediff-agent-mask` is masked on every route, with no
+manifest change. Put it in a shared component in `packages/ui` and every app that
+renders it inherits the mask:
+
+```tsx
+<div data-blazediff-agent-mask="live-metrics">...</div>
+```
+
+That is usually better than maintaining selector lists per app.
+
+## Next
+
+- [Self-hosted setup →](/guides/self-hosted-visual-regression)
+- [Running in CI →](/docs/agentic-testing/running-in-ci)
+- [CLI reference →](/apis/cli)
+
+---
+
+# Speed Up 4K Screenshot Diffs
+
+**Most of the time in a "slow image diff" is not the diff.** It is PNG decoding,
+the browser, and writing diff images you never look at. Fix those three and the
+comparison itself drops to a couple of hundred milliseconds per 4K pair, running
+entirely on your own machine.
+
+## Where the time actually goes
+
+Measured on an M1 Max, from the [pixel benchmarks](/benchmarks/pixel-by-pixel):
+
+| Work                                          | 4K pair       |
+| --------------------------------------------- | ------------- |
+| Native Rust diff, **image IO included**       | 215-269ms     |
+| Pure JS diff, image IO **excluded**           | 97-136ms      |
+| WebAssembly diff, image IO excluded           | 33-68ms       |
+| pixelmatch, image IO excluded                 | 202-423ms     |
+| odiff, image IO included                      | 1157-1677ms   |
+
+Compare rows 1 and 3: the same algorithm takes 33ms on decoded pixels and 215ms
+when it has to decode two PNGs first. **Decoding is the majority of the wall
+clock.** Optimizing the comparison while re-decoding the same baseline on every
+test is the usual mistake.
+
+## 1. Pick the right core
+
+| Package                  | Runs on            | Input                     | Use when                                  |
+| ------------------------ | ------------------- | ------------------------- | ----------------------------------------- |
+| `@blazediff/core-native` | Node, native binary | File paths or encoded bytes | CI. Fastest end-to-end, decode included |
+| `@blazediff/core-wasm`   | Anywhere wasm runs  | Decoded RGBA              | You already have pixels in memory          |
+| `@blazediff/core`        | Node, browser       | Decoded RGBA              | No native dependency allowed               |
+
+If you are on `pixelmatch` today, `@blazediff/core` is a drop-in replacement with
+an identical API, about 1.5x faster. `core-native` is the bigger jump but takes
+file paths.
+
+```ts
+import { compare } from "@blazediff/core-native";
+
+const result = await compare("baseline.png", "current.png", "diff.png", {
+  threshold: 0.1,
+  antialiasing: true,
+});
+```
+
+## 2. Stop writing diff images you do not read
+
+This is the single biggest easy win in JS. Passing an output buffer forces the
+diff to paint every pixel, not just count them:
+
+| Mode                  | Average improvement over pixelmatch |
+| --------------------- | ----------------------------------- |
+| No output buffer      | ~62%                                |
+| With output buffer    | ~28%                                |
+
+So pass `undefined` when a green run does not need a picture:
+
+```ts
+const changed = diff(img1, img2, undefined, width, height);
+```
+
+With the agent, same idea:
+
+```bash
+blazediff-agent check --no-diff-png --json
+```
+
+Generate the diff image only on failure, in a second pass.
+
+## 3. Let identical pairs short-circuit
+
+Most snapshots in a healthy suite do not change. `@blazediff/core` has
+`fastBufferCheck` on by default, which detects byte-identical inputs before doing
+any per-pixel work. On identical 4K pairs that is 2.5-3.8ms against pixelmatch's
+24-28ms - roughly 88% faster.
+
+Do not disable it unless you are benchmarking.
+
+## 4. Parallelize, but cap it
+
+The agent captures in parallel, defaulting to CPU count capped at 8:
+
+```bash
+blazediff-agent check --concurrency 4 --json
+```
+
+Higher is not always faster. Every parallel browser context costs memory, and a CI
+runner that starts swapping is far slower than one running four at a time. If your
+job is memory-constrained, see
+[reducing snapshot memory](/guides/reduce-snapshot-memory).
+
+In Jest and Vitest, the matcher runs comparisons in a worker thread by default
+(`runInWorker: true`), keeping the diff off the test thread.
+
+## 5. Do not re-encode at level 9
+
+The CLI writes diff PNGs at compression level `0` by default, which is the right
+call - a diff image is a temporary artifact, not something to optimize for size.
+Raising `-c` trades real CPU for disk you do not care about.
+
+## Why it is fast
+
+Two passes over the image. The cold pass compares blocks and skips regions where
+nothing changed, using SIMD - NEON on ARM, SSE4.1 on x86, `v128` in WebAssembly.
+The hot pass does per-pixel work only inside blocks that actually differ. On a
+screenshot where 2% of the page changed, 98% of the image is settled by wide
+vector compares.
+
+Scan strategy is chosen at runtime from a density probe, so a sparse diff and a
+dense one take different paths.
+
+## The 20-minute test suite
+
+If a Node suite spends 20 minutes on high-resolution canvas output, walk through
+this order:
+
+1. **Are you decoding the baseline once per test?** Decode once, reuse the RGBA
+   buffer. This is usually the whole problem.
+2. **Are you writing a diff image every run?** Drop the output buffer on the pass
+   path.
+3. **Still on pixelmatch?** Swap in `@blazediff/core` - same API, ~1.5x.
+4. **Have pixels already in memory?** `@blazediff/core-wasm` runs a 4K pair in
+   33-68ms.
+5. **Working from files?** `@blazediff/core-native` handles decode in Rust.
+6. **Is the browser the bottleneck?** Time capture separately from diff before
+   optimizing further. It usually is.
+
+> **Info:** Everything here runs locally. There is no upload step, so 4K screenshots of a private app never leave the machine, and speed does not depend on someone else's queue.
+
+## Next
+
+- [Reduce snapshot memory →](/guides/reduce-snapshot-memory)
+- [Browser and edge diffing →](/guides/browser-and-edge-image-diffing)
+- [Full benchmarks →](/benchmarks/pixel-by-pixel)
+
+---
+
+# Reduce Snapshot Memory
+
+**A screenshot suite runs out of memory for two reasons: decoded pixel buffers and
+live browser contexts.** A PNG on disk is small; the same image decoded is
+`width x height x 4` bytes, and a comparison holds at least two of them. Cap
+concurrency, skip the output buffer, and keep decoding out of the JS heap.
+
+## Do the arithmetic first
+
+Decoded RGBA is four bytes per pixel, uncompressed:
+
+| Image                     | Pixels  | Decoded size |
+| ------------------------- | ------- | ------------ |
+| 1280 x 720                | 0.9M    | ~3.7 MB      |
+| 1920 x 1080               | 2.1M    | ~8.3 MB      |
+| 3840 x 2160               | 8.3M    | ~33 MB       |
+| Full-page 1440 x 8000     | 11.5M   | ~46 MB       |
+
+A single 4K comparison holding baseline, current, and an output buffer is about
+**100 MB**, and full-page screenshots of a long page are worse than 4K. Run eight
+of those in parallel and you are at 800 MB before counting the browser.
+
+## 1. Skip the output buffer
+
+The diff image is often the largest single allocation and it is optional. Pass
+`undefined` and you get the changed-pixel count without allocating a third
+full-size buffer:
+
+```ts
+const changed = diff(img1, img2, undefined, width, height);
+```
+
+With the agent:
+
+```bash
+blazediff-agent check --no-diff-png --json
+```
+
+Write diff images only for entries that actually failed.
+
+## 2. Keep decode out of the JS heap
+
+`@blazediff/core-native` takes file paths or encoded bytes and decodes in Rust.
+The pixel buffers live in native memory, not on the V8 heap, so they are not
+competing with your test runner for the same budget and are freed as soon as the
+call returns.
+
+```ts
+import { compare } from "@blazediff/core-native";
+await compare("baseline.png", "current.png", "diff.png");
+```
+
+> **Info:** Encoded buffers are passed across the N-API boundary by reference - Rust borrows the JavaScript backing memory instead of copying it. Decoding still allocates native RGBA buffers, so the saving is the copy and the heap pressure, not the pixels themselves.
+
+## 3. Cap concurrency
+
+Peak memory is roughly `per-comparison cost x concurrency`. The agent defaults to
+CPU count capped at 8, which is too many on a small runner:
+
+```bash
+blazediff-agent check --concurrency 3 --json
+```
+
+A GitHub-hosted runner with 7 GB doing full-page 4K captures wants 2 to 4, not 8.
+Lowering concurrency often makes the job *faster*, because it stops the runner
+swapping.
+
+In Vitest and Jest, cap the runner too - `maxWorkers` multiplies against whatever
+each worker holds.
+
+## 4. Do not hold buffers across tests
+
+The common leak in a snapshot suite:
+
+```ts
+// leaks: every screenshot stays reachable for the whole file
+const shots = [];
+for (const route of routes) {
+  shots.push(await page.screenshot());
+}
+```
+
+Compare inside the loop and let each buffer go:
+
+```ts
+for (const route of routes) {
+  const shot = await page.screenshot();
+  await expect(shot).toMatchImageSnapshot({ snapshotIdentifier: route });
+}
+```
+
+Same for module-level caches of decoded baselines. Caching one shared baseline is
+fine; caching every baseline in a 300-route suite is 10 GB.
+
+## 5. The browser is usually the bigger half
+
+Chromium typically outweighs the diff. Two things help most:
+
+- **Reuse contexts instead of launching browsers.** The agent keeps one browser
+  and pools contexts per viewport.
+- **Avoid `fullPage` where you do not need it.** A full-page screenshot of an
+  infinite-scroll page can be 20x the viewport, and it is both the memory spike
+  and the flakiness source. Capture the viewport, or split the page into entries.
+
+Measure the split before optimizing the wrong half:
+
+```bash
+/usr/bin/time -v npx blazediff-agent check --json
+```
+
+## 6. Review with tiles, not full pages
+
+When a diff needs a human or an agent, the region tiles are 10 to 100x smaller
+than the full-page PNGs. `regions.png` is a stack of cropped `[baseline | actual]`
+pairs and `locator.png` is a ~400px overview. Loading those instead of two 33 MB
+images is the difference between a review that fits in memory and one that does
+not.
+
+## Quick reference
+
+| Symptom                                     | Fix                                        |
+| ------------------------------------------- | ------------------------------------------ |
+| OOM at high parallelism                     | Lower `--concurrency`                       |
+| Memory climbs across a test file            | Do not collect screenshots in an array      |
+| Spike only on some routes                   | Those are `fullPage` on long pages          |
+| Steady high baseline before any test runs   | Module-level cache of decoded baselines     |
+| Node heap OOM specifically                  | Move to `core-native`, decode outside V8    |
+
+## Next
+
+- [Speed up 4K diffs →](/guides/speed-up-4k-screenshot-diffs)
+- [Running in CI →](/docs/agentic-testing/running-in-ci)
+
+---
+
+# Browser and Edge Image Diffing
+
+**`@blazediff/core-wasm` is a ~32KB WebAssembly build of the same Rust diff core,
+compiled to `wasm32` with `v128` SIMD.** It runs in browsers, Web Workers, Deno,
+Bun, Cloudflare Workers, and any other wasm host, with no native dependency and no
+network call. On a 4K pair it is about 90% faster than pixelmatch.
+
+## Measured speed
+
+From the [pixel benchmarks](/benchmarks/pixel-by-pixel), M1 Max, image IO
+excluded, ~50.8% faster than pixelmatch on average across the fixture set:
+
+| Fixture | pixelmatch | `core-wasm` | Improvement |
+| ------- | ---------- | ----------- | ----------- |
+| 4k/1    | 332.26ms   | 33.18ms     | 90.0%       |
+| 4k/2    | 333.33ms   | 68.37ms     | 79.5%       |
+| 4k/3    | 423.14ms   | 44.65ms     | 89.4%       |
+| page/2  | 513.06ms   | 73.42ms     | 85.7%       |
+
+Counts agree with pixelmatch to within about 0.05% - both use a YIQ-style
+perceptual delta, so they classify the same pixels apart from a handful of edge
+cases.
+
+> **Warning:** This is CPU SIMD (`v128`), not GPU acceleration. There is no WebGPU path. The speed comes from 128-bit vector compares and a block-based scan that skips unchanged regions, so it needs a host with SIMD enabled - every current browser and edge runtime qualifies.
+
+## You decode, it compares
+
+The API takes pre-decoded RGBA buffers. It does not ship a PNG decoder, which is
+most of why the module is 32KB. In a browser, the platform already has one:
+
+```ts
+async function toRGBA(blob: Blob) {
+  const bitmap = await createImageBitmap(blob);
+  const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+  const ctx = canvas.getContext("2d")!;
+  ctx.drawImage(bitmap, 0, 0);
+  const { data } = ctx.getImageData(0, 0, bitmap.width, bitmap.height);
+  return { data: new Uint8Array(data.buffer), width: bitmap.width, height: bitmap.height };
+}
+
+const a = await toRGBA(baselineBlob);
+const b = await toRGBA(currentBlob);
+const output = new Uint8Array(a.data.length);
+
+const changed = diff(a.data, b.data, output, a.width, a.height, {
+  threshold: 0.1,
+});
+```
+
+`getImageData` is the slow part of that snippet, not the diff. The `ImageDecoder`
+API avoids the canvas round-trip where it is available.
+
+Full setup in [Rust + WASM in JavaScript →](/docs/pixel-comparison/rust-wasm).
+
+## Runtime support
+
+| Runtime                | Package                  | Notes                                  |
+| ---------------------- | ------------------------- | -------------------------------------- |
+| Browser main thread    | `@blazediff/core-wasm`    | Blocks the thread. Prefer a Worker     |
+| Web Worker             | `@blazediff/core-wasm`    | Recommended for anything above 1080p   |
+| Cloudflare Workers     | `@blazediff/core-wasm`    | No filesystem, pass buffers            |
+| Deno                   | `@blazediff/core-wasm`    | Also on JSR                            |
+| Bun                    | `@blazediff/core-wasm`    | npm or JSR                             |
+| Node server            | `@blazediff/core-native`  | Faster still, handles decode itself     |
+| Pure JS, no wasm       | `@blazediff/core`         | Drop-in for pixelmatch                 |
+
+> **Info:** On the main thread a 4K diff is 30-70ms, which is several dropped frames. Put it in a Worker and post the result back.
+
+## Edge constraints worth knowing
+
+- **Bundle size.** ~32KB of wasm fits comfortably inside a Workers bundle.
+- **No filesystem.** Everything is buffers. That is already the API.
+- **CPU time limits.** A 4K diff at 33-68ms is fine for most edge budgets. Diffing
+  a batch in one request is not - fan out instead.
+- **Cold start.** The module instantiates once per isolate. Instantiate at module
+  scope, not per request.
+- **Memory.** Decoded RGBA is `width x height x 4`. A 4K pair plus an output buffer
+  is around 100MB, which exceeds some edge memory limits. Skip the output buffer
+  when you only need the count.
+
+## The rest of the ecosystem
+
+Same algorithm, different hosts:
+
+| Package / crate           | Runtime            | Registry     |
+| ------------------------- | ------------------ | ------------ |
+| `@blazediff/core`         | Node, browser      | npm, JSR     |
+| `@blazediff/core-wasm`    | Browser, edge, any wasm host | npm, JSR |
+| `@blazediff/core-native`  | Node, Bun          | npm          |
+| `blazediff` (crate)       | Rust               | crates.io    |
+| `blazediff` (PyPI)        | Python             | PyPI         |
+| `@blazediff/ssim`, `@blazediff/gmsd` | Node, browser | npm, JSR |
+| `@blazediff/react`, `@blazediff/ui`  | Browser        | npm          |
+
+All MIT licensed. The JS packages are dual-published to npm and JSR, so Deno and
+Bun can resolve them natively.
+
+## Showing the result
+
+`@blazediff/ui` is a framework-agnostic renderer for image-diff views and
+`@blazediff/react` wraps it for React: `<SwipeMode />` for a drag slider,
+`<TwoUpMode />` for side by side, plus `<OnionSkinMode />` and
+`<DifferenceMode />`. Useful when the client-side diff needs to be shown, not
+just counted.
+
+[React components →](/docs/ui-components/react) ·
+[Vanilla →](/docs/ui-components/vanilla)
+
+## Next
+
+- [Rust + WASM in JavaScript →](/docs/pixel-comparison/rust-wasm)
+- [Speed up 4K diffs →](/guides/speed-up-4k-screenshot-diffs)
+- [Full benchmarks →](/benchmarks/pixel-by-pixel)
 
 ---

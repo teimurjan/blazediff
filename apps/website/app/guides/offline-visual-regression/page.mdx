@@ -1,0 +1,154 @@
+---
+title: Offline Visual Regression With Zero API Keys
+description: Run screenshot comparison in an air-gapped or high-security environment. Exactly what touches the network, how to pre-seed an offline install, and how to judge ambiguous diffs without sending images anywhere.
+---
+
+# Offline Visual Regression, Zero API Keys
+
+import { Callout } from "nextra/components";
+
+**BlazeDiff has no account, no API key, and no telemetry.** The comparison
+libraries never open a socket. The agent talks only to the app you point it at.
+The one thing that can leave your machine is a diff you explicitly hand to a
+coding agent, and that is an opt-in backend you can turn off. This page is the
+exact network inventory, so a security review can check it rather than trust it.
+
+## What touches the network
+
+| Step                             | Network                              | When            |
+| -------------------------------- | ------------------------------------ | --------------- |
+| `npm install @blazediff/*`        | Your npm registry                    | Install only    |
+| `blazediff-agent browsers install`| Chromium download                    | Install only    |
+| `blazediff-cli` / core / ssim / gmsd | **None**                          | Never           |
+| `blazediff-agent capture` / `check` | Your own base URL only            | Every run       |
+| `blazediff-agent review`          | Binds `127.0.0.1`                    | Local only      |
+| `check --judge none`              | **None**                             | Never           |
+| `check --judge local`             | Model download on first use, then none | First run only |
+| `check --judge host`              | **Your coding agent's provider**     | Per ambiguous diff |
+
+<Callout type="warning">
+  **Read this before choosing a judge backend.** `--judge host` hands cropped diff
+  regions to Claude Code, Cursor, or Codex, which sends them to whatever model
+  provider that tool uses. BlazeDiff does not upload anything, but your agent
+  does. For an air-gapped or restricted environment, use `--judge none` or
+  `--judge local`.
+</Callout>
+
+## The diff libraries are fully offline
+
+`@blazediff/core`, `@blazediff/core-native`, `@blazediff/core-wasm`,
+`@blazediff/ssim`, `@blazediff/gmsd`, `@blazediff/cli`, and the Rust and Python
+builds do no network I/O at all. They take pixels in and return numbers. There is
+no key to configure because there is nothing to authenticate to.
+
+```bash
+blazediff-cli baseline.png current.png diff.png --threshold 0.1
+```
+
+If your requirement is only "compare two 4K screenshots fast without sending them
+anywhere", that command is the whole answer, and the native core does it in
+215-269ms with image IO included.
+
+## Air-gapped install
+
+Two artifacts need to cross the boundary once.
+
+**1. Packages.** Mirror them into your internal registry, or pack them:
+
+```bash
+npm pack @blazediff/agent @blazediff/core-native @blazediff/cli
+# move the tarballs across, then
+npm install ./blazediff-agent-*.tgz
+```
+
+**2. Chromium.** Playwright's browser download honors a cache directory. Fetch it
+on a connected machine, then move the cache:
+
+```bash
+# connected machine
+PLAYWRIGHT_BROWSERS_PATH=./pw-browsers npx blazediff-agent browsers install
+# air-gapped machine, after copying pw-browsers across
+export PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers
+blazediff-agent browsers install --check --json
+```
+
+Then confirm nothing else is needed:
+
+```bash
+blazediff-agent check --judge none --json
+```
+
+## Judging without leaving the machine
+
+Three levels, pick by policy.
+
+### `--judge none`
+
+Ambiguous diffs simply fail. A human looks at `.blazediff/summary.md` or runs
+`blazediff-agent review` for a local approve/reject UI on `127.0.0.1`. No model
+involved anywhere. This is the default and the right choice for most restricted
+environments.
+
+### `--judge local`
+
+Verdicts from models that run on your hardware:
+
+```bash
+blazediff-agent onboard --stack local
+blazediff-agent check --judge local --json
+```
+
+Moondream describes each changed region, then a deterministic word diff runs, then
+Qwen classifies the result. No host round-trip, no key.
+
+The models are ONNX builds fetched from Hugging Face on first use and cached
+afterwards. On an air-gapped machine, warm that cache on a connected machine first
+and copy it across, the same way as the browser. After that, `--judge local` is
+fully offline.
+
+### `--judge host`
+
+Your coding agent reviews. Fastest and most accurate, and the one option where
+image crops leave the machine. Use it where policy allows.
+
+## Where the data sits
+
+- **Baselines**: `.blazediff/baselines/`, committed to your repo.
+- **Current captures and diffs**: `.blazediff/actual/<id>.png` and
+  `.blazediff/actual/<id>.diff.png`, regenerated each run, not committed.
+- **Judgment requests**: `.blazediff/judgments/<id>/`, local files.
+- **Checkpoints**: `.blazediff/checkpoints/`, so a suspended run can resume.
+- **Report**: `.blazediff/report.json` and `.blazediff/summary.md`.
+
+Everything is a file under your repo. Deleting the directory deletes the data.
+There is no server-side copy because there is no server.
+
+## Credentials for authenticated routes
+
+Routes behind a login use a harness that reads credentials from environment
+variables. Credentials never enter the manifest, the harness file, or any model's
+context:
+
+```bash
+BLAZEDIFF_AUTH_DEFAULT_EMAIL=...
+BLAZEDIFF_AUTH_DEFAULT_PASSWORD=...
+```
+
+In CI, set them as secrets. Locally they go in `.blazediff/.env`, which is
+gitignored automatically.
+
+## For the security review
+
+- MIT licensed, source on GitHub, no obfuscated binaries beyond compiled Rust
+  cores you can build yourself with `cargo build`.
+- No analytics, no crash reporting, no license check, no phone-home.
+- No API key exists in the product, so there is no credential to rotate or leak.
+- Baseline changes are git commits, giving you an audit trail for free.
+- CI is check-only: with `CI=1` or no TTY, `onboard`, `capture`, `rewrite`, and
+  `reset` are blocked, so a pipeline cannot silently rewrite a baseline.
+
+## Next
+
+- [Self-hosted setup →](/guides/self-hosted-visual-regression)
+- [Running in CI →](/docs/agentic-testing/running-in-ci)
+- [Judging and harnesses →](/docs/agentic-testing/judging-and-harnesses)

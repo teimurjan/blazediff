@@ -1,0 +1,121 @@
+---
+title: Codex Visual Review and Custom Inspection in Terminal Test Workflows
+description: Install a Codex skill that judges ambiguous screenshot diffs from the terminal, and hook your own inspection logic into headless runs with harnesses, judge backends, and JSON output you can pipe.
+---
+
+# Codex Visual Review
+
+import { Callout } from "nextra/components";
+
+**`@blazediff/agent` installs a Codex skill that judges failing screenshot diffs
+from the terminal.** Every command is a plain CLI verb with `--json` output, so
+the same loop works inside Codex, inside a shell script, or inside CI. BlazeDiff
+handles capture, diff, and classification; Codex only decides the cases the
+thresholds could not.
+
+## Set it up
+
+```bash npm2yarn
+npm install --save-dev @blazediff/agent
+```
+
+```bash
+blazediff-agent onboard --stack codex
+```
+
+<Callout type="warning">
+  The Codex skill installs at **user scope**, to
+  `~/.codex/skills/blazediff/SKILL.md`, not into the repo. It applies to every
+  project on the machine. Restart Codex after installing so it picks the skill up.
+</Callout>
+
+Detection triggers on `AGENTS.md`, `.codex/`, or `~/.codex`. Project files -
+`.blazediff/config.json`, the manifest, and baselines - still live in the repo and
+still get committed.
+
+## The terminal loop
+
+Every step is a command, and every command takes `--json`:
+
+```bash
+blazediff-agent check --judge host --json      # suspends on the first ambiguous diff
+# ... agent writes .blazediff/judgments/<id>/verdict.json ...
+blazediff-agent check --apply-judgments --json # resume, no re-screenshot
+blazediff-agent rewrite <id> --json            # accept an intentional change
+```
+
+`check --json` returns a slim payload on purpose - `summaryPath`, `totalEntries`,
+`passed`, `failed`, `pendingJudgments`, and a `results` array that lists non-pass
+entries only. Full per-entry detail stays on disk in `.blazediff/summary.md` and
+`.blazediff/judgments/<id>/request.json`, so a terminal agent parses a few fields
+instead of swallowing a report.
+
+## Hooking in your own inspection logic
+
+Three extension points, in order of how deep they go.
+
+### 1. Harnesses - drive the page before the screenshot
+
+A harness is an ESM module in `.blazediff/harnesses/<name>.js` that gets the
+Playwright `page`. Use it to log in, open a menu, seed state, or take extra named
+screenshots.
+
+```js
+// .blazediff/harnesses/dark-mode.js
+/** @type {import("@blazediff/agent").Harness} */
+export default {
+  async run({ page, screenshot }) {
+    await page.emulateMedia({ colorScheme: "dark" });
+    await screenshot("dark"); // becomes its own baseline entry
+  },
+};
+```
+
+Attach per entry:
+
+```json
+{ "id": "home", "url": "/", "harnesses": ["dark-mode"] }
+```
+
+`phase: "setup"` runs before navigation (for auth); the default `interact` phase
+runs after the base screenshot.
+
+### 2. Judge backend - who decides ambiguous diffs
+
+```bash
+blazediff-agent check --judge host    # your coding agent decides
+blazediff-agent check --judge local   # local models decide, no host round-trip
+blazediff-agent check --judge none    # no judgment, ambiguous entries just fail
+```
+
+`--judge local` runs Moondream to describe each region and Qwen to classify it,
+entirely on your machine. Useful for headless runs with no agent attached.
+
+### 3. Your own logic on top of the JSON
+
+The report is a file. Anything that reads JSON can gate on it:
+
+```bash
+blazediff-agent check --judge none --json > report.json
+node ./scripts/my-inspection.mjs report.json
+```
+
+Region data, change types, severity, and file paths for baseline, actual, and diff
+are all in `.blazediff/judgments/<id>/request.json`.
+
+## Exit codes
+
+| Code             | Meaning                                                     |
+| ---------------- | ----------------------------------------------------------- |
+| `0`              | Every entry passed                                           |
+| `1`              | A regression, intentional, noise, or pending-judgment entry  |
+| non-zero + JSON  | Infra failure (missing manifest, no Chromium)                |
+
+A route that times out is logged once and skipped. It never blocks the run.
+
+## Next
+
+- [Judging and harnesses →](/docs/agentic-testing/judging-and-harnesses)
+- [Running it in GitHub Actions →](/guides/github-actions-agent-judged-screenshots)
+- [Same loop in Claude Code →](/guides/claude-code-visual-review) ·
+  [in Cursor →](/guides/cursor-visual-qa)

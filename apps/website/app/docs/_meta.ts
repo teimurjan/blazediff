@@ -8,6 +8,9 @@ export default {
 	"structural-comparison": {
 		title: "Structural Image Comparison",
 	},
+	metrics: {
+		title: "Metrics Explained",
+	},
 	"difference-analysis": {
 		title: "Image Difference Analysis",
 	},

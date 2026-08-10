@@ -1,0 +1,144 @@
+---
+title: Reduce Memory Use in Browser Snapshot Suites
+description: Why visual regression suites eat memory - decoded RGBA buffers, browser contexts, and diff output buffers - and the concrete changes that bring it down.
+---
+
+# Reduce Snapshot Memory
+
+import { Callout } from "nextra/components";
+
+**A screenshot suite runs out of memory for two reasons: decoded pixel buffers and
+live browser contexts.** A PNG on disk is small; the same image decoded is
+`width x height x 4` bytes, and a comparison holds at least two of them. Cap
+concurrency, skip the output buffer, and keep decoding out of the JS heap.
+
+## Do the arithmetic first
+
+Decoded RGBA is four bytes per pixel, uncompressed:
+
+| Image                     | Pixels  | Decoded size |
+| ------------------------- | ------- | ------------ |
+| 1280 x 720                | 0.9M    | ~3.7 MB      |
+| 1920 x 1080               | 2.1M    | ~8.3 MB      |
+| 3840 x 2160               | 8.3M    | ~33 MB       |
+| Full-page 1440 x 8000     | 11.5M   | ~46 MB       |
+
+A single 4K comparison holding baseline, current, and an output buffer is about
+**100 MB**, and full-page screenshots of a long page are worse than 4K. Run eight
+of those in parallel and you are at 800 MB before counting the browser.
+
+## 1. Skip the output buffer
+
+The diff image is often the largest single allocation and it is optional. Pass
+`undefined` and you get the changed-pixel count without allocating a third
+full-size buffer:
+
+```ts
+const changed = diff(img1, img2, undefined, width, height);
+```
+
+With the agent:
+
+```bash
+blazediff-agent check --no-diff-png --json
+```
+
+Write diff images only for entries that actually failed.
+
+## 2. Keep decode out of the JS heap
+
+`@blazediff/core-native` takes file paths or encoded bytes and decodes in Rust.
+The pixel buffers live in native memory, not on the V8 heap, so they are not
+competing with your test runner for the same budget and are freed as soon as the
+call returns.
+
+```ts
+import { compare } from "@blazediff/core-native";
+await compare("baseline.png", "current.png", "diff.png");
+```
+
+<Callout type="info">
+  Encoded buffers are passed across the N-API boundary by reference - Rust borrows
+  the JavaScript backing memory instead of copying it. Decoding still allocates
+  native RGBA buffers, so the saving is the copy and the heap pressure, not the
+  pixels themselves.
+</Callout>
+
+## 3. Cap concurrency
+
+Peak memory is roughly `per-comparison cost x concurrency`. The agent defaults to
+CPU count capped at 8, which is too many on a small runner:
+
+```bash
+blazediff-agent check --concurrency 3 --json
+```
+
+A GitHub-hosted runner with 7 GB doing full-page 4K captures wants 2 to 4, not 8.
+Lowering concurrency often makes the job *faster*, because it stops the runner
+swapping.
+
+In Vitest and Jest, cap the runner too - `maxWorkers` multiplies against whatever
+each worker holds.
+
+## 4. Do not hold buffers across tests
+
+The common leak in a snapshot suite:
+
+```ts
+// leaks: every screenshot stays reachable for the whole file
+const shots = [];
+for (const route of routes) {
+  shots.push(await page.screenshot());
+}
+```
+
+Compare inside the loop and let each buffer go:
+
+```ts
+for (const route of routes) {
+  const shot = await page.screenshot();
+  await expect(shot).toMatchImageSnapshot({ snapshotIdentifier: route });
+}
+```
+
+Same for module-level caches of decoded baselines. Caching one shared baseline is
+fine; caching every baseline in a 300-route suite is 10 GB.
+
+## 5. The browser is usually the bigger half
+
+Chromium typically outweighs the diff. Two things help most:
+
+- **Reuse contexts instead of launching browsers.** The agent keeps one browser
+  and pools contexts per viewport.
+- **Avoid `fullPage` where you do not need it.** A full-page screenshot of an
+  infinite-scroll page can be 20x the viewport, and it is both the memory spike
+  and the flakiness source. Capture the viewport, or split the page into entries.
+
+Measure the split before optimizing the wrong half:
+
+```bash
+/usr/bin/time -v npx blazediff-agent check --json
+```
+
+## 6. Review with tiles, not full pages
+
+When a diff needs a human or an agent, the region tiles are 10 to 100x smaller
+than the full-page PNGs. `regions.png` is a stack of cropped `[baseline | actual]`
+pairs and `locator.png` is a ~400px overview. Loading those instead of two 33 MB
+images is the difference between a review that fits in memory and one that does
+not.
+
+## Quick reference
+
+| Symptom                                     | Fix                                        |
+| ------------------------------------------- | ------------------------------------------ |
+| OOM at high parallelism                     | Lower `--concurrency`                       |
+| Memory climbs across a test file            | Do not collect screenshots in an array      |
+| Spike only on some routes                   | Those are `fullPage` on long pages          |
+| Steady high baseline before any test runs   | Module-level cache of decoded baselines     |
+| Node heap OOM specifically                  | Move to `core-native`, decode outside V8    |
+
+## Next
+
+- [Speed up 4K diffs →](/guides/speed-up-4k-screenshot-diffs)
+- [Running in CI →](/docs/agentic-testing/running-in-ci)

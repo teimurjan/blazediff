@@ -1,0 +1,161 @@
+---
+title: How the GMSD Visual Metric Works
+description: GMSD scores image difference by comparing edge strength. It runs a Prewitt filter over both images, measures gradient similarity per pixel, and returns the standard deviation of that map. Formula, score ranges, and how it compares to SSIM.
+---
+
+# How GMSD Works
+
+import { Callout } from "nextra/components";
+
+**GMSD (Gradient Magnitude Similarity Deviation) scores how different two images
+are by comparing their edges.** It runs an edge filter over both images, measures
+how well the edge strengths agree at every pixel, then returns the standard
+deviation of those agreements. `0` means identical, and lower is better - the
+opposite direction from SSIM.
+
+The idea behind it: what people notice in a broken render is distorted structure -
+shifted text, a missing border, a control that changed shape. Edges are where
+structure lives, so comparing edges catches those changes and ignores flat areas
+where nothing interesting happens.
+
+## The four steps
+
+### 1. Downsample (optional)
+
+Average each 2x2 block, then keep every second pixel. This halves each dimension
+and removes high-frequency noise before anything else runs. Off by default
+(`downsample: 0`).
+
+```
+aveKernel = [0.25  0.25]
+            [0.25  0.25]
+```
+
+### 2. Find the edges with a Prewitt filter
+
+Both images are converted to luminance and convolved with two 3x3 kernels, one for
+horizontal change and one for vertical:
+
+```
+dx = [ 1  0  -1]  / 3       dy = [ 1   1   1]  / 3
+     [ 1  0  -1]                 [ 0   0   0]
+     [ 1  0  -1]                 [-1  -1  -1]
+```
+
+The gradient magnitude at each pixel is how strong the edge is there, in any
+direction:
+
+```
+gradient = sqrt(Ix^2 + Iy^2)
+```
+
+You now have two edge maps, one per image.
+
+### 3. Compare the two edge maps
+
+For every pixel, gradient magnitude similarity (GMS) compares the two edge
+strengths:
+
+```
+GMS = (2 * g1 * g2 + C) / (g1^2 + g2^2 + C)
+```
+
+`C = 170` is a stability constant tuned for the Prewitt operator on 8-bit images.
+It stops the fraction from being noisy in flat regions where both gradients are
+near zero. GMS lands between 0 and 1, where 1 means the two images have the same
+edge strength at that pixel.
+
+### 4. Take the standard deviation
+
+```
+GMSD = std(GMS)
+```
+
+This is the part that surprises people: GMSD reports the *spread* of the
+similarity map, not its average. That is deliberate. A page where one component
+is badly broken and everything else is fine has a high spread, and that is what a
+reviewer would flag. A mean would average that damage away against the thousands
+of pixels that are fine.
+
+## Reading the score
+
+| Score       | Meaning                    |
+| ----------- | -------------------------- |
+| `0.00`      | Identical                  |
+| `0.00-0.05` | Very low, likely artifacts |
+| `0.05-0.15` | Low but visible            |
+| `0.15-0.35` | Moderate, clearly changed  |
+| `> 0.35`    | Large structural change    |
+
+For visual regression, treat anything above `0.0` as worth looking at when you
+control the render, and raise the gate to about `0.15` if screenshots pass through
+lossy compression.
+
+## GMSD vs SSIM
+
+|                   | GMSD                            | SSIM                                   |
+| ----------------- | ------------------------------- | -------------------------------------- |
+| Direction         | Lower is better, `0` = identical | Higher is better, `1` = identical      |
+| Looks at          | Edge strength                   | Brightness, contrast, structure        |
+| Aggregation       | Standard deviation of the map   | Mean of the map                        |
+| Cost              | One pass, two 3x3 convolutions  | Windowed statistics over the whole image |
+| Strong at         | Layout and shape changes        | General perceived quality              |
+| Blind to          | Color-only changes, uniform shifts in brightness | Color-only changes |
+
+They disagree in a useful way. GMSD reacts to a control that moved; SSIM reacts to
+a section that got blurrier. Running both is cheap and the pair is more honest
+than either alone.
+
+## Run it
+
+```bash npm2yarn
+npm install @blazediff/gmsd
+```
+
+```ts
+import gmsd from "@blazediff/gmsd";
+
+const score = gmsd(image1, image2, undefined, width, height);
+if (score > 0.05) throw new Error(`too different: ${score}`);
+```
+
+Pass an output buffer as the third argument to get the GMS map back as a grayscale
+image, which shows exactly which edges disagreed.
+
+From the CLI:
+
+```bash
+blazediff-cli gmsd baseline.png current.png
+blazediff-cli gmsd baseline.png current.png --output gms-map.png
+```
+
+In a test:
+
+```ts
+await expect(screenshot).toMatchImageSnapshot({ method: "gmsd" });
+```
+
+<Callout type="info">
+  Options: `downsample` (`0` or `1`, default `0`) and `c` (default `170`).
+  Raising `c` makes the metric more forgiving in low-contrast areas. Full
+  signature in the [`@blazediff/gmsd` reference](/apis/gmsd).
+</Callout>
+
+## When GMSD is the wrong tool
+
+- **Color-only changes.** GMSD works on luminance gradients. Swapping a brand
+  color for another of the same brightness barely registers.
+- **You need to know where and what.** One number will not tell you a button
+  moved. Use [interpret mode](/docs/difference-analysis) for regions and change
+  types.
+- **Exact matching is the requirement.** For byte-level correctness, use
+  [pixel diffing](/docs/pixel-comparison/vanilla-javascript).
+
+## Reference
+
+Xue, W., Zhang, L., Mou, X., & Bovik, A. C. (2013). "Gradient Magnitude Similarity
+Deviation: A Highly Efficient Perceptual Image Quality Index." *IEEE Transactions
+on Image Processing*, 22(2), 684-695.
+
+Next: [What is SSIM →](/docs/metrics/ssim) ·
+[Choosing a metric →](/docs/metrics/choosing-a-metric)

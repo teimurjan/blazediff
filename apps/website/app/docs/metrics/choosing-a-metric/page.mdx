@@ -1,0 +1,131 @@
+---
+title: Choosing a Metric - Pixel Diff vs SSIM vs GMSD
+description: Which image comparison metric to use for visual regression - exact pixel diffing, SSIM, MS-SSIM, Hitchhiker's SSIM, or GMSD. Side-by-side comparison, thresholds, and how to score rendering changes without raw RGB thresholds.
+---
+
+# Choosing a Metric
+
+import { Callout } from "nextra/components";
+
+**Start with pixel diffing. Move to a structural metric only when exact matching
+is too strict.** Pixel diffing is the fastest and the only one that tells you
+exactly what changed. SSIM and GMSD trade that detail for tolerance: they score
+how different two images *look*, so they shrug off compression artifacts and
+rendering noise that pixel counting flags as failures.
+
+## The five options
+
+| Metric                | Answers                        | Output              | Direction         | Relative cost | Best for                                    |
+| --------------------- | ------------------------------ | ------------------- | ----------------- | ------------- | ------------------------------------------- |
+| **Pixel diff**        | How many pixels changed        | Count and percent   | Lower is better   | Fastest       | The default. CI gates, exact rendering       |
+| **GMSD**              | Did the edges change           | Score, `0` to `~1`  | Lower is better   | Low           | Layout and shape changes, compressed images  |
+| **SSIM**              | Does it look different         | Score, `0` to `1`   | Higher is better  | Medium        | Perceived quality, matching published results |
+| **MS-SSIM**           | Does it look different at any size | Score, `0` to `1` | Higher is better | High          | Images viewed at several resolutions         |
+| **Hitchhiker's SSIM** | Same as SSIM, faster           | Score, `0` to `1`   | Higher is better  | Low           | Large batches where SSIM is the bottleneck   |
+
+Read the details: [what SSIM measures](/docs/metrics/ssim) ·
+[how GMSD works](/docs/metrics/gmsd).
+
+## Pick by problem
+
+| Your problem                                                | Use                                              |
+| ----------------------------------------------------------- | ------------------------------------------------ |
+| Standard CI screenshot gate                                  | Pixel diff (`core-native`) with `threshold: 0.1`  |
+| Failures from anti-aliasing on text and edges                | Pixel diff with `antialiasing: true` first, then GMSD |
+| Screenshots re-encoded as JPEG somewhere in the pipeline     | GMSD, gate around `0.15`                          |
+| Same page rendered on macOS locally and Linux in CI          | Pixel diff with a percentage threshold, then GMSD |
+| A "did the design get worse" score for a report              | SSIM or MS-SSIM                                   |
+| Thousands of images per run and SSIM is too slow             | Hitchhiker's SSIM                                 |
+| A brand color changed                                        | Pixel diff. SSIM and GMSD are near-blind to it    |
+| You need to know *what* changed, not just how much           | [Interpret mode](/docs/difference-analysis)       |
+
+<Callout type="warning">
+  **Both structural metrics are weak on color.** SSIM and GMSD work on luminance.
+  Two colors with the same brightness can swap and barely move either score. If
+  color correctness matters, keep a pixel diff in the pipeline.
+</Callout>
+
+## Structural metrics instead of RGB thresholds
+
+A raw RGB threshold asks one question per pixel: is this channel more than N away
+from the baseline. That has no idea whether the pixel sits on the edge of a
+letter, inside a gradient, or in the middle of a flat background. So the noise you
+want to ignore and the change you want to catch look the same to it, and the only
+knob you have is "be less strict everywhere".
+
+Structural metrics score a neighborhood instead of a pixel. SSIM compares the
+brightness, contrast, and structure of a window; GMSD compares the edge strength
+around each pixel. Both stay stable when a render is subtly noisy and both react
+when the shape of something actually changes - which is the distinction an RGB
+threshold cannot express.
+
+The practical setup for a noisy pipeline:
+
+```ts
+import { compare } from "@blazediff/core-native";
+import gmsd from "@blazediff/gmsd";
+
+// 1. Cheap exact gate. Most runs stop here.
+const result = await compare("baseline.png", "current.png", "diff.png", {
+  threshold: 0.1,
+  antialiasing: true,
+});
+if (result.match) return "pass";
+
+// 2. Something changed. Is it perceptible?
+const score = gmsd(baselinePixels, currentPixels, undefined, width, height);
+if (score < 0.05) return "pass-with-noise";
+
+return "fail";
+```
+
+## Setting a threshold
+
+Do not copy a number from a table. Run your own baselines twice with no code
+change and see what score the noise alone produces, then set the gate above it.
+
+| Comparison           | Knob                                             | Sane starting point         |
+| -------------------- | ------------------------------------------------ | --------------------------- |
+| Pixel diff           | `threshold` (per-pixel color distance, `0`-`1`)  | `0.1`                       |
+| Pixel diff           | `failureThreshold` + `failureThresholdType`      | `0.1` with `'percent'`      |
+| GMSD                 | Gate on the returned score                       | `0.05`, or `0.15` if compressed |
+| SSIM / MS-SSIM       | Gate on the returned score                       | `0.98` for full-page shots  |
+
+Percentage thresholds travel better than pixel counts, because a pixel budget
+tuned on a 1280px viewport becomes far too strict at 4K.
+
+## Using them from a test
+
+Every metric is available through the same matcher:
+
+```ts
+import "@blazediff/vitest"; // or @blazediff/jest, @blazediff/bun
+
+await expect(screenshot).toMatchImageSnapshot({ method: "core-native" });
+await expect(screenshot).toMatchImageSnapshot({ method: "gmsd" });
+await expect(screenshot).toMatchImageSnapshot({ method: "ssim" });
+await expect(screenshot).toMatchImageSnapshot({ method: "hitchhikers-ssim" });
+```
+
+And from the CLI:
+
+```bash
+blazediff-cli baseline.png current.png diff.png   # core-native, the default
+blazediff-cli gmsd baseline.png current.png
+blazediff-cli ssim baseline.png current.png
+blazediff-cli hitchhikers-ssim baseline.png current.png
+```
+
+## Measured cost
+
+Numbers from the [pixel benchmarks](/benchmarks/pixel-by-pixel) and
+[structural benchmarks](/benchmarks/structural), M1 Max, Node 22:
+
+- Pixel diff, 4K pair, native Rust with image IO included: **215-269ms**
+- Pixel diff, 4K pair, pure JS with IO excluded: **97-136ms**
+- Hitchhiker's SSIM: about **4x faster** than standard SSIM
+- GMSD: a single pass with two 3x3 convolutions, cheaper than SSIM
+
+Next: [What is SSIM →](/docs/metrics/ssim) ·
+[How GMSD works →](/docs/metrics/gmsd) ·
+[Structural comparison examples →](/docs/structural-comparison)

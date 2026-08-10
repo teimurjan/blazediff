@@ -23,6 +23,10 @@ export default {
 		title: "Docs",
 		type: "page",
 	},
+	guides: {
+		title: "Guides",
+		type: "page",
+	},
 	apis: {
 		title: "APIs",
 		type: "page",

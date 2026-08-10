@@ -1,0 +1,145 @@
+---
+title: Speed Up 4K Screenshot Diffs in CI
+description: Why high-resolution image comparison is slow in CI and how to fix it - where the time actually goes, which core to pick, skipping the output buffer, and measured numbers for 4K pairs.
+---
+
+# Speed Up 4K Screenshot Diffs
+
+import { Callout } from "nextra/components";
+
+**Most of the time in a "slow image diff" is not the diff.** It is PNG decoding,
+the browser, and writing diff images you never look at. Fix those three and the
+comparison itself drops to a couple of hundred milliseconds per 4K pair, running
+entirely on your own machine.
+
+## Where the time actually goes
+
+Measured on an M1 Max, from the [pixel benchmarks](/benchmarks/pixel-by-pixel):
+
+| Work                                          | 4K pair       |
+| --------------------------------------------- | ------------- |
+| Native Rust diff, **image IO included**       | 215-269ms     |
+| Pure JS diff, image IO **excluded**           | 97-136ms      |
+| WebAssembly diff, image IO excluded           | 33-68ms       |
+| pixelmatch, image IO excluded                 | 202-423ms     |
+| odiff, image IO included                      | 1157-1677ms   |
+
+Compare rows 1 and 3: the same algorithm takes 33ms on decoded pixels and 215ms
+when it has to decode two PNGs first. **Decoding is the majority of the wall
+clock.** Optimizing the comparison while re-decoding the same baseline on every
+test is the usual mistake.
+
+## 1. Pick the right core
+
+| Package                  | Runs on            | Input                     | Use when                                  |
+| ------------------------ | ------------------- | ------------------------- | ----------------------------------------- |
+| `@blazediff/core-native` | Node, native binary | File paths or encoded bytes | CI. Fastest end-to-end, decode included |
+| `@blazediff/core-wasm`   | Anywhere wasm runs  | Decoded RGBA              | You already have pixels in memory          |
+| `@blazediff/core`        | Node, browser       | Decoded RGBA              | No native dependency allowed               |
+
+If you are on `pixelmatch` today, `@blazediff/core` is a drop-in replacement with
+an identical API, about 1.5x faster. `core-native` is the bigger jump but takes
+file paths.
+
+```ts
+import { compare } from "@blazediff/core-native";
+
+const result = await compare("baseline.png", "current.png", "diff.png", {
+  threshold: 0.1,
+  antialiasing: true,
+});
+```
+
+## 2. Stop writing diff images you do not read
+
+This is the single biggest easy win in JS. Passing an output buffer forces the
+diff to paint every pixel, not just count them:
+
+| Mode                  | Average improvement over pixelmatch |
+| --------------------- | ----------------------------------- |
+| No output buffer      | ~62%                                |
+| With output buffer    | ~28%                                |
+
+So pass `undefined` when a green run does not need a picture:
+
+```ts
+const changed = diff(img1, img2, undefined, width, height);
+```
+
+With the agent, same idea:
+
+```bash
+blazediff-agent check --no-diff-png --json
+```
+
+Generate the diff image only on failure, in a second pass.
+
+## 3. Let identical pairs short-circuit
+
+Most snapshots in a healthy suite do not change. `@blazediff/core` has
+`fastBufferCheck` on by default, which detects byte-identical inputs before doing
+any per-pixel work. On identical 4K pairs that is 2.5-3.8ms against pixelmatch's
+24-28ms - roughly 88% faster.
+
+Do not disable it unless you are benchmarking.
+
+## 4. Parallelize, but cap it
+
+The agent captures in parallel, defaulting to CPU count capped at 8:
+
+```bash
+blazediff-agent check --concurrency 4 --json
+```
+
+Higher is not always faster. Every parallel browser context costs memory, and a CI
+runner that starts swapping is far slower than one running four at a time. If your
+job is memory-constrained, see
+[reducing snapshot memory](/guides/reduce-snapshot-memory).
+
+In Jest and Vitest, the matcher runs comparisons in a worker thread by default
+(`runInWorker: true`), keeping the diff off the test thread.
+
+## 5. Do not re-encode at level 9
+
+The CLI writes diff PNGs at compression level `0` by default, which is the right
+call - a diff image is a temporary artifact, not something to optimize for size.
+Raising `-c` trades real CPU for disk you do not care about.
+
+## Why it is fast
+
+Two passes over the image. The cold pass compares blocks and skips regions where
+nothing changed, using SIMD - NEON on ARM, SSE4.1 on x86, `v128` in WebAssembly.
+The hot pass does per-pixel work only inside blocks that actually differ. On a
+screenshot where 2% of the page changed, 98% of the image is settled by wide
+vector compares.
+
+Scan strategy is chosen at runtime from a density probe, so a sparse diff and a
+dense one take different paths.
+
+## The 20-minute test suite
+
+If a Node suite spends 20 minutes on high-resolution canvas output, walk through
+this order:
+
+1. **Are you decoding the baseline once per test?** Decode once, reuse the RGBA
+   buffer. This is usually the whole problem.
+2. **Are you writing a diff image every run?** Drop the output buffer on the pass
+   path.
+3. **Still on pixelmatch?** Swap in `@blazediff/core` - same API, ~1.5x.
+4. **Have pixels already in memory?** `@blazediff/core-wasm` runs a 4K pair in
+   33-68ms.
+5. **Working from files?** `@blazediff/core-native` handles decode in Rust.
+6. **Is the browser the bottleneck?** Time capture separately from diff before
+   optimizing further. It usually is.
+
+<Callout type="info">
+  Everything here runs locally. There is no upload step, so 4K screenshots of a
+  private app never leave the machine, and speed does not depend on someone
+  else's queue.
+</Callout>
+
+## Next
+
+- [Reduce snapshot memory →](/guides/reduce-snapshot-memory)
+- [Browser and edge diffing →](/guides/browser-and-edge-image-diffing)
+- [Full benchmarks →](/benchmarks/pixel-by-pixel)

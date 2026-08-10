@@ -1,0 +1,128 @@
+---
+title: Image Diffing in the Browser and at the Edge With WebAssembly
+description: Run SIMD-accelerated image comparison client-side or in an edge runtime with a ~32KB WebAssembly module - how to decode pixels, measured speed against pixelmatch, and which package to use per runtime.
+---
+
+# Browser and Edge Image Diffing
+
+import { Callout } from "nextra/components";
+
+**`@blazediff/core-wasm` is a ~32KB WebAssembly build of the same Rust diff core,
+compiled to `wasm32` with `v128` SIMD.** It runs in browsers, Web Workers, Deno,
+Bun, Cloudflare Workers, and any other wasm host, with no native dependency and no
+network call. On a 4K pair it is about 90% faster than pixelmatch.
+
+## Measured speed
+
+From the [pixel benchmarks](/benchmarks/pixel-by-pixel), M1 Max, image IO
+excluded, ~50.8% faster than pixelmatch on average across the fixture set:
+
+| Fixture | pixelmatch | `core-wasm` | Improvement |
+| ------- | ---------- | ----------- | ----------- |
+| 4k/1    | 332.26ms   | 33.18ms     | 90.0%       |
+| 4k/2    | 333.33ms   | 68.37ms     | 79.5%       |
+| 4k/3    | 423.14ms   | 44.65ms     | 89.4%       |
+| page/2  | 513.06ms   | 73.42ms     | 85.7%       |
+
+Counts agree with pixelmatch to within about 0.05% - both use a YIQ-style
+perceptual delta, so they classify the same pixels apart from a handful of edge
+cases.
+
+<Callout type="warning">
+  This is CPU SIMD (`v128`), not GPU acceleration. There is no WebGPU path. The
+  speed comes from 128-bit vector compares and a block-based scan that skips
+  unchanged regions, so it needs a host with SIMD enabled - every current browser
+  and edge runtime qualifies.
+</Callout>
+
+## You decode, it compares
+
+The API takes pre-decoded RGBA buffers. It does not ship a PNG decoder, which is
+most of why the module is 32KB. In a browser, the platform already has one:
+
+```ts
+async function toRGBA(blob: Blob) {
+  const bitmap = await createImageBitmap(blob);
+  const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+  const ctx = canvas.getContext("2d")!;
+  ctx.drawImage(bitmap, 0, 0);
+  const { data } = ctx.getImageData(0, 0, bitmap.width, bitmap.height);
+  return { data: new Uint8Array(data.buffer), width: bitmap.width, height: bitmap.height };
+}
+
+const a = await toRGBA(baselineBlob);
+const b = await toRGBA(currentBlob);
+const output = new Uint8Array(a.data.length);
+
+const changed = diff(a.data, b.data, output, a.width, a.height, {
+  threshold: 0.1,
+});
+```
+
+`getImageData` is the slow part of that snippet, not the diff. The `ImageDecoder`
+API avoids the canvas round-trip where it is available.
+
+Full setup in [Rust + WASM in JavaScript →](/docs/pixel-comparison/rust-wasm).
+
+## Runtime support
+
+| Runtime                | Package                  | Notes                                  |
+| ---------------------- | ------------------------- | -------------------------------------- |
+| Browser main thread    | `@blazediff/core-wasm`    | Blocks the thread. Prefer a Worker     |
+| Web Worker             | `@blazediff/core-wasm`    | Recommended for anything above 1080p   |
+| Cloudflare Workers     | `@blazediff/core-wasm`    | No filesystem, pass buffers            |
+| Deno                   | `@blazediff/core-wasm`    | Also on JSR                            |
+| Bun                    | `@blazediff/core-wasm`    | npm or JSR                             |
+| Node server            | `@blazediff/core-native`  | Faster still, handles decode itself     |
+| Pure JS, no wasm       | `@blazediff/core`         | Drop-in for pixelmatch                 |
+
+<Callout type="info">
+  On the main thread a 4K diff is 30-70ms, which is several dropped frames. Put it
+  in a Worker and post the result back.
+</Callout>
+
+## Edge constraints worth knowing
+
+- **Bundle size.** ~32KB of wasm fits comfortably inside a Workers bundle.
+- **No filesystem.** Everything is buffers. That is already the API.
+- **CPU time limits.** A 4K diff at 33-68ms is fine for most edge budgets. Diffing
+  a batch in one request is not - fan out instead.
+- **Cold start.** The module instantiates once per isolate. Instantiate at module
+  scope, not per request.
+- **Memory.** Decoded RGBA is `width x height x 4`. A 4K pair plus an output buffer
+  is around 100MB, which exceeds some edge memory limits. Skip the output buffer
+  when you only need the count.
+
+## The rest of the ecosystem
+
+Same algorithm, different hosts:
+
+| Package / crate           | Runtime            | Registry     |
+| ------------------------- | ------------------ | ------------ |
+| `@blazediff/core`         | Node, browser      | npm, JSR     |
+| `@blazediff/core-wasm`    | Browser, edge, any wasm host | npm, JSR |
+| `@blazediff/core-native`  | Node, Bun          | npm          |
+| `blazediff` (crate)       | Rust               | crates.io    |
+| `blazediff` (PyPI)        | Python             | PyPI         |
+| `@blazediff/ssim`, `@blazediff/gmsd` | Node, browser | npm, JSR |
+| `@blazediff/react`, `@blazediff/ui`  | Browser        | npm          |
+
+All MIT licensed. The JS packages are dual-published to npm and JSR, so Deno and
+Bun can resolve them natively.
+
+## Showing the result
+
+`@blazediff/ui` is a framework-agnostic renderer for image-diff views and
+`@blazediff/react` wraps it for React: `<SwipeMode />` for a drag slider,
+`<TwoUpMode />` for side by side, plus `<OnionSkinMode />` and
+`<DifferenceMode />`. Useful when the client-side diff needs to be shown, not
+just counted.
+
+[React components →](/docs/ui-components/react) ·
+[Vanilla →](/docs/ui-components/vanilla)
+
+## Next
+
+- [Rust + WASM in JavaScript →](/docs/pixel-comparison/rust-wasm)
+- [Speed up 4K diffs →](/guides/speed-up-4k-screenshot-diffs)
+- [Full benchmarks →](/benchmarks/pixel-by-pixel)

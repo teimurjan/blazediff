@@ -1,0 +1,142 @@
+---
+title: Self-Hosted Visual Regression Without Per-Snapshot Fees
+description: Run screenshot comparison on your own machines and CI with no SaaS subscription and no per-snapshot billing. Where baselines live, how review works without a dashboard, and the tradeoffs you take on.
+---
+
+# Self-Hosted Visual Regression
+
+import { Callout } from "nextra/components";
+
+**Baselines are PNGs in your git repo, the diff runs on your CI machine, and
+review happens in the pull request or a local webapp.** There is no account, no
+API key, and no per-snapshot charge, so adding a new screen state costs you disk
+space instead of a line item. BlazeDiff is MIT licensed, including commercial and
+closed-source use.
+
+## How the pieces sit
+
+| Concern         | Hosted platform                      | Self-hosted with BlazeDiff              |
+| --------------- | ------------------------------------- | ---------------------------------------- |
+| Baseline storage | Vendor's object storage              | `.blazediff/` in your repo, in git       |
+| Diff compute     | Vendor's workers                     | Your CI runner                           |
+| Review UI        | Vendor's dashboard                   | PR diff, or `blazediff-agent review` locally |
+| Approval record  | Vendor's database                    | A git commit                             |
+| Cost per snapshot| Metered                              | Zero marginal cost                       |
+| Concurrency limit| Plan tier                            | Your runner's CPU count                  |
+| Data location    | Vendor's cloud                       | Your machines                            |
+
+## The cost shape is different
+
+Hosted visual testing bills per snapshot, and a snapshot is one screenshot in one
+browser at one viewport. So cost grows with the product of routes, viewports,
+browsers, and pull requests. Teams notice this when they add a breakpoint or a
+theme, because that multiplies the whole suite at once.
+
+Self-hosting moves the cost into CI minutes, which you were already paying for and
+which grow linearly with routes rather than multiplicatively. A 4K pair diffs in
+215-269ms with image IO included on the native core, so the diff itself is not
+where the time goes - the browser is.
+
+<Callout type="info">
+  The honest version: you are trading a metered bill for storage and maintenance
+  you own. For a small suite that is clearly better. For 10,000 baselines it means
+  git LFS and a retention policy. Neither is hard, but neither is free of work.
+</Callout>
+
+## Set it up
+
+```bash npm2yarn
+npm install --save-dev @blazediff/agent
+```
+
+```bash
+blazediff-agent onboard
+blazediff-agent check --json
+```
+
+`onboard` writes `.blazediff/config.json`, installs the bundled Chromium, and
+captures baselines. Commit `.blazediff/` - config, manifest, and baseline PNGs are
+the source of truth.
+
+In CI, one verb:
+
+```yaml
+- run: npx blazediff-agent browsers install
+- run: npx blazediff-agent check --json --junit visual.xml
+```
+
+Or skip the agent entirely and diff files you already have:
+
+```bash
+blazediff-cli baseline.png current.png diff.png --threshold 0.1
+```
+
+Exit code `0` means match, `1` means differences, `2` means error. That is enough
+to gate any pipeline.
+
+## Review without a dashboard
+
+Two options, both local.
+
+**In the pull request.** Baselines are PNGs in git, so an accepted change shows up
+as an image diff in the PR. The approval record is the commit and its reviewer.
+
+**In a local webapp.**
+
+```bash
+blazediff-agent review
+```
+
+Serves an approve/reject UI on `127.0.0.1` reading the report on disk. Nothing is
+uploaded. Useful for triaging a downloaded CI artifact.
+
+For machine-readable output, `check --json` returns a slim payload and `--junit`
+writes JUnit XML that CI dashboards render natively.
+
+## Who decides on ambiguous diffs
+
+This is the part self-hosting usually loses, because the hosted platforms bundle
+a review workflow. BlazeDiff's answer is a heuristic pass plus your own coding
+agent:
+
+```bash
+blazediff-agent check --judge host --json
+```
+
+Confident cases are labelled automatically. Genuinely ambiguous ones get handed to
+Claude Code, Cursor, or Codex as cropped `[baseline | actual]` tiles, and the
+agent returns a verdict with a reason. No vision service, no API key - it uses the
+agent you already run.
+[How that works →](/guides/claude-code-visual-review)
+
+## Keeping the repo from bloating
+
+Baseline PNGs are the one real cost.
+
+- Capture at one viewport per breakpoint you actually support, not per device.
+- Use `mask` instead of extra entries for regions that vary.
+- Turn on git LFS once you pass a few hundred baselines.
+- `blazediff-agent reset` clears generated artifacts; `actual/`, `judgments/`, and
+  `report.json` are regenerated and do not belong in git.
+
+## What you give up
+
+Worth knowing before you migrate:
+
+- **No hosted history.** Trend charts over months come from your git log, not a
+  dashboard.
+- **No cross-browser cloud grid.** You run the browsers you install. The agent
+  bundles Chromium.
+- **You own storage.** Large suites need git LFS.
+- **No built-in team workflow.** Approval is your PR review process.
+
+If your team's requirement is a hosted approval dashboard with named reviewers and
+retention policies, a SaaS platform genuinely does that better. If your
+requirement is a build gate that does not bill per screenshot, self-hosting is
+less work than it looks.
+
+## Next
+
+- [Offline with zero API keys →](/guides/offline-visual-regression)
+- [Monorepo setup →](/guides/monorepo-visual-regression)
+- [Running in CI →](/docs/agentic-testing/running-in-ci)

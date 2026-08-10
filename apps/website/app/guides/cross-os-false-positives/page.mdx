@@ -1,0 +1,186 @@
+---
+title: Fix Cross-OS Visual Test False Positives (macOS vs Linux CI)
+description: Why nightly screenshot checks fail on Linux CI when they pass on macOS, and how to fix it - font hinting, subpixel anti-aliasing, color profiles, frozen clocks, and what to do about the noise that is left.
+---
+
+# Fix Cross-OS False Positives
+
+import { Callout } from "nextra/components";
+
+**The same page rendered on macOS and on Linux is not the same image, and no
+threshold makes that go away cleanly.** Fonts are hinted differently, text is
+anti-aliased differently, and color profiles differ. The fix, in order: capture
+baselines on the platform CI uses, harden the browser so rendering is
+deterministic, mask what is genuinely non-deterministic, and only then loosen
+thresholds.
+
+## Why it happens
+
+| Cause                     | What it looks like                                        |
+| ------------------------- | ---------------------------------------------------------- |
+| Font hinting              | Every glyph shifts a fraction of a pixel. Whole page differs |
+| Subpixel anti-aliasing    | Colored fringes on text edges (LCD text)                   |
+| Missing fonts             | A fallback font renders. Large, obvious diff                |
+| Color profile             | Every color off by one or two. 100% of pixels differ        |
+| GPU vs software raster    | Gradients, shadows, and blurs differ slightly               |
+| Scrollbars                | A scrollbar appears on one OS and shifts the layout         |
+| Device pixel ratio        | The whole screenshot is a different size                    |
+
+Note the pattern: most of these change *every* pixel a little, not a few pixels a
+lot. That is why a pixel-count threshold is the wrong tool - the diff is 100% of
+the page at very low intensity.
+
+## 1. Capture baselines where CI runs
+
+This is the actual fix. Everything below reduces leftover noise; this removes the
+category.
+
+```bash
+docker run --rm -v "$PWD":/app -w /app node:22-bookworm \
+  npx blazediff-agent onboard --yes
+```
+
+Use the same image CI uses. Commit `.blazediff/` from that run. Developers on
+macOS then run `check` against Linux baselines - which will fail locally, and
+should. Local runs are for authoring; the verdict that matters is CI's.
+
+<Callout type="info">
+  If developers need green local runs too, capture two baseline sets in separate
+  directories and point `--cwd` at the right one per environment. It costs a
+  second set of PNGs in git and removes the argument entirely.
+</Callout>
+
+## 2. Pin the browser
+
+`@blazediff/agent` bundles its own Chromium:
+
+```bash
+blazediff-agent browsers install
+```
+
+One binary, same version everywhere. A system Chrome that auto-updates will change
+your renders under you.
+
+## 3. Harden the render
+
+`@blazediff/agent` already launches Chromium with the flags that remove
+OS-dependent rendering:
+
+| Flag                          | Removes                                     |
+| ----------------------------- | -------------------------------------------- |
+| `--font-render-hinting=none`  | OS font hinting differences                  |
+| `--disable-lcd-text`          | Subpixel anti-aliasing colored fringes       |
+| `--force-color-profile=srgb`  | Display color profile differences            |
+| `--disable-skia-runtime-opts` | CPU-feature-dependent rasterization paths    |
+| `--hide-scrollbars`           | Scrollbar-induced layout shift               |
+
+Rolling your own Playwright setup? Copy that list. It is most of the battle.
+
+## 4. Freeze everything that moves
+
+Layout shift and animation cause the other half of nightly flakes. The agent
+injects CSS that zeroes every `animation-duration` and `transition-duration`,
+pins `animation-iteration-count` to 1, makes the text caret transparent, and
+disables smooth scrolling. Screenshots are also taken with Playwright's
+`animations: "disabled"`.
+
+It also freezes the sources of per-run randomness before any page script runs:
+
+| Source             | Replaced with                        |
+| ------------------ | ------------------------------------ |
+| `Date.now()`       | A fixed timestamp                    |
+| `performance.now()`| A counter ticking 16.6667ms per call |
+| `Math.random()`    | A seeded generator                    |
+| `crypto.randomUUID()` | A counter                         |
+
+That kills "posted 3 minutes ago", randomized placeholder content, and
+animation timing that depends on wall-clock time.
+
+## 5. Wait for the page to settle
+
+Set `waitFor` per entry. It accepts `"networkidle"`, `"fonts"`, or a selector:
+
+```json
+{
+  "id": "dashboard",
+  "url": "/dashboard",
+  "waitFor": ["fonts", "networkidle", { "selector": "[data-loaded]" }]
+}
+```
+
+`"fonts"` is the one people forget. A screenshot taken before webfonts load
+captures the fallback font, and that is a full-page diff.
+
+## 6. Mask what is genuinely non-deterministic
+
+Do not re-baseline a flake - that just resets the clock. Mask it.
+
+```tsx
+<div data-blazediff-agent-mask="live-feed">...</div>
+```
+
+Any element with `data-blazediff-agent-mask` is masked on every route with no
+manifest change. For third-party embeds you cannot edit, use a per-entry selector:
+
+```json
+{ "id": "home", "url": "/", "mask": ["iframe", ".ticker"] }
+```
+
+Mask carousels, live data, third-party iframes, and personalization. Do not mask
+real content that happens to change - that is the change you want caught.
+
+## 7. Only now, loosen the gate
+
+If residue remains, use a percentage threshold rather than a pixel count. A pixel
+budget tuned at 1280px is far too strict at 4K.
+
+```ts
+await expect(screenshot).toMatchImageSnapshot({
+  method: "core-native",
+  failureThreshold: 0.1,
+  failureThresholdType: "percent",
+});
+```
+
+For the low-intensity, everywhere-at-once diff that cross-OS rendering produces, a
+structural metric works better than any pixel threshold:
+
+```bash
+blazediff-cli gmsd baseline.png current.png   # gate around 0.05
+```
+
+[GMSD](/docs/metrics/gmsd) scores edge structure, so uniform sub-pixel differences
+across the whole page barely move it while a component that actually moved does.
+
+## 8. Send what is left to an agent
+
+After all of the above, a handful of diffs per run will still be genuinely
+ambiguous. Those are the ones worth a judgment rather than a threshold:
+
+```bash
+blazediff-agent check --judge host --json
+```
+
+The agent gets cropped `[baseline | actual]` region tiles and answers regression
+or intentional, with a reason.
+[How that works →](/guides/claude-code-visual-review)
+
+## Order of operations
+
+1. Capture baselines in CI's container.
+2. Use the bundled Chromium.
+3. Keep the hardening flags.
+4. Add `waitFor: ["fonts", "networkidle"]`.
+5. Mask non-deterministic regions.
+6. Switch to a percentage threshold.
+7. Add GMSD for low-intensity full-page noise.
+8. Route the remainder to an agent.
+
+Steps 1 through 5 remove causes. Steps 6 and 7 only hide symptoms, so do them
+last, or you will hide a real regression along with the noise.
+
+## Next
+
+- [Anti-aliasing and 1px shifts →](/guides/anti-aliasing-false-positives)
+- [Running in CI →](/docs/agentic-testing/running-in-ci)
+- [Choosing a metric →](/docs/metrics/choosing-a-metric)

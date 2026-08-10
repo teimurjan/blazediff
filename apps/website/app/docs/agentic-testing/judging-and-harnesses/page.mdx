@@ -62,6 +62,37 @@ blazediff-agent rewrite agent --json       # by id
 blazediff-agent rewrite --failed --json    # all failures from the last check
 ```
 
+## Why agents fail at visual review
+
+Handing a coding agent two screenshots and asking "what changed" fails reliably.
+The failures have specific causes, and the judgment request is shaped to avoid
+each one.
+
+| Failure                                                                                      | Cause                                                                                    | What BlazeDiff does                                                                          |
+| -------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| Agent invents differences that are not there                                                  | Asked to compare two images in one pass, it narrates a plausible diff instead of reading one | Regions are found deterministically first; the agent only labels changes that were measured    |
+| Agent misses a real change                                                                    | On a full-page 4K PNG the change is a fraction of a percent of the pixels                  | `regions.png` crops each changed area to `[baseline \| actual]` pairs, so it fills the frame   |
+| Agent cannot say where on the page something is                                               | Crops have no context                                                                      | `locator.png` is a ~400px overview with every region outlined in red                           |
+| Verdicts contradict each other between runs                                                   | Every diff gets asked, including obvious ones                                              | A heuristic settles the confident cases; only `ambiguous` reaches the agent                    |
+| Review burns tokens or times out                                                              | Full-page PNGs, re-sent on every retry                                                     | Tiles are 10–100× smaller; the run is checkpointed and resumes instead of restarting           |
+| Agent "fixes" the failure by re-baselining                                                    | Judging and accepting are the same action                                                  | Verdicts are advisory. `rewrite` is a separate command, blocked in CI                          |
+
+The rule underneath all of it: **describe each side separately, then diff the
+descriptions**. A model asked to compare two images in one step will fill gaps
+with what it expects to see. A model asked what a single crop contains is
+answering a much easier question, and the comparison afterwards is arithmetic.
+The `--judge local` backend follows the same shape - Moondream describes, then a
+deterministic word diff runs, then Qwen classifies the result.
+
+If your agent is still returning bad verdicts, check in this order:
+
+1. Is it reading `regions.png` and `locator.png`, or reaching straight for the
+   full-page PNGs? The full pages are a fallback, not the input.
+2. Is the entry actually `ambiguous`? A `regression-likely` entry does not need a
+   verdict, it needs a look.
+3. Is the diff real, or is the region non-deterministic? Masking a flake is
+   correct; asking an agent to rule on a spinner is not.
+
 ## Harnesses
 
 A **harness** is a pluggable ESM script in `.blazediff/harnesses/<name>.js`,

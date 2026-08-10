@@ -1,0 +1,155 @@
+---
+title: Visual Regression in a Monorepo With One CLI
+description: Run baseline and current screenshot comparison per app in a monorepo - scoping with --cwd, per-app baselines, a CI matrix, and picking a threshold algorithm from the CLI.
+---
+
+# Visual Regression in a Monorepo
+
+import { Callout } from "nextra/components";
+
+**Each app gets its own `.blazediff/` directory, and every command is scoped with
+`--cwd`.** There is no central config to keep in sync and no per-app subscription,
+because the whole thing is a CLI reading files in a directory.
+
+## Scope every command
+
+```bash
+TARGET="$(cd apps/website && pwd -P)"
+
+blazediff-agent --cwd "$TARGET" onboard
+blazediff-agent --cwd "$TARGET" check --json
+```
+
+<Callout type="warning">
+  **Always pass an absolute path.** A relative `--cwd` resolves against the
+  current directory, which produces `apps/website/apps/website` the second time
+  you run it from inside the app. The CLI catches that specific case, but
+  absolute paths avoid the class of bug. Do not `cd` into the target either -
+  use `--cwd`.
+</Callout>
+
+Each app ends up with its own committed state:
+
+```
+apps/
+  website/.blazediff/{config.json,manifest.json,baselines/}
+  admin/.blazediff/{config.json,manifest.json,baselines/}
+packages/
+  ui/.blazediff/{config.json,manifest.json,baselines/}
+```
+
+Config is per app because dev server command, port, and framework are per app.
+
+## CI, one job per app
+
+```yaml
+jobs:
+  visual:
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [website, admin]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: pnpm install
+      - run: npx blazediff-agent browsers install
+      - run: npx blazediff-agent --cwd "$PWD/apps/${{ matrix.app }}" check --json
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: blazediff-${{ matrix.app }}
+          path: apps/${{ matrix.app }}/.blazediff/
+```
+
+`fail-fast: false` matters - you want every app's result, not just the first
+failure.
+
+## Only test what changed
+
+Wire it into your task runner so untouched apps are skipped. As a package script:
+
+```json
+{
+  "scripts": {
+    "test:visual": "blazediff-agent check --json"
+  }
+}
+```
+
+```bash
+pnpm --filter ...[origin/main] test:visual   # changed packages and dependents
+turbo run test:visual --filter='...[origin/main]'
+```
+
+Because state lives in each package directory, the filter is doing all the work.
+No orchestration layer needed.
+
+## Comparing images without the agent
+
+For files you already have - a design-token render, a chart snapshot, a canvas
+export - the plain CLI is enough:
+
+```bash
+blazediff-cli baseline.png current.png diff.png --threshold 0.05 --antialiasing
+```
+
+| Exit code | Meaning        |
+| --------- | -------------- |
+| `0`       | Identical      |
+| `1`       | Differences    |
+| `2`       | Error          |
+
+## Choosing a threshold algorithm
+
+One CLI, several algorithms. Pick per package rather than forcing one on the repo:
+
+| Command                          | Output                       | Good for                            |
+| -------------------------------- | ---------------------------- | ----------------------------------- |
+| `blazediff-cli` (`core-native`)  | Changed pixel count          | The default. Fastest, exact          |
+| `blazediff-cli core`             | Changed pixel count          | Custom diff colors, no native binary |
+| `blazediff-cli gmsd`             | Score, lower is better       | Compressed or noisy renders          |
+| `blazediff-cli ssim`             | Score, higher is better      | Perceived quality                    |
+| `blazediff-cli hitchhikers-ssim` | Score, higher is better      | Large batches, ~4x faster than SSIM  |
+
+Knobs on the pixel path are `--threshold` (per-pixel color distance, `0`-`1`) and
+`--antialiasing` (ignore smoothed-edge pixels). Details in
+[choosing a metric](/docs/metrics/choosing-a-metric).
+
+## In component tests
+
+Packages that render components rather than pages can skip the browser layer
+entirely and use the matcher:
+
+```ts
+import "@blazediff/vitest"; // or @blazediff/jest, @blazediff/bun
+
+await expect(pngBuffer).toMatchImageSnapshot({
+  method: "core-native",
+  failureThreshold: 0.1,
+  failureThresholdType: "percent",
+});
+```
+
+Snapshots land in `__snapshots__` next to the test. Mixing this with the agent in
+the same repo is normal: the matcher for components, the agent for full routes.
+
+## Shared masks across apps
+
+Anything matching `data-blazediff-agent-mask` is masked on every route, with no
+manifest change. Put it in a shared component in `packages/ui` and every app that
+renders it inherits the mask:
+
+```tsx
+<div data-blazediff-agent-mask="live-metrics">...</div>
+```
+
+That is usually better than maintaining selector lists per app.
+
+## Next
+
+- [Self-hosted setup →](/guides/self-hosted-visual-regression)
+- [Running in CI →](/docs/agentic-testing/running-in-ci)
+- [CLI reference →](/apis/cli)

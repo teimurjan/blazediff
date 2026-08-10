@@ -1,0 +1,140 @@
+---
+title: Agent-Judged Screenshot Failures in GitHub Actions
+description: Run visual regression in GitHub Actions and have a local AI agent evaluate the ambiguous screenshot failures - either with local models inside the job, or by handing the diff regions to a developer's coding agent on the pull request.
+---
+
+# Agent-Judged Screenshots in GitHub Actions
+
+import { Callout } from "nextra/components";
+
+**CI detects, an agent judges.** `blazediff-agent check` re-captures every route,
+diffs it against the committed baseline, and classifies each failure. Ambiguous
+diffs go to a judge - either local models running inside the job, or the
+developer's coding agent on their own machine. Nothing is uploaded to a vision
+service and there is no API key.
+
+## Pick where judgment happens
+
+| Backend         | Runs where             | Use it when                                            |
+| --------------- | ---------------------- | ------------------------------------------------------ |
+| `--judge none`  | Nowhere                | Default CI gate. Ambiguous entries fail; a human looks  |
+| `--judge local` | Inside the CI job      | You want a verdict without a human, no keys, no network |
+| `--judge host`  | Developer's machine    | The coding agent reviews the diff during the PR         |
+
+Most teams run `none` in CI and `host` locally. `local` is the option when the job
+itself has to decide.
+
+## The workflow
+
+```yaml
+name: visual
+on: pull_request
+
+jobs:
+  visual:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: pnpm install
+
+      - run: npx blazediff-agent browsers install
+
+      - run: npx blazediff-agent check --json --junit visual.xml
+        env:
+          # Only if an entry uses a login harness. One pair per persona.
+          BLAZEDIFF_AUTH_DEFAULT_EMAIL: ${{ secrets.BLAZEDIFF_AUTH_DEFAULT_EMAIL }}
+          BLAZEDIFF_AUTH_DEFAULT_PASSWORD: ${{ secrets.BLAZEDIFF_AUTH_DEFAULT_PASSWORD }}
+
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: blazediff
+          path: .blazediff/
+```
+
+`browsers install` pulls the bundled Chromium - no `sudo`, no
+`playwright install --with-deps`. In a monorepo, point the run at one app with
+`--cwd`:
+
+```yaml
+- run: npx blazediff-agent --cwd apps/website check --json
+```
+
+<Callout type="warning">
+  **CI is check-only.** When `CI=1` or there is no TTY, `onboard`, `capture`,
+  `rewrite`, and `reset` are blocked. Baselines can only change on a developer
+  machine, where the change shows up as a PNG diff in the pull request.
+</Callout>
+
+## Judging inside the job
+
+To get a verdict without a human, run the local judge:
+
+```yaml
+- run: npx blazediff-agent check --judge local --json
+```
+
+Moondream describes each changed region, Qwen classifies it, both on the runner.
+No API key, no network call, nothing leaves the job. It is slower than `--judge
+none` because the models have to load, so use it on the visual job rather than on
+every job.
+
+## Judging from the pull request
+
+The other pattern keeps CI dumb and puts the agent where the developer is.
+
+1. CI runs `check --judge none` and fails. The `.blazediff/` artifact holds the
+   judgment requests, region tiles, and diffs.
+2. The developer pulls the branch and runs their agent - `/blazediff` in Claude
+   Code, Cursor, or Codex.
+3. The agent reads `.blazediff/judgments/<id>/request.json`, looks at the cropped
+   `[baseline | actual]` tiles, and writes a verdict.
+4. `blazediff-agent check --apply-judgments` merges the verdicts. Intentional
+   changes get `blazediff-agent rewrite <id>`, which updates the baseline PNG.
+5. The updated baseline is committed, and the next CI run is green.
+
+The agent never has to re-run the browser. Step 4 works purely from files on disk.
+
+## Making the failure readable
+
+```bash
+blazediff-agent check --junit visual.xml --json
+```
+
+`--junit` writes JUnit XML that GitHub's test reporters and most CI dashboards
+render natively. The human-readable version is `.blazediff/summary.md`, which is
+in the uploaded artifact.
+
+For local review of a downloaded artifact:
+
+```bash
+blazediff-agent review
+```
+
+That serves an approve/reject webapp on `127.0.0.1` - the report, the diffs, and
+nothing on the network.
+
+## Keeping the job fast and stable
+
+| Problem                             | Fix                                                        |
+| ----------------------------------- | ----------------------------------------------------------- |
+| Job is slow                         | `--concurrency <n>`, defaults to CPU count capped at 8      |
+| Diff PNGs not needed on green runs  | `--no-diff-png`                                             |
+| Fonts render differently than local | Capture baselines in the same Linux container CI uses        |
+| A widget flickers between runs      | Mask it, do not re-baseline it                              |
+| Slow route blocks everything        | Timeouts are logged once and skipped, never fatal            |
+
+Rendering differences between a developer's macOS and CI's Linux are the most
+common source of noise here. That has its own guide:
+[cross-OS false positives](/guides/cross-os-false-positives).
+
+## Next
+
+- [Running in CI →](/docs/agentic-testing/running-in-ci)
+- [Judging and harnesses →](/docs/agentic-testing/judging-and-harnesses)
+- [Claude Code →](/guides/claude-code-visual-review) ·
+  [Cursor →](/guides/cursor-visual-qa) ·
+  [Codex →](/guides/codex-visual-review)

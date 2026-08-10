@@ -1,0 +1,173 @@
+---
+title: Stop Anti-Aliasing and 1px Shifts From Failing CI
+description: How to stop harmless anti-aliasing differences and single-pixel shifts from failing visual regression tests - anti-aliasing detection, the inverted defaults between the JS and native cores, thresholds, and structural metrics.
+---
+
+# Stop Anti-Aliasing and 1px Shifts From Failing CI
+
+import { Callout } from "nextra/components";
+
+**Turn on anti-aliasing detection first.** It finds pixels that differ only
+because an edge was smoothed differently and excludes them from the diff count,
+without loosening anything else. That alone clears most of the churn teams get
+after a CSS framework upgrade. What is left - a block of text that actually moved
+one pixel - is a different problem, and thresholds are the wrong fix for it.
+
+## The defaults are inverted between cores
+
+This trips people up, so check which one you are using:
+
+| Package                                | Option          | Default | Anti-aliased pixels are |
+| -------------------------------------- | --------------- | ------- | ----------------------- |
+| `@blazediff/core` (JS)                 | `includeAA`     | `false` | **ignored**             |
+| `@blazediff/core-native` (Rust, N-API) | `antialiasing`  | `false` | **counted**             |
+| `blazediff-cli core-native`            | `-a, --antialiasing` | off | **counted**             |
+| `blazediff` (Python)                   | `antialiasing`  | `False` | **counted**             |
+| `@blazediff/agent`                     | -               | on      | **ignored**             |
+
+The two options are named for opposite things. `includeAA: true` means "count
+them". `antialiasing: true` means "detect them, so they can be skipped". Both
+default to `false`, which is why the JS core ignores AA out of the box and the
+native core does not.
+
+```ts
+// JS core - already ignoring AA
+import diff from "@blazediff/core";
+const changed = diff(img1, img2, output, width, height);
+
+// Native core - opt in
+import { compare } from "@blazediff/core-native";
+const result = await compare("baseline.png", "current.png", "diff.png", {
+  antialiasing: true,
+});
+```
+
+```bash
+blazediff-cli baseline.png current.png diff.png --antialiasing
+```
+
+## What detection actually does
+
+For each differing pixel, BlazeDiff looks at its eight neighbors and asks whether
+the pixel sits on a smoothed edge:
+
+1. **Count neighbors with no brightness difference.** More than two and this is a
+   flat region, not an edge. Not anti-aliasing.
+2. **Find the darkest and the brightest neighbor.** If there is no gradient at
+   all, it is not anti-aliasing.
+3. **Check that one end of that gradient is solid color.** The pixel counts as
+   anti-aliased if either the darkest or the brightest neighbor has three or more
+   identical neighbors of its own, **in both images**.
+
+That last condition is what makes it safe. An anti-aliased pixel is a blend
+between two solid regions, so at least one end of its gradient must be solid in
+the baseline *and* the current image. A pixel where the surrounding content
+genuinely changed fails that test and still counts.
+
+The check runs in both directions, baseline against current and current against
+baseline. The algorithm is Vysniauskas's anti-aliased pixel and intensity slope
+detector (2009), the same one pixelmatch uses.
+
+A pixel that passes counts as `0` and is painted yellow in the diff image. A pixel
+that fails counts as `1` and is painted red.
+
+So the diff image still shows you every AA pixel. They just do not fail the build.
+Open a diff and look at the color: **yellow is ignored anti-aliasing, red is a
+counted difference.**
+
+<Callout type="info">
+  Detection costs time - it inspects the neighborhood of every differing pixel.
+  On a clean run with no differences, that cost is zero, because there are no
+  differing pixels to inspect.
+</Callout>
+
+## After a CSS framework upgrade
+
+The specific case where teams lose hours: a Tailwind or design-system bump changes
+line height or letter spacing by a fraction, every text block re-flows by a
+sub-pixel, and hundreds of snapshots fail with nothing visibly wrong.
+
+Work through it in this order:
+
+1. **Turn on anti-aliasing detection.** Removes edge-smoothing noise.
+2. **Look at one diff image.** If it is mostly yellow, step 1 solved it. If it is
+   red text outlines, the text genuinely moved.
+3. **Decide once, not per snapshot.** If the shift is real and intended, it is one
+   intentional change across the whole suite, not 300 reviews:
+
+   ```bash
+   blazediff-agent check --judge host --json   # confirm what changed
+   blazediff-agent rewrite --failed --json     # accept all of it
+   ```
+
+4. **Check the diff in the PR.** Baselines are PNGs in git, so the re-baseline is
+   reviewable as a single commit.
+
+## When the content actually shifted one pixel
+
+Anti-aliasing detection will not help here, because the pixels really are
+different. Three options, worst to best:
+
+**Raise the threshold.** Fast, blunt, and hides real regressions in the same band.
+If you do it, use a percentage so it scales with viewport size:
+
+```ts
+await expect(screenshot).toMatchImageSnapshot({
+  method: "core-native",
+  failureThreshold: 0.1,
+  failureThresholdType: "percent",
+});
+```
+
+**Use a structural metric.** [GMSD](/docs/metrics/gmsd) scores edge structure
+rather than counting pixels, so a uniform sub-pixel shift barely moves it while a
+component that changed shape does:
+
+```bash
+blazediff-cli gmsd baseline.png current.png    # gate around 0.05
+```
+
+**Let an agent decide.** A one-pixel shift in a footer and a one-pixel shift that
+breaks a button's alignment are the same number of pixels and completely
+different problems. That distinction needs judgment, not a threshold:
+
+```bash
+blazediff-agent check --judge host --json
+```
+
+The heuristic pass classifies each failure as `regression-likely`,
+`intentional-likely`, `noise-likely`, or `ambiguous`, and only `ambiguous` reaches
+the agent. Most runs hand over nothing.
+
+## Tuning the color threshold
+
+`threshold` is a different knob from anti-aliasing. It sets how far apart two
+pixels must be, in perceptual color distance, before they count as different at
+all.
+
+| Value  | Behavior                                  |
+| ------ | ----------------------------------------- |
+| `0.0`  | Exact match only                          |
+| `0.05` | Strict                                    |
+| `0.1`  | Default, balanced                         |
+| `0.2`  | Lenient                                   |
+
+Raising `threshold` makes every pixel more forgiving, including the ones you care
+about. Prefer anti-aliasing detection, which is targeted, over a higher threshold,
+which is not.
+
+## Quick reference
+
+| Symptom                                        | Fix                                        |
+| ---------------------------------------------- | ------------------------------------------ |
+| Diff image is mostly yellow                    | Already handled. Anti-aliasing is ignored  |
+| Diff image is red text outlines everywhere     | Text moved. Re-baseline once, deliberately |
+| A few red pixels on curved edges               | Turn on anti-aliasing detection            |
+| Every pixel differs slightly                   | Cross-OS rendering, not anti-aliasing      |
+| Fails on 4K, passes on 1280px                  | Use a percentage threshold, not a count    |
+
+## Next
+
+- [Cross-OS false positives →](/guides/cross-os-false-positives)
+- [Choosing a metric →](/docs/metrics/choosing-a-metric)
+- [Judging and harnesses →](/docs/agentic-testing/judging-and-harnesses)

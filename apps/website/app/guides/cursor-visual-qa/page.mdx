@@ -1,0 +1,102 @@
+---
+title: Use Cursor as a Visual QA Agent on Local Snapshots
+description: Install a Cursor rule that turns the agent into a visual QA reviewer for local UI screenshots - it reads cropped diff regions, decides regression or intentional, and re-baselines. Runs offline with no API key.
+---
+
+# Use Cursor as a Visual QA Agent
+
+import { Callout } from "nextra/components";
+
+**`@blazediff/agent` installs a Cursor rule that lets the agent act as a visual QA
+reviewer on your local screenshots.** BlazeDiff captures the pages, diffs them
+against committed baselines, and classifies what changed. Cursor only gets the
+diffs the thresholds could not settle, as cropped before/after tiles, and returns
+a pass or fail with a reason. Everything stays on disk in your repo.
+
+## Set it up
+
+```bash npm2yarn
+npm install --save-dev @blazediff/agent
+```
+
+```bash
+blazediff-agent onboard --stack cursor
+```
+
+This writes `.cursor/rules/blazediff.mdc` alongside `.blazediff/config.json` and
+your baselines. Detection triggers on `.cursor/` or `.cursorrules`, so plain
+`onboard` usually picks Cursor on its own.
+
+The rule ships with `alwaysApply: false`. It loads when you mention visual tests,
+screenshot regressions, or type `/blazediff` - it does not sit in your context on
+every unrelated request.
+
+## Use it
+
+Ask in the Cursor chat:
+
+```
+run the visual tests and tell me if anything actually broke
+```
+
+Or trigger it directly with `/blazediff`. The rule handles both jobs: authoring
+baselines when `.blazediff/manifest.json` does not exist yet, and checking when it
+does.
+
+## What Cursor reviews
+
+Not full-page screenshots. For each ambiguous entry, BlazeDiff writes
+`.blazediff/judgments/<id>/request.json` with:
+
+- `regions[]` - bounding box, pixel count, and change type per changed area
+- `locator.png` - a ~400px overview with the regions outlined in red
+- `regions.png` - a vertical stack of `[baseline | actual]` crops
+- the full-page PNGs, as fallback
+
+Cursor reads the crops first. They are 10 to 100x smaller than the full pages, so
+the changed pixels fill the frame instead of being three percent of a 4K
+screenshot.
+
+<Callout type="info">
+  A heuristic pass labels every failure `regression-likely`,
+  `intentional-likely`, `noise-likely`, or `ambiguous` before the agent is
+  involved. Only `ambiguous` entries are handed over.
+</Callout>
+
+## The loop
+
+1. `blazediff-agent check --judge host --json` runs and suspends on the first
+   ambiguous entry.
+2. Cursor reads the request, looks at the tiles, and writes
+   `.blazediff/judgments/<id>/verdict.json`.
+3. `blazediff-agent check --apply-judgments --json` merges verdicts in. Nothing is
+   re-screenshotted.
+4. Intentional changes get accepted with `blazediff-agent rewrite <id>`.
+
+The run is checkpointed, so step 3 picks up where step 1 stopped instead of
+starting the suite over.
+
+## Reviewing by hand instead
+
+The agent is not required. To look at the diffs yourself:
+
+```bash
+blazediff-agent review
+```
+
+That serves a local approve/reject webapp on `127.0.0.1`. Same report, no agent,
+nothing uploaded.
+
+## What this costs
+
+Nothing beyond the Cursor subscription you already pay for. There is no BlazeDiff
+API key, no per-snapshot pricing, and no vision service in the loop. Screenshots
+are files in your repo.
+
+## Next
+
+- [Setting up →](/docs/agentic-testing/setting-up)
+- [Judging and harnesses →](/docs/agentic-testing/judging-and-harnesses)
+- [Same loop in Claude Code →](/guides/claude-code-visual-review) ·
+  [in Codex →](/guides/codex-visual-review)
+- [Running it in CI →](/guides/github-actions-agent-judged-screenshots)
