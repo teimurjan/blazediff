@@ -1,6 +1,13 @@
 import { Inter, JetBrains_Mono, Space_Grotesk } from "next/font/google";
 import Script from "next/script";
 import { Head } from "nextra/components";
+import {
+	AUTHOR_NAME,
+	SITE_DESCRIPTION,
+	SITE_NAME,
+	SITE_TITLE,
+	SITE_URL,
+} from "../utils/site";
 import "./global.css";
 
 const spaceGrotesk = Space_Grotesk({
@@ -21,11 +28,16 @@ const inter = Inter({
 	weight: ["400", "500", "600"],
 });
 
-const TITLE = "BlazeDiff. Visual regression with an agent-in-the-loop.";
-const DESCRIPTION =
-	"Open-source visual regression for JS. Deterministic Rust + JS diff cores (3 to 8x faster than pixelmatch and odiff on 4K), SSIM/GMSD metrics, and an agent that hands ambiguous diffs to Claude Code, Cursor, or Codex. No SaaS, no API key.";
+const TITLE = SITE_TITLE;
+const DESCRIPTION = SITE_DESCRIPTION;
 
 export const metadata = {
+	metadataBase: new URL(SITE_URL),
+	// "./" resolves against each route's own pathname, so every page inherits a
+	// self-referencing canonical without needing its own metadata export.
+	alternates: {
+		canonical: "./",
+	},
 	title: {
 		default: TITLE,
 		template: "%s | BlazeDiff",
@@ -51,14 +63,15 @@ export const metadata = {
 		"codex",
 		"coding agent",
 	],
-	authors: [{ name: "Teimur Gasanov" }],
-	creator: "Teimur Gasanov",
-	publisher: "Teimur Gasanov",
+	authors: [{ name: AUTHOR_NAME }],
+	creator: AUTHOR_NAME,
+	publisher: AUTHOR_NAME,
 	openGraph: {
 		title: TITLE,
 		description: DESCRIPTION,
-		url: "https://blazediff.dev",
-		siteName: "BlazeDiff",
+		// Matches the canonical: each page reports its own URL, not the homepage.
+		url: "./",
+		siteName: SITE_NAME,
 		locale: "en_US",
 		type: "website",
 	},

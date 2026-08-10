@@ -1,6 +1,7 @@
 import Link from "next/link";
 import BenchmarkChart from "../components/landing/benchmark-chart";
 import CtaLink from "../components/landing/cta-link";
+import LandingFaq from "../components/landing/faq";
 import Hero from "../components/landing/hero";
 import HeroHeading, { HeroAccent } from "../components/landing/hero-heading";
 import HeroInterpret from "../components/landing/hero-interpret";
@@ -10,6 +11,7 @@ import NumberedCard from "../components/landing/numbered-card";
 import Reveal from "../components/landing/reveal";
 import Section from "../components/landing/section";
 import LandingShell from "../components/landing/shell";
+import StructuredData from "../components/landing/structured-data";
 import interpretData from "../data/interpret/blazediff-3-diff.json";
 
 const FIXTURE_A =
@@ -231,6 +233,7 @@ const BENCHMARK_GROUPS = [
 export default function Home() {
 	return (
 		<LandingShell activeTab="home" ctaLabel="GET STARTED" ctaHref="/apis/core">
+			<StructuredData />
 			<Hero
 				left={
 					<>
@@ -345,6 +348,8 @@ export default function Home() {
 					})}
 				</div>
 			</Section>
+
+			<LandingFaq />
 
 			<Section>
 				<div className="flex flex-col md:flex-row gap-4">
