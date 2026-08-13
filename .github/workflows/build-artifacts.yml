@@ -1,0 +1,392 @@
+name: build-artifacts
+
+# Builds every release-shipped binary on GitHub runners and commits them back to
+# the PR branch. Comment `/build` on a PR — normally the Changesets "Version
+# Packages" PR — and this replaces the local rebuild that
+# release-artifacts-check.yml otherwise asks the maintainer to do by hand.
+#
+# Toolchains deliberately mirror `pnpm build:rust && pnpm build:rust:ssim &&
+# pnpm build:wasm && pnpm build:python:all` on a Mac, by calling the exact same
+# scripts with `--target`:
+#   macOS targets    cargo, natively / rustup-cross from an arm64 runner
+#   Linux targets    `cross` docker images — BLAZEDIFF_FORCE_CROSS keeps the
+#                    x64 build off the runner's own (much newer) glibc
+#   Windows targets  cargo-xwin, same as cross-building from macOS
+#   wheels           maturin: zig for Linux, cargo-xwin for Windows
+#
+# Push uses CHANGESETS_PAT, not GITHUB_TOKEN: a GITHUB_TOKEN push triggers no
+# downstream workflows, and the whole point is to re-run release-artifacts-check
+# on the new commit.
+
+on:
+  issue_comment:
+    types: [created]
+
+concurrency:
+  group: build-artifacts-${{ github.event.issue.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  resolve:
+    name: Resolve PR
+    if: |
+      github.event.issue.pull_request &&
+      startsWith(github.event.comment.body, '/build') &&
+      github.event.comment.user.login == 'teimurjan'
+    runs-on: ubuntu-latest
+    outputs:
+      ref: ${{ steps.pr.outputs.ref }}
+      sha: ${{ steps.pr.outputs.sha }}
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Resolve PR head
+        uses: actions/github-script@v7
+        id: pr
+        with:
+          script: |
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+            });
+            // The artifacts get pushed back onto the head branch, which is only
+            // possible while it lives in this repo.
+            const head = pr.head.repo?.full_name;
+            if (head !== `${context.repo.owner}/${context.repo.repo}`) {
+              core.setFailed(`/build cannot push to a fork (head is ${head}).`);
+              return;
+            }
+            core.setOutput('ref', pr.head.ref);
+            core.setOutput('sha', pr.head.sha);
+            await github.rest.reactions.createForIssueComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: context.payload.comment.id,
+              content: 'eyes',
+            });
+
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ steps.pr.outputs.sha }}
+
+      # Single source of truth for the version everything is built for; the
+      # wheel builds assert against it and the commit job re-checks the
+      # filenames, so a half-synced version bump fails here rather than on npm.
+      - name: Read target version
+        id: version
+        run: |
+          set -euo pipefail
+          VER=$(sed -nE 's/^version *= *"([^"]+)".*/\1/p' crates/blazediff/Cargo.toml | head -1)
+          [[ -n "$VER" ]] || { echo "::error::could not read version from crates/blazediff/Cargo.toml"; exit 1; }
+          echo "version=$VER" >> "$GITHUB_OUTPUT"
+          echo "Building artifacts for v$VER (${{ steps.pr.outputs.sha }})"
+
+  build:
+    name: ${{ matrix.target }}
+    needs: resolve
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    strategy:
+      # One broken target shouldn't throw away five good ones — the commit job
+      # needs the full set anyway, but the logs are worth having.
+      fail-fast: false
+      matrix:
+        include:
+          - { target: aarch64-apple-darwin, os: macos-latest, kind: macos, pkg: darwin-arm64, cli: blazediff }
+          - { target: x86_64-apple-darwin, os: macos-latest, kind: macos, pkg: darwin-x64, cli: blazediff }
+          - { target: aarch64-unknown-linux-gnu, os: ubuntu-latest, kind: linux, pkg: linux-arm64, cli: blazediff }
+          - { target: x86_64-unknown-linux-gnu, os: ubuntu-latest, kind: linux, pkg: linux-x64, cli: blazediff }
+          - { target: aarch64-pc-windows-msvc, os: ubuntu-latest, kind: windows, pkg: win32-arm64, cli: blazediff.exe }
+          - { target: x86_64-pc-windows-msvc, os: ubuntu-latest, kind: windows, pkg: win32-x64, cli: blazediff.exe }
+    env:
+      # See force_cross() in crates/scripts/_targets.sh — no effect off Linux.
+      BLAZEDIFF_FORCE_CROSS: "1"
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.resolve.outputs.sha }}
+          # Vendored libspng / libjpeg-turbo / miniz.
+          submodules: recursive
+          # Everything here is rebuilt from source; only the commit job needs
+          # the tracked binaries, and it only needs their pointers.
+          lfs: false
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: cargo-bins/cargo-binstall@main
+
+      # Pinned to the versions the artifacts are built with locally, so a
+      # /build and a maintainer's `pnpm build:rust` stay comparable.
+      - name: Install maturin
+        run: cargo binstall -y maturin@1.13.1
+
+      - name: Install cross
+        if: matrix.kind == 'linux'
+        run: cargo binstall -y cross@0.2.5
+
+      # maturin cross-links the Linux wheels with zig (build-maturin.sh), which
+      # is what gets them the manylinux_2_17 tag. ziglang is the same
+      # distribution homebrew's zig is, just installed without a package manager.
+      - name: Install zig
+        if: matrix.kind == 'linux'
+        run: |
+          set -euo pipefail
+          python3 -m venv "$HOME/.zig-venv"
+          "$HOME/.zig-venv/bin/pip" install --quiet ziglang==0.16.0
+          printf '#!/usr/bin/env bash\nexec "%s/.zig-venv/bin/python" -m ziglang "$@"\n' "$HOME" \
+            | sudo tee /usr/local/bin/zig > /dev/null
+          sudo chmod +x /usr/local/bin/zig
+          zig version
+
+      - name: Install cargo-xwin toolchain
+        if: matrix.kind == 'windows'
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          # ninja: cargo-xwin's cmake generator, for the vendored miniz and
+          # libjpeg-turbo. clang/lld/llvm: the MSVC-compatible cross toolchain.
+          sudo apt-get install -y --no-install-recommends clang lld llvm ninja-build
+          # cargo-xwin shells out to clang-cl / lld-link / llvm-lib by bare name,
+          # and Ubuntu only puts version-suffixed copies in /usr/bin. Same job
+          # xwin_path_prefix() does with homebrew llvm on macOS.
+          ls -d /usr/lib/llvm-*/bin | sort -V | tail -1 >> "$GITHUB_PATH"
+          cargo binstall -y cargo-xwin@0.22.0
+
+      - name: Build CLI binary
+        run: crates/blazediff/scripts/build-all.sh --target ${{ matrix.target }}
+
+      - name: Build core .node
+        run: crates/blazediff/scripts/build-napi.sh --target ${{ matrix.target }}
+
+      - name: Build ssim .node
+        run: crates/blazediff-ssim/scripts/build-napi.sh --target ${{ matrix.target }}
+
+      - name: Build Python wheel
+        run: |
+          set -euo pipefail
+          # zig links against a bare glibc sysroot with no zlib, and picking up
+          # the runner's libz would undo the manylinux tag. The vendored miniz
+          # is what the macOS-hosted build already ships in these wheels;
+          # build.rs only auto-selects it when the *host* isn't Linux.
+          if [[ "${{ matrix.kind }}" == "linux" ]]; then
+            export BLAZEDIFF_FORCE_MINIZ=1
+          fi
+          crates/blazediff/scripts/build-maturin.sh \
+            --target ${{ matrix.target }} \
+            --version ${{ needs.resolve.outputs.version }}
+
+      # The build scripts warn-and-continue on some paths; make sure this job
+      # never uploads a stale checkout file (an LFS pointer) as a fresh binary.
+      - name: Verify artifacts
+        run: |
+          set -euo pipefail
+          for f in \
+            "packages/core-native-${{ matrix.pkg }}/${{ matrix.cli }}" \
+            "packages/core-native-${{ matrix.pkg }}/blazediff.node" \
+            "packages/ssim-native-${{ matrix.pkg }}/blazediff_ssim.node" \
+            crates/blazediff/wheels/*.whl; do
+            if [[ ! -s "$f" ]]; then
+              echo "::error::$f missing or empty after build"
+              exit 1
+            fi
+            if head -c 40 "$f" | grep -q 'git-lfs'; then
+              echo "::error::$f is still a Git LFS pointer — nothing was built into it"
+              exit 1
+            fi
+            ls -lh "$f"
+          done
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: target-${{ matrix.target }}
+          if-no-files-found: error
+          retention-days: 1
+          # Scoped to this target's package dirs: the other five still hold the
+          # checked-out pointer files, and uploading those would let them
+          # overwrite a sibling job's real binary on merge. Spanning packages/
+          # and crates/ also keeps the repo root as the archive root, which is
+          # what lets the commit job unpack straight into the checkout.
+          path: |
+            packages/core-native-${{ matrix.pkg }}/${{ matrix.cli }}
+            packages/core-native-${{ matrix.pkg }}/blazediff.node
+            packages/ssim-native-${{ matrix.pkg }}/blazediff_ssim.node
+            crates/blazediff/wheels/*.whl
+
+  wasm:
+    name: wasm32-unknown-unknown
+    needs: resolve
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.resolve.outputs.sha }}
+          # No submodules: the wasm build runs --no-default-features --features
+          # wasm, so blazediff-shared's build.rs returns before touching the
+          # vendored C. Same reasoning as benchmark-wasm.yml.
+          lfs: false
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - uses: cargo-bins/cargo-binstall@main
+
+      # Must match the wasm-bindgen pin in crates/blazediff/Cargo.toml and the
+      # default in build-wasm.sh; the CLI errors out on a mismatch.
+      - name: Install wasm-bindgen-cli
+        run: cargo binstall -y wasm-bindgen-cli@0.2.100
+
+      # build-wasm.sh silently skips wasm-opt when it is absent, which would
+      # commit an unoptimized module.
+      - name: Install binaryen (wasm-opt)
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y binaryen
+          wasm-opt --version
+
+      - name: Build wasm
+        run: crates/blazediff/scripts/build-wasm.sh
+
+      # Single directory, so the archive root is that directory — the commit job
+      # downloads it straight back into packages/core-wasm/wasm/.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wasm
+          if-no-files-found: error
+          retention-days: 1
+          path: packages/core-wasm/wasm/
+
+  commit:
+    name: Commit to PR
+    needs: [resolve, build, wasm]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.resolve.outputs.ref }}
+          token: ${{ secrets.CHANGESETS_PAT }}
+          # Pointers are all this job needs: the artifacts it doesn't overwrite
+          # it doesn't touch, so smudging ~30 MB of LFS blobs buys nothing.
+          lfs: false
+
+      # The matrix built from resolve.sha; refuse to attach those artifacts to a
+      # branch that has moved on since.
+      - name: Verify branch is unchanged
+        run: |
+          set -euo pipefail
+          HEAD_SHA=$(git rev-parse HEAD)
+          if [[ "$HEAD_SHA" != "${{ needs.resolve.outputs.sha }}" ]]; then
+            echo "::error::${{ needs.resolve.outputs.ref }} moved to $HEAD_SHA since /build started (built ${{ needs.resolve.outputs.sha }}). Comment /build again."
+            exit 1
+          fi
+
+      # Wheels are a single-version set (publish-pypi.yml enforces it), so the
+      # previous release's have to go before this release's land.
+      - name: Drop previous wheels
+        run: rm -f crates/blazediff/wheels/*.whl
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: target-*
+          path: .
+          merge-multiple: true
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: wasm
+          path: packages/core-wasm/wasm
+
+      - name: Stage artifacts
+        run: |
+          set -euo pipefail
+          VER='${{ needs.resolve.outputs.version }}'
+
+          # upload-artifact drops the executable bit; restore it from what git
+          # already records rather than guessing which paths need it.
+          git ls-files -s packages crates/blazediff/wheels \
+            | awk '$1 == "100755" { print $4 }' \
+            | xargs -r chmod +x
+
+          # Guards a version bump that only landed in half the manifests: the
+          # wheel names encode the version the whole release is cut at.
+          for whl in crates/blazediff/wheels/*.whl; do
+            case "$(basename "$whl")" in
+              "blazediff-${VER}-"*) ;;
+              *) echo "::error::$whl is not a v${VER} wheel"; exit 1 ;;
+            esac
+          done
+
+      - name: Commit and push
+        id: push
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          # Binaries are LFS-tracked; the clean filter has to be wired up in
+          # this clone before `git add` sees them.
+          git lfs install --local
+
+          git add -A packages crates/blazediff/wheels
+          if git diff --cached --quiet; then
+            echo "Artifacts already up to date — nothing to commit."
+            echo "committed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          git diff --cached --stat
+          git commit -m "build: artifacts for v${{ needs.resolve.outputs.version }}"
+          git push origin "HEAD:${{ needs.resolve.outputs.ref }}"
+          echo "committed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Report success
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const committed = '${{ steps.push.outputs.committed }}' === 'true';
+            const version = '${{ needs.resolve.outputs.version }}';
+            await github.rest.reactions.createForIssueComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: context.payload.comment.id,
+              content: 'rocket',
+            });
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: committed
+                ? `Built and committed release artifacts for \`v${version}\` — binaries, wasm and wheels for all six platforms.`
+                : `Release artifacts for \`v${version}\` were already up to date; nothing to commit.`,
+            });
+
+  report-failure:
+    name: Report failure
+    needs: [resolve, build, wasm, commit]
+    if: failure() && needs.resolve.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const run = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            await github.rest.reactions.createForIssueComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: context.payload.comment.id,
+              content: 'confused',
+            });
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `\`/build\` failed — nothing was committed. [Logs](${run}).`,
+            });

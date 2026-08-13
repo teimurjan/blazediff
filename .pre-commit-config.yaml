@@ -1,6 +1,13 @@
 repos:
   - repo: local
     hooks:
+      # First, so a commit full of binaries fails before biome rewrites files.
+      - id: no-binaries
+        name: no committed build artifacts
+        entry: scripts/checks/check-no-binaries.sh
+        language: system
+        pass_filenames: false
+        always_run: true
       - id: jsr-patches-clean
         name: jsr patches not applied
         entry: scripts/checks/check-jsr-patches-clean.sh
