@@ -6,7 +6,7 @@
 use blazediff_png::{decode, encode, ColorMode, EncodeOptions, Filter, FilterSet, Image};
 
 fn oracle(bytes: &[u8]) -> (u32, u32, Vec<u8>) {
-    let img = blazediff::decode_spng_reference(bytes).expect("spng must accept our output");
+    let img = blazediff_shared::decode_spng_reference(bytes).expect("spng must accept our output");
     (img.width, img.height, img.data)
 }
 

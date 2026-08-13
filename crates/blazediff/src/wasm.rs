@@ -6,6 +6,7 @@
 
 use crate::diff::diff;
 use crate::types::{DiffOptions, Image};
+use serde::Serialize;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen(start)]
@@ -147,6 +148,36 @@ pub fn interpret_rgba(
         crate::interpret::interpret_with_output(&img1, &img2, output_image.as_mut(), &opts)
             .map_err(|e| JsError::new(&e.to_string()))?;
     copy_output(out_diff, output_image.as_ref(), result.diff_count > 0)?;
+
+    serde_wasm_bindgen::to_value(&result).map_err(|e| JsError::new(&e.to_string()))
+}
+
+/// Interpret a set of caller-supplied change regions.
+///
+/// The regions-in counterpart to [`interpret_rgba`]: instead of running a pixel
+/// diff to find what changed, the caller says where. That lets JS drive the
+/// classifier from anything it already knows — DOM rectangles, a crop list, or
+/// regions derived from a similarity map — and still get per-pixel statistics,
+/// because each box is refined against the source pixels before it is measured.
+///
+/// `regions` is an array of `{ x, y, width, height }` in image coordinates. A
+/// region outside the image is rejected rather than read out of bounds.
+#[wasm_bindgen(js_name = interpretRegionsRgba)]
+pub fn interpret_regions_rgba(
+    rgba_a: Vec<u8>,
+    rgba_b: Vec<u8>,
+    width: u32,
+    height: u32,
+    regions: JsValue,
+) -> Result<JsValue, JsError> {
+    let img1 = image_from_vec(rgba_a, width, height, "rgba_a")?;
+    let img2 = image_from_vec(rgba_b, width, height, "rgba_b")?;
+
+    let regions: Vec<blazediff_interpret::BoundingBox> = serde_wasm_bindgen::from_value(regions)
+        .map_err(|e| JsError::new(&format!("Invalid regions: {e}")))?;
+
+    let result = blazediff_interpret::interpret_regions(&img1, &img2, &regions)
+        .map_err(|e| JsError::new(&e.to_string()))?;
 
     serde_wasm_bindgen::to_value(&result).map_err(|e| JsError::new(&e.to_string()))
 }

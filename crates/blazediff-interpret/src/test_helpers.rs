@@ -1,4 +1,4 @@
-use crate::types::Image;
+use blazediff_shared::Image;
 
 pub fn make_solid_image(width: u32, height: u32, r: u8, g: u8, b: u8) -> Image {
     let mut img = Image::new(width, height);

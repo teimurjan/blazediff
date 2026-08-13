@@ -59,7 +59,7 @@ pub fn dims_within_budget(data: &[u8]) -> bool {
 /// unknown chunk is reconstructed; the differential target caps our list to
 /// match. Full multi-chunk passthrough is covered by the round-trip test.
 pub fn spng_metadata(png: &[u8]) -> Option<blazediff_png::Metadata> {
-    use blazediff::spng_ffi::*;
+    use blazediff_shared::spng_ffi::*;
     use blazediff_png::*;
 
     struct Guard(*mut spng_ctx);

@@ -1,0 +1,146 @@
+# blazediff-ssim
+
+import { Callout } from "nextra/components";
+
+Structural-similarity metrics in Rust: **SSIM, MS-SSIM and Hitchhiker's SSIM, vectorised through one lane-generic SIMD layer and held to the reference MATLAB scripts through Octave**. No dependencies, no threads, no runtime dispatch. It powers the `--metric` family in the BlazeDiff Rust crate.
+
+[View the dssim comparison and quality harness](https://github.com/teimurjan/blazediff/tree/main/crates/blazediff-ssim-benchmark)
+
+## Installation
+
+```toml
+# Cargo.toml
+[dependencies]
+blazediff-ssim = "5.4.0"
+```
+
+The crate name is `blazediff-ssim`; the library imports as `blazediff_ssim`. Crate sources are available on [crates.io](https://crates.io/crates/blazediff-ssim).
+
+## Why a separate crate
+
+A per-pixel diff answers "which pixels changed", which is the right question until anti-aliasing, font hinting or a codec's rounding moves a few thousand pixels by one unit and the run goes red for no reason a human would call a change. SSIM answers the other question: how alike do these look.
+
+The catch is that "SSIM" names a family whose members disagree by more than their published formulas suggest, because the reference implementations differ in window placement, boundary handling and downsampling. The contract here is not "we implemented the paper", it is **land where MATLAB lands, to a stated tolerance, and keep landing there**.
+
+## Features
+
+- **`ssim`**: Gaussian-windowed single-scale SSIM in `'valid'` mode, with the automatic downsampling to ~256px on the short edge that MATLAB's `ssim.m` does.
+- **`ms_ssim`**: SSIM pooled across a 5-octave dyadic pyramid, per `msssim.m`. Product or weighted-sum pooling. Needs at least 176px on the short edge for the default five scales.
+- **`hitchhikers_ssim`**: box windows over five integral images, pooled by coefficient of variation (Venkataramanan et al. 2021). Every window sum is an O(1) summed-area-table lookup instead of ten 11-tap convolutions.
+- **`perceptual_ssim`**: the tunable variant. CIE L\*a\*b\*, chroma weighting, chroma subsampling and mean-absolute-deviation pooling, each an independent knob. With `PerceptualOptions::default()` it reduces *bit-identically* to `ms_ssim`, which is what makes it usable as an ablation study rather than a second opinion.
+- **Zero dependencies**: std only, so it compiles for every target `blazediff` does, wasm32 included, with no feature negotiation.
+
+## Performance
+
+Wall-clock on a 4K pair, decode included (decode is ~200 ms of each):
+
+| Metric | 4K pair | Why |
+| --- | --- | --- |
+| `ssim` | 320 ms | MATLAB's automatic downsample shrinks the plane to ~256px before any convolution runs |
+| `hitchhikers-ssim` | 380 ms | full resolution, but O(1) window sums |
+| `ms-ssim` | 480 ms | full resolution at the finest of five scales |
+
+Against single-threaded [dssim](https://github.com/kornelski/dssim), `ms_ssim` runs about **1.9×** faster. Two things bought that, neither of them threads:
+
+**One fused statistics pass.** A scale needs five moments (µ1, µ2, σ1², σ2², σ12), which the textbook pipeline computes as eleven full-size intermediates. The streaming kernel computes them in a single pass through a row ring buffer instead, bit-identically to the unfused path by construction.
+
+**Compile-time lane selection.** Five kernel shapes carry nearly all the time, so each is written once against a `SimdF32` trait and instantiated per ISA: NEON on aarch64, SSE2 on x86_64, simd128 on wasm32, a scalar fallback elsewhere. All are baseline for their target, so nothing dispatches inside a hot loop.
+
+## Library Usage
+
+```rust
+use blazediff_ssim::{ms_ssim, MsSsimOptions, Plane, Rgba8, SsimOptions};
+
+let plane1 = Plane::from_rgba8(Rgba8::new(&rgba1, width, height))?;
+let plane2 = Plane::from_rgba8(Rgba8::new(&rgba2, width, height))?;
+
+let outcome = ms_ssim(
+    &plane1,
+    &plane2,
+    &SsimOptions::default(),
+    &MsSsimOptions::default(),
+)?;
+println!("{:.6}", outcome.score); // 1.0 means identical
+```
+
+`Rgba8` is a borrowed view, so nothing is copied to call in. Decoding is the caller's problem: the crate takes RGBA8 bytes and has no I/O.
+
+### Types
+
+```rust
+pub struct Rgba8<'a> {
+    pub data: &'a [u8],   // RGBA8, 4 bytes per pixel, row-major
+    pub width: usize,
+    pub height: usize,
+}
+
+pub struct Plane {
+    pub samples: Vec<f32>, // luma, MATLAB rgb2gray weights
+    pub width: usize,
+    pub height: usize,
+}
+
+pub struct SsimOptions {
+    pub window_size: usize, // default 11
+    pub k1: f64,            // default 0.01
+    pub k2: f64,            // default 0.03
+    pub bit_depth: u32,     // default 8, sets L = 2^bit_depth - 1
+}
+
+pub struct SsimOutcome {
+    pub score: f64,        // pooled, 1.0 = identical
+    pub map: Vec<f32>,     // per-window scores, row-major
+    pub map_width: usize,
+    pub map_height: usize,
+}
+```
+
+### API
+
+| Function | Purpose |
+| --- | --- |
+| `ssim` | single-scale SSIM with MATLAB's automatic downsampling |
+| `ms_ssim` | SSIM pooled over a 5-octave pyramid |
+| `hitchhikers_ssim` | box windows over integral images, CoV pooling |
+| `perceptual_ssim` | tunable Lab / chroma / MAD variant, takes `Rgba8` |
+| `render_map` | paint a local map into an RGBA8 buffer as grayscale |
+
+<Callout type="info">
+  Every metric returns `Err(SsimError)` rather than panicking on a mismatched or truncated pair. `SsimError` carries the same messages the BlazeDiff CLI, N-API, Python and wasm front-ends print.
+</Callout>
+
+## Bit-exactness is the constraint, not an outcome
+
+Tap-by-tap accumulation order is frozen to the [`@blazediff/ssim`](/apis/ssim) TypeScript port. That is a deliberate handcuff: the JS port is the one whose MATLAB agreement was measured, so matching its order means this crate *inherits* that agreement instead of drifting away from it by an unmeasured amount. Anything that would reassociate the sums, including some obvious-looking vectorisations, is out of bounds even when it is faster.
+
+Two consequences worth knowing about: `cube_root` replaces `cbrtf` in the Lab conversion and is checked against libm across the whole L\*a\*b\* domain; and FMA is used inside the vector body but deliberately *not* in the scalar tail, because the reference does not fuse either.
+
+<Callout type="warning">
+  `MsSsimMethod::Product` returns `NaN` when a scale's mean contrast-structure term goes negative. That takes globally anticorrelated content (an inverted image) rather than ordinary degradation, and both references degenerate the same way: the JS gives `NaN`, MATLAB gives a complex number. `MsSsimMethod::WeightedSum` stays finite throughout.
+</Callout>
+
+## Verified
+
+| Layer | Result |
+| --- | --- |
+| MATLAB `ssim.m` | within **0.01%** on three fixture pairs, **0.05%** on the one where downsampling by 5 costs the most precision |
+| MATLAB `msssim.m` | within **0.05** absolute. The reference pools `'valid'` statistics where both ports pool symmetric `'same'`, so the gap is algorithmic, not numerical |
+| TypeScript port | all three metrics agree to within **5e-6**, the only cross-port pin for `hitchhikers-ssim`, which has no MATLAB reference |
+| Fused statistics | bit-identical to the unfused eleven-buffer pipeline |
+| `cube_root` | exhaustive over ~67M f32 values across the Lab domain |
+| Unit + integration tests | 55 + 4 |
+
+The MATLAB half shells out to Octave and reports a skip when Octave is missing, so the default `cargo test` needs no toolchain beyond Rust. Set `BLAZEDIFF_REQUIRE_OCTAVE=1` to turn a missing Octave into a failure so parity cannot pass vacuously.
+
+## Caveats
+
+All three shipped metrics reduce to luma, so a change carried entirely by chroma or by alpha is invisible to them. `perceptual_ssim` with `ColorSpace::Lab` and a non-zero `chroma_weight` sees colour.
+
+Scores are pooled over a local map, so these metrics say *how much* two images differ, not *where* beyond the resolution of that map. For exact locations, use a pixel diff.
+
+## Links
+
+- [Crates.io](https://crates.io/crates/blazediff-ssim)
+- [Crate README](https://github.com/teimurjan/blazediff/blob/main/crates/blazediff-ssim/README.md)
+- [dssim comparison and quality harness](https://github.com/teimurjan/blazediff/tree/main/crates/blazediff-ssim-benchmark)
+- [GitHub Repository](https://github.com/teimurjan/blazediff)

@@ -19,8 +19,8 @@
 //!     pixels. We re-decode each encoding and compare those.
 
 use crate::codecs::spng_decode;
-use blazediff::spng_ffi::*;
 use blazediff_png::{ColorMode, EncodeOptions, Filter, Image};
+use blazediff_shared::spng_ffi::*;
 use std::os::raw::c_int;
 use std::path::{Path, PathBuf};
 

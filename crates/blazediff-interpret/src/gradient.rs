@@ -1,4 +1,4 @@
-use crate::types::Image;
+use blazediff_shared::Image;
 
 use super::types::{BoundingBox, GradientStats};
 
@@ -234,7 +234,7 @@ fn lum_at(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::interpret::test_helpers::*;
+    use crate::test_helpers::*;
 
     #[test]
     fn test_flat_image_zero_edge_score() {

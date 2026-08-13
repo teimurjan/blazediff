@@ -17,6 +17,41 @@ const CRATES = [
 		npmPkgPath: path.join(ROOT, "crates", "blazediff-png", "package.json"),
 		cargoTomlPath: path.join(ROOT, "crates", "blazediff-png", "Cargo.toml"),
 		// Crates that depend on this one by path+version need the requirement bumped too.
+		dependents: [path.join(ROOT, "crates", "blazediff-shared", "Cargo.toml")],
+	},
+	{
+		// Versioned via the private @blazediff/rust-shared changesets shadow package.
+		name: "blazediff-shared",
+		npmPkgPath: path.join(ROOT, "crates", "blazediff-shared", "package.json"),
+		cargoTomlPath: path.join(ROOT, "crates", "blazediff-shared", "Cargo.toml"),
+		dependents: [
+			path.join(ROOT, "crates", "blazediff", "Cargo.toml"),
+			path.join(ROOT, "crates", "blazediff-interpret", "Cargo.toml"),
+			path.join(ROOT, "crates", "blazediff-ssim", "Cargo.toml"),
+		],
+	},
+	{
+		// Versioned via the private @blazediff/rust-interpret changesets shadow package.
+		name: "blazediff-interpret",
+		npmPkgPath: path.join(
+			ROOT,
+			"crates",
+			"blazediff-interpret",
+			"package.json",
+		),
+		cargoTomlPath: path.join(
+			ROOT,
+			"crates",
+			"blazediff-interpret",
+			"Cargo.toml",
+		),
+		dependents: [path.join(ROOT, "crates", "blazediff", "Cargo.toml")],
+	},
+	{
+		// Versioned via the private @blazediff/rust-ssim changesets shadow package.
+		name: "blazediff-ssim",
+		npmPkgPath: path.join(ROOT, "crates", "blazediff-ssim", "package.json"),
+		cargoTomlPath: path.join(ROOT, "crates", "blazediff-ssim", "Cargo.toml"),
 		dependents: [path.join(ROOT, "crates", "blazediff", "Cargo.toml")],
 	},
 ];

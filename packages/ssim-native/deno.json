@@ -1,0 +1,20 @@
+{
+	"name": "@blazediff/ssim-native",
+	"version": "5.4.0",
+	"exports": "./src/index.ts",
+	"imports": {
+		"@blazediff/ssim-native-darwin-arm64": "npm:@blazediff/ssim-native-darwin-arm64@5.4.0",
+		"@blazediff/ssim-native-darwin-x64": "npm:@blazediff/ssim-native-darwin-x64@5.4.0",
+		"@blazediff/ssim-native-linux-arm64": "npm:@blazediff/ssim-native-linux-arm64@5.4.0",
+		"@blazediff/ssim-native-linux-x64": "npm:@blazediff/ssim-native-linux-x64@5.4.0",
+		"@blazediff/ssim-native-win32-arm64": "npm:@blazediff/ssim-native-win32-arm64@5.4.0",
+		"@blazediff/ssim-native-win32-x64": "npm:@blazediff/ssim-native-win32-x64@5.4.0"
+	},
+	"publish": {
+		"include": ["src/**/*.ts", "README.md"],
+		"exclude": ["src/**/*.test.ts", "src/**/*.spec.ts", "src/**/*.deno.test.ts"]
+	},
+	"test": {
+		"include": ["src/**/*.deno.test.ts"]
+	}
+}

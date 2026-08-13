@@ -19,7 +19,7 @@ From the original website:
 
 ## Our Implementation
 
-The TypeScript implementation in `@blazediff/ssim` is an independent implementation based on the published algorithm, licensed under MIT for the code itself.
+The TypeScript implementation in `@blazediff/ssim` and the Rust implementation in the `blazediff-ssim` crate are independent implementations based on the published algorithm, licensed under MIT for the code itself.
 
 ## Citation
 

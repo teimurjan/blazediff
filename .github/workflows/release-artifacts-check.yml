@@ -7,11 +7,10 @@ name: release-artifacts-check
 # Workflow:
 #   1. Changesets opens a PR on `changeset-release/main` bumping versions.
 #   2. This check goes red — artifacts are stale or missing.
-#   3. Maintainer checks out the PR branch, runs:
-#        pnpm build:rust
-#        pnpm build:wasm
-#        pnpm build:python:all -- --version <NEW>
-#      commits + pushes the resulting artifacts.
+#   3. Maintainer comments `/build` on the PR; build-artifacts.yml rebuilds
+#      every platform on GitHub runners and pushes the artifacts to the branch.
+#      (Locally that is: pnpm build:rust, build:rust:ssim, build:wasm and
+#      build:python:all -- --version <NEW>, committed and pushed.)
 #   4. Check turns green; PR is mergeable; merge fires release.yml.
 
 on:
@@ -59,15 +58,26 @@ jobs:
           BASE_SHA="${{ github.event.pull_request.base.sha }}"
           echo "Base SHA: $BASE_SHA"
 
-          # Binaries and WASM only need rebuilding when the Rust crate
+          # Binaries and WASM only need rebuilding when the Rust crates
           # actually changed; for JS-only releases the existing artifacts
-          # from the previous version are still valid.
-          if git diff --quiet "$BASE_SHA" -- crates/blazediff/; then
+          # from the previous version are still valid. blazediff links
+          # blazediff-shared and blazediff-ssim, so a change to either lands in
+          # its binaries too.
+          if git diff --quiet "$BASE_SHA" -- crates/blazediff/ crates/blazediff-shared/ crates/blazediff-ssim/; then
             crate_changed=false
-            echo "crates/blazediff/ unchanged since base — skipping binary/WASM freshness checks."
+            echo "blazediff crates unchanged since base — skipping binary/WASM freshness checks."
           else
             crate_changed=true
-            echo "crates/blazediff/ changed since base — binaries and WASM must be rebuilt."
+            echo "blazediff crates changed since base — binaries and WASM must be rebuilt."
+          fi
+
+          # The ssim .node only depends on blazediff-ssim and blazediff-shared.
+          if git diff --quiet "$BASE_SHA" -- crates/blazediff-ssim/ crates/blazediff-shared/; then
+            ssim_crate_changed=false
+            echo "ssim crates unchanged since base — skipping ssim .node freshness checks."
+          else
+            ssim_crate_changed=true
+            echo "ssim crates changed since base — ssim .node files must be rebuilt."
           fi
 
           missing=()
@@ -117,6 +127,13 @@ jobs:
             require_fresh_file "packages/core-wasm/wasm/blazediff.js"
           fi
 
+          if [[ "$ssim_crate_changed" == "true" ]]; then
+            # --- SSIM NAPI .node -------------------------------------------
+            for plat in darwin-arm64 darwin-x64 linux-arm64 linux-x64 win32-arm64 win32-x64; do
+              require_fresh_file "packages/ssim-native-${plat}/blazediff_ssim.node"
+            done
+          fi
+
           if [[ ${#missing[@]} -gt 0 || ${#stale[@]} -gt 0 ]]; then
             echo "::error::Release artifacts for v${VER} are not ready."
             if [[ ${#missing[@]} -gt 0 ]]; then
@@ -128,12 +145,16 @@ jobs:
               for f in "${stale[@]}"; do echo "  - $f"; done
             fi
             echo
-            echo "Rebuild locally and push to this PR branch:"
+            echo "Comment '/build' on this PR to rebuild them on CI and push, or"
+            echo "do it locally:"
             echo "  git fetch origin && git checkout ${{ github.head_ref }}"
             echo "  pnpm build:rust"
+            echo "  pnpm build:rust:ssim"
             echo "  pnpm build:wasm"
             echo "  pnpm build:python:all -- --version ${VER}"
-            echo "  git add -A && git commit -m 'build: artifacts for v${VER}' && git push"
+            # --no-verify: the no-binaries pre-commit hook blocks artifact
+            # commits, since this is normally CI's job.
+            echo "  git add -A && git commit --no-verify -m 'build: artifacts for v${VER}' && git push"
             exit 1
           fi
 

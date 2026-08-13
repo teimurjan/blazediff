@@ -1,173 +1,25 @@
-//! Deterministic image diff analysis.
+//! End-to-end interpretation: run a pixel diff, then describe what changed.
 //!
-//! Wraps `blazediff::diff()` to produce structured, human/agent-readable results:
-//! region detection via connected-component labeling, spatial positions, severity,
-//! color delta analysis, gradient scoring, and semantic interpretation.
+//! The classifier itself lives in [`blazediff_interpret`] so that producers
+//! other than the pixel diff — `blazediff-ssim`, or a caller handing regions
+//! across the wasm/N-API boundary — can reach it without depending on this
+//! crate. What stays here is the half that needs [`crate::diff`]: run it,
+//! recover a mask from its output, and find connected components.
+//!
+//! Everything the classifier crate exports is re-exported, so
+//! `blazediff::interpret::*` keeps working.
 
-mod color_delta;
-mod content_analysis;
-mod gradient;
-mod interpretation;
-mod region;
-mod severity;
-mod shape;
-mod shifts;
-mod spatial;
-mod summary;
-#[cfg(test)]
-pub(crate) mod test_helpers;
-pub mod types;
+pub use blazediff_interpret::*;
 
 use crate::diff::diff;
 use crate::types::{DiffError, DiffOptions, Image};
-use crate::yiq::color_delta;
-use color_delta::compute_color_delta;
-use content_analysis::analyze_content;
-use gradient::{compute_gradient_stats, compute_luminance_ncc};
-use interpretation::classify_change_type;
-use region::{detect_regions, extract_change_mask};
-use severity::classify_severity;
-use shape::{classify_shape, compute_shape_stats};
-use shifts::detect_shifts;
-use spatial::classify_position;
-use summary::build_summary;
-use types::{ChangeRegion, ChangeType, InterpretResult};
+use blazediff_interpret::types::{ChangeRegion, ChangeType, InterpretResult};
 
-/// YIQ squared-delta floor for treating a pixel as actually changed.
-/// 100.0 corresponds to a YIQ-weighted distance of 10, roughly equivalent to
-/// a perceptual delta of ~0.017 — filters near-identical pixels without
-/// throwing away genuine edits.
-const REFINE_DELTA_FLOOR_SQ: f32 = 100.0;
-
+/// Stable non-grayscale marker colors keep mask extraction independent of
+/// caller-selected colors, including grayscale alternatives.
 const MASK_DIFF_COLOR: [u8; 3] = [255, 0, 0];
 const MASK_DIFF_COLOR_ALT: [u8; 3] = [0, 0, 255];
 const MASK_AA_COLOR: [u8; 3] = [255, 255, 0];
-
-/// Refine a coarse mask down to the actually-changed pixels inside the given
-/// bboxes. Pixels marked true in `input_mask` but with a tiny YIQ delta between
-/// `img1` and `img2` are dropped. Used by classifier-only paths so callers can
-/// pass a bbox-filled mask without polluting statistics with unchanged content.
-fn refine_change_mask_in_bboxes(
-    img1: &Image,
-    img2: &Image,
-    input_mask: &[bool],
-    bboxes: &[types::BoundingBox],
-    width: u32,
-) -> Vec<bool> {
-    let pixels1 = img1.as_u32();
-    let pixels2 = img2.as_u32();
-    let mut refined = input_mask.to_vec();
-    for bbox in bboxes {
-        for y in bbox.y..bbox.y + bbox.height {
-            for x in bbox.x..bbox.x + bbox.width {
-                let idx = (y * width + x) as usize;
-                if !refined[idx] {
-                    continue;
-                }
-                let delta = color_delta(pixels1[idx], pixels2[idx], idx).abs() as f32;
-                if delta < REFINE_DELTA_FLOOR_SQ {
-                    refined[idx] = false;
-                }
-            }
-        }
-    }
-    refined
-}
-
-fn count_mask_pixels(mask: &[bool], bbox: &types::BoundingBox, width: u32) -> u32 {
-    let mut pixel_count = 0u32;
-    for y in bbox.y..bbox.y + bbox.height {
-        for x in bbox.x..bbox.x + bbox.width {
-            if mask[(y * width + x) as usize] {
-                pixel_count += 1;
-            }
-        }
-    }
-    pixel_count
-}
-
-fn classify_region_with_mask(
-    img1: &Image,
-    img2: &Image,
-    mask: &[bool],
-    bbox: types::BoundingBox,
-) -> ChangeRegion {
-    let width = img1.width;
-    let height = img1.height;
-    let total_pixels = (width * height) as f64;
-    let pixel_count = count_mask_pixels(mask, &bbox, width);
-    let percentage = if total_pixels > 0.0 {
-        100.0 * pixel_count as f64 / total_pixels
-    } else {
-        0.0
-    };
-    let shape_stats = compute_shape_stats(mask, width, &bbox, pixel_count);
-    let shape = classify_shape(&shape_stats);
-    let position = classify_position(&bbox, width, height);
-
-    let color_delta = compute_color_delta(img1, img2, mask, &bbox, width);
-    let gradient_stats = compute_gradient_stats(img1, img2, mask, &bbox, width, height);
-    let luminance_ncc = compute_luminance_ncc(img1, img2, mask, &bbox, width);
-    let content = analyze_content(img1, img2, mask, &bbox, width, height);
-    let (change_type, signals) = classify_change_type(
-        &content,
-        &color_delta,
-        &gradient_stats,
-        &shape_stats,
-        &bbox,
-        luminance_ncc,
-    );
-
-    ChangeRegion {
-        bbox,
-        pixel_count,
-        percentage,
-        position,
-        shape,
-        shape_stats,
-        change_type,
-        signals,
-        confidence: signals.confidence,
-        color_delta,
-        gradient: gradient_stats,
-    }
-}
-
-/// Classify a known change region against a provided full-image change mask.
-///
-/// The mask is evaluated only inside `bbox`, so callers may pass a sparse mask
-/// with one or more labeled regions already marked.
-pub fn classify_region(
-    img1: &Image,
-    img2: &Image,
-    mask: &[bool],
-    bbox: types::BoundingBox,
-) -> ChangeRegion {
-    classify_region_with_mask(img1, img2, mask, bbox)
-}
-
-/// Classify multiple known regions, then run the same shift relabeling pass used
-/// by `interpret()` so classifier-only verification can evaluate final labels.
-///
-/// The caller-supplied `mask` may be coarse (e.g., bbox-filled for verifier
-/// tooling); we refine it to actually-changed pixels inside each bbox before
-/// classification so per-pixel statistics aren't diluted by unchanged content.
-pub fn classify_regions(
-    img1: &Image,
-    img2: &Image,
-    mask: &[bool],
-    bboxes: &[types::BoundingBox],
-) -> Vec<ChangeRegion> {
-    let width = img1.width;
-    let refined = refine_change_mask_in_bboxes(img1, img2, mask, bboxes, width);
-    let mut regions: Vec<ChangeRegion> = bboxes
-        .iter()
-        .copied()
-        .map(|bbox| classify_region_with_mask(img1, img2, &refined, bbox))
-        .collect();
-    detect_shifts(&mut regions, img1, img2, &refined, width);
-    regions
-}
 
 fn recolor_output(output: &mut Image, options: &DiffOptions) {
     let diff_color_alt = options.diff_color_alt.unwrap_or(options.diff_color);
@@ -230,7 +82,7 @@ pub fn interpret_with_output(
     let mut regions: Vec<ChangeRegion> = components
         .into_iter()
         .map(|c| {
-            let mut region = classify_region_with_mask(img1, img2, &mask, c.bbox);
+            let mut region = classify_region(img1, img2, &mask, c.bbox);
             region.pixel_count = c.pixel_count;
             region.percentage = if total_pixels > 0.0 {
                 100.0 * c.pixel_count as f64 / total_pixels
@@ -272,10 +124,10 @@ pub fn interpret(
 
 #[cfg(test)]
 mod tests {
+
     use super::*;
     use crate::interpret::test_helpers::*;
     use types::*;
-
     #[test]
     fn test_identical_images() {
         let img1 = make_solid_image(100, 100, 128, 128, 128);

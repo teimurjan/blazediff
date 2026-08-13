@@ -205,6 +205,58 @@ const result = await diff(a, b, width, height, output, {
 });
 ```
 
+### `compare(a, b, width, height, output?, options?)`
+
+Same buffers as `diff()`, but with a selectable metric and a full result object.
+
+<table>
+  <tr>
+    <th width="500">Option</th>
+    <th width="500">Type</th>
+    <th width="500">Default</th>
+    <th width="500">Description</th>
+  </tr>
+  <tr>
+    <td><code>metric</code></td>
+    <td>"pixel" | "ssim" | "ms-ssim" | "hitchhikers-ssim"</td>
+    <td>"pixel"</td>
+    <td>Comparison metric. <code>pixel</code> reports which pixels changed; the rest report a pooled similarity <code>score</code> in 0-1</td>
+  </tr>
+  <tr>
+    <td><code>minScore</code></td>
+    <td>number</td>
+    <td>1</td>
+    <td>Score at or above which the ssim metrics call two images identical</td>
+  </tr>
+  <tr>
+    <td><code>ssimWindowSize</code></td>
+    <td>number</td>
+    <td>11</td>
+    <td>Local window size for the ssim metrics</td>
+  </tr>
+</table>
+
+`threshold`, `includeAA`, `diffMask` and `diffColorAlt` carry over from `DiffOptions`. The `pixel` metric writes the usual red-on-gray visualization into `output`; the ssim metrics write their local score map instead.
+
+**Returns:** `Promise<CompareResult>`
+
+```typescript
+type CompareResult = {
+  diffCount: number;      // pixels for `pixel`, sub-threshold windows for ssim
+  diffPercentage: number;
+  identical: boolean;
+  metric: BlazeDiffMetric;
+  score?: number;         // pooled similarity, ssim metrics only
+};
+```
+
+```typescript
+const result = await compare(a, b, width, height, undefined, {
+  metric: 'ssim',
+  minScore: 0.99,
+});
+```
+
 ### `interpret(a, b, width, height, options?)`
 
 Returns structured change regions without retaining a diff visualization. It is a convenience wrapper over `diff()` with `interpret: true`.

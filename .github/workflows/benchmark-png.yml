@@ -52,7 +52,7 @@ jobs:
         shell: bash
         run: |
           # Match the RUSTFLAGS the published binaries use (see
-          # crates/blazediff/scripts/_targets.sh). blazediff-png's decode
+          # crates/scripts/_targets.sh). blazediff-png's decode
           # kernels have no explicit x86 SIMD — they rely on the autovectorizer,
           # which is gated by -C target-cpu. A plain `cargo run --release`
           # builds baseline x86-64 (SSE2 only) and understates the codec vs

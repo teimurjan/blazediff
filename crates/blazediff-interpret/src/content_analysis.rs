@@ -1,4 +1,4 @@
-use crate::types::Image;
+use blazediff_shared::Image;
 
 use super::types::BoundingBox;
 
@@ -147,7 +147,7 @@ fn changed_pixel_distance(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::interpret::test_helpers::*;
+    use crate::test_helpers::*;
 
     #[test]
     fn test_bg_estimated_from_surrounding_unchanged_pixels() {

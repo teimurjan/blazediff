@@ -1,0 +1,140 @@
+# @blazediff/ssim-native
+
+import { Callout } from "nextra/components";
+
+Native Rust structural-similarity metrics for Node.js: **SSIM, MS-SSIM, Hitchhiker's SSIM and perceptual SSIM**, through N-API. Decodes PNG, JPEG and QOI. It is the [`blazediff-ssim`](/apis/blazediff-ssim) crate with nothing held back.
+
+## Installation
+
+```sh npm2yarn
+npm install @blazediff/ssim-native
+```
+
+The platform binary installs as an optional dependency; there is no compile step.
+
+## Why a separate package
+
+[`@blazediff/core-native`](/apis/core-native) is a pixel diff: it answers *where* two images differ. This package answers *how alike* they look — a different question, so it is a different package rather than a flag on that one.
+
+It exposes the whole crate: every stability constant, both pooling methods, Hitchhiker's stride, all of `perceptual-ssim`, and the local score map itself. The two are independent and share no code but the decoders; installing one does not pull in the other.
+
+## Usage
+
+```ts
+import { compare } from "@blazediff/ssim-native";
+
+const result = await compare("expected.png", "actual.png", "map.png", {
+  metric: "ms-ssim",
+  minScore: 0.99,
+});
+
+if (result.match) {
+  console.log(`close enough: ${result.score}`);
+} else if (result.reason === "score-below-threshold") {
+  console.log(`scored ${result.score}, ${result.belowCount} windows below the floor`);
+}
+```
+
+`compare` takes two file paths or two encoded buffers (Node `Buffer` works directly). A third argument renders the local score map to that path as grayscale, dark where the score is low.
+
+### Result
+
+`SsimResult` is a discriminated union:
+
+| `match` | `reason` | Carries |
+| --- | --- | --- |
+| `true` | — | `score`, `metric`, `mapWidth`, `mapHeight` |
+| `false` | `"score-below-threshold"` | the above plus `belowCount`, `belowPercentage` |
+| `false` | `"layout-diff"` | — the images are different sizes |
+| `false` | `"file-not-exists"` | `file` |
+
+`score` is pooled similarity in `0..=1`, where 1 is identical. `belowCount` counts map windows scoring under `minScore` — window counts, not pixel counts.
+
+## Metrics
+
+| Metric | What it does |
+| --- | --- |
+| `ssim` (default) | Gaussian-windowed single-scale SSIM, with the automatic downsample to ~256px on the short edge that MATLAB's `ssim.m` does |
+| `ms-ssim` | SSIM pooled across a 5-octave dyadic pyramid, per `msssim.m`. Needs ≥176px on the short edge |
+| `hitchhikers-ssim` | Box windows over five integral images, pooled by coefficient of variation (Venkataramanan et al. 2021). Every window sum is an O(1) summed-area-table lookup instead of ten 11-tap convolutions |
+| `perceptual-ssim` | The tunable variant: CIE L\*a\*b\*, chroma weighting, chroma subsampling and MAD pooling, each an independent knob. At its defaults it reduces *bit-identically* to `ms-ssim`, which is what makes it usable as an ablation study rather than a second opinion |
+
+## Raw RGBA
+
+If you already have decoded pixels, skip the codec. These are synchronous:
+
+```ts
+import { msSsim, renderMap } from "@blazediff/ssim-native";
+
+const result = msSsim(rgba1, rgba2, width, height, { returnMap: true });
+const grayscale = renderMap(result.map!, result.mapWidth, result.mapHeight, width, height);
+```
+
+`ssim`, `msSsim`, `hitchhikersSsim` and `perceptualSsim` all take `(base, comparison, width, height, options?)`. Both buffers are read at the same dimensions, so there is no layout-difference case here — a buffer too short for `width * height` throws.
+
+## Options
+
+```ts
+interface CompareOptions {
+  metric?: "ssim" | "ms-ssim" | "hitchhikers-ssim" | "perceptual-ssim";
+  minScore?: number;   // identical at or above this. Default: 1
+  returnMap?: boolean; // include the Float32Array map. Default: false
+
+  // shared by every metric
+  windowSize?: number; // Default: 11
+  k1?: number;         // Default: 0.01
+  k2?: number;         // Default: 0.03
+  bitDepth?: number;   // Default: 8, so L = 255
+
+  msSsim?: { weights?: number[]; method?: "product" | "weighted-sum" };
+  hitchhikers?: { windowStride?: number; covPooling?: boolean };
+  perceptual?: {
+    weights?: number[]; method?: "product" | "weighted-sum";
+    color?: "gamma-luma" | "lab"; chromaWeight?: number; chromaSubsample?: number;
+    pooling?: "mean" | "mad"; deviationWeight?: number;
+  };
+
+  compression?: number; // PNG level for a rendered map. Default: 0
+  quality?: number;     // JPEG quality for a rendered map. Default: 90
+}
+```
+
+<Callout type="info">
+  The map is withheld unless `returnMap` is set — it is one float per window and costs a copy across the binding.
+</Callout>
+
+## Faster PNG decoding
+
+Decoding is shared with [`@blazediff/core-native`](/apis/core-native) — both sit on the [`blazediff-shared`](/apis/blazediff-shared) crate — so the same opt-in applies here. Setting `BLAZEDIFF_PNG_ENABLED=1` routes PNG decode through the in-house [`blazediff-png`](/apis/blazediff-png) codec instead of libspng:
+
+```bash
+BLAZEDIFF_PNG_ENABLED=1 node compare.mjs
+```
+
+Worth roughly 15% off a 4K `compare()` call, with byte-identical decoded pixels and therefore an unchanged score. It is read once per process, and only affects the path and buffer APIs — the raw RGBA entry points never decode anything.
+
+## Accuracy
+
+The Rust implementation's tap-by-tap accumulation order is frozen to [`@blazediff/ssim`](/apis/ssim), the TypeScript port whose MATLAB agreement was measured, so this package *inherits* that agreement instead of drifting from it by an unmeasured amount. Both sides carry tests pinning the two ports to within 5e-6; SSIM lands within 0.03% of MATLAB across the fixture set.
+
+<Callout type="warning">
+  `ms-ssim` with the default `"product"` pooling returns `NaN` for globally anticorrelated content (an inverted image). Both references degenerate the same way — the JS gives `NaN`, MATLAB gives a complex number. `"weighted-sum"` stays finite throughout.
+</Callout>
+
+## Caveats
+
+All three shipped metrics reduce to luma, so a change carried entirely by chroma or by alpha is invisible to them. `perceptual-ssim` with `color: "lab"` and a non-zero `chromaWeight` sees colour.
+
+Scores are pooled over a local map, so these say *how much* two images differ, not *where* beyond the map's resolution. For exact locations, use [`@blazediff/core-native`](/apis/core-native).
+
+Unlike `@blazediff/core-native` there is no CLI to fall back to — this package ships only the `.node`, so an unsupported platform throws rather than degrading.
+
+## Platforms
+
+macOS (arm64, x64), Linux (arm64, x64), Windows (arm64, x64).
+
+## Links
+
+- [npm](https://www.npmjs.com/package/@blazediff/ssim-native)
+- [The Rust crate behind it](/apis/blazediff-ssim)
+- [GitHub Repository](https://github.com/teimurjan/blazediff)

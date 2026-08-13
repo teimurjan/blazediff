@@ -46,7 +46,7 @@ fn snap_mine(r: Result<blazediff_png::Decoded, PngError>) -> Option<(u32, u32, V
 }
 
 fn snap_spng(
-    r: Result<(u32, u32, u8, u8, Vec<u8>), blazediff::DiffError>,
+    r: Result<(u32, u32, u8, u8, Vec<u8>), blazediff_shared::ImageError>,
 ) -> Option<(u32, u32, Vec<u8>)> {
     r.ok().map(|(w, h, _, _, d)| (w, h, d))
 }
@@ -68,7 +68,7 @@ fuzz_target!(|data: &[u8]| {
     }
 
     let mine = snap_mine(decode_with(png, &opts));
-    let oracle = snap_spng(blazediff::decode_spng_reference_fmt(png, fmt_int, flags));
+    let oracle = snap_spng(blazediff_shared::decode_spng_reference_fmt(png, fmt_int, flags));
     if mine == oracle {
         return;
     }
@@ -86,7 +86,7 @@ fuzz_target!(|data: &[u8]| {
         std::hint::black_box(&scrub);
         drop(scrub);
         if snap_mine(decode_with(png, &opts)) != mine
-            || snap_spng(blazediff::decode_spng_reference_fmt(png, fmt_int, flags)) != oracle
+            || snap_spng(blazediff_shared::decode_spng_reference_fmt(png, fmt_int, flags)) != oracle
         {
             return;
         }

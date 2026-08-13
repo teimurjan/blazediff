@@ -1,0 +1,26 @@
+[package]
+name = "blazediff-interpret"
+version = "5.4.0"
+edition = "2021"
+authors = ["Teimur Gasanov"]
+description = "Structured region analysis for image diffs: classify what changed, not just where"
+license = "MIT"
+repository = "https://github.com/teimurjan/blazediff"
+keywords = ["image", "diff", "classification", "visual-regression", "screenshot"]
+categories = ["multimedia::images", "algorithms"]
+readme = "README.md"
+include = ["src/**/*", "Cargo.toml", "README.md"]
+
+[features]
+# Exposes `test_helpers` to `blazediff`'s end-to-end interpret tests.
+testing = []
+
+[lib]
+name = "blazediff_interpret"
+path = "src/lib.rs"
+
+[dependencies]
+# `Image` and the YIQ delta. `version` is required to publish to crates.io;
+# kept in lockstep by scripts/release/sync-cargo-version.js.
+blazediff-shared = { path = "../blazediff-shared", version = "5.4.0", default-features = false }
+serde = { version = "1", features = ["derive"] }

@@ -7,7 +7,7 @@ import {
 } from "@blazediff/core-native";
 import { PNG } from "pngjs";
 import { beforeAll, describe, expect, it } from "vitest";
-import { diff, initBlazediff, interpret } from "./index";
+import { diff, initBlazediff, interpret, interpretRegions } from "./index";
 
 const FIXTURES_PATH = join(
 	fileURLToPath(new URL(".", import.meta.url)),
@@ -234,5 +234,74 @@ describe("interpret() smoke", () => {
 		const a = loadPNG("pixelmatch/1a.png");
 		const short = new Uint8Array(4);
 		await expect(interpret(short, a.data, a.width, a.height)).rejects.toThrow();
+	});
+});
+describe("interpretRegions", () => {
+	const W = 64;
+	const H = 64;
+
+	function pair() {
+		const a = new Uint8Array(W * H * 4).fill(255);
+		const b = new Uint8Array(W * H * 4).fill(255);
+		for (let y = 16; y < 24; y++) {
+			for (let x = 16; x < 24; x++) {
+				const i = (y * W + x) * 4;
+				b[i] = 0;
+				b[i + 1] = 0;
+				b[i + 2] = 0;
+				b[i + 3] = 255;
+			}
+		}
+		return { a, b };
+	}
+
+	it("classifies a region supplied from JS", async () => {
+		const { a, b } = pair();
+		const result = await interpretRegions(a, b, W, H, [
+			{ x: 16, y: 16, width: 8, height: 8 },
+		]);
+		expect(result.totalRegions).toBe(1);
+		expect(result.diffCount).toBe(64);
+		expect(result.regions[0].bbox).toEqual({
+			x: 16,
+			y: 16,
+			width: 8,
+			height: 8,
+		});
+	});
+
+	/** A coarse box is refined against the pixels, so counts stay per-pixel. */
+	it("gives a coarse box the same pixel count as an exact one", async () => {
+		const { a, b } = pair();
+		const exact = await interpretRegions(a, b, W, H, [
+			{ x: 16, y: 16, width: 8, height: 8 },
+		]);
+		const coarse = await interpretRegions(a, b, W, H, [
+			{ x: 16, y: 16, width: 16, height: 16 },
+		]);
+		expect(coarse.diffCount).toBe(exact.diffCount);
+	});
+
+	it("agrees with the diff-driven path", async () => {
+		const { a, b } = pair();
+		const viaRegions = await interpretRegions(a, b, W, H, [
+			{ x: 16, y: 16, width: 8, height: 8 },
+		]);
+		const viaDiff = await interpret(a, b, W, H);
+		expect(viaRegions.diffCount).toBe(viaDiff.diffCount);
+	});
+
+	it("treats no regions as identical", async () => {
+		const { a, b } = pair();
+		const result = await interpretRegions(a, b, W, H, []);
+		expect(result.totalRegions).toBe(0);
+		expect(result.diffCount).toBe(0);
+	});
+
+	it("rejects a region outside the image", async () => {
+		const { a, b } = pair();
+		await expect(
+			interpretRegions(a, b, W, H, [{ x: 60, y: 0, width: 8, height: 8 }]),
+		).rejects.toThrow(/falls outside/);
 	});
 });

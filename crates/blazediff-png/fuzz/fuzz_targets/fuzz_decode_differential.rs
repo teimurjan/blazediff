@@ -6,7 +6,7 @@ fn snapshot(result: Result<blazediff_png::Image, blazediff_png::PngError>) -> Op
 }
 
 fn snapshot_spng(
-    result: Result<blazediff::Image, blazediff::DiffError>,
+    result: Result<blazediff_shared::Image, blazediff_shared::ImageError>,
 ) -> Option<(u32, u32, Vec<u8>)> {
     result.ok().map(|i| (i.width, i.height, i.data))
 }
@@ -27,7 +27,7 @@ fuzz_target!(|data: &[u8]| {
         return;
     }
     let mine = snapshot(blazediff_png::decode(data));
-    let oracle = snapshot_spng(blazediff::decode_spng_reference(data));
+    let oracle = snapshot_spng(blazediff_shared::decode_spng_reference(data));
     if mine == oracle {
         return;
     }
@@ -57,7 +57,7 @@ fuzz_target!(|data: &[u8]| {
         std::hint::black_box(&scrub);
         drop(scrub);
         if snapshot(blazediff_png::decode(data)) != mine
-            || snapshot_spng(blazediff::decode_spng_reference(data)) != oracle
+            || snapshot_spng(blazediff_shared::decode_spng_reference(data)) != oracle
         {
             return;
         }

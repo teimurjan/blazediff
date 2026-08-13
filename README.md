@@ -36,6 +36,7 @@
 ### Rust Crates
 - **[blazediff](https://crates.io/crates/blazediff)** - The Rust crate powering `@blazediff/core-native`: block-based image diffing with SIMD ([source](./crates/blazediff#readme))
 - **[blazediff-png](https://crates.io/crates/blazediff-png)** - From-scratch PNG codec in Rust, single-threaded and SIMD-first, with byte-exact decode parity to libspng and faster on every fixture ([source](./crates/blazediff-png#readme))
+- **[blazediff-ssim](https://crates.io/crates/blazediff-ssim)** - SSIM, MS-SSIM and Hitchhiker's SSIM in Rust, dependency-free and SIMD-vectorised, held to the reference MATLAB scripts through Octave ([source](./crates/blazediff-ssim#readme))
 
 ### Python Package
 - **[blazediff](https://pypi.org/project/blazediff/)** - Python bindings (via maturin) for the Rust diff core ([source](./crates/blazediff#readme))

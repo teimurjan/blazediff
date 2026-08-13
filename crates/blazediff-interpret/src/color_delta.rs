@@ -1,5 +1,5 @@
-use crate::types::Image;
-use crate::yiq::{color_delta, MAX_YIQ_DELTA_F32};
+use blazediff_shared::yiq::{color_delta, MAX_YIQ_DELTA_F32};
+use blazediff_shared::Image;
 
 use super::types::{BoundingBox, ColorDeltaStats};
 
@@ -59,7 +59,7 @@ pub fn compute_color_delta(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::interpret::test_helpers::*;
+    use crate::test_helpers::*;
 
     #[test]
     fn test_solid_block_high_delta() {

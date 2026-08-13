@@ -1,0 +1,46 @@
+[package]
+name = "blazediff-ssim-benchmark"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+name = "blazediff_ssim_benchmark"
+path = "src/lib.rs"
+
+# Both binaries link AGPL code, so both are opt-in; `cargo build --workspace`
+# skips them and the lib compiles to nothing without the feature.
+[[bin]]
+name = "blazediff-ssim-benchmark"
+path = "src/bin/benchmark.rs"
+required-features = ["dssim"]
+
+[[bin]]
+name = "blazediff-ssim-quality"
+path = "src/bin/quality.rs"
+required-features = ["dssim"]
+
+[dependencies]
+# The PNG decoder that
+# feeds every contender.
+blazediff = { path = "../blazediff", default-features = false, features = ["io"] }
+# The tunable perceptual variant and the shared knobs, from the crate that owns
+# them. No `version`: this crate is never published.
+blazediff-ssim = { path = "../blazediff-ssim" }
+# The competitor — AGPL-3.0, where this repo is MIT. Optional and off by
+# default so a normal workspace build never links it; see licenses/DSSIM.md.
+# `default-features = false` also drops dssim's own `threads` feature, so it
+# runs single-threaded like blazediff's SSIM does — the comparison is of two
+# algorithms, not of two thread counts.
+dssim-core = { version = "3.4", default-features = false, optional = true }
+# `as_rgba()` for handing blazediff's RGBA8 bytes to dssim without a copy.
+rgb = { version = "0.8", optional = true }
+# Scores 10k dataset pairs across cores. The metrics stay single-threaded; only
+# the outer loop over samples is parallel, so no timing is affected.
+rayon = { version = "1.10", optional = true }
+
+[features]
+default = []
+dssim = ["dep:dssim-core", "dep:rgb", "dep:rayon"]
+# Measure dssim as a plain `cargo add` would give it to you: with rayon.
+dssim-threads = ["dssim", "dssim-core/threads"]

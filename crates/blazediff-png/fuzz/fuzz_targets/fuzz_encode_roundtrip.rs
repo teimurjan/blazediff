@@ -104,6 +104,6 @@ fuzz_target!(|data: &[u8]| {
     assert_eq!((back.width, back.height), (width, height));
     assert_eq!(back.data, img.data, "round-trip mismatch");
 
-    let spng = blazediff::decode_spng_reference(&png).expect("spng must accept our output");
+    let spng = blazediff_shared::decode_spng_reference(&png).expect("spng must accept our output");
     assert_eq!(spng.data, img.data, "spng cross-decode mismatch");
 });

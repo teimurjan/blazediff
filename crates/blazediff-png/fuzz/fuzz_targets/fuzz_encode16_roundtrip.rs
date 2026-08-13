@@ -69,7 +69,7 @@ fuzz_target!(|data: &[u8]| {
     assert_eq!(got, img.data, "self round-trip mismatch");
 
     let (_, _, _, _, sb) =
-        blazediff::decode_spng_reference_fmt(&png, 2, 0).expect("spng RGBA16 decode of our output");
+        blazediff_shared::decode_spng_reference_fmt(&png, 2, 0).expect("spng RGBA16 decode of our output");
     let sgot: Vec<u16> = sb
         .chunks_exact(2)
         .map(|b| u16::from_ne_bytes([b[0], b[1]]))

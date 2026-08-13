@@ -30,6 +30,9 @@ export default {
 	"core-wasm": {
 		title: "@blazediff/core-wasm",
 	},
+	"ssim-native": {
+		title: "@blazediff/ssim-native",
+	},
 	matcher: {
 		title: "@blazediff/matcher",
 	},
@@ -62,7 +65,16 @@ export default {
 	rust: {
 		title: "blazediff",
 	},
+	"blazediff-interpret": {
+		title: "blazediff-interpret",
+	},
+	"blazediff-shared": {
+		title: "blazediff-shared",
+	},
 	"blazediff-png": {
 		title: "blazediff-png",
+	},
+	"blazediff-ssim": {
+		title: "blazediff-ssim",
 	},
 };

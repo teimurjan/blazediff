@@ -33,28 +33,19 @@ mod python;
 #[cfg(feature = "io")]
 pub mod qoi_io;
 pub mod simd;
-#[cfg(feature = "io")]
-#[allow(
-    non_upper_case_globals,
-    non_camel_case_types,
-    non_snake_case,
-    dead_code
-)]
-pub mod spng_ffi;
-#[cfg(feature = "io")]
-#[allow(
-    non_upper_case_globals,
-    non_camel_case_types,
-    non_snake_case,
-    dead_code
-)]
-mod turbojpeg_ffi;
 pub mod types;
 #[cfg(all(feature = "wasm", target_arch = "wasm32"))]
 mod wasm;
-pub mod yiq;
+/// YIQ color math, re-exported from the crate it now lives in so
+/// `blazediff::yiq::*` keeps working.
+pub use blazediff_shared::yiq;
 
 // Re-export main types and functions
+/// Image decoding and encoding, re-exported from the crate it now lives in.
+#[cfg(feature = "io")]
+pub use blazediff_shared::{
+    decode_image, decode_image_pair, load_image, load_image_pair, ImageFormat,
+};
 pub use diff::diff;
 #[cfg(feature = "io")]
 pub use io::{encode_png, load_png, load_pngs, save_png, save_png_with_compression};
@@ -64,12 +55,12 @@ pub use jpeg_io::{load_jpeg, load_jpegs, save_jpeg};
 pub use qoi_io::{load_qoi, load_qois, save_qoi};
 pub use types::{DiffError, DiffOptions, DiffResult, Image};
 
-/// Fuzzing-only oracle: exposes the pub(crate) spng reference decoder so the
+/// Fuzzing-only oracle: exposes blazediff-shared's spng reference decoder so the
 /// `blazediff_png` differential tests can check their decode against it.
 #[cfg(all(feature = "io", feature = "fuzzing"))]
 #[doc(hidden)]
 pub fn decode_spng_reference(data: &[u8]) -> Result<Image, DiffError> {
-    io::decode_spng(data)
+    Ok(blazediff_shared::decode_spng_reference(data)?)
 }
 
 /// Fuzzing-only oracle: decode through spng at an arbitrary `SPNG_FMT_*` and
@@ -82,5 +73,7 @@ pub fn decode_spng_reference_fmt(
     fmt: std::os::raw::c_int,
     flags: std::os::raw::c_int,
 ) -> Result<(u32, u32, u8, u8, Vec<u8>), DiffError> {
-    io::decode_spng_fmt(data, fmt, flags)
+    Ok(blazediff_shared::decode_spng_reference_fmt(
+        data, fmt, flags,
+    )?)
 }

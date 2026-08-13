@@ -29,11 +29,15 @@ export interface BlazeDiffOptions {
 export type BlazeDiffInput = string | Uint8Array;
 
 export type BlazeDiffResult =
-	| { match: true; interpretation?: InterpretResult }
+	| {
+			match: true;
+			interpretation?: InterpretResult;
+	  }
 	| { match: false; reason: "layout-diff" }
 	| {
 			match: false;
 			reason: "pixel-diff";
+			/** Differing pixels. */
 			diffCount: number;
 			diffPercentage: number;
 			interpretation?: InterpretResult;
@@ -424,6 +428,8 @@ async function execFileCompare(
 	}
 
 	try {
+		// Exit code 0 means identical; the JSON carries nothing else worth
+		// reading on that path.
 		await execFileAsync(binaryPath, args);
 		return { match: true };
 	} catch (err) {

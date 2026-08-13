@@ -14,9 +14,13 @@ RUN apt-get update && apt-get install -y \
 COPY Cargo.toml .
 COPY Cargo.lock .
 COPY blazediff/ blazediff/
+COPY blazediff-interpret/ blazediff-interpret/
 COPY blazediff-interpret-verify/ blazediff-interpret-verify/
+COPY blazediff-shared/ blazediff-shared/
 COPY blazediff-png/ blazediff-png/
 COPY blazediff-png-benchmark/ blazediff-png-benchmark/
+COPY blazediff-ssim/ blazediff-ssim/
+COPY blazediff-ssim-benchmark/ blazediff-ssim-benchmark/
 
 WORKDIR /app/blazediff-png
 

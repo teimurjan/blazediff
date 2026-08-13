@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
-# Shared helpers sourced by build-all.sh, build-napi.sh, build-maturin.sh.
+# Shared helpers sourced by build-all.sh, build-napi.sh, build-maturin.sh and
+# build-wasm.sh, for every crate that ships a binary artifact.
 # Defines target tables, host detection, RUSTFLAGS profiles, and prereq checks.
 # Not meant to run directly.
 
-# Resolve repo paths relative to the calling script.
-# Caller should set SCRIPT_DIR before sourcing.
-: "${SCRIPT_DIR:?SCRIPT_DIR must be set before sourcing _targets.sh}"
-PROJECT_DIR="$(dirname "$SCRIPT_DIR")"          # crates/blazediff
+# Resolve repo paths from the crate being built.
+# Caller must set CRATE_DIR (absolute path of the crate) before sourcing.
+: "${CRATE_DIR:?CRATE_DIR must be set before sourcing _targets.sh}"
+PROJECT_DIR="$CRATE_DIR"                        # crates/<crate>
 WORKSPACE_DIR="$(dirname "$PROJECT_DIR")"       # crates/
 ROOT_DIR="$(dirname "$WORKSPACE_DIR")"          # repo root
 TARGET_DIR="$WORKSPACE_DIR/target"              # workspace target
@@ -28,15 +29,18 @@ get_friendly_name() {
     esac
 }
 
-# Target triple -> NAPI platform-package directory name (under packages/)
+# Target triple -> platform-package directory name (under packages/).
+# $2 is the package family prefix: "core-native" for blazediff, "ssim-native"
+# for blazediff-ssim. Defaults to core-native so existing callers are unchanged.
 get_package_name() {
+    local prefix="${2:-core-native}"
     case "$1" in
-        aarch64-apple-darwin) echo "core-native-darwin-arm64" ;;
-        x86_64-apple-darwin) echo "core-native-darwin-x64" ;;
-        aarch64-unknown-linux-gnu) echo "core-native-linux-arm64" ;;
-        x86_64-unknown-linux-gnu) echo "core-native-linux-x64" ;;
-        x86_64-pc-windows-msvc|x86_64-pc-windows-gnu) echo "core-native-win32-x64" ;;
-        aarch64-pc-windows-msvc|aarch64-pc-windows-gnu) echo "core-native-win32-arm64" ;;
+        aarch64-apple-darwin) echo "${prefix}-darwin-arm64" ;;
+        x86_64-apple-darwin) echo "${prefix}-darwin-x64" ;;
+        aarch64-unknown-linux-gnu) echo "${prefix}-linux-arm64" ;;
+        x86_64-unknown-linux-gnu) echo "${prefix}-linux-x64" ;;
+        x86_64-pc-windows-msvc|x86_64-pc-windows-gnu) echo "${prefix}-win32-x64" ;;
+        aarch64-pc-windows-msvc|aarch64-pc-windows-gnu) echo "${prefix}-win32-arm64" ;;
         *) echo "" ;;
     esac
 }
@@ -97,6 +101,18 @@ check_cross() {
         echo "Install with: cargo install cross"
         exit 1
     fi
+}
+
+# Should a target be routed through `cross` even though it matches the host?
+# Only ever true for linux-gnu, and only when BLAZEDIFF_FORCE_CROSS=1.
+#
+# The build scripts short-circuit to a plain `cargo build` when target == host,
+# which is right on a developer machine but wrong in CI: build-artifacts.yml
+# builds the Linux binaries on ubuntu-latest, where a native build would link
+# against the runner's glibc (2.39) and raise the floor for every user from the
+# 2.18 that cross's images produce. Set the env var there, nowhere else.
+force_cross() {
+    [[ "${BLAZEDIFF_FORCE_CROSS:-0}" == "1" && "$1" == *-unknown-linux-* ]]
 }
 
 check_xwin() {

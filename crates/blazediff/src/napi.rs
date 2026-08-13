@@ -7,120 +7,41 @@ use crate::{
     diff,
     interpret::types as itypes,
     interpret::{interpret, interpret_with_output},
-    load_jpeg, load_jpegs, load_png, load_pngs, save_jpeg, save_png_with_compression, DiffError,
-    DiffOptions, Image,
+    DiffError, DiffOptions, Image,
 };
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
-use rayon::prelude::*;
 use std::path::Path;
 
-/// Supported image formats
-#[derive(Debug, Clone, Copy, PartialEq)]
-enum ImageFormat {
-    Png,
-    Jpeg,
-    Qoi,
-}
-
-impl ImageFormat {
-    fn from_path<P: AsRef<Path>>(path: P) -> Option<Self> {
-        let ext = path.as_ref().extension()?.to_str()?.to_lowercase();
-        match ext.as_str() {
-            "png" => Some(ImageFormat::Png),
-            "jpg" | "jpeg" => Some(ImageFormat::Jpeg),
-            "qoi" => Some(ImageFormat::Qoi),
-            _ => None,
-        }
-    }
-
-    fn from_bytes(data: &[u8]) -> Option<Self> {
-        if data.starts_with(b"\x89PNG\r\n\x1a\n") {
-            return Some(ImageFormat::Png);
-        }
-        if data.starts_with(&[0xff, 0xd8, 0xff]) {
-            return Some(ImageFormat::Jpeg);
-        }
-        if data.starts_with(b"qoif") {
-            return Some(ImageFormat::Qoi);
-        }
-        None
-    }
-}
-
-/// Load two images in parallel, auto-detecting format
+/// Load two images in parallel, auto-detecting format from their extensions.
 fn load_images<P1: AsRef<Path> + Sync, P2: AsRef<Path> + Sync>(
     path1: P1,
     path2: P2,
 ) -> std::result::Result<(Image, Image), DiffError> {
-    let fmt1 = ImageFormat::from_path(&path1).ok_or_else(|| {
-        DiffError::UnsupportedFormat(format!("Unsupported format: {}", path1.as_ref().display()))
-    })?;
-    let fmt2 = ImageFormat::from_path(&path2).ok_or_else(|| {
-        DiffError::UnsupportedFormat(format!("Unsupported format: {}", path2.as_ref().display()))
-    })?;
-
-    if fmt1 == fmt2 {
-        return match fmt1 {
-            ImageFormat::Png => load_pngs(&path1, &path2),
-            ImageFormat::Jpeg => load_jpegs(&path1, &path2),
-            ImageFormat::Qoi => crate::load_qois(&path1, &path2),
-        };
-    }
-
-    let results: Vec<std::result::Result<Image, DiffError>> = [
-        (path1.as_ref().to_path_buf(), fmt1),
-        (path2.as_ref().to_path_buf(), fmt2),
-    ]
-    .par_iter()
-    .map(|(path, fmt)| match fmt {
-        ImageFormat::Png => load_png(path),
-        ImageFormat::Jpeg => load_jpeg(path),
-        ImageFormat::Qoi => crate::load_qoi(path),
-    })
-    .collect();
-
-    let mut iter = results.into_iter();
-    Ok((iter.next().unwrap()?, iter.next().unwrap()?))
+    Ok(blazediff_shared::load_image_pair(path1, path2)?)
 }
 
-fn decode_image_buffer(data: &[u8]) -> std::result::Result<Image, DiffError> {
-    match ImageFormat::from_bytes(data) {
-        Some(ImageFormat::Png) => crate::io::decode_png(data),
-        Some(ImageFormat::Jpeg) => crate::jpeg_io::decode_jpeg(data),
-        Some(ImageFormat::Qoi) => crate::qoi_io::decode_qoi(data),
-        None => Err(DiffError::UnsupportedFormat(
-            "Unsupported image buffer format".to_string(),
-        )),
-    }
-}
-
+/// Decode two encoded buffers in parallel, sniffing each format from its magic bytes.
 fn load_image_buffers(
     image1: &[u8],
     image2: &[u8],
 ) -> std::result::Result<(Image, Image), DiffError> {
-    let (result1, result2) = rayon::join(
-        || decode_image_buffer(image1),
-        || decode_image_buffer(image2),
-    );
-    Ok((result1?, result2?))
+    Ok(blazediff_shared::decode_image_pair(image1, image2)?)
 }
 
-/// Save an image, auto-detecting format from extension
+/// Save an image, auto-detecting format from extension.
 fn save_image<P: AsRef<Path>>(
     image: &Image,
     path: P,
     compression: u8,
     quality: u8,
 ) -> std::result::Result<(), DiffError> {
-    let format = ImageFormat::from_path(&path).ok_or_else(|| {
-        DiffError::UnsupportedFormat(format!("Unsupported format: {}", path.as_ref().display()))
-    })?;
-    match format {
-        ImageFormat::Png => save_png_with_compression(image, path, compression),
-        ImageFormat::Jpeg => save_jpeg(image, path, quality),
-        ImageFormat::Qoi => crate::save_qoi(image, path),
-    }
+    Ok(blazediff_shared::save_image(
+        image,
+        path,
+        compression,
+        quality,
+    )?)
 }
 
 /// Options for image comparison
@@ -149,9 +70,9 @@ pub struct NapiDiffResult {
     pub match_result: bool,
     /// Reason for mismatch: "pixel-diff", "layout-diff", or null if matched
     pub reason: Option<String>,
-    /// Number of different pixels (only for pixel-diff)
+    /// Number of differing pixels
     pub diff_count: Option<u32>,
-    /// Percentage of different pixels (only for pixel-diff)
+    /// `diff_count` as a percentage of the total
     pub diff_percentage: Option<f64>,
     /// Structured interpretation (only when interpret option is true)
     pub interpretation: Option<NapiInterpretResult>,
@@ -205,7 +126,7 @@ fn compare_images(
         });
     }
 
-    let diff_options = DiffOptions {
+    let mut diff_options = DiffOptions {
         threshold,
         include_aa: !antialiasing,
         diff_mask,
@@ -216,6 +137,7 @@ fn compare_images(
 
     // Interpret mode: generate the visualization and structured analysis in one pass.
     if run_interpret {
+        // Interpretation reasons about which pixels changed, which only the
         let mut output_image = if diff_output.is_some() {
             Some(Image::new_uninit(img1.width, img1.height))
         } else {

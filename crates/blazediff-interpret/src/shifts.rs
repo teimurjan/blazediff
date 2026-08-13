@@ -1,4 +1,4 @@
-use crate::types::Image;
+use blazediff_shared::Image;
 
 use super::types::{BoundingBox, ChangeRegion, ChangeType};
 

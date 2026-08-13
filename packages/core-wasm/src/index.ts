@@ -1,10 +1,19 @@
 import init, {
 	diffRgba as wasmDiffRgba,
+	interpretRegionsRgba as wasmInterpretRegionsRgba,
 	interpretRgba as wasmInterpretRgba,
 } from "../wasm/blazediff.js";
 
 // Generated bindings are updated in version bump PRs, so keep the source-side
 // ABI explicit while this wrapper targets the next generated artifact.
+type WasmInterpretRegionsRgba = (
+	rgbaA: Uint8Array,
+	rgbaB: Uint8Array,
+	width: number,
+	height: number,
+	regions: BoundingBox[],
+) => InterpretResult;
+
 type WasmDiffRgba = (
 	rgbaA: Uint8Array,
 	rgbaB: Uint8Array,
@@ -51,6 +60,8 @@ export interface InterpretOptions {
 	/** Count anti-aliased pixels as differences. Default: false */
 	includeAA?: boolean;
 }
+
+export interface CompareOptions extends DiffOptions {}
 
 export interface BoundingBox {
 	x: number;
@@ -276,4 +287,42 @@ export async function interpret(
 		interpret: true,
 	});
 	return result.interpretation;
+}
+
+/**
+ * Interpret regions you already know about, instead of running a pixel diff to
+ * find them.
+ *
+ * Use this when something else has already located the change — DOM rectangles
+ * from a layout pass, a crop list, or boxes derived from a similarity map. The
+ * boxes may be coarse: each one is refined against the source pixels before any
+ * statistic is computed, so `pixelCount`, shape and colour analysis stay
+ * per-pixel regardless of how blocky the input was.
+ *
+ * Both buffers must be `width * height * 4` bytes in RGBA8 order. A region
+ * falling outside the image is rejected rather than read out of bounds.
+ *
+ * @example
+ * ```ts
+ * const result = await interpretRegions(a, b, width, height, [
+ *   { x: 16, y: 16, width: 32, height: 32 },
+ * ]);
+ * console.log(result.summary);
+ * ```
+ */
+export async function interpretRegions(
+	a: Uint8Array,
+	b: Uint8Array,
+	width: number,
+	height: number,
+	regions: BoundingBox[],
+): Promise<InterpretResult> {
+	await initBlazediff();
+	return (wasmInterpretRegionsRgba as unknown as WasmInterpretRegionsRgba)(
+		a,
+		b,
+		width,
+		height,
+		regions,
+	);
 }

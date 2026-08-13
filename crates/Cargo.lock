@@ -96,28 +96,29 @@ name = "blazediff"
 version = "5.4.0"
 dependencies = [
  "base64",
- "blazediff-png",
- "bytemuck",
- "cc",
+ "blazediff-interpret",
+ "blazediff-shared",
  "clap",
- "cmake",
  "console_error_panic_hook",
  "criterion",
  "js-sys",
- "libc",
- "memmap2",
  "napi",
  "napi-build",
  "napi-derive",
- "pkg-config",
  "png",
  "pyo3",
- "qoi",
- "rayon",
  "serde",
  "serde-wasm-bindgen",
  "serde_json",
  "wasm-bindgen",
+]
+
+[[package]]
+name = "blazediff-interpret"
+version = "5.4.0"
+dependencies = [
+ "blazediff-shared",
+ "serde",
 ]
 
 [[package]]
@@ -134,7 +135,7 @@ dependencies = [
 name = "blazediff-png"
 version = "5.4.0"
 dependencies = [
- "blazediff",
+ "blazediff-shared",
  "cc",
  "crc32fast",
  "criterion",
@@ -152,12 +153,51 @@ dependencies = [
 name = "blazediff-png-benchmark"
 version = "0.1.0"
 dependencies = [
- "blazediff",
  "blazediff-png",
+ "blazediff-shared",
  "libc",
  "png",
  "zune-core",
  "zune-png",
+]
+
+[[package]]
+name = "blazediff-shared"
+version = "5.4.0"
+dependencies = [
+ "blazediff-png",
+ "bytemuck",
+ "cc",
+ "cmake",
+ "libc",
+ "memmap2",
+ "pkg-config",
+ "qoi",
+ "rayon",
+]
+
+[[package]]
+name = "blazediff-ssim"
+version = "5.4.0"
+dependencies = [
+ "blazediff-interpret",
+ "blazediff-shared",
+ "napi",
+ "napi-build",
+ "napi-derive",
+ "png",
+ "serde_json",
+]
+
+[[package]]
+name = "blazediff-ssim-benchmark"
+version = "0.1.0"
+dependencies = [
+ "blazediff",
+ "blazediff-ssim",
+ "dssim-core",
+ "rayon",
+ "rgb",
 ]
 
 [[package]]
@@ -316,7 +356,7 @@ dependencies = [
  "clap",
  "criterion-plot",
  "is-terminal",
- "itertools",
+ "itertools 0.10.5",
  "num-traits",
  "once_cell",
  "oorandom",
@@ -337,7 +377,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6b50826342786a51a89e2da3a28f1c32b06e387201bc2d19791f622c673706b1"
 dependencies = [
  "cast",
- "itertools",
+ "itertools 0.10.5",
 ]
 
 [[package]]
@@ -379,6 +419,18 @@ checksum = "32a2785755761f3ddc1492979ce1e48d2c00d09311c39e4466429188f3dd6501"
 dependencies = [
  "quote",
  "syn",
+]
+
+[[package]]
+name = "dssim-core"
+version = "3.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e3c601412450ff29a9258b2f85b18b38f658caf70fad1692f40ca863d86cb753"
+dependencies = [
+ "imgref",
+ "itertools 0.14.0",
+ "rayon",
+ "rgb",
 ]
 
 [[package]]
@@ -436,6 +488,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fc0fef456e4baa96da950455cd02c081ca953b141298e41db3fc7e36b1da849c"
 
 [[package]]
+name = "imgref"
+version = "1.12.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "89194689a993ab15268672e99e7b0e19da2da3268ac682e8f02d29d4d1434cd7"
+
+[[package]]
 name = "indoc"
 version = "2.0.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -466,6 +524,15 @@ name = "itertools"
 version = "0.10.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b0fd2260e829bddf4cb6ea802289de2f86d6a7a690192fbe91b3f46e0f2c8473"
+dependencies = [
+ "either",
+]
+
+[[package]]
+name = "itertools"
+version = "0.14.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2b192c782037fadd9cfa75548310488aabdbf3d2da73885b31bd0abd03351285"
 dependencies = [
  "either",
 ]
@@ -868,6 +935,15 @@ name = "regex-syntax"
 version = "0.8.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7a2d987857b319362043e95f5353c0535c1f58eec5336fdfcf626430af7def58"
+
+[[package]]
+name = "rgb"
+version = "0.8.53"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "47b34b781b31e5d73e9fbc8689c70551fd1ade9a19e3e28cfec8580a79290cc4"
+dependencies = [
+ "bytemuck",
+]
 
 [[package]]
 name = "rustversion"

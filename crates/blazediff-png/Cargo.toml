@@ -55,7 +55,9 @@ cc = "1"
 [dev-dependencies]
 png = "0.18.1"
 # The spng reference oracle for differential tests (decode_spng_reference).
-blazediff = { path = "../blazediff", default-features = false, features = ["io", "fuzzing"] }
+# Path-only, so cargo strips it when publishing and the dev-dependency cycle
+# with blazediff-shared (which depends on this crate) never reaches crates.io.
+blazediff-shared = { path = "../blazediff-shared", features = ["fuzzing"] }
 criterion = { version = "0.5", default-features = false }
 libc = "0.2"
 

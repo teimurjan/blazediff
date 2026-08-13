@@ -8,5 +8,11 @@ export default defineConfig({
 	sourcemap: true,
 	clean: true,
 	treeshake: true,
-	external: ["@blazediff/core-native", "@blazediff/core-wasm"],
+	// Keep the native/wasm packages out of the bundle so they resolve their
+	// platform binaries at runtime instead of being inlined.
+	external: [
+		"@blazediff/core-native",
+		"@blazediff/core-wasm",
+		"@blazediff/ssim-native",
+	],
 });

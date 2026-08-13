@@ -107,10 +107,28 @@ The native binding borrows the existing `Buffer` or `Uint8Array` backing memory 
     <th width="500">Description</th>
   </tr>
   <tr>
+    <td><code>metric</code></td>
+    <td>"pixel" | "ssim" | "ms-ssim" | "hitchhikers-ssim"</td>
+    <td>"pixel"</td>
+    <td>Comparison metric. <code>pixel</code> reports which pixels changed; the rest report a pooled similarity <code>score</code> in 0-1</td>
+  </tr>
+  <tr>
+    <td><code>minScore</code></td>
+    <td>number</td>
+    <td>1</td>
+    <td>Score at or above which the ssim metrics call two images identical</td>
+  </tr>
+  <tr>
+    <td><code>ssimWindowSize</code></td>
+    <td>number</td>
+    <td>11</td>
+    <td>Local window size for the ssim metrics</td>
+  </tr>
+  <tr>
     <td><code>threshold</code></td>
     <td>number</td>
     <td>0.1</td>
-    <td>Color difference threshold (0.0-1.0). Lower = more strict</td>
+    <td>Color difference threshold (0.0-1.0). Lower = more strict. Pixel metric only</td>
   </tr>
   <tr>
     <td><code>antialiasing</code></td>
@@ -270,6 +288,9 @@ npx blazediff expected.png actual.png diff.qoi
 # With options
 npx blazediff expected.png actual.png diff.png --threshold 0.05 --antialiasing
 
+# Score structural similarity instead of counting pixels, and pass at 0.99
+npx blazediff expected.png actual.png ssim-map.png --metric ssim --min-score 0.99
+
 # With higher PNG compression (smaller output file, slower)
 npx blazediff expected.png actual.png diff.png -c 6
 
@@ -291,6 +312,9 @@ Arguments:
   [OUTPUT]  Output diff image path (optional, format detected from extension)
 
 Options:
+      --metric <METRIC>        pixel, ssim, ms-ssim or hitchhikers-ssim [default: pixel]
+      --min-score <SCORE>      Score at or above which the ssim metrics call images identical [default: 1.0]
+      --ssim-window-size <N>   Local window size for the ssim metrics [default: 11]
   -t, --threshold <THRESHOLD>  Color difference threshold (0.0-1.0) [default: 0.1]
   -a, --antialiasing           Enable anti-aliasing detection
       --diff-mask              Output only differences (transparent background)

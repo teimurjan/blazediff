@@ -327,7 +327,7 @@ fn decode_with_incompatible_format_rejected_like_spng() {
     assert_eq!(err, PngError::UnsupportedFormat);
     assert!(!err.to_string().is_empty());
     // spng rejects the same request (fmt SPNG_FMT_G8 = 64).
-    assert!(blazediff::decode_spng_reference_fmt(&png, 64, 0).is_err());
+    assert!(blazediff_shared::decode_spng_reference_fmt(&png, 64, 0).is_err());
 }
 
 // --- truecolor tRNS color-key at wide output formats ----------------------
@@ -344,7 +344,7 @@ fn assert_format_parity(bytes: &[u8], fmt: i32, format: DecodeFormat, label: &st
     )
     .ok()
     .map(|d| d.data);
-    let spng = blazediff::decode_spng_reference_fmt(bytes, fmt, 1)
+    let spng = blazediff_shared::decode_spng_reference_fmt(bytes, fmt, 1)
         .ok()
         .map(|(_, _, _, _, d)| d);
     assert_eq!(mine, spng, "{label}: tRNS color-key output must match spng");
@@ -375,7 +375,9 @@ fn truecolor_colorkey_matches_spng_at_wide_formats() {
 #[track_caller]
 fn assert_decode_parity(bytes: &[u8], label: &str) {
     let mine = decode(bytes).ok().map(|i| i.data);
-    let spng = blazediff::decode_spng_reference(bytes).ok().map(|i| i.data);
+    let spng = blazediff_shared::decode_spng_reference(bytes)
+        .ok()
+        .map(|i| i.data);
     assert_eq!(mine, spng, "{label}: decoders must agree");
 }
 
@@ -467,7 +469,7 @@ fn assert_fmt_flags_parity(bytes: &[u8], fmt: i32, opts: DecodeOptions, label: &
     if opts.apply_sbit {
         flags |= 8;
     }
-    let spng = blazediff::decode_spng_reference_fmt(bytes, fmt, flags)
+    let spng = blazediff_shared::decode_spng_reference_fmt(bytes, fmt, flags)
         .ok()
         .map(|(_, _, _, _, d)| d);
     assert_eq!(mine, spng, "{label}: must match spng");
