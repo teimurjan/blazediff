@@ -14,7 +14,8 @@
 		"@blazediff/codec-pngjs": "jsr:@blazediff/codec-pngjs@^4.0.0",
 		"@blazediff/codec-sharp": "jsr:@blazediff/codec-sharp@^4.0.0",
 		"@blazediff/codec-jsquash-png": "jsr:@blazediff/codec-jsquash-png@^0.0.1",
-		"@blazediff/core-native": "jsr:@blazediff/core-native@^4.2.0"
+		"@blazediff/core-native": "jsr:@blazediff/core-native@^4.2.0",
+		"@blazediff/interpret-native": "npm:@blazediff/interpret-native@^5.4.0"
 	},
 	"publish": {
 		"include": ["src/**/*.ts", "README.md"],

@@ -30,6 +30,7 @@ export default defineConfig([
 			"commands/ssim": "src/commands/ssim.ts",
 			"commands/msssim": "src/commands/msssim.ts",
 			"commands/hitchhikers-ssim": "src/commands/hitchhikers-ssim.ts",
+			"commands/interpret": "src/commands/interpret.ts",
 		},
 		format: "cjs",
 		dts: false,
@@ -46,8 +47,13 @@ export default defineConfig([
 			"@blazediff/codec-sharp",
 			"@blazediff/codec-jsquash-png",
 		],
-		// core-native: binary paths rely on __dirname.
+		// core-native / interpret-native: platform binaries are resolved at
+		// runtime relative to the package, so they must not be inlined.
 		// core-wasm: ESM-only, loaded via Function-wrapped import() at runtime.
-		external: ["@blazediff/core-native", "@blazediff/core-wasm"],
+		external: [
+			"@blazediff/core-native",
+			"@blazediff/core-wasm",
+			"@blazediff/interpret-native",
+		],
 	},
 ]);

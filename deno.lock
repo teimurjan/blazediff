@@ -10095,7 +10095,8 @@
           "jsr:@blazediff/core-native@^4.2.0",
           "jsr:@blazediff/core@^1.9.1",
           "jsr:@blazediff/gmsd@^1.7.1",
-          "jsr:@blazediff/ssim@^1.7.1"
+          "jsr:@blazediff/ssim@^1.7.1",
+          "npm:@blazediff/interpret-native@^5.4.0"
         ],
         "packageJson": {
           "dependencies": [
@@ -10194,6 +10195,26 @@
           "dependencies": [
             "npm:@types/node@^24.3.0",
             "npm:@vitest/ui@^3.2.4",
+            "npm:pngjs@7",
+            "npm:tsup@8.5.0",
+            "npm:typescript@5.9.2",
+            "npm:vitest@^3.2.4"
+          ]
+        }
+      },
+      "packages/interpret-native": {
+        "dependencies": [
+          "npm:@blazediff/interpret-native-darwin-arm64@5.4.0",
+          "npm:@blazediff/interpret-native-darwin-x64@5.4.0",
+          "npm:@blazediff/interpret-native-linux-arm64@5.4.0",
+          "npm:@blazediff/interpret-native-linux-x64@5.4.0",
+          "npm:@blazediff/interpret-native-win32-arm64@5.4.0",
+          "npm:@blazediff/interpret-native-win32-x64@5.4.0"
+        ],
+        "packageJson": {
+          "dependencies": [
+            "npm:@types/node@^24.3.0",
+            "npm:@types/pngjs@^6.0.5",
             "npm:pngjs@7",
             "npm:tsup@8.5.0",
             "npm:typescript@5.9.2",

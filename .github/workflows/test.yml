@@ -37,7 +37,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Cargo Test
-        run: cargo test --manifest-path crates/Cargo.toml -p blazediff -p blazediff-shared -p blazediff-interpret -p blazediff-ssim
+        run: cargo test --manifest-path crates/Cargo.toml -p blazediff -p blazediff-shared -p blazediff-ssim -p blazediff-interpret
 
       - name: Build
         run: pnpm build

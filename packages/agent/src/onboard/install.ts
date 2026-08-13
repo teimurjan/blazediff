@@ -84,7 +84,8 @@ export async function installStack(
 		return { stack, status: "configured" };
 	}
 
-	const target = info.target?.(cwd);
+	// `info` narrowed to a skill-install stack above, so these are guaranteed.
+	const target = info.target(cwd);
 	const files = loadSkillFiles();
 
 	if (info.format === "cursor-rule") {

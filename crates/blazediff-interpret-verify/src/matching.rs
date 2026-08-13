@@ -1,4 +1,4 @@
-use blazediff::interpret::types::{BoundingBox, ChangeRegion};
+use blazediff_interpret::types::{BoundingBox, ChangeRegion};
 
 use crate::types::{GroundTruthRegion, RegionMatch, ValidationCase};
 

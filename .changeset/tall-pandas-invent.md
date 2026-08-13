@@ -1,5 +1,8 @@
 ---
 "@blazediff/ssim-native": minor
+"@blazediff/interpret-native": minor
+"@blazediff/cli": minor
+"@blazediff/agent": minor
 "@blazediff/core-native": minor
 "@blazediff/core-wasm": minor
 "@blazediff/rust": minor
@@ -38,25 +41,44 @@ The extraction also collapses three copies of the `ImageFormat` /
 and the Python extension — into one. As a side effect, an unsupported format now
 reports `Unsupported format: a.webp` rather than doubling the prefix.
 
-Region analysis becomes its own crate, **`blazediff-interpret`**, and gains a
-regions-in entry point. It used to be reachable only by running a pixel diff;
-now any producer can supply the regions and get the same classification.
-`blazediff` still finds them by connected components over a diff mask,
-`blazediff-ssim` can find them by thresholding a score map
-(`regions_from_score_map`), and a caller can simply pass their own — DOM
-rectangles, a crop list, anything.
+Region analysis becomes its own crate, **`blazediff-interpret`**, and a new
+package, **`@blazediff/interpret-native`**. It sits *above* both producers and
+consumes what they return: `interpret(image1, image2, source)` takes a
+`ChangeSource::Diff` (what `blazediff::diff` returns), a `ChangeSource::Ssim`
+(what any `blazediff-ssim` metric returns), or a `ChangeSource::Regions` (boxes
+you already have). Neither producer depends on it — `blazediff` is a pixel diff
+and `blazediff-ssim` is a metric library, and neither knows interpretation
+exists.
 
-The boxes may be coarse. Each one is refined against the source pixels before
-any statistic is computed, so shape, colour and gradient analysis stay
-per-pixel: an 8x8 change described as a 16x16 box reports the same 64 changed
-pixels. `diff_count` therefore means actually-changed pixels on every path,
-never windows.
+Interpretation therefore leaves the packages that used to carry it:
+`--interpret` is gone from the `blazediff` CLI, `interpret()` from
+`@blazediff/core-native` and `@blazediff/core-wasm`, and the Python
+`interpret_images`. `@blazediff/interpret-native` replaces all of them, and adds
+what none of them had: a choice of how the regions are located.
 
-Two new JS entry points follow from it: `interpretRegions` in
-`@blazediff/core-wasm` takes regions straight from JS, and `interpret` in
-`@blazediff/ssim-native` locates them with the score map first. Regions from a
-caller are validated, so a box outside the image is an error rather than an
-out-of-bounds read.
+A coarse source stays honest. Boxes from a score map are refined against the
+source pixels before any statistic is computed, so shape, colour and gradient
+analysis stay per-pixel: an 8x8 change described as a 16x16 box reports the same
+64 changed pixels. The box itself stays as coarse as its source — the grid is
+the map's — but `diff_count` means actually-changed pixels on every path, never
+windows.
 
-`blazediff::interpret::*` is unchanged — the new crate is re-exported from it,
-and `interpret` / `interpret_with_output` keep their signatures.
+`interpret(a, b, out?, { source })` picks the locator: `pixel` (the default) for
+exact boxes, or `ssim` / `ms-ssim` / `hitchhikers-ssim` when imperceptible noise
+should not count. `interpretRegions(a, b, boxes)` skips the search when the
+caller already knows where to look. Regions from a caller are validated, so a
+box outside the image is an error rather than an out-of-bounds read.
+
+`@blazediff/cli` gains an `interpret` command for it, and loses `--interpret`
+from `core-native`:
+
+```bash
+blazediff-cli interpret expected.png actual.png
+blazediff-cli interpret expected.png actual.png --source ms-ssim
+blazediff-cli interpret expected.png actual.png --regions '[{"x":0,"y":0,"width":64,"height":64}]'
+```
+
+`@blazediff/agent` moves to the new package too, which drops it from two
+comparison passes to one: `core-native`'s interpret never wrote the diff PNG, so
+the agent ran a second non-interpret pass to produce it. The interpret binding
+writes it in the same pass.

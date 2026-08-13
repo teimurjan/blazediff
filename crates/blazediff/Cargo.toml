@@ -24,15 +24,11 @@ crate-type = ["lib", "cdylib"]
 
 [features]
 default = ["io", "cli"]
-# Semantic diff interpretation. Pure compute over decoded buffers, so it's
-# available to both the io stack and the wasm build.
-interpret = ["dep:blazediff-interpret"]
-io = ["interpret", "blazediff-shared/codecs"]
+io = ["blazediff-shared/codecs"]
 cli = ["io", "dep:clap"]
 napi = ["io", "dep:napi", "dep:napi-derive"]
 python = ["io", "dep:pyo3"]
 wasm = [
-    "interpret",
     "dep:wasm-bindgen",
     "dep:js-sys",
     "dep:serde-wasm-bindgen",
@@ -57,7 +53,6 @@ pyo3 = { version = "0.22", features = ["extension-module", "abi3-py38", "generat
 # behind that crate's own feature rather than behind `dep:`, so the wasm build
 # gets the types without the decoders.
 blazediff-shared = { path = "../blazediff-shared", version = "5.4.0", default-features = false }
-blazediff-interpret = { path = "../blazediff-interpret", version = "5.4.0", optional = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 # wasm-bindgen pinned to match the wasm-bindgen-cli version used in build-wasm.sh.
@@ -71,7 +66,5 @@ console_error_panic_hook = { version = "0.1", optional = true }
 napi-build = "2"
 
 [dev-dependencies]
-# `testing` exposes the shared image constructors the interpret tests below use.
-blazediff-interpret = { path = "../blazediff-interpret", features = ["testing"] }
 criterion = { version = "0.5", features = ["html_reports"] }
 png = "0.18.1"

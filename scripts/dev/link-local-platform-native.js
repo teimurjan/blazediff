@@ -16,6 +16,7 @@ const PACKAGES_DIR = path.join(ROOT, "packages");
 const FAMILIES = [
 	{ pkg: "core-native", prefix: "core-native" },
 	{ pkg: "ssim-native", prefix: "ssim-native" },
+	{ pkg: "interpret-native", prefix: "interpret-native" },
 ];
 
 const PLATFORM_SUFFIXES = [

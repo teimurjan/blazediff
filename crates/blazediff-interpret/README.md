@@ -4,9 +4,26 @@ Structured region analysis for image diffs. Given two images and a set of change
 says *what* changed in each one — not just where.
 
 ```rust
-use blazediff_interpret::{interpret_regions, types::BoundingBox};
+use blazediff_interpret::{interpret, ChangeSource};
 
-let result = interpret_regions(&expected, &actual, &regions)?;
+// From a pixel diff — what `blazediff` does.
+let result = interpret(&expected, &actual, ChangeSource::Diff {
+    output: &diff_image.data,
+    diff_count: diff.diff_count,
+    diff_percentage: diff.diff_percentage,
+})?;
+
+// From a similarity map — what `blazediff-ssim` does.
+let result = interpret(&expected, &actual, ChangeSource::ScoreMap {
+    map: &outcome.map,
+    width: outcome.map_width,
+    height: outcome.map_height,
+    floor: 0.99,
+})?;
+
+// From boxes you already have.
+let result = interpret(&expected, &actual, ChangeSource::Regions(&boxes))?;
+
 println!("{}", result.summary);
 for region in &result.regions {
     println!("{:?} at {} ({:.2}%)", region.change_type, region.position, region.percentage);
@@ -18,14 +35,15 @@ for region in &result.regions {
 The classifier is deliberately independent of whatever *found* the regions. Three producers feed
 it today:
 
-| Producer | How it finds regions |
-| --- | --- |
-| [`blazediff`](https://crates.io/crates/blazediff) | connected components over a pixel-diff mask |
-| [`blazediff-ssim`](https://crates.io/crates/blazediff-ssim) | thresholding a local SSIM score map |
-| your code | DOM rectangles, a JS-side diff, a crop list — anything |
+| Producer | `ChangeSource` | How it finds regions |
+| --- | --- | --- |
+| [`blazediff`](https://crates.io/crates/blazediff) | `Diff` | connected components over a pixel-diff mask |
+| [`blazediff-ssim`](https://crates.io/crates/blazediff-ssim) | `ScoreMap` | thresholding a local SSIM score map |
+| your code | `Regions` | DOM rectangles, a JS-side diff, a crop list — anything |
 
-`blazediff` already depends on `blazediff-ssim`, so a classifier living in either would be
-unreachable from the other. It sits below both instead.
+All three call the same function and get identical treatment; only the description of *where*
+differs. `blazediff` and `blazediff-ssim` are independent of each other, so a classifier living in
+either would be unreachable from the other. It sits below both instead.
 
 ## Coarse regions are fine
 
@@ -36,8 +54,8 @@ matter how blocky the input was:
 
 ```rust
 // An 8x8 change, described exactly and then quantized to a 16px grid.
-let exact  = interpret_regions(&a, &b, &[BoundingBox { x: 16, y: 16, width: 8,  height: 8  }])?;
-let coarse = interpret_regions(&a, &b, &[BoundingBox { x: 16, y: 16, width: 16, height: 16 }])?;
+let exact  = interpret(&a, &b, ChangeSource::Regions(&[BoundingBox { x: 16, y: 16, width: 8,  height: 8  }]))?;
+let coarse = interpret(&a, &b, ChangeSource::Regions(&[BoundingBox { x: 16, y: 16, width: 16, height: 16 }]))?;
 assert_eq!(coarse.diff_count, exact.diff_count); // both 64
 ```
 
@@ -49,7 +67,8 @@ actually-changed pixels, never windows.
 
 | Item | Purpose |
 | --- | --- |
-| `interpret_regions` | regions in, full `InterpretResult` out — summary, severity, classified regions |
+| `interpret` | the entry point: a `ChangeSource` in, a full `InterpretResult` out |
+| `ChangeSource` | `Diff` (a pixel diff's output + counts), `ScoreMap` (a similarity map), or `Regions` |
 | `classify_region` / `classify_regions` | classify against a mask you already hold |
 | `detect_regions` | connected components over a boolean mask |
 | `extract_change_mask` | recover a mask from an RGBA diff visualization |

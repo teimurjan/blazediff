@@ -96,7 +96,6 @@ name = "blazediff"
 version = "5.4.0"
 dependencies = [
  "base64",
- "blazediff-interpret",
  "blazediff-shared",
  "clap",
  "console_error_panic_hook",
@@ -117,8 +116,15 @@ dependencies = [
 name = "blazediff-interpret"
 version = "5.4.0"
 dependencies = [
+ "blazediff",
  "blazediff-shared",
+ "blazediff-ssim",
+ "clap",
+ "napi",
+ "napi-build",
+ "napi-derive",
  "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -126,6 +132,7 @@ name = "blazediff-interpret-verify"
 version = "0.1.0"
 dependencies = [
  "blazediff",
+ "blazediff-interpret",
  "clap",
  "serde",
  "serde_json",
@@ -180,13 +187,11 @@ dependencies = [
 name = "blazediff-ssim"
 version = "5.4.0"
 dependencies = [
- "blazediff-interpret",
  "blazediff-shared",
  "napi",
  "napi-build",
  "napi-derive",
  "png",
- "serde_json",
 ]
 
 [[package]]

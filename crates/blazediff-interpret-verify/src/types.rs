@@ -1,5 +1,5 @@
-use blazediff::interpret::types::{BoundingBox, ChangeRegion, ChangeType, ClassificationSignals};
 use blazediff::types::Image;
+use blazediff_interpret::types::{BoundingBox, ChangeRegion, ChangeType, ClassificationSignals};
 use clap::ValueEnum;
 use serde::{Deserialize, Serialize};
 

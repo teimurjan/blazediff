@@ -9,24 +9,20 @@
 //! against the source pixels before any statistic is computed.
 //!
 //! ```
-//! use blazediff_interpret::{interpret_regions, types::BoundingBox};
+//! use blazediff_interpret::{interpret, types::BoundingBox, ChangeSource};
 //! # use blazediff_shared::Image;
 //! # let (a, b) = (Image::new(64, 64), Image::new(64, 64));
-//! let result = interpret_regions(&a, &b, &[BoundingBox { x: 8, y: 8, width: 16, height: 16 }])?;
+//! let result = interpret(&a, &b, ChangeSource::Regions(&[BoundingBox { x: 8, y: 8, width: 16, height: 16 }]))?;
 //! println!("{}", result.summary);
 //! # Ok::<(), blazediff_interpret::InterpretError>(())
 //! ```
-
-//! Deterministic image diff analysis.
-//!
-//! Wraps `blazediff::diff()` to produce structured, human/agent-readable results:
-//! region detection via connected-component labeling, spatial positions, severity,
-//! color delta analysis, gradient scoring, and semantic interpretation.
 
 mod color_delta;
 mod content_analysis;
 mod gradient;
 mod interpretation;
+#[cfg(feature = "napi")]
+mod napi;
 mod region;
 mod severity;
 mod shape;
@@ -40,8 +36,10 @@ mod summary;
 pub mod test_helpers;
 pub mod types;
 
+use blazediff::{DiffOptions, DiffResult};
 use blazediff_shared::yiq::color_delta;
 use blazediff_shared::Image;
+use blazediff_ssim::SsimOutcome;
 use color_delta::compute_color_delta;
 use content_analysis::analyze_content;
 use gradient::{compute_gradient_stats, compute_luminance_ncc};
@@ -81,6 +79,8 @@ pub enum InterpretError {
         width: u32,
         height: u32,
     },
+    /// The diff or metric this was asked to interpret failed first.
+    Producer(String),
 }
 
 impl std::fmt::Display for InterpretError {
@@ -105,6 +105,7 @@ impl std::fmt::Display for InterpretError {
                 "Region {}x{} at ({}, {}) falls outside the {}x{} image",
                 bbox.width, bbox.height, bbox.x, bbox.y, width, height
             ),
+            InterpretError::Producer(e) => write!(f, "{}", e),
         }
     }
 }
@@ -239,24 +240,122 @@ pub fn classify_regions(
     regions
 }
 
-/// Interpret a set of caller-supplied change regions.
+/// Where the change information came from.
 ///
-/// This is the entry point for producers that already know *where* things
-/// changed and want to know *what* changed. The regions may be as coarse as the
-/// producer likes — an SSIM score map's window grid, say — because the mask is
-/// refined against the source pixels inside each box before any statistic is
-/// computed, so shape, colour and gradient analysis stay per-pixel regardless.
+/// Each variant is what one of the producers hands back, taken by name: this
+/// crate sits above them and consumes their results, rather than either of them
+/// depending on it. What differs between the variants is only the precision of
+/// the description, and whether it needs refining.
+pub enum ChangeSource<'a> {
+    /// What [`blazediff::diff`] returns: its result plus the visualization it
+    /// wrote. Changed pixels are the non-grayscale ones, so the mask is exact
+    /// and is used as-is; the counts come from the diff rather than being
+    /// recomputed, because it knows which pixels it excluded as anti-aliasing.
+    ///
+    /// The diff must have been run with [`mask_options`] so the visualization
+    /// is readable as a mask whatever colours the caller wanted.
+    Diff {
+        result: &'a DiffResult,
+        output: &'a Image,
+    },
+    /// What any [`blazediff_ssim`] metric returns. Cells scoring below `floor`
+    /// are changed. The map's grid is coarser than a pixel, so the boxes it
+    /// yields are refined against the source pixels before anything is
+    /// measured.
+    Ssim {
+        outcome: &'a SsimOutcome,
+        floor: f32,
+    },
+    /// Regions the caller already knows — DOM rectangles, a crop list, anything.
+    /// Refined like a score map, so they may be as coarse as you like.
+    Regions(&'a [BoundingBox]),
+}
+
+/// Stable non-grayscale marker colors, so a mask can be read back out of a
+/// diff visualization whatever colours the caller asked for — including
+/// grayscale ones, which would otherwise be indistinguishable from background.
+const MASK_DIFF_COLOR: [u8; 3] = [255, 0, 0];
+const MASK_DIFF_COLOR_ALT: [u8; 3] = [0, 0, 255];
+const MASK_AA_COLOR: [u8; 3] = [255, 255, 0];
+
+/// The [`DiffOptions`] a diff must run with for [`ChangeSource::Diff`] to be
+/// able to recover its mask.
 ///
-/// `diff_count` is the number of pixels that survive that refinement, so it
-/// means the same thing it does on the pixel-diff path: actually-changed
-/// pixels, not windows.
+/// Everything except the three marker colours is taken from `options`, so
+/// threshold and anti-aliasing behave exactly as the caller asked.
+pub fn mask_options(options: &DiffOptions) -> DiffOptions {
+    DiffOptions {
+        aa_color: MASK_AA_COLOR,
+        diff_color: MASK_DIFF_COLOR,
+        diff_color_alt: Some(MASK_DIFF_COLOR_ALT),
+        ..options.clone()
+    }
+}
+
+/// Repaint a mask-coloured visualization in the caller's palette.
 ///
-/// Regions that classify as rendering noise are dropped, as they are by
-/// `blazediff`'s end-to-end `interpret`.
-pub fn interpret_regions(
+/// Call it after [`interpret`] has read the mask, never before.
+pub fn recolor_output(output: &mut Image, options: &DiffOptions) {
+    let diff_color_alt = options.diff_color_alt.unwrap_or(options.diff_color);
+
+    for pixel in output.data.chunks_exact_mut(4) {
+        let color = match [pixel[0], pixel[1], pixel[2]] {
+            MASK_DIFF_COLOR => options.diff_color,
+            MASK_DIFF_COLOR_ALT => diff_color_alt,
+            MASK_AA_COLOR => options.aa_color,
+            _ => continue,
+        };
+        pixel[..3].copy_from_slice(&color);
+    }
+}
+
+/// Run a pixel diff and interpret it, optionally keeping the visualization.
+///
+/// The convenience path for the common case: it applies [`mask_options`],
+/// runs [`blazediff::diff`], interprets the result, and repaints the output in
+/// the caller's colours afterwards.
+pub fn interpret_diff(
     image1: &Image,
     image2: &Image,
-    regions: &[BoundingBox],
+    mut output: Option<&mut Image>,
+    options: &DiffOptions,
+) -> Result<InterpretResult, InterpretError> {
+    let retain_output = output.is_some();
+    let mut internal = Image::new_uninit(image1.width, image1.height);
+    let diff_output = output.as_deref_mut().unwrap_or(&mut internal);
+
+    let result = blazediff::diff(image1, image2, Some(diff_output), &mask_options(options))
+        .map_err(|e| InterpretError::Producer(e.to_string()))?;
+
+    // Read the mask out of the marker colours before repainting them.
+    let interpreted = interpret(
+        image1,
+        image2,
+        ChangeSource::Diff {
+            result: &result,
+            output: diff_output,
+        },
+    )?;
+
+    if retain_output {
+        recolor_output(diff_output, options);
+    }
+
+    Ok(interpreted)
+}
+
+/// Describe what changed between two images.
+///
+/// The single entry point: a pixel diff, a similarity metric and a caller
+/// passing its own boxes all come through here and get identical treatment,
+/// because the statistics are computed from the source pixels either way.
+///
+/// `diff_count` therefore means the same thing on every path — actually-changed
+/// pixels, never map windows.
+pub fn interpret(
+    image1: &Image,
+    image2: &Image,
+    source: ChangeSource<'_>,
 ) -> Result<InterpretResult, InterpretError> {
     let (width, height) = (image1.width, image1.height);
     if width != image2.width || height != image2.height {
@@ -268,7 +367,122 @@ pub fn interpret_regions(
         });
     }
 
-    for bbox in regions {
+    // A diff that found nothing may leave its output buffer *uninitialized* —
+    // see `Image::new_uninit` — so the mask must not be read in that case.
+    if let ChangeSource::Diff { result, .. } = &source {
+        if result.identical {
+            return Ok(InterpretResult {
+                summary: "Images are identical".to_string(),
+                diff_count: 0,
+                total_regions: 0,
+                regions: Vec::new(),
+                severity: classify_severity(0.0),
+                diff_percentage: 0.0,
+                width,
+                height,
+            });
+        }
+    }
+
+    let total_pixels = (width as f64) * (height as f64);
+
+    // Each arm produces the regions, the mask the shift pass should read, and
+    // — for the diff, which knows better than we do — its own counts.
+    let (mut regions, mask, counts) = match source {
+        ChangeSource::Diff { result, output } => {
+            let mask = extract_change_mask(&output.data, width, height);
+            let regions = detect_regions(&mask, width, height)
+                .into_iter()
+                .map(|component| {
+                    let mut region =
+                        classify_region_with_mask(image1, image2, &mask, component.bbox);
+                    region.pixel_count = component.pixel_count;
+                    region.percentage = if total_pixels > 0.0 {
+                        100.0 * component.pixel_count as f64 / total_pixels
+                    } else {
+                        0.0
+                    };
+                    region
+                })
+                .collect::<Vec<_>>();
+            (
+                regions,
+                mask,
+                Some((result.diff_count, result.diff_percentage)),
+            )
+        }
+        ChangeSource::Ssim { outcome, floor } => {
+            let boxes = regions_from_score_map(
+                &outcome.map,
+                outcome.map_width,
+                outcome.map_height,
+                width,
+                height,
+                floor,
+            );
+            let (regions, mask) = classify_coarse(image1, image2, &boxes)?;
+            (regions, mask, None)
+        }
+        ChangeSource::Regions(boxes) => {
+            let (regions, mask) = classify_coarse(image1, image2, boxes)?;
+            (regions, mask, None)
+        }
+    };
+
+    detect_shifts(&mut regions, image1, image2, &mask, width);
+    regions.retain(|region| region.change_type != ChangeType::RenderingNoise);
+
+    // A coarse source has no authoritative count of its own, so it comes from
+    // the pixels that survived refinement.
+    let (diff_count, diff_percentage) = counts.unwrap_or_else(|| {
+        let count: u32 = regions.iter().map(|region| region.pixel_count).sum();
+        let percentage = if total_pixels > 0.0 {
+            100.0 * count as f64 / total_pixels
+        } else {
+            0.0
+        };
+        (count, percentage)
+    });
+
+    if regions.is_empty() && diff_count == 0 {
+        return Ok(InterpretResult {
+            summary: "Images are identical".to_string(),
+            diff_count: 0,
+            total_regions: 0,
+            regions: Vec::new(),
+            severity: classify_severity(0.0),
+            diff_percentage: 0.0,
+            width,
+            height,
+        });
+    }
+
+    let severity = classify_severity(diff_percentage);
+    let summary = build_summary(&regions, &severity, diff_percentage);
+
+    Ok(InterpretResult {
+        summary,
+        diff_count,
+        total_regions: regions.len(),
+        regions,
+        severity,
+        diff_percentage,
+        width,
+        height,
+    })
+}
+
+/// Classify boxes that may be coarser than a pixel: fill them into a mask,
+/// refine that against the source pixels, then measure.
+fn classify_coarse(
+    image1: &Image,
+    image2: &Image,
+    boxes: &[BoundingBox],
+) -> Result<(Vec<ChangeRegion>, Vec<bool>), InterpretError> {
+    let (width, height) = (image1.width, image1.height);
+    let total_pixels = (width as f64) * (height as f64);
+
+    for bbox in boxes {
         // u32 arithmetic, so check the sums for overflow rather than trusting
         // `x + width <= image_width` to stay in range.
         let right = bbox.x.checked_add(bbox.width);
@@ -283,48 +497,30 @@ pub fn interpret_regions(
         }
     }
 
-    let total_pixels = (width as f64) * (height as f64);
-    if regions.is_empty() || total_pixels == 0.0 {
-        return Ok(InterpretResult {
-            summary: "Images are identical".to_string(),
-            diff_count: 0,
-            total_regions: 0,
-            regions: Vec::new(),
-            severity: classify_severity(0.0),
-            diff_percentage: 0.0,
-            width,
-            height,
-        });
-    }
-
-    // Fill every supplied box; `classify_regions` refines it down to the
-    // pixels that actually differ before classifying.
     let mut mask = vec![false; (width * height) as usize];
-    for bbox in regions {
+    for bbox in boxes {
         for y in bbox.y..bbox.y + bbox.height {
             let row = (y * width) as usize;
             mask[row + bbox.x as usize..row + (bbox.x + bbox.width) as usize].fill(true);
         }
     }
+    let refined = refine_change_mask_in_bboxes(image1, image2, &mask, boxes, width);
 
-    let mut classified = classify_regions(image1, image2, &mask, regions);
-    classified.retain(|region| region.change_type != ChangeType::RenderingNoise);
+    let regions = boxes
+        .iter()
+        .copied()
+        .map(|bbox| {
+            let mut region = classify_region_with_mask(image1, image2, &refined, bbox);
+            region.percentage = if total_pixels > 0.0 {
+                100.0 * region.pixel_count as f64 / total_pixels
+            } else {
+                0.0
+            };
+            region
+        })
+        .collect();
 
-    let diff_count: u32 = classified.iter().map(|region| region.pixel_count).sum();
-    let diff_percentage = 100.0 * diff_count as f64 / total_pixels;
-    let severity = classify_severity(diff_percentage);
-    let summary = build_summary(&classified, &severity, diff_percentage);
-
-    Ok(InterpretResult {
-        summary,
-        diff_count,
-        total_regions: classified.len(),
-        regions: classified,
-        severity,
-        diff_percentage,
-        width,
-        height,
-    })
+    Ok((regions, refined))
 }
 
 #[cfg(test)]
@@ -344,7 +540,7 @@ mod region_entry_tests {
     #[test]
     fn no_regions_means_identical() {
         let a = make_solid_image(64, 64, 10, 20, 30);
-        let result = interpret_regions(&a, &a, &[]).unwrap();
+        let result = interpret(&a, &a, ChangeSource::Regions(&[])).unwrap();
         assert_eq!(result.summary, "Images are identical");
         assert_eq!(result.diff_count, 0);
         assert_eq!(result.total_regions, 0);
@@ -353,7 +549,7 @@ mod region_entry_tests {
     #[test]
     fn a_region_over_unchanged_pixels_contributes_nothing() {
         let a = make_solid_image(64, 64, 10, 20, 30);
-        let result = interpret_regions(&a, &a, &[bbox(8, 8, 16, 16)]).unwrap();
+        let result = interpret(&a, &a, ChangeSource::Regions(&[bbox(8, 8, 16, 16)])).unwrap();
         assert_eq!(result.diff_count, 0);
         assert_eq!(result.diff_percentage, 0.0);
     }
@@ -364,7 +560,7 @@ mod region_entry_tests {
         let mut b = make_solid_image(64, 64, 255, 255, 255);
         fill_block(&mut b, 16, 16, 8, 8, 0, 0, 0);
 
-        let result = interpret_regions(&a, &b, &[bbox(16, 16, 8, 8)]).unwrap();
+        let result = interpret(&a, &b, ChangeSource::Regions(&[bbox(16, 16, 8, 8)])).unwrap();
         assert_eq!(result.total_regions, 1);
         assert_eq!(result.diff_count, 64);
         assert_eq!(result.regions[0].bbox, bbox(16, 16, 8, 8));
@@ -379,9 +575,9 @@ mod region_entry_tests {
         let mut b = make_solid_image(64, 64, 255, 255, 255);
         fill_block(&mut b, 16, 16, 8, 8, 0, 0, 0);
 
-        let exact = interpret_regions(&a, &b, &[bbox(16, 16, 8, 8)]).unwrap();
+        let exact = interpret(&a, &b, ChangeSource::Regions(&[bbox(16, 16, 8, 8)])).unwrap();
         // Quantized to a 16px grid, as an SSIM window map would give.
-        let coarse = interpret_regions(&a, &b, &[bbox(16, 16, 16, 16)]).unwrap();
+        let coarse = interpret(&a, &b, ChangeSource::Regions(&[bbox(16, 16, 16, 16)])).unwrap();
 
         assert_eq!(coarse.diff_count, exact.diff_count);
         assert_eq!(coarse.regions[0].pixel_count, exact.regions[0].pixel_count);
@@ -392,7 +588,7 @@ mod region_entry_tests {
         let a = make_solid_image(64, 64, 0, 0, 0);
         let b = make_solid_image(32, 64, 0, 0, 0);
         assert!(matches!(
-            interpret_regions(&a, &b, &[]),
+            interpret(&a, &b, ChangeSource::Regions(&[])),
             Err(InterpretError::SizeMismatch { .. })
         ));
     }
@@ -407,7 +603,7 @@ mod region_entry_tests {
         ] {
             assert!(
                 matches!(
-                    interpret_regions(&a, &a, &[out]),
+                    interpret(&a, &a, ChangeSource::Regions(&[out])),
                     Err(InterpretError::RegionOutOfBounds { .. })
                 ),
                 "{out:?} should be rejected"
@@ -421,7 +617,7 @@ mod region_entry_tests {
 /// This is how a similarity metric becomes a region producer: threshold its
 /// local map at `floor`, take connected components at map resolution, then
 /// scale each box back up. The result is deliberately coarse — a box is only
-/// ever as precise as the map's grid — but [`interpret_regions`] refines
+/// ever as precise as the map's grid — but [`interpret`] refines
 /// against the source pixels before measuring anything, so the statistics it
 /// derives are still per-pixel.
 ///
@@ -525,5 +721,511 @@ mod score_map_tests {
     fn a_degenerate_map_yields_nothing() {
         assert!(regions_from_score_map(&[], 0, 0, 64, 64, 0.99).is_empty());
         assert!(regions_from_score_map(&[0.0], 4, 4, 64, 64, 0.99).is_empty());
+    }
+}
+
+#[cfg(test)]
+mod source_parity_tests {
+    use super::*;
+    use crate::test_helpers::*;
+    use blazediff_ssim::{ssim, Plane, Rgba8, SsimOptions};
+
+    fn pair() -> (Image, Image) {
+        let a = make_solid_image(64, 64, 255, 255, 255);
+        let mut b = make_solid_image(64, 64, 255, 255, 255);
+        fill_block(&mut b, 16, 16, 8, 8, 0, 0, 0);
+        (a, b)
+    }
+
+    /// A pixel diff and an SSIM map are two descriptions of the same change, so
+    /// interpreting either must reach the same conclusion. That symmetry is the
+    /// whole point of one entry point taking both producers' results.
+    #[test]
+    fn a_diff_and_an_ssim_map_agree() {
+        let (a, b) = pair();
+        let options = DiffOptions::default();
+
+        let mut output = Image::new_uninit(a.width, a.height);
+        let result = blazediff::diff(&a, &b, Some(&mut output), &mask_options(&options)).unwrap();
+        let from_diff = interpret(
+            &a,
+            &b,
+            ChangeSource::Diff {
+                result: &result,
+                output: &output,
+            },
+        )
+        .unwrap();
+
+        let plane = |image: &Image| Plane::from_rgba8(Rgba8::new(&image.data, 64, 64)).unwrap();
+        let outcome = ssim(&plane(&a), &plane(&b), &SsimOptions::default()).unwrap();
+        let from_ssim = interpret(
+            &a,
+            &b,
+            ChangeSource::Ssim {
+                outcome: &outcome,
+                floor: 0.99,
+            },
+        )
+        .unwrap();
+
+        assert_eq!(from_diff.total_regions, 1);
+        assert_eq!(from_ssim.total_regions, 1);
+
+        // The boxes differ, and are meant to: the diff knows the change to the
+        // pixel, the map only to its window. The coarse one encloses it.
+        let (exact, coarse) = (from_diff.regions[0].bbox, from_ssim.regions[0].bbox);
+        assert_eq!(
+            exact,
+            BoundingBox {
+                x: 16,
+                y: 16,
+                width: 8,
+                height: 8
+            }
+        );
+        assert!(
+            coarse.x <= exact.x
+                && coarse.y <= exact.y
+                && coarse.x + coarse.width >= exact.x + exact.width
+                && coarse.y + coarse.height >= exact.y + exact.height,
+            "{coarse:?} should enclose {exact:?}"
+        );
+
+        // What must match is everything measured from the pixels.
+        assert_eq!(
+            from_diff.regions[0].change_type,
+            from_ssim.regions[0].change_type
+        );
+        assert_eq!(from_diff.diff_count, 64);
+        assert_eq!(from_ssim.diff_count, 64);
+    }
+
+    #[test]
+    fn an_unchanged_pair_is_identical_from_either_source() {
+        let a = make_solid_image(64, 64, 10, 20, 30);
+        let options = DiffOptions::default();
+
+        let mut output = Image::new_uninit(64, 64);
+        let result = blazediff::diff(&a, &a, Some(&mut output), &mask_options(&options)).unwrap();
+        let from_diff = interpret(
+            &a,
+            &a,
+            ChangeSource::Diff {
+                result: &result,
+                output: &output,
+            },
+        )
+        .unwrap();
+        assert_eq!(from_diff.summary, "Images are identical");
+
+        let plane = Plane::from_rgba8(Rgba8::new(&a.data, 64, 64)).unwrap();
+        let outcome = ssim(&plane, &plane, &SsimOptions::default()).unwrap();
+        let from_ssim = interpret(
+            &a,
+            &a,
+            ChangeSource::Ssim {
+                outcome: &outcome,
+                floor: 0.99,
+            },
+        )
+        .unwrap();
+        assert_eq!(from_ssim.summary, "Images are identical");
+    }
+}
+
+#[cfg(test)]
+mod diff_source_tests {
+
+    use super::*;
+    use crate::test_helpers::*;
+    use blazediff::{diff, DiffOptions};
+    use types::*;
+    #[test]
+    fn test_identical_images() {
+        let img1 = make_solid_image(100, 100, 128, 128, 128);
+        let img2 = make_solid_image(100, 100, 128, 128, 128);
+        let result = interpret_diff(&img1, &img2, None, &DiffOptions::default()).unwrap();
+
+        assert_eq!(result.total_regions, 0);
+        assert!(result.regions.is_empty());
+        assert_eq!(result.severity, ChangeSeverity::Low);
+        assert_eq!(result.diff_percentage, 0.0);
+        assert_eq!(result.summary, "Images are identical");
+    }
+
+    #[test]
+    fn test_single_pixel_change_is_filtered_as_noise() {
+        // Subtle single-pixel deltas sit below interpret()'s noise floor, so
+        // they don't show up as actionable regions.
+        let img1 = make_solid_image(100, 100, 128, 128, 128);
+        let mut img2 = make_solid_image(100, 100, 128, 128, 128);
+        set_pixel(&mut img2, 50, 50, 130, 130, 130);
+
+        let result = interpret_diff(&img1, &img2, None, &DiffOptions::default()).unwrap();
+
+        assert_eq!(result.total_regions, 0);
+        assert!(result.regions.is_empty());
+    }
+
+    #[test]
+    fn test_interpret_with_output_matches_diff() {
+        let img1 = make_solid_image(32, 32, 200, 200, 200);
+        let img2 = make_solid_image(32, 32, 50, 50, 50);
+        let options = DiffOptions {
+            include_aa: true,
+            diff_color_alt: Some([0, 128, 255]),
+            ..Default::default()
+        };
+        let mut expected = Image::new(32, 32);
+        let diff_result = diff(&img1, &img2, Some(&mut expected), &options).unwrap();
+        let mut actual = Image::new(32, 32);
+
+        let interpretation = interpret_diff(&img1, &img2, Some(&mut actual), &options).unwrap();
+
+        assert_eq!(interpretation.diff_count, diff_result.diff_count);
+        assert_eq!(actual.data, expected.data);
+    }
+
+    #[test]
+    fn test_interpret_with_grayscale_alt_color_keeps_regions() {
+        let img1 = make_solid_image(32, 32, 200, 200, 200);
+        let img2 = make_solid_image(32, 32, 50, 50, 50);
+        let options = DiffOptions {
+            include_aa: true,
+            diff_color_alt: Some([32, 32, 32]),
+            ..Default::default()
+        };
+        let mut output = Image::new(32, 32);
+
+        let result = interpret_diff(&img1, &img2, Some(&mut output), &options).unwrap();
+
+        assert_eq!(result.diff_count, 32 * 32);
+        assert!(result.total_regions > 0);
+        assert_eq!(&output.data[..4], &[32, 32, 32, 255]);
+    }
+
+    #[test]
+    fn test_block_addition() {
+        let img1 = make_solid_image(100, 100, 128, 128, 128);
+        let mut img2 = make_solid_image(100, 100, 128, 128, 128);
+        fill_block(&mut img2, 0, 0, 40, 40, 255, 0, 0);
+
+        let result = interpret_diff(&img1, &img2, None, &DiffOptions::default()).unwrap();
+
+        assert_eq!(result.total_regions, 1);
+        assert_eq!(result.regions[0].position, SpatialPosition::TopLeft);
+        assert_eq!(result.severity, ChangeSeverity::High);
+        assert_eq!(result.regions[0].change_type, ChangeType::Addition);
+        assert!(result.summary.contains("Content added"));
+    }
+
+    #[test]
+    fn test_block_deletion() {
+        let mut img1 = make_solid_image(100, 100, 128, 128, 128);
+        fill_block(&mut img1, 0, 0, 40, 40, 255, 0, 0);
+        let img2 = make_solid_image(100, 100, 128, 128, 128);
+
+        let result = interpret_diff(&img1, &img2, None, &DiffOptions::default()).unwrap();
+
+        assert_eq!(result.total_regions, 1);
+        assert_eq!(result.regions[0].change_type, ChangeType::Deletion);
+        assert!(result.summary.contains("Content removed"));
+    }
+
+    #[test]
+    fn test_scattered_additions() {
+        let img1 = make_solid_image(100, 100, 128, 128, 128);
+        let mut img2 = make_solid_image(100, 100, 128, 128, 128);
+        fill_block(&mut img2, 5, 5, 10, 10, 255, 0, 0);
+        fill_block(&mut img2, 80, 80, 10, 10, 0, 255, 0);
+
+        let result = interpret_diff(&img1, &img2, None, &DiffOptions::default()).unwrap();
+
+        assert_eq!(result.total_regions, 2);
+        let positions: Vec<SpatialPosition> = result.regions.iter().map(|r| r.position).collect();
+        assert!(positions.contains(&SpatialPosition::TopLeft));
+        assert!(positions.contains(&SpatialPosition::BottomRight));
+        assert!(result
+            .regions
+            .iter()
+            .all(|r| r.change_type == ChangeType::Addition));
+    }
+
+    #[test]
+    fn test_full_image_color_change() {
+        let img1 = make_solid_image(100, 100, 0, 0, 0);
+        let img2 = make_solid_image(100, 100, 255, 255, 255);
+
+        let result = interpret_diff(&img1, &img2, None, &DiffOptions::default()).unwrap();
+
+        assert_eq!(result.total_regions, 1);
+        assert_eq!(result.severity, ChangeSeverity::High);
+        assert!(result.diff_percentage > 90.0);
+        assert_eq!(result.regions[0].shape, ChangeShape::SolidRegion);
+        assert!(
+            matches!(
+                result.regions[0].change_type,
+                ChangeType::ColorChange | ChangeType::ContentChange
+            ),
+            "Expected ColorChange or ContentChange for full image swap, got: {:?}",
+            result.regions[0].change_type
+        );
+    }
+
+    #[test]
+    fn test_severity_boundaries() {
+        let img1 = make_solid_image(100, 100, 128, 128, 128);
+
+        let mut img2_low = make_solid_image(100, 100, 128, 128, 128);
+        for i in 0..50 {
+            set_pixel(&mut img2_low, i % 100, i / 100, 255, 0, 0);
+        }
+        let result_low = interpret_diff(&img1, &img2_low, None, &DiffOptions::default()).unwrap();
+        assert_eq!(result_low.severity, ChangeSeverity::Low);
+
+        let mut img2_med = make_solid_image(100, 100, 128, 128, 128);
+        fill_block(&mut img2_med, 0, 0, 20, 25, 255, 0, 0);
+        let result_med = interpret_diff(&img1, &img2_med, None, &DiffOptions::default()).unwrap();
+        assert_eq!(result_med.severity, ChangeSeverity::Medium);
+
+        let mut img2_high = make_solid_image(100, 100, 128, 128, 128);
+        fill_block(&mut img2_high, 0, 0, 50, 50, 255, 0, 0);
+        let result_high = interpret_diff(&img1, &img2_high, None, &DiffOptions::default()).unwrap();
+        assert_eq!(result_high.severity, ChangeSeverity::High);
+    }
+
+    #[test]
+    fn test_json_roundtrip() {
+        let img1 = make_solid_image(100, 100, 128, 128, 128);
+        let mut img2 = make_solid_image(100, 100, 128, 128, 128);
+        fill_block(&mut img2, 10, 10, 20, 20, 255, 0, 0);
+
+        let result = interpret_diff(&img1, &img2, None, &DiffOptions::default()).unwrap();
+        let json = serde_json::to_string(&result).unwrap();
+        let deserialized: InterpretResult = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(result, deserialized);
+    }
+
+    #[test]
+    fn test_hollow_frame_is_addition() {
+        let img1 = make_solid_image(100, 100, 128, 128, 128);
+        let mut img2 = make_solid_image(100, 100, 128, 128, 128);
+
+        let bx = 35u32;
+        let by = 35u32;
+        let bw = 30u32;
+        let bh = 30u32;
+        for y in by..by + bh {
+            for x in bx..bx + bw {
+                if x == bx || x == bx + bw - 1 || y == by || y == by + bh - 1 {
+                    set_pixel(&mut img2, x, y, 255, 0, 0);
+                }
+            }
+        }
+
+        let result = interpret_diff(&img1, &img2, None, &DiffOptions::default()).unwrap();
+
+        assert_eq!(result.total_regions, 1);
+        assert_eq!(result.regions[0].shape, ChangeShape::ContourFrame);
+        assert_eq!(result.regions[0].change_type, ChangeType::Addition);
+    }
+
+    #[test]
+    fn test_sparse_noise() {
+        let img1 = make_solid_image(100, 100, 128, 128, 128);
+        let mut img2 = make_solid_image(100, 100, 128, 128, 128);
+
+        let bx = 10u32;
+        let by = 10u32;
+        let size = 80u32;
+        for y in (by..by + size).step_by(6) {
+            for x in bx..bx + size {
+                set_pixel(&mut img2, x, y, 133, 133, 133);
+            }
+        }
+        for x in (bx..bx + size).step_by(6) {
+            for y in by..by + size {
+                set_pixel(&mut img2, x, y, 133, 133, 133);
+            }
+        }
+
+        let result = interpret_diff(&img1, &img2, None, &DiffOptions::default()).unwrap();
+
+        for r in &result.regions {
+            assert_eq!(
+                r.change_type,
+                ChangeType::Addition,
+                "Expected Addition for sparse subtle grid, got: {:?}",
+                r.change_type
+            );
+        }
+    }
+
+    #[test]
+    fn test_shift_detection() {
+        let mut img1 = make_solid_image(100, 100, 255, 255, 255);
+        fill_block(&mut img1, 10, 10, 20, 20, 40, 40, 40);
+
+        let mut img2 = make_solid_image(100, 100, 255, 255, 255);
+        fill_block(&mut img2, 60, 60, 20, 20, 40, 40, 40);
+
+        let result = interpret_diff(&img1, &img2, None, &DiffOptions::default()).unwrap();
+
+        assert_eq!(result.total_regions, 2);
+        assert!(
+            result
+                .regions
+                .iter()
+                .all(|r| r.change_type == ChangeType::Shift),
+            "Expected both regions as Shift, got: {:?}",
+            result
+                .regions
+                .iter()
+                .map(|r| r.change_type)
+                .collect::<Vec<_>>()
+        );
+        assert!(result.summary.contains("Content shifted"));
+    }
+
+    #[test]
+    fn test_size_mismatch_error() {
+        let img1 = make_solid_image(100, 100, 128, 128, 128);
+        let img2 = make_solid_image(200, 200, 128, 128, 128);
+
+        let result = interpret_diff(&img1, &img2, None, &DiffOptions::default());
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_summary_format() {
+        let img1 = make_solid_image(100, 100, 128, 128, 128);
+        let mut img2 = make_solid_image(100, 100, 128, 128, 128);
+        fill_block(&mut img2, 5, 5, 10, 10, 255, 0, 0);
+        fill_block(&mut img2, 80, 80, 10, 10, 0, 255, 0);
+
+        let result = interpret_diff(&img1, &img2, None, &DiffOptions::default()).unwrap();
+
+        assert!(result.summary.contains("visual change detected"));
+        assert!(result.summary.contains("2 regions"));
+    }
+
+    #[test]
+    fn test_summary_has_descriptions() {
+        let img1 = make_solid_image(100, 100, 128, 128, 128);
+        let mut img2 = make_solid_image(100, 100, 128, 128, 128);
+        fill_block(&mut img2, 5, 5, 10, 10, 255, 0, 0);
+
+        let result = interpret_diff(&img1, &img2, None, &DiffOptions::default()).unwrap();
+
+        assert!(result.summary.contains("region"));
+        assert!(result.summary.lines().count() >= 2);
+    }
+
+    #[test]
+    fn test_signals_populated() {
+        let img1 = make_solid_image(100, 100, 128, 128, 128);
+        let mut img2 = make_solid_image(100, 100, 128, 128, 128);
+        fill_block(&mut img2, 0, 0, 40, 40, 255, 0, 0);
+
+        let result = interpret_diff(&img1, &img2, None, &DiffOptions::default()).unwrap();
+
+        assert_eq!(result.total_regions, 1);
+        let region = &result.regions[0];
+        assert!(region.confidence > 0.0);
+        assert!(region.signals.blends_with_bg_in_img1);
+    }
+
+    #[test]
+    fn test_grey_shift_is_addition() {
+        let img1 = make_solid_image(100, 100, 128, 128, 128);
+        let mut img2 = make_solid_image(100, 100, 128, 128, 128);
+        fill_block(&mut img2, 0, 0, 40, 40, 220, 220, 220);
+
+        let result = interpret_diff(&img1, &img2, None, &DiffOptions::default()).unwrap();
+
+        assert_eq!(result.total_regions, 1);
+        assert_eq!(result.regions[0].change_type, ChangeType::Addition);
+    }
+
+    #[test]
+    fn test_shift_not_detected_for_different_sizes() {
+        let mut img1 = make_solid_image(200, 100, 255, 255, 255);
+        fill_block(&mut img1, 10, 10, 40, 40, 40, 40, 40);
+
+        let mut img2 = make_solid_image(200, 100, 255, 255, 255);
+        fill_block(&mut img2, 140, 10, 10, 10, 40, 40, 40);
+
+        let result = interpret_diff(&img1, &img2, None, &DiffOptions::default()).unwrap();
+
+        let shift_count = result
+            .regions
+            .iter()
+            .filter(|r| r.change_type == ChangeType::Shift)
+            .count();
+        assert_eq!(
+            shift_count, 0,
+            "Different-sized blocks should not be detected as shift"
+        );
+    }
+
+    #[test]
+    fn test_shift_not_detected_for_different_luminance() {
+        let mut img1 = make_solid_image(200, 100, 200, 200, 200);
+        fill_block(&mut img1, 10, 10, 30, 30, 20, 20, 20);
+
+        let mut img2 = make_solid_image(200, 100, 200, 200, 200);
+        fill_block(&mut img2, 140, 10, 30, 30, 200, 50, 50);
+
+        let result = interpret_diff(&img1, &img2, None, &DiffOptions::default()).unwrap();
+
+        let shift_count = result
+            .regions
+            .iter()
+            .filter(|r| r.change_type == ChangeType::Shift)
+            .count();
+        assert_eq!(
+            shift_count, 0,
+            "Blocks with different luminance should not be shift"
+        );
+    }
+
+    #[test]
+    fn test_no_shift_when_only_additions() {
+        let img1 = make_solid_image(200, 100, 200, 200, 200);
+        let mut img2 = make_solid_image(200, 100, 200, 200, 200);
+        fill_block(&mut img2, 10, 10, 30, 30, 40, 40, 40);
+        fill_block(&mut img2, 140, 10, 30, 30, 40, 40, 40);
+
+        let result = interpret_diff(&img1, &img2, None, &DiffOptions::default()).unwrap();
+
+        let shift_count = result
+            .regions
+            .iter()
+            .filter(|r| r.change_type == ChangeType::Shift)
+            .count();
+        assert_eq!(
+            shift_count, 0,
+            "Two additions with no deletion cannot form a shift"
+        );
+    }
+
+    #[test]
+    fn test_object_on_both_images_is_not_addition_or_deletion() {
+        let mut img1 = make_solid_image(100, 100, 200, 200, 200);
+        fill_block(&mut img1, 30, 30, 40, 40, 255, 0, 0);
+        let mut img2 = make_solid_image(100, 100, 200, 200, 200);
+        fill_block(&mut img2, 30, 30, 40, 40, 0, 0, 255);
+
+        let result = interpret_diff(&img1, &img2, None, &DiffOptions::default()).unwrap();
+
+        for r in &result.regions {
+            assert!(
+                r.change_type != ChangeType::Addition && r.change_type != ChangeType::Deletion,
+                "Object present in both images should not be Addition or Deletion, got {:?}",
+                r.change_type
+            );
+        }
     }
 }

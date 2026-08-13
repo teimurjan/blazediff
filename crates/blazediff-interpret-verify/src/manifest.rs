@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 use std::path::Path;
 
-use blazediff::interpret::types::{BoundingBox, ChangeType};
 use blazediff::types::Image;
+use blazediff_interpret::types::{BoundingBox, ChangeType};
 use serde::Deserialize;
 
 use crate::types::{DatasetTier, GroundTruthRegion, ValidationCase};

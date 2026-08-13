@@ -18,20 +18,37 @@ The crate name is `blazediff-interpret`; the library imports as `blazediff_inter
 
 The classifier is deliberately independent of whatever *found* the regions. Three producers feed it:
 
-| Producer | How it finds regions |
-| --- | --- |
-| [`blazediff`](/apis/rust) | connected components over a pixel-diff mask |
-| [`blazediff-ssim`](/apis/blazediff-ssim) | thresholding a local SSIM score map |
-| your code | DOM rectangles, a JS-side diff, a crop list — anything |
+| Producer | `ChangeSource` | How it finds regions |
+| --- | --- | --- |
+| [`blazediff`](/apis/rust) | `Diff` | connected components over a pixel-diff mask |
+| [`blazediff-ssim`](/apis/blazediff-ssim) | `ScoreMap` | thresholding a local SSIM score map |
+| your code | `Regions` | DOM rectangles, a JS-side diff, a crop list — anything |
 
-`blazediff` already depends on `blazediff-ssim`, so a classifier living in either would be unreachable from the other. It sits below both, on [`blazediff-shared`](/apis/blazediff-shared).
+All three call the same function and get identical treatment; only the description of *where* differs. `blazediff` and `blazediff-ssim` are independent of each other, so a classifier living in either would be unreachable from the other. It sits below both, on [`blazediff-shared`](/apis/blazediff-shared).
 
 ## Usage
 
 ```rust
-use blazediff_interpret::{interpret_regions, types::BoundingBox};
+use blazediff_interpret::{interpret, ChangeSource};
 
-let result = interpret_regions(&expected, &actual, &regions)?;
+// From a pixel diff — what `blazediff` does.
+let result = interpret(&expected, &actual, ChangeSource::Diff {
+    output: &diff_image.data,
+    diff_count: diff.diff_count,
+    diff_percentage: diff.diff_percentage,
+})?;
+
+// From a similarity map — what `blazediff-ssim` does.
+let result = interpret(&expected, &actual, ChangeSource::ScoreMap {
+    map: &outcome.map,
+    width: outcome.map_width,
+    height: outcome.map_height,
+    floor: 0.99,
+})?;
+
+// From boxes you already have.
+let result = interpret(&expected, &actual, ChangeSource::Regions(&boxes))?;
+
 println!("{}", result.summary);
 for region in &result.regions {
     println!("{:?} at {} ({:.2}%)", region.change_type, region.position, region.percentage);
@@ -44,8 +61,8 @@ A producer only has to know roughly where something changed. Before any statisti
 
 ```rust
 // An 8x8 change, described exactly and then quantized to a 16px grid.
-let exact  = interpret_regions(&a, &b, &[BoundingBox { x: 16, y: 16, width: 8,  height: 8  }])?;
-let coarse = interpret_regions(&a, &b, &[BoundingBox { x: 16, y: 16, width: 16, height: 16 }])?;
+let exact  = interpret(&a, &b, ChangeSource::Regions(&[BoundingBox { x: 16, y: 16, width: 8,  height: 8  }]))?;
+let coarse = interpret(&a, &b, ChangeSource::Regions(&[BoundingBox { x: 16, y: 16, width: 16, height: 16 }]))?;
 assert_eq!(coarse.diff_count, exact.diff_count); // both 64
 ```
 
@@ -59,7 +76,8 @@ That is what makes an SSIM window map a usable region source: its grid is coarse
 
 | Item | Purpose |
 | --- | --- |
-| `interpret_regions` | regions in, full `InterpretResult` out — summary, severity, classified regions |
+| `interpret` | the entry point: a `ChangeSource` in, a full `InterpretResult` out |
+| `ChangeSource` | `Diff` (a pixel diff's output + counts), `ScoreMap` (a similarity map), or `Regions` |
 | `regions_from_score_map` | threshold a lower-resolution score map into image-space regions |
 | `classify_region` / `classify_regions` | classify against a mask you already hold |
 | `detect_regions` | connected components over a boolean mask |
@@ -73,20 +91,19 @@ That is what makes an SSIM window map a usable region source: its grid is coarse
 
 ## From JavaScript
 
-Both JS front-ends can drive it:
+One package wraps all of it — [`@blazediff/interpret-native`](https://www.npmjs.com/package/@blazediff/interpret-native):
 
 ```ts
-// @blazediff/core-wasm — regions you already know about
-import { interpretRegions } from "@blazediff/core-wasm";
-const result = await interpretRegions(a, b, width, height, [
+import { interpret, interpretRegions } from "@blazediff/interpret-native";
+
+// Regions from a pixel diff (default), or from a similarity map.
+const exact = await interpret("expected.png", "actual.png");
+const loose = await interpret("expected.png", "actual.png", undefined, { source: "ms-ssim" });
+
+// Regions you already know about.
+const given = await interpretRegions("expected.png", "actual.png", [
   { x: 16, y: 16, width: 32, height: 32 },
 ]);
-```
-
-```ts
-// @blazediff/ssim-native — regions located by the score map
-import { interpret } from "@blazediff/ssim-native";
-const result = await interpret("expected.png", "actual.png", { metric: "ms-ssim" });
 ```
 
 ## What it classifies

@@ -21,8 +21,6 @@ export interface BlazeDiffOptions {
 	compression?: number;
 	/** JPEG quality (1-100). Default: 90 */
 	quality?: number;
-	/** Run structured interpretation after raw pixel diff */
-	interpret?: boolean;
 }
 
 /** File path or encoded PNG, JPEG, or QOI bytes. */
@@ -31,7 +29,6 @@ export type BlazeDiffInput = string | Uint8Array;
 export type BlazeDiffResult =
 	| {
 			match: true;
-			interpretation?: InterpretResult;
 	  }
 	| { match: false; reason: "layout-diff" }
 	| {
@@ -40,7 +37,6 @@ export type BlazeDiffResult =
 			/** Differing pixels. */
 			diffCount: number;
 			diffPercentage: number;
-			interpretation?: InterpretResult;
 	  }
 	| { match: false; reason: "file-not-exists"; file: string };
 
@@ -57,7 +53,6 @@ interface NapiDiffResult {
 	reason: string | null;
 	diffCount: number | null;
 	diffPercentage: number | null;
-	interpretation: InterpretResult | null;
 }
 
 /** N-API binding options structure */
@@ -68,80 +63,6 @@ interface NapiDiffOptions {
 	diffColorAlt?: [number, number, number];
 	compression?: number;
 	quality?: number;
-	interpret?: boolean;
-}
-
-// ─── Interpret types ─────────────────────────────────────────────────────────
-
-export interface BoundingBox {
-	x: number;
-	y: number;
-	width: number;
-	height: number;
-}
-
-export interface ShapeStats {
-	fillRatio: number;
-	borderRatio: number;
-	innerFillRatio: number;
-	centerDensity: number;
-	rowOccupancy: number;
-	colOccupancy: number;
-}
-
-export interface ColorDeltaStats {
-	meanDelta: number;
-	maxDelta: number;
-	deltaStddev: number;
-}
-
-export interface GradientStats {
-	edgeScore: number;
-	edgeScoreImg2: number;
-	edgeCorrelation: number;
-}
-
-export interface ClassificationSignals {
-	blendsWithBgInImg1: boolean;
-	blendsWithBgInImg2: boolean;
-	lowColorDelta: boolean;
-	lowEdgeChange: boolean;
-	denseFill: boolean;
-	sparseFill: boolean;
-	tinyRegion: boolean;
-	edgesCorrelated: boolean;
-	confidence: number;
-}
-
-export interface ChangeRegion {
-	bbox: BoundingBox;
-	pixelCount: number;
-	percentage: number;
-	position: string;
-	shape: string;
-	shapeStats: ShapeStats;
-	changeType: string;
-	signals: ClassificationSignals;
-	confidence: number;
-	colorDelta: ColorDeltaStats;
-	gradient: GradientStats;
-}
-
-export interface InterpretResult {
-	summary: string;
-	diffCount: number;
-	totalRegions: number;
-	regions: ChangeRegion[];
-	severity: string;
-	diffPercentage: number;
-	width: number;
-	height: number;
-}
-
-/** N-API binding interfaces for interpret */
-interface NapiInterpretOptions {
-	threshold?: number;
-	antialiasing?: boolean;
 }
 
 /** Native binding interface */
@@ -158,11 +79,6 @@ interface NativeBinding {
 		diffOutput: string | null,
 		options: NapiDiffOptions | null,
 	): NapiDiffResult;
-	interpretImages(
-		image1Path: string,
-		image2Path: string,
-		options: NapiInterpretOptions | null,
-	): InterpretResult;
 }
 
 function validateRgb(
@@ -275,10 +191,8 @@ function tryLoadNativeBinding(): NativeBinding | null {
  * Convert N-API result to BlazeDiffResult
  */
 function convertNapiResult(result: NapiDiffResult): BlazeDiffResult {
-	const interpretation = result.interpretation ?? undefined;
-
 	if (result.matchResult) {
-		return { match: true, interpretation };
+		return { match: true };
 	}
 
 	if (result.reason === "layout-diff") {
@@ -290,7 +204,6 @@ function convertNapiResult(result: NapiDiffResult): BlazeDiffResult {
 		reason: "pixel-diff",
 		diffCount: result.diffCount ?? 0,
 		diffPercentage: result.diffPercentage ?? 0,
-		interpretation,
 	};
 }
 
@@ -305,7 +218,6 @@ function convertToNapiOptions(options?: BlazeDiffOptions): NapiDiffOptions {
 		diffColorAlt: validateRgb(options?.diffColorAlt),
 		compression: options?.compression,
 		quality: options?.quality,
-		interpret: options?.interpret,
 	};
 }
 
@@ -369,10 +281,8 @@ function getBinaryPathInternal(): string {
 
 function buildArgs(diffOutput?: string, options?: BlazeDiffOptions): string[] {
 	const args: string[] = [];
-	const useInterpret = options?.interpret ?? false;
 
 	if (diffOutput) args.push(diffOutput);
-	if (useInterpret) args.push("--interpret");
 	args.push("--output-format=json");
 
 	if (!options) return args;
@@ -423,10 +333,6 @@ async function execFileCompare(
 	const binaryPath = getBinaryPathInternal();
 	const args = [basePath, comparePath, ...buildArgs(diffOutput, options)];
 
-	if (options?.interpret) {
-		return execFileInterpretCompare(binaryPath, args, basePath, comparePath);
-	}
-
 	try {
 		// Exit code 0 means identical; the JSON carries nothing else worth
 		// reading on that path.
@@ -469,49 +375,6 @@ async function execFileCompare(
 		}
 
 		throw new Error(output || `blazediff exited with code ${code}`);
-	}
-}
-
-async function execFileInterpretCompare(
-	binaryPath: string,
-	args: string[],
-	basePath: string,
-	comparePath: string,
-): Promise<BlazeDiffResult> {
-	try {
-		const { stdout } = await execFileAsync(binaryPath, args);
-		const interpretation = JSON.parse(stdout) as InterpretResult;
-		return { match: true, interpretation };
-	} catch (err) {
-		const { code, stdout, stderr } = err as {
-			code?: number;
-			stdout?: string;
-			stderr?: string;
-		};
-
-		if (code === 1 && stdout) {
-			const interpretation = JSON.parse(stdout) as InterpretResult;
-			return {
-				match: false,
-				reason: "pixel-diff",
-				diffCount: interpretation.diffCount,
-				diffPercentage: interpretation.diffPercentage,
-				interpretation,
-			};
-		}
-
-		const errorOutput = stderr || stdout || "";
-
-		if (code === 2) {
-			const missingFile = detectMissingFile(errorOutput, basePath, comparePath);
-			if (missingFile) {
-				return { match: false, reason: "file-not-exists", file: missingFile };
-			}
-		}
-
-		throw new Error(
-			errorOutput || `blazediff --interpret exited with code ${code}`,
-		);
 	}
 }
 
@@ -608,46 +471,3 @@ export function hasNativeBinding(): boolean {
 }
 
 // ─── Interpret ───────────────────────────────────────────────────────────────
-
-/**
- * Interpret the diff between two images, returning structured analysis results.
- *
- * Inputs must both be file paths or both be encoded byte arrays. Uses native
- * N-API bindings when available for better performance. Path inputs fall back
- * to execFile if native bindings are unavailable.
- *
- * @example
- * ```ts
- * const result = await interpret('expected.png', 'actual.png');
- * console.log(result.summary);
- * for (const region of result.regions) {
- *   console.log(`${region.position}: ${region.changeType} (${region.percentage.toFixed(2)}%)`);
- * }
- * ```
- */
-export async function interpret(
-	image1: BlazeDiffInput,
-	image2: BlazeDiffInput,
-	options?: Pick<BlazeDiffOptions, "threshold" | "antialiasing">,
-): Promise<InterpretResult> {
-	const image1IsPath = typeof image1 === "string";
-	const image2IsPath = typeof image2 === "string";
-	const binding = tryLoadNativeBinding();
-	if (binding && image1IsPath && image2IsPath) {
-		return binding.interpretImages(image1, image2, {
-			threshold: options?.threshold,
-			antialiasing: options?.antialiasing,
-		});
-	}
-
-	const result = await compare(image1, image2, undefined, {
-		...options,
-		interpret: true,
-	});
-
-	if ("interpretation" in result && result.interpretation) {
-		return result.interpretation;
-	}
-
-	throw new Error("Interpretation result missing from compare");
-}

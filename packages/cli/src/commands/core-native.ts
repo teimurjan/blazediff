@@ -1,10 +1,6 @@
 #!/usr/bin/env node
 
-import {
-	type BlazeDiffOptions,
-	compare,
-	interpret,
-} from "@blazediff/core-native";
+import { type BlazeDiffOptions, compare } from "@blazediff/core-native";
 
 function printUsage(): void {
 	console.log(`
@@ -20,15 +16,14 @@ Options:
   -a, --antialiasing        Enable anti-aliasing detection
   --diff-mask               Output only differences (transparent background)
   -c, --compression <num>   PNG compression level (0-9, default: 0)
-  --interpret               Run structured interpretation (region detection + classification)
-  --output-format <fmt>     Output format: png (default) or html (interpret report)
   -h, --help                Show this help message
 
 Examples:
   blazediff-cli core-native image1.png image2.png diff.png
   blazediff-cli core-native image1.png image2.png diff.png -t 0.05 -a
-  blazediff-cli core-native image1.png image2.png --interpret
-  blazediff-cli core-native image1.png image2.png report.html --output-format html
+
+For region analysis of what changed, use the interpret command:
+  blazediff-cli interpret image1.png image2.png
 `);
 }
 
@@ -101,9 +96,6 @@ export default async function main(): Promise<void> {
 						i++;
 					}
 					break;
-				case "--interpret":
-					options.interpret = true;
-					break;
 				default:
 					console.error(`Unknown option: ${arg}`);
 					printUsage();
@@ -112,21 +104,6 @@ export default async function main(): Promise<void> {
 		}
 
 		const startTime = performance.now();
-
-		// Standalone interpret mode (no output path, just analysis)
-		if (options.interpret && !output) {
-			const result = await interpret(image1, image2, {
-				threshold: options.threshold,
-				antialiasing: options.antialiasing,
-			});
-			const duration = performance.now() - startTime;
-
-			console.log(`completed in: ${duration.toFixed(2)}ms`);
-			console.log(JSON.stringify(result, null, 2));
-
-			process.exit(result.diffPercentage === 0 ? 0 : 1);
-			return;
-		}
 
 		const result = await compare(image1, image2, output, options);
 		const duration = performance.now() - startTime;
@@ -153,9 +130,6 @@ export default async function main(): Promise<void> {
 			console.log(`error: ${result.diffPercentage.toFixed(2)}%`);
 			if (output) {
 				console.log(`diff output: ${output}`);
-			}
-			if ("interpretation" in result && result.interpretation) {
-				console.log(JSON.stringify(result.interpretation, null, 2));
 			}
 			process.exit(1);
 		}

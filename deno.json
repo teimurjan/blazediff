@@ -9,6 +9,7 @@
 		"./packages/codec-jsquash-png",
 		"./packages/core-native",
 		"./packages/core-wasm",
+		"./packages/interpret-native",
 		"./packages/ssim-native",
 		"./packages/matcher",
 		"./packages/cli"

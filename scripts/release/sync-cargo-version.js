@@ -10,6 +10,9 @@ const CRATES = [
 		name: "blazediff",
 		npmPkgPath: path.join(ROOT, "crates", "blazediff", "package.json"),
 		cargoTomlPath: path.join(ROOT, "crates", "blazediff", "Cargo.toml"),
+		dependents: [
+			path.join(ROOT, "crates", "blazediff-interpret", "Cargo.toml"),
+		],
 	},
 	{
 		// Versioned via the private @blazediff/rust-png changesets shadow package.
@@ -45,14 +48,16 @@ const CRATES = [
 			"blazediff-interpret",
 			"Cargo.toml",
 		),
-		dependents: [path.join(ROOT, "crates", "blazediff", "Cargo.toml")],
+		dependents: [],
 	},
 	{
 		// Versioned via the private @blazediff/rust-ssim changesets shadow package.
 		name: "blazediff-ssim",
 		npmPkgPath: path.join(ROOT, "crates", "blazediff-ssim", "package.json"),
 		cargoTomlPath: path.join(ROOT, "crates", "blazediff-ssim", "Cargo.toml"),
-		dependents: [path.join(ROOT, "crates", "blazediff", "Cargo.toml")],
+		dependents: [
+			path.join(ROOT, "crates", "blazediff-interpret", "Cargo.toml"),
+		],
 	},
 ];
 

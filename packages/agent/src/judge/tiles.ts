@@ -1,5 +1,5 @@
 import path from "node:path";
-import type { BoundingBox } from "@blazediff/core-native";
+import type { BoundingBox } from "@blazediff/interpret-native";
 import sharp from "sharp";
 import type { RegionSummary } from "../types";
 

@@ -244,9 +244,11 @@ importers:
 
   crates/blazediff: {}
 
-  crates/blazediff-io: {}
+  crates/blazediff-interpret: {}
 
   crates/blazediff-png: {}
+
+  crates/blazediff-shared: {}
 
   crates/blazediff-ssim: {}
 
@@ -332,6 +334,9 @@ importers:
       '@blazediff/core-native':
         specifier: workspace:*
         version: link:../core-native
+      '@blazediff/interpret-native':
+        specifier: workspace:*
+        version: link:../interpret-native
       '@langchain/core':
         specifier: ^1.1.44
         version: 1.1.46(ws@8.18.3)
@@ -439,6 +444,9 @@ importers:
       '@blazediff/gmsd':
         specifier: workspace:*
         version: link:../gmsd
+      '@blazediff/interpret-native':
+        specifier: workspace:*
+        version: link:../interpret-native
       '@blazediff/ssim':
         specifier: workspace:*
         version: link:../ssim
@@ -608,6 +616,39 @@ importers:
       vitest:
         specifier: ^3.2.4
         version: 3.2.4(@types/debug@4.1.12)(@types/node@24.3.0)(@vitest/ui@3.2.4)(happy-dom@18.0.1)(jiti@2.6.0)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.20.6)(yaml@2.8.1)
+
+  packages/interpret-native:
+    devDependencies:
+      '@types/node':
+        specifier: ^24.3.0
+        version: 24.3.0
+      '@types/pngjs':
+        specifier: ^6.0.5
+        version: 6.0.5
+      pngjs:
+        specifier: ^7.0.0
+        version: 7.0.0
+      tsup:
+        specifier: 8.5.0
+        version: 8.5.0(jiti@2.6.0)(postcss@8.5.15)(tsx@4.20.6)(typescript@5.9.2)(yaml@2.8.1)
+      typescript:
+        specifier: 5.9.2
+        version: 5.9.2
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.4(@types/debug@4.1.12)(@types/node@24.3.0)(@vitest/ui@3.2.4)(happy-dom@18.0.1)(jiti@2.6.0)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.20.6)(yaml@2.8.1)
+
+  packages/interpret-native-darwin-arm64: {}
+
+  packages/interpret-native-darwin-x64: {}
+
+  packages/interpret-native-linux-arm64: {}
+
+  packages/interpret-native-linux-x64: {}
+
+  packages/interpret-native-win32-arm64: {}
+
+  packages/interpret-native-win32-x64: {}
 
   packages/jest:
     dependencies:
@@ -7476,6 +7517,7 @@ packages:
 
 ignoredOptionalDependencies:
   - '@blazediff/core-native-*'
+  - '@blazediff/interpret-native-*'
   - '@blazediff/ssim-native-*'
 
 snapshots:
@@ -9735,7 +9777,7 @@ snapshots:
     dependencies:
       minimatch: 10.0.3
       path-browserify: 1.0.1
-      tinyglobby: 0.2.15
+      tinyglobby: 0.2.16
 
   '@tybys/wasm-util@0.10.2':
     dependencies:

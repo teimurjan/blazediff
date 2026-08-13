@@ -9,18 +9,51 @@ repository = "https://github.com/teimurjan/blazediff"
 keywords = ["image", "diff", "classification", "visual-regression", "screenshot"]
 categories = ["multimedia::images", "algorithms"]
 readme = "README.md"
-include = ["src/**/*", "Cargo.toml", "README.md"]
+build = "build.rs"
+include = ["src/**/*", "build.rs", "Cargo.toml", "README.md"]
 
 [features]
-# Exposes `test_helpers` to `blazediff`'s end-to-end interpret tests.
+# Exposes `test_helpers` to downstream test suites.
 testing = []
+# N-API bindings for `@blazediff/interpret-native`.
+napi = [
+    "dep:napi",
+    "dep:napi-derive",
+    "dep:napi-build",
+    "dep:serde_json",
+    "blazediff-shared/codecs",
+]
+# The `blazediff-interpret` CLI.
+cli = ["dep:clap", "dep:serde_json", "blazediff-shared/codecs"]
 
 [lib]
 name = "blazediff_interpret"
 path = "src/lib.rs"
+# cdylib is what the `napi` feature turns into a `.node`.
+crate-type = ["lib", "cdylib"]
+
+[[bin]]
+name = "blazediff-interpret"
+path = "src/main.rs"
+required-features = ["cli"]
 
 [dependencies]
-# `Image` and the YIQ delta. `version` is required to publish to crates.io;
-# kept in lockstep by scripts/release/sync-cargo-version.js.
+# This crate sits *above* the producers: it consumes what they return rather
+# than either of them depending on it. `version` is required to publish to
+# crates.io; kept in lockstep by scripts/release/sync-cargo-version.js.
 blazediff-shared = { path = "../blazediff-shared", version = "5.4.0", default-features = false }
+blazediff = { path = "../blazediff", version = "5.4.0", default-features = false, features = ["io"] }
+blazediff-ssim = { path = "../blazediff-ssim", version = "5.4.0" }
 serde = { version = "1", features = ["derive"] }
+napi = { version = "2", features = ["napi4", "serde-json"], optional = true }
+napi-derive = { version = "2", optional = true }
+clap = { version = "4", features = ["derive"], optional = true }
+# `InterpretResult` already derives Serialize, so the front-ends hand it across
+# as a plain object rather than restating ten `#[napi(object)]` structs.
+serde_json = { version = "1", optional = true }
+
+[build-dependencies]
+napi-build = { version = "2", optional = true }
+
+[dev-dependencies]
+serde_json = "1"

@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import { describe, expect, it } from "vitest";
-import { compare, getBinaryPath, hasNativeBinding, interpret } from "./index";
+import { compare, getBinaryPath, hasNativeBinding } from "./index";
 
 const execFileAsync = promisify(execFile);
 
@@ -65,17 +65,6 @@ describe("compare", () => {
 			storage2.subarray(4, image2.length + 4),
 		);
 		expect(bufferResult).toEqual(pathResult);
-	});
-
-	it("should interpret encoded Buffer inputs", async () => {
-		const [image1, image2] = await Promise.all([
-			readFile(join(FIXTURES_PATH, "pixelmatch/1a.png")),
-			readFile(join(FIXTURES_PATH, "pixelmatch/1b.png")),
-		]);
-		const result = await interpret(image1, image2);
-
-		expect(result.diffCount).toBeGreaterThan(0);
-		expect(result.totalRegions).toBeGreaterThan(0);
 	});
 
 	it("should reject mixed path and byte array inputs", async () => {
@@ -171,39 +160,6 @@ describe("compare", () => {
 			).rejects.toThrow("diffColorAlt must contain three integer RGB channels");
 		});
 
-		it("should write the same diff while returning interpretation", async () => {
-			const path1 = join(FIXTURES_PATH, "pixelmatch/1a.png");
-			const path2 = join(FIXTURES_PATH, "pixelmatch/1b.png");
-			const tempDir = await mkdtemp(
-				join(tmpdir(), "blazediff-native-combined-"),
-			);
-
-			try {
-				const standaloneOutput = join(tempDir, "standalone.png");
-				const combinedOutput = join(tempDir, "combined.png");
-				const options = {
-					diffColorAlt: [0, 128, 255] as [number, number, number],
-				};
-				await compare(path1, path2, standaloneOutput, options);
-				const result = await compare(path1, path2, combinedOutput, {
-					...options,
-					interpret: true,
-				});
-
-				expect(result.match).toBe(false);
-				if (!result.match && result.reason === "pixel-diff") {
-					expect(result.interpretation?.diffCount).toBe(result.diffCount);
-				}
-				const [standaloneBytes, combinedBytes] = await Promise.all([
-					readFile(standaloneOutput),
-					readFile(combinedOutput),
-				]);
-				expect(combinedBytes).toEqual(standaloneBytes);
-			} finally {
-				await rm(tempDir, { recursive: true, force: true });
-			}
-		});
-
 		it("should support combined output in the CLI fallback", async () => {
 			const path1 = join(FIXTURES_PATH, "pixelmatch/1a.png");
 			const path2 = join(FIXTURES_PATH, "pixelmatch/1b.png");
@@ -217,7 +173,6 @@ describe("compare", () => {
 						path1,
 						path2,
 						output,
-						"--interpret",
 						"--diff-color-alt=0,128,255",
 						"--output-format=json",
 					]);
@@ -227,8 +182,8 @@ describe("compare", () => {
 					stdout = failure.stdout ?? "";
 				}
 
-				const interpretation = JSON.parse(stdout) as { diffCount: number };
-				expect(interpretation.diffCount).toBeGreaterThan(0);
+				const result = JSON.parse(stdout) as { diffCount: number };
+				expect(result.diffCount).toBeGreaterThan(0);
 				expect((await readFile(output)).length).toBeGreaterThan(0);
 			} finally {
 				await rm(tempDir, { recursive: true, force: true });

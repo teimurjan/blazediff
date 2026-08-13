@@ -1,4 +1,4 @@
-import type { BoundingBox } from "@blazediff/core-native";
+import type { BoundingBox } from "@blazediff/interpret-native";
 import type { Browser, BrowserContext, Page } from "playwright";
 import type { Verdict } from "./diff/verdict";
 import type { JudgeBackend } from "./judge/types";

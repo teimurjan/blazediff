@@ -27,24 +27,17 @@ napi = [
     "dep:napi-derive",
     "dep:napi-build",
     "dep:blazediff-shared",
-    "dep:blazediff-interpret",
-    "dep:serde_json",
 ]
 
 [dependencies]
 # All optional, all `napi`-only. The metrics themselves are std-only, so the
 # crate compiles for every target blazediff does, wasm32 included, with no
 # feature negotiation.
-napi = { version = "2", features = ["napi4", "serde-json"], optional = true }
+napi = { version = "2", features = ["napi4"], optional = true }
 napi-derive = { version = "2", optional = true }
 # Decoding for the path/buffer entry points. `version` is required to publish
 # to crates.io; kept in lockstep by scripts/release/sync-cargo-version.js.
 blazediff-shared = { path = "../blazediff-shared", version = "5.4.0", optional = true }
-# Region classification for `interpret`, driven by this crate's score maps.
-blazediff-interpret = { path = "../blazediff-interpret", version = "5.4.0", optional = true }
-# `InterpretResult` already derives Serialize, so the binding hands it across as
-# a plain object rather than restating ten `#[napi(object)]` structs.
-serde_json = { version = "1", optional = true }
 
 [build-dependencies]
 napi-build = { version = "2", optional = true }

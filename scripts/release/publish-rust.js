@@ -8,8 +8,10 @@ const ROOT = path.resolve(__dirname, "..", "..");
 const CRATES_DIR = path.join(ROOT, "crates");
 
 // Order matters, and follows the dependency edges:
-//   blazediff-png -> blazediff-shared -> blazediff-interpret -> blazediff-ssim
-//     -> blazediff
+//   blazediff-png -> blazediff-shared -> {blazediff, blazediff-ssim}
+//     -> blazediff-interpret
+// Interpret is last: it sits above both producers and consumes what they
+// return, rather than either of them depending on it.
 // Each must be on crates.io before the next one's publish verification builds.
 const CRATES = [
 	{
@@ -27,6 +29,20 @@ const CRATES = [
 		dockerTag: "blazediff-shared-publish",
 	},
 	{
+		name: "blazediff-ssim",
+		npmPkgPath: path.join(ROOT, "crates", "blazediff-ssim", "package.json"),
+		cargoTomlPath: path.join(ROOT, "crates", "blazediff-ssim", "Cargo.toml"),
+		dockerfile: "blazediff-ssim/Dockerfile.publish",
+		dockerTag: "blazediff-ssim-publish",
+	},
+	{
+		name: "blazediff",
+		npmPkgPath: path.join(ROOT, "crates", "blazediff", "package.json"),
+		cargoTomlPath: path.join(ROOT, "crates", "blazediff", "Cargo.toml"),
+		dockerfile: "blazediff/Dockerfile.publish",
+		dockerTag: "blazediff-publish",
+	},
+	{
 		name: "blazediff-interpret",
 		npmPkgPath: path.join(
 			ROOT,
@@ -42,20 +58,6 @@ const CRATES = [
 		),
 		dockerfile: "blazediff-interpret/Dockerfile.publish",
 		dockerTag: "blazediff-interpret-publish",
-	},
-	{
-		name: "blazediff-ssim",
-		npmPkgPath: path.join(ROOT, "crates", "blazediff-ssim", "package.json"),
-		cargoTomlPath: path.join(ROOT, "crates", "blazediff-ssim", "Cargo.toml"),
-		dockerfile: "blazediff-ssim/Dockerfile.publish",
-		dockerTag: "blazediff-ssim-publish",
-	},
-	{
-		name: "blazediff",
-		npmPkgPath: path.join(ROOT, "crates", "blazediff", "package.json"),
-		cargoTomlPath: path.join(ROOT, "crates", "blazediff", "Cargo.toml"),
-		dockerfile: "blazediff/Dockerfile.publish",
-		dockerTag: "blazediff-publish",
 	},
 ];
 

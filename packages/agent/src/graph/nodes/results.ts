@@ -1,4 +1,4 @@
-import type { ChangeRegion } from "@blazediff/core-native";
+import type { ChangeRegion } from "@blazediff/interpret-native";
 import type { DiffOutcome } from "../../diff";
 import type { Verdict } from "../../diff/verdict";
 import type { CheckResult, ManifestEntry, RegionSummary } from "../../types";

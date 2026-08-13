@@ -1,4 +1,7 @@
-import type { ChangeRegion, InterpretResult } from "@blazediff/core-native";
+import type {
+	ChangeRegion,
+	InterpretResult,
+} from "@blazediff/interpret-native";
 
 export type VerdictLabel =
 	| "regression-likely"

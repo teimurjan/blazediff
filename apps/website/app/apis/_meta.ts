@@ -30,6 +30,9 @@ export default {
 	"core-wasm": {
 		title: "@blazediff/core-wasm",
 	},
+	"interpret-native": {
+		title: "@blazediff/interpret-native",
+	},
 	"ssim-native": {
 		title: "@blazediff/ssim-native",
 	},

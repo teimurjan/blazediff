@@ -10,7 +10,7 @@
 //!   1 - Images differ
 //!   2 - Error
 
-use blazediff::{diff, interpret::interpret_with_output, DiffError, DiffOptions, Image};
+use blazediff::{diff, DiffError, DiffOptions, Image};
 use clap::Parser;
 use serde::Serialize;
 use std::path::Path;
@@ -61,10 +61,6 @@ struct Args {
     /// JPEG quality (1-100, default 90)
     #[arg(short = 'q', long, default_value = "90")]
     quality: u8,
-
-    /// Run structured interpretation after raw pixel diff
-    #[arg(long)]
-    interpret: bool,
 }
 
 fn parse_rgb(value: &str) -> Result<[u8; 3], String> {
@@ -135,7 +131,7 @@ fn main() -> ExitCode {
         return ExitCode::from(1);
     }
 
-    let mut options = DiffOptions {
+    let options = DiffOptions {
         threshold: args.threshold,
         include_aa: !args.antialiasing,
         diff_mask: args.diff_mask,
@@ -143,11 +139,6 @@ fn main() -> ExitCode {
         compression: args.compression,
         ..Default::default()
     };
-
-    if args.interpret {
-        // Interpretation reasons about which pixels changed, which is only
-        return run_interpret(&args, &img1, &img2, &options);
-    }
 
     let mut output_image = if args.output.is_some() {
         Some(Image::new_uninit(img1.width, img1.height))
@@ -175,42 +166,6 @@ fn main() -> ExitCode {
     output_result(&args, &result);
 
     if result.identical {
-        ExitCode::from(0)
-    } else {
-        ExitCode::from(1)
-    }
-}
-
-fn run_interpret(args: &Args, img1: &Image, img2: &Image, options: &DiffOptions) -> ExitCode {
-    let mut output_image = if args.output.is_some() {
-        Some(Image::new_uninit(img1.width, img1.height))
-    } else {
-        None
-    };
-    let result = match interpret_with_output(img1, img2, output_image.as_mut(), options) {
-        Ok(r) => r,
-        Err(e) => {
-            output_error(args, &format!("Interpret failed: {e}"));
-            return ExitCode::from(2);
-        }
-    };
-
-    if result.diff_count > 0 {
-        if let (Some(ref output_path), Some(ref output)) = (&args.output, &output_image) {
-            if let Err(e) = save_image(output, output_path, args) {
-                output_error(args, &format!("Failed to save {output_path}: {e}"));
-                return ExitCode::from(2);
-            }
-        }
-    }
-
-    if args.output_format == "json" {
-        println!("{}", serde_json::to_string_pretty(&result).unwrap());
-    } else {
-        println!("{}", result.summary);
-    }
-
-    if result.diff_count == 0 {
         ExitCode::from(0)
     } else {
         ExitCode::from(1)

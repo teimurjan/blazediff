@@ -6,7 +6,6 @@ import {
 	compare,
 	hasNativeBinding,
 	hitchhikersSsim,
-	interpret,
 	metrics,
 	msSsim,
 	perceptualSsim,
@@ -297,59 +296,5 @@ describe("renderMap", () => {
 		for (let i = 0; i < pixels.length; i += 4) {
 			expect(pixels[i + 3]).toBe(255);
 		}
-	});
-});
-
-describe("interpret", () => {
-	it("describes what changed, located by the score map", async () => {
-		const result = await interpret(A, B, { metric: "ms-ssim" });
-		expect(result.totalRegions).toBeGreaterThan(0);
-		expect(result.diffCount).toBeGreaterThan(0);
-		expect(result.summary).toBeTruthy();
-		expect(result.severity).toBeTruthy();
-
-		const [region] = result.regions;
-		expect(region.bbox.width).toBeGreaterThan(0);
-		expect(region.changeType).toBeTruthy();
-		expect(region.position).toBeTruthy();
-	});
-
-	/**
-	 * The point of driving interpret from a coarse map: the boxes come from the
-	 * metric's window grid, but each is refined against the source pixels, so
-	 * the count lands near what the exact pixel diff reports.
-	 */
-	it("counts pixels, not windows", async () => {
-		const result = await interpret(A, B, { metric: "ms-ssim" });
-		const map = await compare(A, B, undefined, { metric: "ms-ssim" });
-		if (!("mapWidth" in map)) throw new Error("expected a scored result");
-		// Far more changed pixels than the map has cells, which is the whole
-		// point: the coarse grid locates, the pixels are what get counted.
-		expect(result.diffCount).toBeGreaterThan(map.mapWidth);
-
-		const { width, height } = decode(A);
-		expect(result.width).toBe(width);
-		expect(result.height).toBe(height);
-	});
-
-	it("takes buffers as well as paths", async () => {
-		const fromPaths = await interpret(A, B, { metric: "ms-ssim" });
-		const fromBuffers = await interpret(readFileSync(A), readFileSync(B), {
-			metric: "ms-ssim",
-		});
-		expect(fromBuffers.diffCount).toBe(fromPaths.diffCount);
-	});
-
-	it("takes a region floor", async () => {
-		const strict = await interpret(A, B, { metric: "ms-ssim", regionFloor: 1 });
-		const loose = await interpret(A, B, {
-			metric: "ms-ssim",
-			regionFloor: 0.5,
-		});
-		expect(strict.totalRegions).toBeGreaterThanOrEqual(loose.totalRegions);
-	});
-
-	it("rejects mixing a path with a buffer", async () => {
-		await expect(interpret(A, readFileSync(B))).rejects.toThrow(TypeError);
 	});
 });
