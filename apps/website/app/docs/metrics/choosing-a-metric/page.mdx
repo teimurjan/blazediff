@@ -101,7 +101,8 @@ Every metric is available through the same matcher:
 ```ts
 import "@blazediff/vitest"; // or @blazediff/jest, @blazediff/bun
 
-await expect(screenshot).toMatchImageSnapshot({ method: "core-native" });
+// screenshot is a buffer or a file path. core-native takes file paths only.
+await expect(screenshotPath).toMatchImageSnapshot({ method: "core-native" });
 await expect(screenshot).toMatchImageSnapshot({ method: "gmsd" });
 await expect(screenshot).toMatchImageSnapshot({ method: "ssim" });
 await expect(screenshot).toMatchImageSnapshot({ method: "hitchhikers-ssim" });
@@ -119,11 +120,12 @@ blazediff-cli hitchhikers-ssim baseline.png current.png
 ## Measured cost
 
 Numbers from the [pixel benchmarks](/benchmarks/pixel-by-pixel) and
-[structural benchmarks](/benchmarks/structural), M1 Max, Node 22:
+[structural benchmarks](/benchmarks/structural), M1 Max, Node 22, across the three
+4K fixtures:
 
-- Pixel diff, 4K pair, native Rust with image IO included: **215-269ms**
-- Pixel diff, 4K pair, pure JS with IO excluded: **97-136ms**
-- Hitchhiker's SSIM: about **4x faster** than standard SSIM
+- Pixel diff, native Rust, image IO included: **288-349ms**
+- Pixel diff, pure JS, IO excluded: **97-136ms**
+- Hitchhiker's SSIM: **2x to 5x faster** than standard SSIM, depending on the image
 - GMSD: a single pass with two 3x3 convolutions, cheaper than SSIM
 
 Next: [What is SSIM →](/docs/metrics/ssim) ·

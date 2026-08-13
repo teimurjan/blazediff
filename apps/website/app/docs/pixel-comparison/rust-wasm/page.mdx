@@ -1,13 +1,21 @@
-# Pixel-by-pixel Comparison - Rust + WASM in JavaScript
+---
+title: Image Diffing in the Browser With WebAssembly
+description: Run the BlazeDiff Rust pixel-diff core in browsers, Workers, Deno, Bun and edge runtimes from a ~32KB wasm32 SIMD module - how to decode RGBA, the API, and measured speed against pixelmatch.
+---
+
+# Pixel-by-pixel Comparison with WebAssembly
 
 import { Tabs } from "nextra/components";
 import DiffImageComparison from "../../../../components/diff-image-comparison";
 
-The same diff core, compiled to WebAssembly with SIMD. `@blazediff/core-wasm` runs
-in browsers, Workers, Deno, Bun, and edge runtimes - ~51% faster than pixelmatch
-from a 32KB binary. Reach for it when you want native-grade speed in the browser
-without a native dependency. The API takes pre-decoded RGBA buffers, so you decode
-images yourself with `createImageBitmap` + a canvas (or the `ImageDecoder` API).
+**`@blazediff/core-wasm` is the Rust diff core compiled to `wasm32` with `v128`
+SIMD, in about 32KB.** It runs in browsers, Web Workers, Deno, Bun, Cloudflare
+Workers, and any other wasm host, with no native dependency and no network call.
+
+Reach for it when you want compiled-code speed on the client or at the edge. In
+Node, [the native binding](/docs/pixel-comparison/rust-napi) is faster still and
+decodes images for you. In an environment where you cannot ship a wasm file at
+all, use [the pure-JS core](/docs/pixel-comparison/vanilla-javascript).
 
 ## Installation
 
@@ -16,6 +24,9 @@ npm install @blazediff/core-wasm
 ```
 
 ## Decoding images to RGBA
+
+The wasm module takes pre-decoded RGBA and does not bundle an image decoder, so
+the browser's own decoder does that half:
 
 ```ts
 async function loadRgba(url: string) {
@@ -101,6 +112,31 @@ const diffCount = await diff(a.data, b.data, a.width, a.height, output, {
   </Tabs.Tab>
 </Tabs>
 
-Loading the `.wasm` from a CDN, a bundler, or the filesystem? `initBlazediff`
-accepts a `URL`, `Response`, or raw bytes - see the
-[full API reference →](/apis/core-wasm).
+`initBlazediff` resolves the sibling `.wasm` by default. Loading it from a CDN, a
+bundler, or the filesystem instead? It also accepts a `URL`, a `Response`, or raw
+bytes.
+
+## What it costs
+
+Against pixelmatch on the same fixtures, decode excluded, M1 Max, Node 22, 25
+iterations:
+
+| Case               | pixelmatch      | `@blazediff/core-wasm` |
+| ------------------ | --------------- | ---------------------- |
+| 4K pair            | 332.26-423.14ms | 33.18-68.37ms          |
+| 4K pair, identical | 19.86-30.53ms   | 17.47-22.17ms          |
+
+So 5x to 10x on a changed 4K pair, and ~51% faster averaged over the whole
+fixture set. Identical images are the weak spot: `wasm32-unknown-unknown` has no
+libc, so the byte-equality shortcut the other cores use lowers to a scalar memcmp
+and is skipped here. The block scan reaches the same answer with `v128` compares,
+which is why that row is close rather than behind.
+[Full tables and the history of that fix](/benchmarks/pixel-by-pixel).
+
+## Next
+
+- Region-level classification runs in wasm too:
+  [Image difference analysis](/docs/difference-analysis)
+- In Node, prefer [the native binding](/docs/pixel-comparison/rust-napi)
+- Every option and its default:
+  [`@blazediff/core-wasm` reference](/apis/core-wasm)

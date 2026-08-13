@@ -1,3 +1,8 @@
+---
+title: React Image Comparison Components - Swipe, Two-Up, Onion Skin, Difference
+description: Four React components for showing a before/after image diff - a swipe slider, side by side, an onion-skin blend, and a live pixel diff. Unstyled, driven by the @blazediff/ui headless engine.
+---
+
 # React Components
 
 import { Tabs } from "nextra/components";
@@ -8,7 +13,13 @@ import {
   ReactDifferenceDemo,
 } from "../../../../components/demos/react-modes";
 
-Build interactive image comparison components with React. Every example below is live and runs right on this page.
+**`@blazediff/react` renders a before/after comparison four ways: swipe, two-up,
+onion skin, and a live pixel diff.** Every demo below is the real component,
+running in this page.
+
+The components carry no styling of their own. They take `*ClassName` props and
+render from the [`@blazediff/ui`](/apis/ui) headless engine, so you can restyle
+them freely or drop to the engine and render your own markup.
 
 ## Installation
 
@@ -24,6 +35,7 @@ npm install @blazediff/react
     ```tsx
     import { SwipeMode } from "@blazediff/react";
 
+    // A draggable divider over two stacked images. position is 0 to 100.
     <SwipeMode
       src1="before.png"
       src2="after.png"
@@ -39,6 +51,7 @@ npm install @blazediff/react
     ```tsx
     import { TwoUpMode } from "@blazediff/react";
 
+    // Side by side, with a label when the two images differ in size.
     <TwoUpMode
       src1="before.png"
       src2="after.png"
@@ -54,6 +67,7 @@ npm install @blazediff/react
     ```tsx
     import { OnionSkinMode } from "@blazediff/react";
 
+    // Blends the two images. Good for spotting small position shifts.
     <OnionSkinMode
       src1="before.png"
       src2="after.png"
@@ -70,6 +84,7 @@ npm install @blazediff/react
     ```tsx
     import { DifferenceMode } from "@blazediff/react";
 
+    // Runs an actual pixel diff in the browser and paints the result.
     <DifferenceMode
       src1="before.png"
       src2="after.png"
@@ -83,4 +98,9 @@ npm install @blazediff/react
   </Tabs.Tab>
 </Tabs>
 
-All four components render from the [`@blazediff/ui`](/apis/ui) headless engine and accept `*ClassName` props for styling. See the [full API reference →](/apis/react).
+## Next
+
+- Not using React? The same four modes ship as
+  [vanilla mount functions](/docs/ui-components/vanilla)
+- Every prop: [`@blazediff/react` reference](/apis/react)
+- The engine underneath: [`@blazediff/ui` reference](/apis/ui)

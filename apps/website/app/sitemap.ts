@@ -6,7 +6,7 @@ import { SITE_URL } from "../utils/site";
 const APP_DIR = path.join(process.cwd(), "app");
 
 /** Index routes that only call `redirect()`; a sitemap must list destinations. */
-const REDIRECT_ONLY = new Set(["/docs", "/apis", "/benchmarks", "/guides"]);
+const REDIRECT_ONLY = new Set(["/apis", "/benchmarks", "/guides"]);
 
 function hasPage(dir: string) {
 	return (

@@ -1,0 +1,158 @@
+---
+title: BlazeDiff Docs - Fast Image and Object Diffing for JavaScript
+description: How BlazeDiff fits together - deterministic pixel diffing in JS, WebAssembly and Rust, SSIM and GMSD scoring, region-level difference analysis, and visual regression judged by your own coding agent.
+---
+
+# Introduction
+
+import { Callout } from "nextra/components";
+
+**BlazeDiff compares two images and tells you what changed, fast enough to run on
+every test.** It is a set of MIT-licensed libraries, not a service. No account, no
+API key, no per-snapshot billing, and no screenshot leaves the machine that took
+it.
+
+Most visual regression setups stop at one number, "N pixels differ", and leave a
+person to decide whether that number matters. BlazeDiff goes two steps past that.
+It classifies each changed region (something appeared, something moved, something
+was recolored), and when the classification is not confident it hands the cropped
+regions to a coding agent you already run, which answers regression or intentional
+with a reason.
+
+## How the pieces fit
+
+Four layers. Each one is useful on its own, and each one feeds the next.
+
+| Layer         | Question it answers                | Packages                                       |
+| ------------- | ---------------------------------- | ---------------------------------------------- |
+| **Compare**   | Which pixels differ?               | `core`, `core-wasm`, `core-native`              |
+| **Score**     | How different does it look?        | `ssim`, `gmsd`                                  |
+| **Interpret** | What changed, where, and how badly?| `interpret()` in `core-native` and `core-wasm`  |
+| **Judge**     | Regression or intentional?         | `agent`                                         |
+
+Around those sit the surfaces you actually touch: matchers for Jest, Vitest and
+Bun, a CLI, and React and vanilla components for showing a diff to a person.
+
+`@blazediff/object` diffs JavaScript objects rather than images. It shares the
+name and the performance work, not the pipeline. It lives in
+[Object Comparison](/docs/object-comparison).
+
+## Which package do I install?
+
+| You want to                                     | Install                                   | Runs in                            |
+| ------------------------------------------------ | ----------------------------------------- | ---------------------------------- |
+| Count changed pixels in a Node test or CI job     | `@blazediff/core-native`                  | Node                               |
+| Count changed pixels in a browser or edge runtime | `@blazediff/core-wasm`                    | Browsers, Workers, Deno, Bun, edge |
+| Avoid native binaries and wasm entirely           | `@blazediff/core`                         | Anywhere JS runs                   |
+| Score perceived similarity instead of pixels      | `@blazediff/ssim`, `@blazediff/gmsd`      | Anywhere JS runs                   |
+| Know what changed and where, not just how much    | `@blazediff/core-native` or `core-wasm`   | Node, browsers                     |
+| Assert a screenshot inside a test                 | `@blazediff/jest`, `/vitest`, `/bun`      | Your test runner                   |
+| Run visual regression over your routes            | `@blazediff/agent`                        | Node plus bundled Chromium         |
+| Show a before/after diff in a UI                  | `@blazediff/react`, `@blazediff/ui`       | Browsers                           |
+| Diff two JavaScript objects                       | `@blazediff/object`                       | Anywhere JS runs                   |
+
+Not sure between an exact pixel count and a similarity score? Start with pixels
+and read [Choosing a Metric](/docs/metrics/choosing-a-metric) when exact matching
+turns out to be too strict.
+
+## Your first diff
+
+```bash npm2yarn
+npm install @blazediff/core-native
+```
+
+```ts
+import { compare } from "@blazediff/core-native";
+
+const result = await compare("baseline.png", "current.png", "diff.png");
+
+if (result.match) {
+  console.log("identical");
+} else if (result.reason === "layout-diff") {
+  console.log("dimensions differ");
+} else {
+  console.log(`${result.diffCount} pixels differ (${result.diffPercentage.toFixed(2)}%)`);
+}
+```
+
+`compare` takes file paths or encoded buffers, decodes PNG, JPEG and QOI itself,
+and writes the diff image when you pass an output path. The same call in the
+browser is [WebAssembly](/docs/pixel-comparison/rust-wasm); the same call with no
+binary at all is [Vanilla JavaScript](/docs/pixel-comparison/vanilla-javascript).
+
+### Inside a test
+
+Where the PNG came from does not matter. Playwright, Puppeteer, Cypress, a
+headless renderer, or a file already on disk all work, because the input is just
+pixels.
+
+```ts
+import { expect, it } from "vitest";
+import "@blazediff/vitest"; // or @blazediff/jest, @blazediff/bun
+
+it("renders the pricing page", async () => {
+  // core-native is the fastest method and reads file paths, so write the
+  // screenshot to disk first.
+  const shot = "screenshots/pricing.png";
+  await page.screenshot({ path: shot });
+
+  await expect(shot).toMatchImageSnapshot({
+    method: "core-native",
+    failureThreshold: 0.1,
+    failureThresholdType: "percent",
+  });
+});
+```
+
+The matcher registers itself on import. `method` picks the algorithm, so the same
+assertion can run a pixel diff, `ssim`, `msssim`, `hitchhikers-ssim` or `gmsd`.
+Every method except `core-native` also accepts an in-memory buffer, which is what
+`core` (the default) is for.
+
+## How fast, exactly
+
+Every number on this site comes from the benchmark suite in the repo, run on an
+Apple M1 Max with Node 22. The 4K rows below are the three `4k/*` fixtures, so
+they are ranges rather than single numbers.
+
+| Comparison                           | Method                   | Baseline          | BlazeDiff       |
+| ------------------------------------ | ------------------------ | ----------------- | --------------- |
+| `@blazediff/core` vs pixelmatch      | 4K pair, decode excluded | 201.60-253.77ms   | 96.52-135.89ms  |
+| `@blazediff/core-wasm` vs pixelmatch | 4K pair, decode excluded | 332.26-423.14ms   | 33.18-68.37ms   |
+| `@blazediff/core-native` vs odiff    | 4K pair, decode included | 1157.12-1677.13ms | 288.01-349.43ms |
+
+Averaged over the full fixture set rather than the 4K pairs: `@blazediff/ssim` is
+~25% faster than ssim.js and the Hitchhiker's variant ~70% faster, and
+`@blazediff/object` is ~55% faster than microdiff.
+
+Per-fixture tables, iteration counts and methodology notes:
+[Benchmarks](/benchmarks/pixel-by-pixel).
+
+<Callout type="info">
+  Identical images are the common case in a passing suite, and every core has a
+  fast path for them. That is where the largest wins are: the pure-JS core is 7x
+  to 9x faster than pixelmatch on an unchanged 4K pair.
+</Callout>
+
+## Where to go next
+
+**Comparing images**
+
+- [Pixel-by-pixel comparison](/docs/pixel-comparison/vanilla-javascript) in JS,
+  WebAssembly, or native Node
+- [Structural comparison](/docs/structural-comparison) with SSIM and GMSD
+- [Choosing a metric](/docs/metrics/choosing-a-metric) when you are not sure which
+
+**Going past a pixel count**
+
+- [Image difference analysis](/docs/difference-analysis): regions, change types,
+  severity
+- [Agentic visual testing](/docs/agentic-testing/setting-up): capture, check, and
+  let a coding agent judge what the thresholds could not
+
+**Everything else**
+
+- [UI components](/docs/ui-components/react) for showing a diff
+- [Object comparison](/docs/object-comparison)
+- [Guides](/guides/claude-code-visual-review) for task-shaped walkthroughs
+- [API reference](/apis/core) for exact signatures and options

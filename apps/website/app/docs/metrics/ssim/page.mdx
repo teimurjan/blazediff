@@ -95,7 +95,7 @@ own baselines rather than from this table.
 | ------------------- | ----------------------------------- | --------------------------------------------------------------- | -------------------------------- |
 | SSIM                | `@blazediff/ssim/ssim`              | Gaussian windows, one scale                                      | Matching published/MATLAB results |
 | MS-SSIM             | `@blazediff/ssim/msssim`            | 5 scales, downsampled 2x each step, weighted geometric mean       | Images seen at different sizes   |
-| Hitchhiker's SSIM   | `@blazediff/ssim/hitchhikers-ssim`  | Rectangular non-overlapping windows via integral images, ~4x faster | Large batches in CI            |
+| Hitchhiker's SSIM   | `@blazediff/ssim/hitchhikers-ssim`  | Rectangular non-overlapping windows via integral images, 2x to 5x faster | Large batches in CI       |
 
 MS-SSIM computes contrast and structure at every scale but luminance only at the
 coarsest one, then combines them with the default weights

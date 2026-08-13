@@ -1,10 +1,18 @@
-# Agentic Visual Testing - Running in CI
+---
+title: Run Visual Regression Checks in CI
+description: One command re-captures every route, diffs it against the committed baseline, and fails the build on a regression. Exit codes, the JSON report, a GitHub Actions job, and why authoring commands are blocked in CI.
+---
+
+# Agentic Visual Testing: Running in CI
 
 import { Callout } from "nextra/components";
 
-With baselines committed (see [Setting Up](/docs/agentic-testing/setting-up)),
-CI's job is one verb: `check`. It re-captures every manifest entry, diffs each
-against its baseline, and fails the build on any regression.
+**With baselines committed, CI runs one verb: `check`.** It re-captures every
+entry in the manifest, diffs each against its baseline, classifies what changed,
+and fails the build on a regression.
+
+If you have not captured baselines yet, start with
+[Setting Up](/docs/agentic-testing/setting-up).
 
 ## The check command
 
@@ -12,8 +20,8 @@ against its baseline, and fails the build on any regression.
 blazediff-agent check --judge host --json
 ```
 
-The CLI starts the dev server automatically when `config.devServer` is set, runs
-every entry through Playwright, diffs each capture, and emits a `CheckReport`:
+It starts the dev server when `config.devServer` is set, runs every entry through
+Playwright, diffs each capture, and emits a `CheckReport`:
 
 ```json
 {
@@ -37,13 +45,13 @@ every entry through Playwright, diffs each capture, and emits a `CheckReport`:
 }
 ```
 
-`results[]` lists non-pass entries only. Full per-entry detail lives in
+`results[]` lists non-passing entries only. Full per-entry detail lives in
 `.blazediff/summary.md` and `.blazediff/judgments/<id>/request.json`.
 
 <Callout type="warning">
-**Check-only in CI.** When `CI=1` or there's no TTY, only `check` runs.
-`onboard` / `capture` / `rewrite` / `reset` are blocked - authoring belongs on a
-developer's machine, where baseline changes can be reviewed.
+**Check-only in CI.** When `CI=1` or there is no TTY, only `check` runs.
+`onboard`, `capture`, `rewrite` and `reset` are blocked. Authoring belongs on a
+developer's machine, where a baseline change gets reviewed like any other diff.
 </Callout>
 
 ## GitHub Actions
@@ -59,22 +67,30 @@ developer's machine, where baseline changes can be reviewed.
     BLAZEDIFF_AUTH_DEFAULT_PASSWORD: ${{ secrets.BLAZEDIFF_AUTH_DEFAULT_PASSWORD }}
 ```
 
-Pass `-C, --cwd <abs-path>` to target one app inside a monorepo.
+Pass `-C, --cwd <abs-path>` to target one app inside a monorepo. Each app keeps
+its own `.blazediff/` directory, so there is nothing central to keep in sync.
 
 ## Exit codes
 
 | Code | Meaning |
 |---|---|
 | `0` | Every entry passed |
-| `1` | At least one regression, intentional, noise, or pending-judgment entry |
-| non-zero + JSON | Infra failure (missing manifest, no Chromium, etc.) |
+| `1` | At least one regression, intentional change, noise, or pending judgment |
+| non-zero, with JSON | Infrastructure failure: missing manifest, no Chromium, and so on |
 
-A route that times out is logged once in the result array and skipped - it never
+A route that times out is logged once in the result array and skipped. It never
 blocks the run.
 
 ## When a check fails
 
-A `1` exit usually means a diff needs a verdict. Locally, your coding agent reads
-the judgment request and decides; intentional changes are accepted with
-`rewrite`. That loop - verdicts, harnesses, and masking flakes - is covered in
-[Judging and Harnesses →](/docs/agentic-testing/judging-and-harnesses).
+Exit code `1` usually means a diff needs a verdict rather than a fix. Locally,
+your coding agent reads the judgment request and decides; intentional changes are
+accepted with `rewrite`.
+
+## Next
+
+- [Judging and harnesses](/docs/agentic-testing/judging-and-harnesses): verdicts,
+  driving the page before a screenshot, and masking flaky regions
+- [Agent-judged screenshots in GitHub Actions](/guides/github-actions-agent-judged-screenshots):
+  a full workflow, including judging inside the job
+- Every command and flag: [`@blazediff/agent` reference](/apis/agent)

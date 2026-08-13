@@ -6,11 +6,19 @@ import { getPageMap } from "nextra/page-map";
 import { Footer, Layout, Navbar } from "nextra-theme-docs";
 
 const banner = (
-	<Banner storageKey="png-codec-launch">
-		<Link href="/apis/blazediff-png">
-			New: <b className="text-blue-400">blazediff-png</b> - a from-scratch Rust
-			PNG codec, byte-exact to libspng and faster on every fixture. Read more →
-		</Link>
+	<Banner storageKey="ssim-interpret-native-launch">
+		New:{" "}
+		<Link href="/apis/ssim-native" className="underline underline-offset-2">
+			<b className="text-blue-400">ssim-native</b>
+		</Link>{" "}
+		brings SSIM, MS-SSIM and Hitchhiker&apos;s to Node, and{" "}
+		<Link
+			href="/apis/interpret-native"
+			className="underline underline-offset-2"
+		>
+			<b className="text-blue-400">interpret-native</b>
+		</Link>{" "}
+		ships diff interpretation on its own. Read more →
 	</Banner>
 );
 

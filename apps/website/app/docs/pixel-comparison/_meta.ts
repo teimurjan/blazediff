@@ -3,9 +3,9 @@ export default {
 		title: "🐆 Vanilla JavaScript",
 	},
 	"rust-wasm": {
-		title: "🐆🐆 Rust + WASM in JavaScript",
+		title: "🐆🐆 WebAssembly",
 	},
 	"rust-napi": {
-		title: "🐆🐆🐆 Rust + N-API in Node",
+		title: "🐆🐆🐆 Node Native",
 	},
 };

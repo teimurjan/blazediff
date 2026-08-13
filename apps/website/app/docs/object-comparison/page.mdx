@@ -1,9 +1,23 @@
+---
+title: Fast JavaScript Object Diffing With Path Tracking
+description: Diff two JavaScript objects and get a flat list of CREATE, REMOVE and CHANGE entries with the path to each one. A drop-in, faster alternative to microdiff with cycle detection built in.
+---
+
 # Object Comparison
 
 import { Tabs } from "nextra/components";
 import ObjectComparison from "../../../components/object-comparison";
 
-Learn how to use BlazeDiff for comparing JavaScript objects and detecting changes in complex data structures.
+**`@blazediff/object` takes two JavaScript values and returns a flat list of what
+changed, with the path to each change.** It handles nested objects, arrays, dates,
+regexes and circular references, and it is about 55% faster than
+[microdiff](https://github.com/AsyncBanana/microdiff) across the benchmark
+fixtures.
+
+This is the one part of BlazeDiff that has nothing to do with images. It shares
+the name and the performance work, not the pipeline. Use it for audit logs,
+undo stacks, state-change assertions in tests, or anywhere you would otherwise
+`JSON.stringify` two objects and compare strings.
 
 ## Installation
 
@@ -11,9 +25,24 @@ Learn how to use BlazeDiff for comparing JavaScript objects and detecting change
 npm install @blazediff/object
 ```
 
-## Overview
+## What you get back
 
-BlazeDiff Object provides fast and efficient comparison of JavaScript objects, detecting additions, removals, and modifications with detailed path information. Try the interactive demos below to see different comparison scenarios in action.
+One entry per change, always the same shape, so V8 keeps a single hidden class for
+the whole array:
+
+```ts
+interface Difference {
+  type: 0 | 1 | 2;            // CREATE | REMOVE | CHANGE
+  path: (string | number)[];  // e.g. ["user", "settings", "theme"]
+  value: unknown;             // the new value
+  oldValue: unknown;          // the previous value
+}
+```
+
+Types are numbers rather than strings on purpose: they get compared in the hot
+loop. `0` is CREATE, `1` is REMOVE, `2` is CHANGE.
+
+## Examples
 
 <Tabs items={['Basic Comparison', 'Nested Objects', 'Array Changes']}>
   <Tabs.Tab>
@@ -29,6 +58,7 @@ import diff from "@blazediff/object";
 const oldObj = { a: 1, b: 2, c: 3 };
 const newObj = { a: 1, b: 20, d: 4 };
 
+// b changed, c was removed, d was created. a is not reported.
 const changes = diff(oldObj, newObj);
 ```
 
@@ -86,6 +116,7 @@ const newObj = {
   }
 };
 
+// Paths go all the way down, e.g. ["user", "settings", "theme"].
 const changes = diff(oldObj, newObj);
 ```
 
@@ -131,8 +162,40 @@ const newObj = {
   total: 400
 };
 
+// Arrays are compared by index, so a prepend reports every element as changed.
 const changes = diff(oldObj, newObj);
 ```
 
   </Tabs.Tab>
 </Tabs>
+
+## Things worth knowing
+
+- **Arrays are compared by index, not by identity.** Inserting at the front
+  reports every following element as a CHANGE. If you need move detection, key the
+  array yourself before diffing.
+- **Cycles are handled**, and the check costs something. If you know your input is
+  a tree, pass `{ detectCycles: false }`.
+- **Unchanged values are not reported.** An empty array means the two inputs are
+  structurally equal.
+
+## What it costs
+
+Against microdiff, M1 Max, Node 22, 10,000 iterations:
+
+| Fixture                | microdiff | `@blazediff/object` |
+| ---------------------- | --------- | ------------------- |
+| Large nested object    | 3.3318ms  | 1.4536ms            |
+| Large array            | 0.5859ms  | 0.2391ms            |
+| Large identical arrays | 0.0919ms  | 0.0031ms            |
+| Simple object          | 0.0003ms  | 0.0002ms            |
+
+About 55% faster on average, and ~97% faster when the two inputs are identical,
+which is the common case when you are diffing state on every update.
+[Full table](/benchmarks/object).
+
+## Next
+
+- Every option and the full `Difference` type:
+  [`@blazediff/object` reference](/apis/object)
+- Comparing images instead: [Introduction](/docs)
