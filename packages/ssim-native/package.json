@@ -1,6 +1,6 @@
 {
 	"name": "@blazediff/ssim-native",
-	"version": "5.4.0",
+	"version": "6.0.0",
 	"description": "Native Rust SSIM, MS-SSIM, Hitchhiker's SSIM and perceptual SSIM for visual testing",
 	"private": false,
 	"publishConfig": {
@@ -27,12 +27,12 @@
 		"test:watch": "vitest"
 	},
 	"optionalDependencies": {
-		"@blazediff/ssim-native-darwin-arm64": "5.4.0",
-		"@blazediff/ssim-native-darwin-x64": "5.4.0",
-		"@blazediff/ssim-native-linux-arm64": "5.4.0",
-		"@blazediff/ssim-native-linux-x64": "5.4.0",
-		"@blazediff/ssim-native-win32-arm64": "5.4.0",
-		"@blazediff/ssim-native-win32-x64": "5.4.0"
+		"@blazediff/ssim-native-darwin-arm64": "6.0.0",
+		"@blazediff/ssim-native-darwin-x64": "6.0.0",
+		"@blazediff/ssim-native-linux-arm64": "6.0.0",
+		"@blazediff/ssim-native-linux-x64": "6.0.0",
+		"@blazediff/ssim-native-win32-arm64": "6.0.0",
+		"@blazediff/ssim-native-win32-x64": "6.0.0"
 	},
 	"keywords": [
 		"ssim",

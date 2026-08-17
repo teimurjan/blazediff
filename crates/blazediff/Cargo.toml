@@ -1,6 +1,6 @@
 [package]
 name = "blazediff"
-version = "5.4.0"
+version = "6.0.0"
 edition = "2021"
 authors = ["Teimur Gasanov"]
 description = "High-performance image diffing with block-based optimization and SIMD"
@@ -52,7 +52,7 @@ pyo3 = { version = "0.22", features = ["extension-module", "abi3-py38", "generat
 # including the wasm build — which is why its codecs (the vendored C) sit
 # behind that crate's own feature rather than behind `dep:`, so the wasm build
 # gets the types without the decoders.
-blazediff-shared = { path = "../blazediff-shared", version = "5.4.0", default-features = false }
+blazediff-shared = { path = "../blazediff-shared", version = "6.0.0", default-features = false }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 # wasm-bindgen pinned to match the wasm-bindgen-cli version used in build-wasm.sh.

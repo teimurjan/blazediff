@@ -1,6 +1,6 @@
 [package]
 name = "blazediff-shared"
-version = "5.4.0"
+version = "6.0.0"
 edition = "2021"
 authors = ["Teimur Gasanov"]
 description = "Shared BlazeDiff primitives: the RGBA8 image type, YIQ color math, and PNG/JPEG/QOI I/O"
@@ -41,7 +41,7 @@ qoi = { version = "0.4", optional = true }
 rayon = { version = "1.10", optional = true }
 # `version` is required to publish `blazediff-shared` to crates.io; kept in lockstep
 # with this crate's version by scripts/release/sync-cargo-version.js.
-blazediff-png = { path = "../blazediff-png", version = "5.4.0", optional = true }
+blazediff-png = { path = "../blazediff-png", version = "6.0.0", optional = true }
 
 [build-dependencies]
 cc = "1.2"
