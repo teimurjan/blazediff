@@ -120,7 +120,7 @@ build_napi_target() {
     # cross/xwin failure can't slip a stale .node through sync_napi_to_packages.
     rm -f "$DIST_DIR/${output_name}"
 
-    if [[ "$target" == *"-pc-windows-msvc" ]]; then
+    if needs_xwin "$target"; then
         check_xwin || return 1
         PATH="$(xwin_path_prefix)" RUSTFLAGS="$flags" \
             cargo xwin build --release --target "$target" --features napi --lib -p "$NAPI_CRATE"

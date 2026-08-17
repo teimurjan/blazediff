@@ -47,7 +47,7 @@ build_target() {
     # can't ship a stale binary via sync_binaries_to_packages.
     rm -f "$DIST_DIR/${output_name}${ext_for_target}"
 
-    if [[ "$target" == *"-pc-windows-msvc" ]]; then
+    if needs_xwin "$target"; then
         check_xwin || return 1
         PATH="$(xwin_path_prefix)" RUSTFLAGS="$flags" \
             cargo xwin build --release --target "$target"

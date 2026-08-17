@@ -23,3 +23,7 @@ packages/core-native-linux-x64/blazediff    filter=lfs diff=lfs merge=lfs -text
 packages/core-native-darwin-x64/blazediff filter=lfs diff=lfs merge=lfs -text
 packages/core-native-linux-arm64/blazediff filter=lfs diff=lfs merge=lfs -text
 packages/core-native-linux-x64/blazediff filter=lfs diff=lfs merge=lfs -text
+
+# build-artifacts.yml runs these under git-bash on the Windows runners, where
+# Git for Windows would otherwise check them out CRLF and break the shebang.
+*.sh text eol=lf

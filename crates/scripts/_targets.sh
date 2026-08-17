@@ -115,6 +115,19 @@ force_cross() {
     [[ "${BLAZEDIFF_FORCE_CROSS:-0}" == "1" && "$1" == *-unknown-linux-* ]]
 }
 
+# Does a Windows MSVC target have to be cross-built with cargo-xwin?
+#
+# Only when the host isn't Windows. On a developer's Mac it always is, which is
+# why the scripts used to assume it unconditionally; build-artifacts.yml builds
+# these targets on a Windows runner, where the MSVC toolchain and the Windows
+# SDK are already installed. There a plain `cargo build` skips cargo-xwin's
+# ~1 GB CRT download entirely and links with the real MSVC toolchain rather
+# than clang-cl. `OS` is set to Windows_NT by Windows itself and survives into
+# git-bash, which is what `shell: bash` runs on the runner.
+needs_xwin() {
+    [[ "$1" == *-pc-windows-msvc && "${OS:-}" != "Windows_NT" ]]
+}
+
 check_xwin() {
     if ! command -v cargo-xwin &> /dev/null; then
         echo "Error: 'cargo-xwin' is required for Windows MSVC targets"

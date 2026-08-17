@@ -5,14 +5,20 @@ name: build-artifacts
 # Packages" PR — and this replaces the local rebuild that
 # release-artifacts-check.yml otherwise asks the maintainer to do by hand.
 #
-# Toolchains deliberately mirror `pnpm build:rust && pnpm build:rust:ssim &&
-# pnpm build:rust:interpret && pnpm build:wasm && pnpm build:python:all` on a
-# Mac, by calling the exact same scripts with `--target`:
+# Toolchains mirror `pnpm build:rust && pnpm build:rust:ssim &&
+# pnpm build:rust:interpret && pnpm build:wasm && pnpm build:python:all` by
+# calling the exact same scripts with `--target`:
 #   macOS targets    cargo, natively / rustup-cross from an arm64 runner
 #   Linux targets    `cross` docker images — BLAZEDIFF_FORCE_CROSS keeps the
 #                    x64 build off the runner's own (much newer) glibc
-#   Windows targets  cargo-xwin, same as cross-building from macOS
-#   wheels           maturin: zig for Linux, cargo-xwin for Windows
+#   Windows targets  plain cargo on a Windows runner, which already has MSVC,
+#                    the Windows SDK and the ARM64 cross tools. This is the one
+#                    place CI does *not* mirror a Mac, where the same scripts
+#                    route through cargo-xwin (see needs_xwin() in
+#                    crates/scripts/_targets.sh): xwin downloads the ~1 GB MSVC
+#                    CRT on every cold run — 12m44s in practice — and links with
+#                    clang-cl rather than the MSVC toolchain users actually have.
+#   wheels           maturin: zig for Linux, native MSVC for Windows
 #
 # Push uses CHANGESETS_PAT, not GITHUB_TOKEN: a GITHUB_TOKEN push triggers no
 # downstream workflows, and the whole point is to re-run release-artifacts-check
@@ -101,11 +107,16 @@ jobs:
           - { target: x86_64-apple-darwin, os: macos-latest, kind: macos, pkg: darwin-x64, cli: blazediff }
           - { target: aarch64-unknown-linux-gnu, os: ubuntu-latest, kind: linux, pkg: linux-arm64, cli: blazediff }
           - { target: x86_64-unknown-linux-gnu, os: ubuntu-latest, kind: linux, pkg: linux-x64, cli: blazediff }
-          - { target: aarch64-pc-windows-msvc, os: ubuntu-latest, kind: windows, pkg: win32-arm64, cli: blazediff.exe }
-          - { target: x86_64-pc-windows-msvc, os: ubuntu-latest, kind: windows, pkg: win32-x64, cli: blazediff.exe }
+          - { target: aarch64-pc-windows-msvc, os: windows-2025, kind: windows, pkg: win32-arm64, cli: blazediff.exe }
+          - { target: x86_64-pc-windows-msvc, os: windows-2025, kind: windows, pkg: win32-x64, cli: blazediff.exe }
     env:
       # See force_cross() in crates/scripts/_targets.sh — no effect off Linux.
       BLAZEDIFF_FORCE_CROSS: "1"
+    defaults:
+      run:
+        # The build scripts are bash, and the Windows targets now build on a
+        # Windows runner; `bash` resolves to the image's git-bash there.
+        shell: bash
     steps:
       - uses: actions/checkout@v5
         with:
@@ -144,20 +155,6 @@ jobs:
             | sudo tee /usr/local/bin/zig > /dev/null
           sudo chmod +x /usr/local/bin/zig
           zig version
-
-      - name: Install cargo-xwin toolchain
-        if: matrix.kind == 'windows'
-        run: |
-          set -euo pipefail
-          sudo apt-get update
-          # ninja: cargo-xwin's cmake generator, for the vendored miniz and
-          # libjpeg-turbo. clang/lld/llvm: the MSVC-compatible cross toolchain.
-          sudo apt-get install -y --no-install-recommends clang lld llvm ninja-build
-          # cargo-xwin shells out to clang-cl / lld-link / llvm-lib by bare name,
-          # and Ubuntu only puts version-suffixed copies in /usr/bin. Same job
-          # xwin_path_prefix() does with homebrew llvm on macOS.
-          ls -d /usr/lib/llvm-*/bin | sort -V | tail -1 >> "$GITHUB_PATH"
-          cargo binstall -y cargo-xwin@0.22.0
 
       - name: Build CLI binary
         run: crates/blazediff/scripts/build-all.sh --target ${{ matrix.target }}

@@ -104,10 +104,15 @@ run_maturin_target() {
             fi
             ;;
         *pc-windows-msvc)
-            check_xwin || return 1
             rustup target add "$target" 2>/dev/null || true
-            PATH="$(xwin_path_prefix)" RUSTFLAGS="$flags" \
-                maturin build --release --features python --target "$target" --out "$WHEELS_DIR"
+            if needs_xwin "$target"; then
+                check_xwin || return 1
+                PATH="$(xwin_path_prefix)" RUSTFLAGS="$flags" \
+                    maturin build --release --features python --target "$target" --out "$WHEELS_DIR"
+            else
+                RUSTFLAGS="$flags" \
+                    maturin build --release --features python --target "$target" --out "$WHEELS_DIR"
+            fi
             ;;
         *)
             echo "  Error: unsupported target for maturin: $target"
