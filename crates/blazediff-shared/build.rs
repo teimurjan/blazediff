@@ -140,6 +140,12 @@ fn build_libjpeg_turbo(static_crt: bool) {
         .define("WITH_JAVA", "OFF")
         .define("WITH_JPEG7", "OFF")
         .define("WITH_JPEG8", "OFF")
+        // Defaults to ON, and `cmake --build` builds every target, so we were
+        // compiling libjpeg-turbo's regression suite into every release build.
+        // Its Catch2 runner is also the only C++ in this tree — which made an
+        // MSVC-STL/clang version mismatch fail the Windows cross-build on a
+        // test binary we never run.
+        .define("WITH_TESTS", "OFF")
         .define("CMAKE_POSITION_INDEPENDENT_CODE", "ON");
     if static_crt {
         config.define("CMAKE_MSVC_RUNTIME_LIBRARY", "MultiThreaded");
