@@ -198,11 +198,14 @@ for (const signal of ["SIGINT", "SIGTERM"]) {
 	});
 }
 
-/** Claim the name with a placeholder, leaving the manifest as it was found. */
+/**
+ * Claim the name with a placeholder, leaving the manifest as it was found.
+ * Returns "created", or "exists" when the seed was already published.
+ */
 function seed({ dir, manifest }) {
 	if (DRY_RUN) {
 		console.log(`  would seed ${SEED_VERSION} (dist-tag ${SEED_TAG})`);
-		return;
+		return "created";
 	}
 
 	const manifestPath = path.join(dir, "package.json");
@@ -217,7 +220,16 @@ function seed({ dir, manifest }) {
 			["publish", "--access", "public", "--tag", SEED_TAG],
 			{ cwd: dir },
 		);
-		if (!ok) throw new Error(npmErrorSummary(output));
+		if (ok) return "created";
+		// The registry is eventually consistent: a name published minutes ago can
+		// still read as missing, sending a re-run back through here. Refusing the
+		// duplicate is npm doing its job, not a failure of this script.
+		if (
+			/cannot publish over|previously published|EPUBLISHCONFLICT/i.test(output)
+		) {
+			return "exists";
+		}
+		throw new Error(npmErrorSummary(output));
 	} finally {
 		fs.writeFileSync(manifestPath, original);
 		rewritten.delete(manifestPath);
@@ -286,9 +298,12 @@ function main() {
 
 			let state;
 			if (versions.length === 0) {
-				seed(pkg);
-				seeded.push(name);
-				state = `seeded ${SEED_VERSION}`;
+				if (seed(pkg) === "created") {
+					seeded.push(name);
+					state = `seeded ${SEED_VERSION}`;
+				} else {
+					state = `already seeded ${SEED_VERSION}`;
+				}
 			} else {
 				state = `on npm (${versions[versions.length - 1]})`;
 			}
