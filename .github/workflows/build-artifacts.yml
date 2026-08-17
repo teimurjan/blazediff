@@ -208,7 +208,11 @@ jobs:
         with:
           name: target-${{ matrix.target }}
           if-no-files-found: error
-          retention-days: 1
+          # Long enough for scripts/release/restore-artifacts.js to be useful.
+          # The Changesets PR is force-pushed from scratch whenever main moves,
+          # taking the artifact commit with it; restoring from here beats a 90
+          # minute rebuild, but only while the upload still exists. ~18 MB/run.
+          retention-days: 14
           # Scoped to this target's package dirs: the other five still hold the
           # checked-out pointer files, and uploading those would let them
           # overwrite a sibling job's real binary on merge. Spanning packages/
@@ -264,7 +268,8 @@ jobs:
         with:
           name: wasm
           if-no-files-found: error
-          retention-days: 1
+          # Matches the target uploads; restore needs the whole set or none.
+          retention-days: 14
           path: packages/core-wasm/wasm/
 
   commit:

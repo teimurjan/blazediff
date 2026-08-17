@@ -14,6 +14,7 @@
 		"build:python:all": "cd crates/blazediff && ./scripts/build-maturin.sh --all",
 		"release:pypi": "node scripts/release/publish-pypi.js",
 		"setup:npm-oidc": "node scripts/release/setup-npm-oidc.js",
+		"restore": "node scripts/release/restore-artifacts.js",
 		"test": "pnpm -r test",
 		"typecheck": "pnpm -r typecheck",
 		"changeset": "changeset",
