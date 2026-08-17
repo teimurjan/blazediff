@@ -1,57 +1,36 @@
 #!/usr/bin/env node
 
-// One-shot onboarding for npm packages that have never been published.
+// Makes every workspace package publishable by OIDC, so `changeset publish`
+// doesn't have to be the first thing that ever touches a new package name.
 //
-// Releases publish through OIDC (see .github/workflows/release.yml), which needs
-// a trusted publisher registered against each package. New packages are the
-// awkward case: `changeset publish` will try to publish them by OIDC on the very
-// first release, before any trust relationship exists. This script closes that
-// gap so a release doesn't have to.
+// One rule per package:
+//   not on npm  → publish a placeholder to claim the name, then register trust
+//   on npm      → register trust, unless it already has some
 //
-// Logic, per publishable workspace package:
-//   - already on npm      → nothing to publish; ensure trust with --all
-//   - not on npm          → publish it once from here, then register trust
-//   - payload incomplete  → refuse, and say what's missing
+// The placeholder is deliberate: version `0.0.0-oidc-seed` under dist-tag
+// `oidc-seed`. A prerelease matches no `^x.y.z` range and a non-`latest` tag is
+// not what a bare `npm install` resolves, so it can't be reached by accident and
+// it burns no real version number. That is also why this script never needs the
+// compiled binaries — the platform packages seed fine with nothing built.
 //
-// That last check matters more than it looks. The platform packages ship a
-// single `.node` and nothing else, so publishing one whose binary hasn't been
-// built produces an empty package at a version number that can never be reused.
-// Build first (`pnpm build:rust:*`, or `/build` on the PR), then run this.
+// Only `version` is changed in the manifest, and the original file is written
+// back byte-for-byte afterwards, including on Ctrl-C.
 //
-// Two ways to avoid needing the binaries at all:
-//
-//   --trust-only  Register trust and never publish. `npm trust` appears to
-//                 accept names the registry has never seen, which would make
-//                 the publish step unnecessary; the first real release then
-//                 creates the package by OIDC. Try this first.
-//   --seed        If trust genuinely requires the package to exist, publish a
-//                 deliberate placeholder instead of a real build: version
-//                 `0.0.0-oidc-seed` under dist-tag `oidc-seed`. A prerelease
-//                 version matches no `^x.y.z` range and a non-`latest` tag is
-//                 not what a bare `npm install` resolves, so the placeholder is
-//                 unreachable by accident — which a stub at the real version
-//                 would not be. The manifest is restored afterwards.
-//
-// Everything is idempotent: re-running skips packages already published and
-// already trusted.
+// Everything is idempotent: seeded names are skipped on the next run, and so are
+// packages that already carry a trusted publisher.
 //
 // A note on 2FA. An account set to "auth-and-writes" (`npm profile get`) needs
 // interactive authentication for every publish *and* every trust registration —
 // that is the browser prompt that appears mid-run. `npm publish` takes `--otp`,
 // but `npm trust` has no such flag, and a 30-second code would expire partway
-// through a run of this size anyway. The way through is to relax the setting for
-// the duration:
+// through a run of this size anyway. Relax the setting for the duration:
 //
 //   npm profile enable-2fa auth-only
-//   pnpm setup:npm-oidc --trust-only
+//   pnpm setup:npm-oidc
 //   npm profile enable-2fa auth-and-writes
 //
-// An automation access token also bypasses 2FA for publishing; whether it covers
-// `npm trust` is untested here.
-//
 // Usage:
-//   node scripts/release/setup-npm-oidc.js [--dry-run] [--all] [--filter <substr>]
-//                                          [--trust-only | --seed]
+//   node scripts/release/setup-npm-oidc.js [--dry-run] [--filter <substr>]
 
 const { execFileSync, spawnSync } = require("node:child_process");
 const fs = require("node:fs");
@@ -65,24 +44,13 @@ const PACKAGES_DIR = path.join(ROOT, "packages");
 const WORKFLOW = "release.yml";
 const ENVIRONMENT = "npm";
 
-const args = process.argv.slice(2);
-const DRY_RUN = args.includes("--dry-run");
-const ALL = args.includes("--all");
-const TRUST_ONLY = args.includes("--trust-only");
-const SEED = args.includes("--seed");
-const FILTER = args[args.indexOf("--filter") + 1];
-const filterActive = args.includes("--filter") && Boolean(FILTER);
-
-// A placeholder that no dependency range can resolve to: prerelease versions are
-// excluded from `^`/`~` matching, and the tag keeps `latest` unset until a real
-// release sets it.
 const SEED_VERSION = "0.0.0-oidc-seed";
 const SEED_TAG = "oidc-seed";
 
-if (TRUST_ONLY && SEED) {
-	console.error("error: --trust-only and --seed are mutually exclusive");
-	process.exit(1);
-}
+const args = process.argv.slice(2);
+const DRY_RUN = args.includes("--dry-run");
+const FILTER = args[args.indexOf("--filter") + 1];
+const filterActive = args.includes("--filter") && Boolean(FILTER);
 
 function run(file, argv, opts = {}) {
 	return execFileSync(file, argv, {
@@ -105,34 +73,26 @@ function repoSlug() {
 	return match[1];
 }
 
-function loggedInAs() {
-	try {
-		return run("npm", ["whoami"]).trim();
-	} catch {
-		return null;
-	}
-}
-
 function ensureLoggedIn() {
-	let user = loggedInAs();
-	if (user) {
-		console.log(`npm: logged in as ${user}`);
-		return user;
-	}
+	const whoami = () => {
+		try {
+			return run("npm", ["whoami"]).trim();
+		} catch {
+			return null;
+		}
+	};
 
-	console.log("npm: not logged in — starting `npm login`");
-	// Interactive: npm opens a browser and waits, so it needs the real stdio.
-	const login = spawnSync("npm", ["login"], { stdio: "inherit" });
-	if (login.status !== 0) {
-		throw new Error("npm login failed");
-	}
-
-	user = loggedInAs();
+	let user = whoami();
 	if (!user) {
-		throw new Error("still not logged in after `npm login`");
+		console.log("npm: not logged in — starting `npm login`");
+		// Interactive: npm opens a browser and waits, so it needs the real stdio.
+		if (spawnSync("npm", ["login"], { stdio: "inherit" }).status !== 0) {
+			throw new Error("npm login failed");
+		}
+		user = whoami();
+		if (!user) throw new Error("still not logged in after `npm login`");
 	}
 	console.log(`npm: logged in as ${user}`);
-	return user;
 }
 
 /** Every workspace package under packages/ that npm would accept. */
@@ -196,59 +156,37 @@ function publishedVersions(name) {
 }
 
 /**
- * What `npm publish` would actually ship, checked against what exists on disk.
+ * Whether npm already holds a trusted publisher for the package: true, false,
+ * or null when it can't be told.
  *
- * `files` entries are globs in general, but this repo only ever lists literal
- * paths and directories, so a plain existence check is enough — and a wrong
- * answer here fails loudly rather than silently publishing an empty package.
+ * `npm trust list` is itself an OTP-gated operation on an "auth-and-writes"
+ * account, so the query fails long before it can report an empty list. A failed
+ * *question* is not a "no" — answering false here would re-register trust on
+ * every package that already has it.
  */
-function missingPayload({ dir, manifest }) {
-	const entries = Array.isArray(manifest.files) ? manifest.files : [];
-	const missing = entries.filter(
-		(entry) => !fs.existsSync(path.join(dir, entry)),
-	);
-	if (manifest.main && !fs.existsSync(path.join(dir, manifest.main))) {
-		missing.push(manifest.main);
-	}
-	return [...new Set(missing)];
-}
-
-/** True when npm already holds any trusted publisher for the package. */
-function hasTrust(name) {
+function trustState(name) {
+	let stdout;
 	try {
-		const out = run("npm", ["trust", "list", name, "--json"]);
-		const parsed = JSON.parse(out);
-		const list = Array.isArray(parsed) ? parsed : (parsed?.trust ?? []);
-		return Array.isArray(list) && list.length > 0;
+		stdout = run("npm", ["trust", "list", name, "--json"]);
+	} catch (error) {
+		stdout = error.stdout ?? "";
+	}
+
+	let parsed;
+	try {
+		parsed = JSON.parse(stdout);
 	} catch {
-		// Either the package has no trust entries, or `--json` isn't understood
-		// by this npm. Fall back to the human output; an empty result is the
-		// signal we care about either way.
-		try {
-			const out = run("npm", ["trust", "list", name]);
-			return /github|gitlab|circleci/i.test(out);
-		} catch {
-			return false;
-		}
+		return null;
 	}
+
+	if (Array.isArray(parsed)) return parsed.length > 0;
+	if (Array.isArray(parsed?.trust)) return parsed.trust.length > 0;
+	return null; // EOTP, or any other error body
 }
 
-function publish({ dir, manifest }) {
-	if (DRY_RUN) {
-		console.log(`  would publish ${manifest.name}@${manifest.version}`);
-		return;
-	}
-	// No --provenance: that needs the OIDC context of a CI run, which is the
-	// thing this script exists to make possible in the first place.
-	execFileSync("npm", ["publish", "--access", "public"], {
-		cwd: dir,
-		stdio: "inherit",
-	});
-}
-
-// Manifests currently rewritten by --seed, against their original contents.
-// `finally` covers a throwing npm, but not a Ctrl-C during an inherited-stdio
-// publish, which kills this process outright — hence the signal handlers.
+// Manifests currently rewritten, against their original contents. `finally`
+// covers a throwing npm, but not a Ctrl-C during an inherited-stdio publish,
+// which kills this process outright — hence the signal handlers.
 const rewritten = new Map();
 for (const signal of ["SIGINT", "SIGTERM"]) {
 	process.on(signal, () => {
@@ -257,17 +195,10 @@ for (const signal of ["SIGINT", "SIGTERM"]) {
 	});
 }
 
-/**
- * Claim the name with a placeholder rather than a real build.
- *
- * Only `version` changes, and the original file is written back byte-for-byte —
- * including its formatting — whether or not npm succeeds.
- */
-function publishSeed({ dir, manifest }) {
+/** Claim the name with a placeholder, leaving the manifest as it was found. */
+function seed({ dir, manifest }) {
 	if (DRY_RUN) {
-		console.log(
-			`  would publish ${manifest.name}@${SEED_VERSION} under dist-tag ${SEED_TAG}`,
-		);
+		console.log(`  would seed ${SEED_VERSION} (dist-tag ${SEED_TAG})`);
 		return;
 	}
 
@@ -315,88 +246,59 @@ function main() {
 	console.log(
 		`Trusted publisher target: ${slug} · ${WORKFLOW} · environment "${ENVIRONMENT}"`,
 	);
-	if (DRY_RUN)
-		console.log("(dry run — nothing will be published or changed)\n");
+	if (DRY_RUN) console.log("(dry run — nothing will be published or changed)");
 
 	ensureLoggedIn();
 
 	const packages = publishablePackages();
 	console.log(`\nChecking ${packages.length} publishable packages…\n`);
 
-	const unpublished = [];
-	const published = [];
+	const seeded = [];
+	const trusted = [];
+	const skipped = [];
+	// One package failing shouldn't cost the run: this is idempotent, but a
+	// mid-run abort still means re-checking everything to find where it stopped.
+	const failed = [];
+
 	for (const pkg of packages) {
-		const versions = publishedVersions(pkg.manifest.name);
-		const version = versions[versions.length - 1] ?? null;
-		(versions.length > 0 ? published : unpublished).push({ ...pkg, version });
-	}
+		const name = pkg.manifest.name;
+		try {
+			const versions = publishedVersions(name);
 
-	console.log(`  ${published.length} already on npm`);
-	console.log(`  ${unpublished.length} not yet published`);
-
-	// Refuse the whole run rather than publish a half-empty package: a version
-	// number spent on a broken tarball is not recoverable. Both --trust-only and
-	// --seed exist precisely to not need the payload, so neither is checked.
-	const blocked =
-		TRUST_ONLY || SEED
-			? []
-			: unpublished
-					.map((pkg) => ({ pkg, missing: missingPayload(pkg) }))
-					.filter(({ missing }) => missing.length > 0);
-	if (blocked.length > 0) {
-		console.error("\nerror: these packages would publish without their files:");
-		for (const { pkg, missing } of blocked) {
-			console.error(`  ${pkg.manifest.name} — missing ${missing.join(", ")}`);
-		}
-		console.error(
-			"\n       Onboarding is not a release, so there are two ways past this:\n" +
-				"         --trust-only   register trust, publish nothing (try this first)\n" +
-				`         --seed         publish ${SEED_VERSION} placeholders instead\n` +
-				"\n       Or build for real, then re-run:\n" +
-				"         pnpm build            # dist/ for the JS wrappers\n" +
-				"         pnpm build:rust       # core-native binaries\n" +
-				"         pnpm build:rust:ssim\n" +
-				"         pnpm build:rust:interpret\n" +
-				"       Or comment /build on the PR and pull the result.",
-		);
-		process.exit(1);
-	}
-
-	if (TRUST_ONLY) {
-		console.log("\n(--trust-only: nothing will be published)");
-	} else if (unpublished.length > 0) {
-		console.log(
-			SEED
-				? `\nSeeding new packages (${SEED_VERSION}, dist-tag ${SEED_TAG}):`
-				: "\nPublishing new packages:",
-		);
-		for (const pkg of unpublished) {
-			console.log(
-				`\n▸ ${pkg.manifest.name}@${SEED ? SEED_VERSION : pkg.manifest.version}`,
-			);
-			(SEED ? publishSeed : publish)(pkg);
-		}
-	}
-
-	const needTrust = ALL ? [...unpublished, ...published] : unpublished;
-	if (needTrust.length > 0) {
-		console.log("\nRegistering trusted publishers:");
-		for (const pkg of needTrust) {
-			const name = pkg.manifest.name;
-			if (!DRY_RUN && hasTrust(name)) {
-				console.log(`  ${name} — already trusted, skipping`);
-				continue;
+			if (versions.length === 0) {
+				console.log(`▸ ${name} — not on npm`);
+				seed(pkg);
+				seeded.push(name);
+			} else {
+				const state = trustState(name);
+				if (state === true) {
+					skipped.push(name);
+					continue;
+				}
+				const latest = versions[versions.length - 1];
+				console.log(
+					`▸ ${name} — on npm (${latest})${
+						state === null ? ", existing trust could not be checked" : ""
+					}`,
+				);
 			}
-			console.log(`\n▸ ${name}`);
+
 			trust(name, slug);
+			trusted.push(name);
+		} catch (error) {
+			console.error(`  failed: ${error.message.split("\n")[0]}`);
+			failed.push(name);
 		}
 	}
 
 	console.log(
-		unpublished.length === 0 && !ALL
-			? "\nNothing to do — every package is already published."
-			: "\nDone. Releases can now publish these by OIDC.",
+		`\n${seeded.length} seeded · ${trusted.length} trusted · ` +
+			`${skipped.length} already trusted · ${failed.length} failed`,
 	);
+	if (failed.length > 0) {
+		console.error(`\nfailed: ${failed.join(", ")}\n  Re-run to retry these.`);
+		process.exit(1);
+	}
 }
 
 try {
