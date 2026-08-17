@@ -35,6 +35,20 @@
 // Everything is idempotent: re-running skips packages already published and
 // already trusted.
 //
+// A note on 2FA. An account set to "auth-and-writes" (`npm profile get`) needs
+// interactive authentication for every publish *and* every trust registration —
+// that is the browser prompt that appears mid-run. `npm publish` takes `--otp`,
+// but `npm trust` has no such flag, and a 30-second code would expire partway
+// through a run of this size anyway. The way through is to relax the setting for
+// the duration:
+//
+//   npm profile enable-2fa auth-only
+//   pnpm setup:npm-oidc --trust-only
+//   npm profile enable-2fa auth-and-writes
+//
+// An automation access token also bypasses 2FA for publishing; whether it covers
+// `npm trust` is untested here.
+//
 // Usage:
 //   node scripts/release/setup-npm-oidc.js [--dry-run] [--all] [--filter <substr>]
 //                                          [--trust-only | --seed]
@@ -147,12 +161,38 @@ function publishablePackages() {
  * as unpublished on the next run.
  */
 function publishedVersions(name) {
+	let stdout;
 	try {
-		const parsed = JSON.parse(run("npm", ["view", name, "versions", "--json"]));
-		return Array.isArray(parsed) ? parsed : [parsed];
-	} catch {
-		return [];
+		stdout = run("npm", ["view", name, "versions", "--json"]);
+	} catch (error) {
+		// npm exits non-zero for a package it can't find, but `--json` still
+		// puts a structured error body on stdout. The human text goes to stderr.
+		stdout = error.stdout ?? "";
 	}
+
+	let parsed;
+	try {
+		parsed = JSON.parse(stdout);
+	} catch {
+		throw new Error(
+			`could not read published versions for ${name} — npm said: ${
+				stdout.trim().split("\n")[0] || "(nothing)"
+			}`,
+		);
+	}
+
+	if (Array.isArray(parsed)) return parsed;
+	if (typeof parsed === "string") return [parsed]; // a single published version
+	if (parsed?.error?.code === "E404") return [];
+
+	// Anything else — a network blip, a rate limit, an expired session — means
+	// *unknown*, which is not the same as unpublished. Treating it as
+	// unpublished is how an already-published package gets published over.
+	throw new Error(
+		`could not determine whether ${name} is published: ${
+			parsed?.error?.summary ?? parsed?.error?.code ?? stdout.trim()
+		}`,
+	);
 }
 
 /**
