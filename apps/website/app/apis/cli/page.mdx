@@ -29,7 +29,7 @@ npx blazediff-cli image1.png image2.png diff.png
 ## Available Commands
 
 <Tabs items={['core-native (default)', 'interpret', 'core', 'gmsd', 'ssim', 'msssim', 'hitchhikers-ssim']}>
-  <Tabs.Tab>
+<Tabs.Tab>
 
 ### `blazediff-cli core-native` (default)
 
@@ -83,9 +83,9 @@ fi
   **Why so fast?** Uses a two-pass block-based algorithm with SIMD acceleration (NEON on ARM, SSE4.1 on x86). The cold pass quickly identifies unchanged blocks, then the hot pass only processes changed regions.
 </Callout>
 
-  </Tabs.Tab>
+</Tabs.Tab>
 
-  <Tabs.Tab>
+<Tabs.Tab>
 
 ### `blazediff-cli interpret`
 
@@ -132,9 +132,9 @@ $ blazediff-cli interpret image1.png image2.png --json
 - `1` - Change detected
 - `2` - Error
 
-  </Tabs.Tab>
+</Tabs.Tab>
 
-  <Tabs.Tab>
+<Tabs.Tab>
 
 ### `blazediff-cli core`
 
@@ -183,9 +183,9 @@ else
 fi
 ```
 
-  </Tabs.Tab>
+</Tabs.Tab>
 
-  <Tabs.Tab>
+<Tabs.Tab>
 
 ### `blazediff-cli gmsd`
 
@@ -234,9 +234,9 @@ GMSD: 0.0234
 GMS map saved to: gms-map.png
 ```
 
-  </Tabs.Tab>
+</Tabs.Tab>
 
-  <Tabs.Tab>
+<Tabs.Tab>
 
 ### `blazediff-cli ssim`
 
@@ -288,9 +288,9 @@ SSIM: 0.9823
 SSIM map saved to: ssim-map.png
 ```
 
-  </Tabs.Tab>
+</Tabs.Tab>
 
-  <Tabs.Tab>
+<Tabs.Tab>
 
 ### `blazediff-cli msssim`
 
@@ -328,9 +328,9 @@ $ blazediff-cli msssim reference.png test.png
 MS-SSIM: 0.9912
 ```
 
-  </Tabs.Tab>
+</Tabs.Tab>
 
-  <Tabs.Tab>
+<Tabs.Tab>
 
 ### `blazediff-cli hitchhikers-ssim`
 
@@ -370,7 +370,7 @@ $ blazediff-cli hitchhikers-ssim reference.png test.png
 SSIM: 0.9597
 ```
 
-  </Tabs.Tab>
+</Tabs.Tab>
 </Tabs>
 
 ## When to Use Each Algorithm
