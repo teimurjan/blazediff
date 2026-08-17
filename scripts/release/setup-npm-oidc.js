@@ -18,11 +18,26 @@
 // built produces an empty package at a version number that can never be reused.
 // Build first (`pnpm build:rust:*`, or `/build` on the PR), then run this.
 //
+// Two ways to avoid needing the binaries at all:
+//
+//   --trust-only  Register trust and never publish. `npm trust` appears to
+//                 accept names the registry has never seen, which would make
+//                 the publish step unnecessary; the first real release then
+//                 creates the package by OIDC. Try this first.
+//   --seed        If trust genuinely requires the package to exist, publish a
+//                 deliberate placeholder instead of a real build: version
+//                 `0.0.0-oidc-seed` under dist-tag `oidc-seed`. A prerelease
+//                 version matches no `^x.y.z` range and a non-`latest` tag is
+//                 not what a bare `npm install` resolves, so the placeholder is
+//                 unreachable by accident — which a stub at the real version
+//                 would not be. The manifest is restored afterwards.
+//
 // Everything is idempotent: re-running skips packages already published and
 // already trusted.
 //
 // Usage:
 //   node scripts/release/setup-npm-oidc.js [--dry-run] [--all] [--filter <substr>]
+//                                          [--trust-only | --seed]
 
 const { execFileSync, spawnSync } = require("node:child_process");
 const fs = require("node:fs");
@@ -39,8 +54,21 @@ const ENVIRONMENT = "npm";
 const args = process.argv.slice(2);
 const DRY_RUN = args.includes("--dry-run");
 const ALL = args.includes("--all");
+const TRUST_ONLY = args.includes("--trust-only");
+const SEED = args.includes("--seed");
 const FILTER = args[args.indexOf("--filter") + 1];
 const filterActive = args.includes("--filter") && Boolean(FILTER);
+
+// A placeholder that no dependency range can resolve to: prerelease versions are
+// excluded from `^`/`~` matching, and the tag keeps `latest` unset until a real
+// release sets it.
+const SEED_VERSION = "0.0.0-oidc-seed";
+const SEED_TAG = "oidc-seed";
+
+if (TRUST_ONLY && SEED) {
+	console.error("error: --trust-only and --seed are mutually exclusive");
+	process.exit(1);
+}
 
 function run(file, argv, opts = {}) {
 	return execFileSync(file, argv, {
@@ -111,12 +139,19 @@ function publishablePackages() {
 		.sort((a, b) => a.manifest.name.localeCompare(b.manifest.name));
 }
 
-/** Published version, or null when npm has never seen the name. */
-function publishedVersion(name) {
+/**
+ * Every published version, newest last; empty when npm has never seen the name.
+ *
+ * Deliberately not `npm view <name> version`, which reports the `latest` tag —
+ * a package carrying only a seed publish has no `latest`, and would read back
+ * as unpublished on the next run.
+ */
+function publishedVersions(name) {
 	try {
-		return run("npm", ["view", name, "version"]).trim() || null;
+		const parsed = JSON.parse(run("npm", ["view", name, "versions", "--json"]));
+		return Array.isArray(parsed) ? parsed : [parsed];
 	} catch {
-		return null;
+		return [];
 	}
 }
 
@@ -171,6 +206,49 @@ function publish({ dir, manifest }) {
 	});
 }
 
+// Manifests currently rewritten by --seed, against their original contents.
+// `finally` covers a throwing npm, but not a Ctrl-C during an inherited-stdio
+// publish, which kills this process outright — hence the signal handlers.
+const rewritten = new Map();
+for (const signal of ["SIGINT", "SIGTERM"]) {
+	process.on(signal, () => {
+		for (const [file, contents] of rewritten) fs.writeFileSync(file, contents);
+		process.exit(130);
+	});
+}
+
+/**
+ * Claim the name with a placeholder rather than a real build.
+ *
+ * Only `version` changes, and the original file is written back byte-for-byte —
+ * including its formatting — whether or not npm succeeds.
+ */
+function publishSeed({ dir, manifest }) {
+	if (DRY_RUN) {
+		console.log(
+			`  would publish ${manifest.name}@${SEED_VERSION} under dist-tag ${SEED_TAG}`,
+		);
+		return;
+	}
+
+	const manifestPath = path.join(dir, "package.json");
+	const original = fs.readFileSync(manifestPath, "utf8");
+	rewritten.set(manifestPath, original);
+	try {
+		fs.writeFileSync(
+			manifestPath,
+			`${JSON.stringify({ ...manifest, version: SEED_VERSION }, null, "\t")}\n`,
+		);
+		execFileSync("npm", ["publish", "--access", "public", "--tag", SEED_TAG], {
+			cwd: dir,
+			stdio: "inherit",
+		});
+	} finally {
+		fs.writeFileSync(manifestPath, original);
+		rewritten.delete(manifestPath);
+	}
+}
+
 function trust(name, slug) {
 	const argv = [
 		"trust",
@@ -208,25 +286,33 @@ function main() {
 	const unpublished = [];
 	const published = [];
 	for (const pkg of packages) {
-		const version = publishedVersion(pkg.manifest.name);
-		(version ? published : unpublished).push({ ...pkg, version });
+		const versions = publishedVersions(pkg.manifest.name);
+		const version = versions[versions.length - 1] ?? null;
+		(versions.length > 0 ? published : unpublished).push({ ...pkg, version });
 	}
 
 	console.log(`  ${published.length} already on npm`);
 	console.log(`  ${unpublished.length} not yet published`);
 
 	// Refuse the whole run rather than publish a half-empty package: a version
-	// number spent on a broken tarball is not recoverable.
-	const blocked = unpublished
-		.map((pkg) => ({ pkg, missing: missingPayload(pkg) }))
-		.filter(({ missing }) => missing.length > 0);
+	// number spent on a broken tarball is not recoverable. Both --trust-only and
+	// --seed exist precisely to not need the payload, so neither is checked.
+	const blocked =
+		TRUST_ONLY || SEED
+			? []
+			: unpublished
+					.map((pkg) => ({ pkg, missing: missingPayload(pkg) }))
+					.filter(({ missing }) => missing.length > 0);
 	if (blocked.length > 0) {
 		console.error("\nerror: these packages would publish without their files:");
 		for (const { pkg, missing } of blocked) {
 			console.error(`  ${pkg.manifest.name} — missing ${missing.join(", ")}`);
 		}
 		console.error(
-			"\n       Build them first, then re-run:\n" +
+			"\n       Onboarding is not a release, so there are two ways past this:\n" +
+				"         --trust-only   register trust, publish nothing (try this first)\n" +
+				`         --seed         publish ${SEED_VERSION} placeholders instead\n` +
+				"\n       Or build for real, then re-run:\n" +
 				"         pnpm build            # dist/ for the JS wrappers\n" +
 				"         pnpm build:rust       # core-native binaries\n" +
 				"         pnpm build:rust:ssim\n" +
@@ -236,11 +322,19 @@ function main() {
 		process.exit(1);
 	}
 
-	if (unpublished.length > 0) {
-		console.log("\nPublishing new packages:");
+	if (TRUST_ONLY) {
+		console.log("\n(--trust-only: nothing will be published)");
+	} else if (unpublished.length > 0) {
+		console.log(
+			SEED
+				? `\nSeeding new packages (${SEED_VERSION}, dist-tag ${SEED_TAG}):`
+				: "\nPublishing new packages:",
+		);
 		for (const pkg of unpublished) {
-			console.log(`\n▸ ${pkg.manifest.name}@${pkg.manifest.version}`);
-			publish(pkg);
+			console.log(
+				`\n▸ ${pkg.manifest.name}@${SEED ? SEED_VERSION : pkg.manifest.version}`,
+			);
+			(SEED ? publishSeed : publish)(pkg);
 		}
 	}
 
