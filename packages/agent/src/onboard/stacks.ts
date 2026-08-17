@@ -5,19 +5,39 @@ import type { JudgeBackend } from "../judge/types";
 
 export type Stack = "claude" | "codex" | "cursor" | "local";
 
-export interface StackInfo {
+interface StackBase {
 	id: Stack;
 	label: string;
-	/** how onboarding fulfills the stack: write a skill file, or wire a local judge */
-	kind: "skill-install" | "local-judge";
 	/** judge backend `check` should default to once this stack is onboarded */
 	judge: JudgeBackend;
-	/** skill-install stacks only: */
-	detect?: (cwd: string) => boolean;
-	target?: (cwd: string) => string;
-	format?: "skill-file" | "cursor-rule";
-	scope?: "project" | "user";
 }
+
+/** A coding-agent stack onboarded by writing a skill file. */
+export interface SkillInstallStack extends StackBase {
+	kind: "skill-install";
+	detect: (cwd: string) => boolean;
+	target: (cwd: string) => string;
+	format: "skill-file" | "cursor-rule";
+	scope: "project" | "user";
+}
+
+/** A stack onboarded by wiring a local judge backend; it writes no files. */
+export interface LocalJudgeStack extends StackBase {
+	kind: "local-judge";
+	// Declared as `never` rather than omitted so callers can still probe these
+	// on the union (`STACKS[id].detect?.(cwd)`) without narrowing first.
+	detect?: never;
+	target?: never;
+	format?: never;
+	scope?: never;
+}
+
+/**
+ * The two shapes are a discriminated union rather than one bag of optionals, so
+ * narrowing on `kind` proves `target` and friends are present — which is what
+ * the install path relies on after it returns early for local-judge stacks.
+ */
+export type StackInfo = SkillInstallStack | LocalJudgeStack;
 
 const someExists = (paths: string[]) => paths.some((p) => existsSync(p));
 

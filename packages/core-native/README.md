@@ -107,10 +107,28 @@ The native binding borrows the existing `Buffer` or `Uint8Array` backing memory 
     <th width="500">Description</th>
   </tr>
   <tr>
+    <td><code>metric</code></td>
+    <td>"pixel" | "ssim" | "ms-ssim" | "hitchhikers-ssim"</td>
+    <td>"pixel"</td>
+    <td>Comparison metric. <code>pixel</code> reports which pixels changed; the rest report a pooled similarity <code>score</code> in 0-1</td>
+  </tr>
+  <tr>
+    <td><code>minScore</code></td>
+    <td>number</td>
+    <td>1</td>
+    <td>Score at or above which the ssim metrics call two images identical</td>
+  </tr>
+  <tr>
+    <td><code>ssimWindowSize</code></td>
+    <td>number</td>
+    <td>11</td>
+    <td>Local window size for the ssim metrics</td>
+  </tr>
+  <tr>
     <td><code>threshold</code></td>
     <td>number</td>
     <td>0.1</td>
-    <td>Color difference threshold (0.0-1.0). Lower = more strict</td>
+    <td>Color difference threshold (0.0-1.0). Lower = more strict. Pixel metric only</td>
   </tr>
   <tr>
     <td><code>antialiasing</code></td>
@@ -130,76 +148,16 @@ The native binding borrows the existing `Buffer` or `Uint8Array` backing memory 
     <td>diff color</td>
     <td>Alternative RGB color for darkening differences</td>
   </tr>
-  <tr>
-    <td><code>interpret</code></td>
-    <td>boolean</td>
-    <td>false</td>
-    <td>Generate the diff image and structured interpretation in one pass, adding <code>interpretation</code> to the result</td>
-  </tr>
 </table>
-
-### interpret(image1, image2, options?)
-
-Convenience wrapper that calls `compare` with `interpret: true` and returns the `InterpretResult` directly. Accepts matching path or encoded byte inputs. No diff image output - purely analytical.
-
-<table>
-  <tr>
-    <th width="500">Parameter</th>
-    <th width="500">Type</th>
-    <th width="500">Description</th>
-  </tr>
-  <tr>
-    <td><code>image1</code></td>
-    <td>string | Uint8Array</td>
-    <td>First image path or encoded bytes</td>
-  </tr>
-  <tr>
-    <td><code>image2</code></td>
-    <td>string | Uint8Array</td>
-    <td>Second image path or encoded bytes</td>
-  </tr>
-  <tr>
-    <td><code>options</code></td>
-    <td>Pick&lt;BlazeDiffOptions, "threshold" | "antialiasing"&gt;</td>
-    <td>Comparison options (optional)</td>
-  </tr>
-</table>
-
-<strong>Returns:</strong> `Promise<InterpretResult>`
 
 ### Result Types
 
 ```typescript
 type BlazeDiffResult =
-  | { match: true; interpretation?: InterpretResult }
+  | { match: true }
   | { match: false; reason: "layout-diff" }
-  | { match: false; reason: "pixel-diff"; diffCount: number; diffPercentage: number; interpretation?: InterpretResult }
+  | { match: false; reason: "pixel-diff"; diffCount: number; diffPercentage: number }
   | { match: false; reason: "file-not-exists"; file: string };
-
-interface InterpretResult {
-  summary: string;          // Human-readable summary of the diff
-  diffCount: number;        // Total number of differing pixels
-  totalRegions: number;     // Number of detected change regions
-  regions: ChangeRegion[];  // Detailed per-region analysis
-  severity: string;         // Overall severity level
-  diffPercentage: number;   // Percentage of pixels that differ
-  width: number;            // Image width
-  height: number;           // Image height
-}
-
-interface ChangeRegion {
-  bbox: BoundingBox;               // Bounding box of the region
-  pixelCount: number;              // Number of changed pixels in this region
-  percentage: number;              // Percentage of image this region covers
-  position: string;                // Spatial position descriptor
-  shape: string;                   // Shape classification
-  shapeStats: ShapeStats;          // Shape statistical analysis
-  changeType: string;              // Type of change detected
-  signals: ClassificationSignals;  // Classification signal details
-  confidence: number;              // Confidence level of classification
-  colorDelta: ColorDeltaStats;     // Color difference statistics
-  gradient: GradientStats;         // Gradient analysis statistics
-}
 ```
 
 ## Usage
@@ -223,31 +181,18 @@ if (result.match) {
 }
 ```
 
-### Compare with Interpretation
+### Describing What Changed
+
+This package answers *where* two images differ. For *what* changed — labelled
+regions, change types, severity and a human-readable summary — use
+[`@blazediff/interpret-native`](https://www.npmjs.com/package/@blazediff/interpret-native),
+which classifies the same diff and can also locate regions with an SSIM map or
+boxes you already have.
 
 ```typescript
-import { compare } from '@blazediff/core-native';
+import { interpret } from '@blazediff/interpret-native';
 
-const result = await compare('expected.png', 'actual.png', 'diff.png', {
-  threshold: 0.1,
-  interpret: true,
-});
-
-if (!result.match && result.reason === 'pixel-diff') {
-  const { interpretation } = result;
-  console.log(interpretation.summary);
-  for (const region of interpretation.regions) {
-    console.log(`${region.position}: ${region.changeType} (${region.percentage.toFixed(2)}%)`);
-  }
-}
-```
-
-### Interpret Only (no diff image)
-
-```typescript
-import { interpret } from '@blazediff/core-native';
-
-const result = await interpret('expected.png', 'actual.png');
+const result = await interpret('expected.png', 'actual.png', 'diff.png');
 console.log(result.summary);
 console.log(`Severity: ${result.severity}, ${result.diffPercentage.toFixed(2)}% changed`);
 ```
@@ -270,6 +215,9 @@ npx blazediff expected.png actual.png diff.qoi
 # With options
 npx blazediff expected.png actual.png diff.png --threshold 0.05 --antialiasing
 
+# Score structural similarity instead of counting pixels, and pass at 0.99
+npx blazediff expected.png actual.png ssim-map.png --metric ssim --min-score 0.99
+
 # With higher PNG compression (smaller output file, slower)
 npx blazediff expected.png actual.png diff.png -c 6
 
@@ -291,6 +239,9 @@ Arguments:
   [OUTPUT]  Output diff image path (optional, format detected from extension)
 
 Options:
+      --metric <METRIC>        pixel, ssim, ms-ssim or hitchhikers-ssim [default: pixel]
+      --min-score <SCORE>      Score at or above which the ssim metrics call images identical [default: 1.0]
+      --ssim-window-size <N>   Local window size for the ssim metrics [default: 11]
   -t, --threshold <THRESHOLD>  Color difference threshold (0.0-1.0) [default: 0.1]
   -a, --antialiasing           Enable anti-aliasing detection
       --diff-mask              Output only differences (transparent background)
@@ -298,7 +249,6 @@ Options:
   -c, --compression <LEVEL>    PNG compression level (0-9, 0=fastest, 9=smallest) [default: 0]
   -q, --quality <QUALITY>      JPEG quality (1-100) [default: 90]
       --output-format <FORMAT> Output format (json or text) [default: json]
-      --interpret              Generate diff output and structured interpretation
   -h, --help                   Print help
   -V, --version                Print version
 ```

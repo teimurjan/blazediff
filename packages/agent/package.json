@@ -49,6 +49,7 @@
 	"license": "MIT",
 	"dependencies": {
 		"@blazediff/core-native": "workspace:*",
+		"@blazediff/interpret-native": "workspace:*",
 		"@langchain/core": "^1.1.44",
 		"@langchain/langgraph": "^1.3.0",
 		"@langchain/langgraph-checkpoint": "^1.0.2",

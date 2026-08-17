@@ -46,6 +46,7 @@
 		"@blazediff/core-native": "workspace:*",
 		"@blazediff/core": "workspace:*",
 		"@blazediff/core-wasm": "workspace:*",
+		"@blazediff/interpret-native": "workspace:*",
 		"@blazediff/gmsd": "workspace:*",
 		"@blazediff/codec-pngjs": "workspace:*",
 		"@blazediff/codec-sharp": "workspace:*",

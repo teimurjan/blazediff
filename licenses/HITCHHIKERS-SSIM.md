@@ -28,7 +28,7 @@ Full license: https://github.com/utlive/enhanced_ssim/blob/main/LICENSE
 
 ## Our Implementation
 
-The TypeScript implementation in `@blazediff/ssim` is an independent implementation based on the published algorithm and uses:
+The TypeScript implementation in `@blazediff/ssim` and the Rust implementation in the `blazediff-ssim` crate are independent implementations based on the published algorithm and use:
 - Integral images (summed area tables) for O(1) window computation
 - Rectangular windows instead of Gaussian windows
 - Coefficient of Variation (CoV) pooling for spatial aggregation

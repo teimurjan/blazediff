@@ -1,0 +1,218 @@
+use blazediff_shared::yiq::{color_delta, MAX_YIQ_DELTA_F32};
+use blazediff_shared::Image;
+
+use super::types::{BoundingBox, ColorDeltaStats};
+
+pub fn compute_color_delta(
+    img1: &Image,
+    img2: &Image,
+    mask: &[bool],
+    bbox: &BoundingBox,
+    width: u32,
+) -> ColorDeltaStats {
+    let pixels1 = img1.as_u32();
+    let pixels2 = img2.as_u32();
+
+    let mut sum: f64 = 0.0;
+    let mut sum_sq: f64 = 0.0;
+    let mut max: f32 = 0.0;
+    let mut count: u32 = 0;
+
+    for dy in 0..bbox.height {
+        let y = bbox.y + dy;
+        for dx in 0..bbox.width {
+            let x = bbox.x + dx;
+            let idx = (y * width + x) as usize;
+            if !mask[idx] {
+                continue;
+            }
+
+            let delta = color_delta(pixels1[idx], pixels2[idx], idx).abs() as f32;
+            let normalized = delta as f64 / MAX_YIQ_DELTA_F32 as f64;
+            sum += normalized;
+            sum_sq += normalized * normalized;
+            if delta > max {
+                max = delta;
+            }
+            count += 1;
+        }
+    }
+
+    if count == 0 {
+        return ColorDeltaStats {
+            mean_delta: 0.0,
+            max_delta: 0.0,
+            delta_stddev: 0.0,
+        };
+    }
+
+    let mean = sum / count as f64;
+    let variance = (sum_sq / count as f64 - mean * mean).max(0.0);
+
+    ColorDeltaStats {
+        mean_delta: mean as f32,
+        max_delta: max / MAX_YIQ_DELTA_F32,
+        delta_stddev: variance.sqrt() as f32,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::test_helpers::*;
+
+    #[test]
+    fn test_solid_block_high_delta() {
+        let width = 10;
+        let img1 = make_solid_image(width, 10, 0, 0, 0);
+        let mut img2 = make_solid_image(width, 10, 0, 0, 0);
+        fill_block(&mut img2, 2, 2, 5, 5, 255, 255, 255);
+
+        let mut mask = vec![false; 100];
+        for dy in 0..5u32 {
+            for dx in 0..5u32 {
+                mask[((2 + dy) * width + (2 + dx)) as usize] = true;
+            }
+        }
+
+        let bbox = BoundingBox {
+            x: 2,
+            y: 2,
+            width: 5,
+            height: 5,
+        };
+        let stats = compute_color_delta(&img1, &img2, &mask, &bbox, width);
+
+        assert!(stats.mean_delta > 0.5);
+        assert!(stats.max_delta > 0.5);
+        // Uniform change → low stddev
+        assert!(stats.delta_stddev < 0.01);
+    }
+
+    #[test]
+    fn test_identical_colors_zero_delta() {
+        let width = 10;
+        let img1 = make_solid_image(width, 10, 128, 128, 128);
+        let img2 = make_solid_image(width, 10, 128, 128, 128);
+
+        let mask = vec![true; 100];
+        let bbox = BoundingBox {
+            x: 0,
+            y: 0,
+            width: 10,
+            height: 10,
+        };
+        let stats = compute_color_delta(&img1, &img2, &mask, &bbox, width);
+
+        assert!((stats.mean_delta).abs() < f32::EPSILON);
+        assert!((stats.max_delta).abs() < f32::EPSILON);
+        assert!((stats.delta_stddev).abs() < f32::EPSILON);
+    }
+
+    #[test]
+    fn test_subtle_change_low_delta() {
+        let width = 10;
+        let img1 = make_solid_image(width, 10, 128, 128, 128);
+        let mut img2 = make_solid_image(width, 10, 128, 128, 128);
+        fill_block(&mut img2, 0, 0, 10, 10, 135, 135, 135);
+
+        let mask = vec![true; 100];
+        let bbox = BoundingBox {
+            x: 0,
+            y: 0,
+            width: 10,
+            height: 10,
+        };
+        let stats = compute_color_delta(&img1, &img2, &mask, &bbox, width);
+
+        assert!(stats.mean_delta > 0.0);
+        assert!(stats.mean_delta < 0.05);
+        // Uniform subtle change → low stddev
+        assert!(stats.delta_stddev < 0.01);
+    }
+
+    #[test]
+    fn test_single_pixel_stddev_is_zero() {
+        let width = 10;
+        let img1 = make_solid_image(width, 10, 0, 0, 0);
+        let mut img2 = make_solid_image(width, 10, 0, 0, 0);
+        set_pixel(&mut img2, 5, 5, 255, 255, 255);
+
+        let mut mask = vec![false; 100];
+        mask[55] = true;
+
+        let bbox = BoundingBox {
+            x: 5,
+            y: 5,
+            width: 1,
+            height: 1,
+        };
+        let stats = compute_color_delta(&img1, &img2, &mask, &bbox, width);
+
+        // Single pixel → variance = 0 → stddev = 0
+        assert!(
+            (stats.delta_stddev).abs() < f32::EPSILON,
+            "Single pixel stddev should be 0, got {}",
+            stats.delta_stddev
+        );
+        assert!(stats.mean_delta > 0.0, "Should have nonzero delta");
+    }
+
+    #[test]
+    fn test_stddev_never_negative() {
+        // Multiple changed pixels with varying deltas
+        let width = 10;
+        let img1 = make_solid_image(width, 10, 100, 100, 100);
+        let mut img2 = make_solid_image(width, 10, 100, 100, 100);
+        set_pixel(&mut img2, 0, 0, 200, 100, 100);
+        set_pixel(&mut img2, 1, 0, 100, 200, 100);
+        set_pixel(&mut img2, 2, 0, 100, 100, 200);
+
+        let mut mask = vec![false; 100];
+        mask[0] = true;
+        mask[1] = true;
+        mask[2] = true;
+
+        let bbox = BoundingBox {
+            x: 0,
+            y: 0,
+            width: 3,
+            height: 1,
+        };
+        let stats = compute_color_delta(&img1, &img2, &mask, &bbox, width);
+
+        assert!(
+            stats.delta_stddev >= 0.0,
+            "Stddev must be non-negative, got {}",
+            stats.delta_stddev
+        );
+        assert!(stats.mean_delta >= 0.0, "Mean delta must be non-negative");
+        assert!(stats.max_delta >= stats.mean_delta, "Max must be >= mean");
+    }
+
+    #[test]
+    fn test_patchy_change_high_stddev() {
+        let width = 10;
+        let img1 = make_solid_image(width, 10, 128, 128, 128);
+        let mut img2 = make_solid_image(width, 10, 128, 128, 128);
+        // Half the region changes a lot, half stays similar
+        fill_block(&mut img2, 0, 0, 5, 10, 255, 0, 0);
+        fill_block(&mut img2, 5, 0, 5, 10, 130, 130, 130);
+
+        let mask = vec![true; 100];
+        let bbox = BoundingBox {
+            x: 0,
+            y: 0,
+            width: 10,
+            height: 10,
+        };
+        let stats = compute_color_delta(&img1, &img2, &mask, &bbox, width);
+
+        // Patchy → high stddev
+        assert!(
+            stats.delta_stddev > 0.1,
+            "Expected high stddev for patchy change, got {}",
+            stats.delta_stddev
+        );
+    }
+}

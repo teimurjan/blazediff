@@ -10,12 +10,8 @@
 //!   1 - Images differ
 //!   2 - Error
 
-use blazediff::{
-    diff, interpret::interpret_with_output, load_jpeg, load_jpegs, load_png, load_pngs, load_qoi,
-    load_qois, save_jpeg, save_png_with_compression, save_qoi, DiffError, DiffOptions, Image,
-};
+use blazediff::{diff, DiffError, DiffOptions, Image};
 use clap::Parser;
-use rayon::prelude::*;
 use serde::Serialize;
 use std::path::Path;
 use std::process::ExitCode;
@@ -65,10 +61,6 @@ struct Args {
     /// JPEG quality (1-100, default 90)
     #[arg(short = 'q', long, default_value = "90")]
     quality: u8,
-
-    /// Run structured interpretation after raw pixel diff
-    #[arg(long)]
-    interpret: bool,
 }
 
 fn parse_rgb(value: &str) -> Result<[u8; 3], String> {
@@ -87,87 +79,22 @@ fn parse_rgb(value: &str) -> Result<[u8; 3], String> {
         .map_err(|_| "RGB color must contain exactly three channels".to_string())
 }
 
-/// Supported image formats
-#[derive(Debug, Clone, Copy, PartialEq)]
-enum ImageFormat {
-    Png,
-    Jpeg,
-    Qoi,
-}
-
-impl ImageFormat {
-    fn from_path<P: AsRef<Path>>(path: P) -> Option<Self> {
-        let ext = path.as_ref().extension()?.to_str()?.to_lowercase();
-        match ext.as_str() {
-            "png" => Some(ImageFormat::Png),
-            "jpg" | "jpeg" => Some(ImageFormat::Jpeg),
-            "qoi" => Some(ImageFormat::Qoi),
-            _ => None,
-        }
-    }
-}
-
-/// Load a single image, auto-detecting format
-#[allow(dead_code)]
-fn load_image<P: AsRef<Path>>(path: P) -> Result<Image, DiffError> {
-    let format = ImageFormat::from_path(&path).ok_or_else(|| {
-        DiffError::UnsupportedFormat(format!("Unsupported format: {}", path.as_ref().display()))
-    })?;
-    match format {
-        ImageFormat::Png => load_png(path),
-        ImageFormat::Jpeg => load_jpeg(path),
-        ImageFormat::Qoi => load_qoi(path),
-    }
-}
-
-/// Load two images in parallel, auto-detecting format
+/// Load two images in parallel, auto-detecting format from their extensions.
 fn load_images<P1: AsRef<Path> + Sync, P2: AsRef<Path> + Sync>(
     path1: P1,
     path2: P2,
 ) -> Result<(Image, Image), DiffError> {
-    let fmt1 = ImageFormat::from_path(&path1).ok_or_else(|| {
-        DiffError::UnsupportedFormat(format!("Unsupported format: {}", path1.as_ref().display()))
-    })?;
-    let fmt2 = ImageFormat::from_path(&path2).ok_or_else(|| {
-        DiffError::UnsupportedFormat(format!("Unsupported format: {}", path2.as_ref().display()))
-    })?;
-
-    // If both are same format, use optimized parallel loader
-    if fmt1 == fmt2 {
-        return match fmt1 {
-            ImageFormat::Png => load_pngs(&path1, &path2),
-            ImageFormat::Jpeg => load_jpegs(&path1, &path2),
-            ImageFormat::Qoi => load_qois(&path1, &path2),
-        };
-    }
-
-    // Mixed formats: load in parallel anyway
-    let results: Vec<Result<Image, DiffError>> = [
-        (path1.as_ref().to_path_buf(), fmt1),
-        (path2.as_ref().to_path_buf(), fmt2),
-    ]
-    .par_iter()
-    .map(|(path, fmt)| match fmt {
-        ImageFormat::Png => load_png(path),
-        ImageFormat::Jpeg => load_jpeg(path),
-        ImageFormat::Qoi => load_qoi(path),
-    })
-    .collect();
-
-    let mut iter = results.into_iter();
-    Ok((iter.next().unwrap()?, iter.next().unwrap()?))
+    Ok(blazediff::load_image_pair(path1, path2)?)
 }
 
-/// Save an image, auto-detecting format from extension
+/// Save an image, auto-detecting format from extension.
 fn save_image<P: AsRef<Path>>(image: &Image, path: P, args: &Args) -> Result<(), DiffError> {
-    let format = ImageFormat::from_path(&path).ok_or_else(|| {
-        DiffError::UnsupportedFormat(format!("Unsupported format: {}", path.as_ref().display()))
-    })?;
-    match format {
-        ImageFormat::Png => save_png_with_compression(image, path, args.compression),
-        ImageFormat::Jpeg => save_jpeg(image, path, args.quality),
-        ImageFormat::Qoi => save_qoi(image, path),
-    }
+    Ok(blazediff_shared::save_image(
+        image,
+        path,
+        args.compression,
+        args.quality,
+    )?)
 }
 
 #[derive(Serialize)]
@@ -213,10 +140,6 @@ fn main() -> ExitCode {
         ..Default::default()
     };
 
-    if args.interpret {
-        return run_interpret(&args, &img1, &img2, &options);
-    }
-
     let mut output_image = if args.output.is_some() {
         Some(Image::new_uninit(img1.width, img1.height))
     } else {
@@ -243,42 +166,6 @@ fn main() -> ExitCode {
     output_result(&args, &result);
 
     if result.identical {
-        ExitCode::from(0)
-    } else {
-        ExitCode::from(1)
-    }
-}
-
-fn run_interpret(args: &Args, img1: &Image, img2: &Image, options: &DiffOptions) -> ExitCode {
-    let mut output_image = if args.output.is_some() {
-        Some(Image::new_uninit(img1.width, img1.height))
-    } else {
-        None
-    };
-    let result = match interpret_with_output(img1, img2, output_image.as_mut(), options) {
-        Ok(r) => r,
-        Err(e) => {
-            output_error(args, &format!("Interpret failed: {e}"));
-            return ExitCode::from(2);
-        }
-    };
-
-    if result.diff_count > 0 {
-        if let (Some(ref output_path), Some(ref output)) = (&args.output, &output_image) {
-            if let Err(e) = save_image(output, output_path, args) {
-                output_error(args, &format!("Failed to save {output_path}: {e}"));
-                return ExitCode::from(2);
-            }
-        }
-    }
-
-    if args.output_format == "json" {
-        println!("{}", serde_json::to_string_pretty(&result).unwrap());
-    } else {
-        println!("{}", result.summary);
-    }
-
-    if result.diff_count == 0 {
         ExitCode::from(0)
     } else {
         ExitCode::from(1)

@@ -47,6 +47,9 @@ importers:
       '@blazediff/ssim':
         specifier: workspace:*
         version: link:../../packages/ssim
+      '@blazediff/ssim-native':
+        specifier: workspace:*
+        version: link:../../packages/ssim-native
       '@types/node':
         specifier: ^24.3.0
         version: 24.3.0
@@ -241,7 +244,13 @@ importers:
 
   crates/blazediff: {}
 
+  crates/blazediff-interpret: {}
+
   crates/blazediff-png: {}
+
+  crates/blazediff-shared: {}
+
+  crates/blazediff-ssim: {}
 
   examples/agent-auth-spa-example:
     dependencies:
@@ -325,6 +334,9 @@ importers:
       '@blazediff/core-native':
         specifier: workspace:*
         version: link:../core-native
+      '@blazediff/interpret-native':
+        specifier: workspace:*
+        version: link:../interpret-native
       '@langchain/core':
         specifier: ^1.1.44
         version: 1.1.46(ws@8.18.3)
@@ -432,6 +444,9 @@ importers:
       '@blazediff/gmsd':
         specifier: workspace:*
         version: link:../gmsd
+      '@blazediff/interpret-native':
+        specifier: workspace:*
+        version: link:../interpret-native
       '@blazediff/ssim':
         specifier: workspace:*
         version: link:../ssim
@@ -601,6 +616,39 @@ importers:
       vitest:
         specifier: ^3.2.4
         version: 3.2.4(@types/debug@4.1.12)(@types/node@24.3.0)(@vitest/ui@3.2.4)(happy-dom@18.0.1)(jiti@2.6.0)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.20.6)(yaml@2.8.1)
+
+  packages/interpret-native:
+    devDependencies:
+      '@types/node':
+        specifier: ^24.3.0
+        version: 24.3.0
+      '@types/pngjs':
+        specifier: ^6.0.5
+        version: 6.0.5
+      pngjs:
+        specifier: ^7.0.0
+        version: 7.0.0
+      tsup:
+        specifier: 8.5.0
+        version: 8.5.0(jiti@2.6.0)(postcss@8.5.15)(tsx@4.20.6)(typescript@5.9.2)(yaml@2.8.1)
+      typescript:
+        specifier: 5.9.2
+        version: 5.9.2
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.4(@types/debug@4.1.12)(@types/node@24.3.0)(@vitest/ui@3.2.4)(happy-dom@18.0.1)(jiti@2.6.0)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.20.6)(yaml@2.8.1)
+
+  packages/interpret-native-darwin-arm64: {}
+
+  packages/interpret-native-darwin-x64: {}
+
+  packages/interpret-native-linux-arm64: {}
+
+  packages/interpret-native-linux-x64: {}
+
+  packages/interpret-native-win32-arm64: {}
+
+  packages/interpret-native-win32-x64: {}
 
   packages/jest:
     dependencies:
@@ -778,6 +826,42 @@ importers:
       vitest:
         specifier: ^3.2.4
         version: 3.2.4(@types/debug@4.1.12)(@types/node@24.3.0)(@vitest/ui@3.2.4)(happy-dom@18.0.1)(jiti@2.6.0)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.20.6)(yaml@2.8.1)
+
+  packages/ssim-native:
+    devDependencies:
+      '@blazediff/ssim':
+        specifier: workspace:*
+        version: link:../ssim
+      '@types/node':
+        specifier: ^24.3.0
+        version: 24.3.0
+      '@types/pngjs':
+        specifier: ^6.0.5
+        version: 6.0.5
+      pngjs:
+        specifier: ^7.0.0
+        version: 7.0.0
+      tsup:
+        specifier: 8.5.0
+        version: 8.5.0(jiti@2.6.0)(postcss@8.5.15)(tsx@4.20.6)(typescript@5.9.2)(yaml@2.8.1)
+      typescript:
+        specifier: 5.9.2
+        version: 5.9.2
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.4(@types/debug@4.1.12)(@types/node@24.3.0)(@vitest/ui@3.2.4)(happy-dom@18.0.1)(jiti@2.6.0)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.20.6)(yaml@2.8.1)
+
+  packages/ssim-native-darwin-arm64: {}
+
+  packages/ssim-native-darwin-x64: {}
+
+  packages/ssim-native-linux-arm64: {}
+
+  packages/ssim-native-linux-x64: {}
+
+  packages/ssim-native-win32-arm64: {}
+
+  packages/ssim-native-win32-x64: {}
 
   packages/ui:
     dependencies:
@@ -3745,7 +3829,6 @@ packages:
 
   bun@1.3.5:
     resolution: {integrity: sha512-c1YHIGUfgvYPJmLug5QiLzNWlX2Dg7X/67JWu1Va+AmMXNXzC/KQn2lgQ7rD+n1u1UqDpJMowVGGxTNpbPydNw==}
-    cpu: [arm64, x64]
     os: [darwin, linux, win32]
     hasBin: true
 
@@ -6738,9 +6821,6 @@ packages:
   tinyexec@0.3.2:
     resolution: {integrity: sha512-KQQR9yN7R5+OSwaK0XQoj22pwHoTlgYqmUscPYoknOoWCWfj/5/ABTMRi69FrKU5ffPVh5QcFikpWJI/P1ocHA==}
 
-  tinyexec@1.0.1:
-    resolution: {integrity: sha512-5uC6DDlmeqiOwCPmK9jMSdOuZTh8bU39Ys6yidB+UTt5hfZUPGAypSgFRiEp+jbi9qH40BLDvy85jIU88wKSqw==}
-
   tinyexec@1.2.2:
     resolution: {integrity: sha512-M/Q0B2cp4K7kynaT/vnED1j8TlLY+Pp7C6Wl2bl/7u/F0mUVwdyOpwomQb8JpYLitHUssAJRmLZdMCGsrx7i+g==}
     engines: {node: '>=18'}
@@ -7437,6 +7517,8 @@ packages:
 
 ignoredOptionalDependencies:
   - '@blazediff/core-native-*'
+  - '@blazediff/interpret-native-*'
+  - '@blazediff/ssim-native-*'
 
 snapshots:
 
@@ -7452,7 +7534,7 @@ snapshots:
   '@antfu/install-pkg@1.1.0':
     dependencies:
       package-manager-detector: 1.3.0
-      tinyexec: 1.0.1
+      tinyexec: 1.2.2
 
   '@antfu/utils@9.2.1': {}
 
@@ -8924,14 +9006,14 @@ snapshots:
     dependencies:
       '@remotion/studio': 4.0.291(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       '@remotion/studio-shared': 4.0.291(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
-      css-loader: 5.2.7(webpack@5.96.1)
+      css-loader: 5.2.7(webpack@5.96.1(esbuild@0.25.0))
       esbuild: 0.25.0
       react: 19.1.1
       react-dom: 19.1.1(react@19.1.1)
       react-refresh: 0.9.0
       remotion: 4.0.291(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       source-map: 0.7.3
-      style-loader: 4.0.0(webpack@5.96.1)
+      style-loader: 4.0.0(webpack@5.96.1(esbuild@0.25.0))
       webpack: 5.96.1(esbuild@0.25.0)
     transitivePeerDependencies:
       - '@swc/core'
@@ -9695,7 +9777,7 @@ snapshots:
     dependencies:
       minimatch: 10.0.3
       path-browserify: 1.0.1
-      tinyglobby: 0.2.15
+      tinyglobby: 0.2.16
 
   '@tybys/wasm-util@0.10.2':
     dependencies:
@@ -10670,7 +10752,7 @@ snapshots:
       shebang-command: 2.0.0
       which: 2.0.2
 
-  css-loader@5.2.7(webpack@5.96.1):
+  css-loader@5.2.7(webpack@5.96.1(esbuild@0.25.0)):
     dependencies:
       icss-utils: 5.1.0(postcss@8.5.6)
       loader-utils: 2.0.4
@@ -11302,7 +11384,7 @@ snapshots:
 
   fix-dts-default-cjs-exports@1.0.1:
     dependencies:
-      magic-string: 0.30.18
+      magic-string: 0.30.21
       mlly: 1.8.0
       rollup: 4.49.0
 
@@ -14094,7 +14176,7 @@ snapshots:
     dependencies:
       js-tokens: 9.0.1
 
-  style-loader@4.0.0(webpack@5.96.1):
+  style-loader@4.0.0(webpack@5.96.1(esbuild@0.25.0)):
     dependencies:
       webpack: 5.96.1(esbuild@0.25.0)
 
@@ -14195,8 +14277,6 @@ snapshots:
   tinybench@5.0.1: {}
 
   tinyexec@0.3.2: {}
-
-  tinyexec@1.0.1: {}
 
   tinyexec@1.2.2: {}
 
@@ -14300,7 +14380,7 @@ snapshots:
       source-map: 0.8.0-beta.0
       sucrase: 3.35.0
       tinyexec: 0.3.2
-      tinyglobby: 0.2.15
+      tinyglobby: 0.2.16
       tree-kill: 1.2.2
     optionalDependencies:
       postcss: 8.5.15

@@ -14,7 +14,7 @@ use blazediff_png::{
     UnknownChunk,
 };
 
-use blazediff::spng_ffi::*;
+use blazediff_shared::spng_ffi::*;
 
 struct CtxGuard(*mut spng_ctx);
 impl Drop for CtxGuard {

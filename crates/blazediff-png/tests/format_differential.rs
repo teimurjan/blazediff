@@ -46,7 +46,7 @@ fn check(bytes: &[u8], o: DecodeOptions, label: &str) {
         .ok()
         .map(|d| (d.width, d.height, d.data));
     let (fmt, flags) = spng_args(&o);
-    let spng = blazediff::decode_spng_reference_fmt(bytes, fmt, flags)
+    let spng = blazediff_shared::decode_spng_reference_fmt(bytes, fmt, flags)
         .ok()
         .map(|(w, h, _, _, d)| (w, h, d));
     if mine == spng {

@@ -1,6 +1,6 @@
 # Interpret
 
-Structured region analysis that takes a raw pixel diff and produces human-readable change descriptions. Available via `--interpret` in the CLI or `interpret()` in the library.
+Structured region analysis that takes a raw pixel diff and produces human-readable change descriptions. It lives in the [`blazediff-interpret`](../blazediff-interpret) crate — `interpret()` in the library, `blazediff-interpret` on the command line, `@blazediff/interpret-native` from JavaScript.
 
 ## Pipeline
 

@@ -5,7 +5,7 @@
 use blazediff_png::decode;
 
 fn oracle(bytes: &[u8]) -> Option<(u32, u32, Vec<u8>)> {
-    blazediff::decode_spng_reference(bytes)
+    blazediff_shared::decode_spng_reference(bytes)
         .ok()
         .map(|img| (img.width, img.height, img.data))
 }

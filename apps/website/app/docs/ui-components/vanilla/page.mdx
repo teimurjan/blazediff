@@ -1,3 +1,8 @@
+---
+title: Framework-Agnostic Image Comparison Components
+description: Mount a swipe, two-up, onion-skin or live pixel-diff image comparison from plain JavaScript with @blazediff/ui, or drive the headless engine from Vue, Svelte or anything else.
+---
+
 # Vanilla Components
 
 import { Tabs } from 'nextra/components'
@@ -8,7 +13,14 @@ import {
   VanillaDifferenceDemo,
 } from "../../../../components/demos/vanilla-modes";
 
-Use the BlazeDiff UI renderer (`mount*` functions) in vanilla JS - or drive the headless engine from any framework. Every example below is live and runs right on this page.
+**`@blazediff/ui` gives you the same four comparison modes as
+[the React package](/docs/ui-components/react), mounted into any DOM node.** Each
+demo below is the real thing, running in this page.
+
+Every `mount*` call returns a `{ update, destroy }` handle: `update(options)`
+swaps sources or options in place, `destroy()` tears the UI down. Underneath sits
+a headless engine you can drive directly from Vue, Svelte, Solid or your own
+renderer, which is what the React package does.
 
 ## Installation
 
@@ -24,7 +36,8 @@ npm install @blazediff/ui
     ```ts
     import { mountSwipe } from "@blazediff/ui";
 
-    mountSwipe(document.getElementById("app"), {
+    // A draggable divider over two stacked images. position is 0 to 100.
+    const handle = mountSwipe(document.getElementById("app"), {
       src1: "before.png",
       src2: "after.png",
       onPositionChange: (position) => console.log(position),
@@ -39,7 +52,8 @@ npm install @blazediff/ui
     ```ts
     import { mountTwoUp } from "@blazediff/ui";
 
-    mountTwoUp(document.getElementById("app"), {
+    // Side by side, with a label when the two images differ in size.
+    const handle = mountTwoUp(document.getElementById("app"), {
       src1: "before.png",
       src2: "after.png",
       onImagesLoaded: ({ image1, image2 }) => console.log(image1, image2),
@@ -54,7 +68,8 @@ npm install @blazediff/ui
     ```ts
     import { mountOnionSkin } from "@blazediff/ui";
 
-    mountOnionSkin(document.getElementById("app"), {
+    // Blends the two images. Good for spotting small position shifts.
+    const handle = mountOnionSkin(document.getElementById("app"), {
       src1: "before.png",
       src2: "after.png",
       opacity: 50,
@@ -70,7 +85,8 @@ npm install @blazediff/ui
     ```ts
     import { mountDifference } from "@blazediff/ui";
 
-    mountDifference(document.getElementById("app"), {
+    // Runs an actual pixel diff in the browser and paints the result.
+    const handle = mountDifference(document.getElementById("app"), {
       src1: "before.png",
       src2: "after.png",
       threshold: 0.1,
@@ -82,4 +98,7 @@ npm install @blazediff/ui
   </Tabs.Tab>
 </Tabs>
 
-Each `mount*` call returns a `{ update, destroy }` handle - call `update(options)` to change sources or options in place, and `destroy()` to remove the UI. See the [full API reference →](/apis/ui).
+## Next
+
+- Using React? [The React components](/docs/ui-components/react) wrap these
+- Every option and the engine API: [`@blazediff/ui` reference](/apis/ui)

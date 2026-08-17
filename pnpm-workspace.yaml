@@ -6,9 +6,15 @@ packages:
   #
   # @blazediff/rust → blazediff crate (crates.io)
   #                 ↘ blazediff wheel (PyPI)
+  # @blazediff/rust-shared → blazediff-shared crate (crates.io)
+  # @blazediff/rust-interpret → blazediff-interpret crate (crates.io)
   # @blazediff/rust-png → blazediff-png crate (crates.io)
+  # @blazediff/rust-ssim → blazediff-ssim crate (crates.io)
   - crates/blazediff
+  - crates/blazediff-interpret
+  - crates/blazediff-shared
   - crates/blazediff-png
+  - crates/blazediff-ssim
 
 onlyBuiltDependencies:
   - esbuild
@@ -17,3 +23,5 @@ onlyBuiltDependencies:
 
 ignoredOptionalDependencies:
   - "@blazediff/core-native-*"
+  - "@blazediff/ssim-native-*"
+  - "@blazediff/interpret-native-*"

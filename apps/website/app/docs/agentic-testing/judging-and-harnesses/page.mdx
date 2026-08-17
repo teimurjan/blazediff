@@ -1,35 +1,45 @@
-# Agentic Visual Testing - Judging and Harnesses
+---
+title: Judging Visual Diffs and Driving Pages With Harnesses
+description: How BlazeDiff turns a failing screenshot diff into a decision - the four heuristic labels, the judgment request handed to a coding agent, harnesses for login and interactions, and when to mask instead of re-baseline.
+---
+
+# Agentic Visual Testing: Judging and Harnesses
 
 import { Callout } from "nextra/components";
 
-A failing `check` isn't always a regression. This page covers the two things that
-turn a raw diff into a decision: **judging** (is this change real, intentional, or
-noise?) and **harnesses** (driving the page - login, interactions - so the right
-thing gets screenshotted in the first place).
+**A failing `check` is not always a regression.** This page covers the two things
+that turn a raw diff into a decision: judging, meaning is this change real,
+intentional, or noise, and harnesses, meaning driving the page so the right thing
+gets screenshotted in the first place.
 
 ## The judging model
 
-The heuristic verdict pipeline emits one of four labels per failing entry:
+The heuristic pipeline puts one of four labels on every failing entry:
 
 | Label | Meaning | Default action |
 |---|---|---|
-| `regression-likely` | Confident structural change | Investigate; do not rewrite |
-| `intentional-likely` | Confident styling/typographic change | Ask user, then rewrite |
-| `noise-likely` | Confident non-deterministic source | Ask user; prefer masking |
-| `ambiguous` | Heuristic couldn't classify | Defer to host judge |
+| `regression-likely` | Confident structural change | Investigate. Do not rewrite. |
+| `intentional-likely` | Confident styling or typographic change | Ask the user, then rewrite |
+| `noise-likely` | Confident non-deterministic source | Ask the user. Prefer masking. |
+| `ambiguous` | The heuristic could not classify it | Defer to the host judge |
+
+Only `ambiguous` reaches an agent. That is the point: asking a model to rule on
+every diff, including the obvious ones, is how you get verdicts that contradict
+each other between runs.
 
 For `ambiguous`, `--judge host` writes a `JudgmentRequest` to
-`.blazediff/judgments/<id>/request.json` with:
+`.blazediff/judgments/<id>/request.json` containing:
 
-- `regions[]` - bounding boxes, pixel counts, and change types per region
-- `paths.locator` (`locator.png`) - a ~400px overview with regions outlined in red
-- `paths.tiles` (`regions.png`) - a vertical stack of `[baseline | actual]` pairs
-- `paths.{baseline,actual,diff}` - full-page PNGs as a fallback
+- `regions[]`, with bounding boxes, pixel counts and change types per region
+- `paths.locator` (`locator.png`), a ~400px overview with regions outlined in red
+- `paths.tiles` (`regions.png`), a vertical stack of `[baseline | actual]` pairs
+- `paths.{baseline,actual,diff}`, the full-page PNGs, as a fallback
 
 <Callout type="info">
-**Token discipline.** The region tiles are 10–100× smaller than the full-page
-PNGs. A well-behaved host agent reads `regions.png` + `locator.png` first and only
-falls back to the full-page PNGs if a region clearly continues outside its crop.
+**Token discipline.** The region tiles are 10x to 100x smaller than the full-page
+PNGs. A well-behaved host agent reads `regions.png` and `locator.png` first, and
+falls back to the full-page PNGs only when a region clearly continues outside its
+crop.
 </Callout>
 
 The host agent writes its verdict to `.blazediff/judgments/<id>/verdict.json`:
@@ -48,14 +58,14 @@ The host agent writes its verdict to `.blazediff/judgments/<id>/verdict.json`:
 }
 ```
 
-Then merge verdicts into the report - no re-screenshot:
+Merge verdicts into the report without re-screenshotting anything:
 
 ```bash
 blazediff-agent check --apply-judgments --json
 ```
 
-Accept an intentional change by re-baselining the entry (mask/viewport/waitFor are
-preserved; only the PNG regenerates):
+Accept an intentional change by re-baselining the entry. Mask, viewport and
+`waitFor` are preserved; only the PNG is regenerated:
 
 ```bash
 blazediff-agent rewrite agent --json       # by id
@@ -65,23 +75,23 @@ blazediff-agent rewrite --failed --json    # all failures from the last check
 ## Why agents fail at visual review
 
 Handing a coding agent two screenshots and asking "what changed" fails reliably.
-The failures have specific causes, and the judgment request is shaped to avoid
-each one.
+The failures have specific causes, and the judgment request is shaped around each
+one.
 
-| Failure                                                                                      | Cause                                                                                    | What BlazeDiff does                                                                          |
-| -------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| Agent invents differences that are not there                                                  | Asked to compare two images in one pass, it narrates a plausible diff instead of reading one | Regions are found deterministically first; the agent only labels changes that were measured    |
-| Agent misses a real change                                                                    | On a full-page 4K PNG the change is a fraction of a percent of the pixels                  | `regions.png` crops each changed area to `[baseline \| actual]` pairs, so it fills the frame   |
-| Agent cannot say where on the page something is                                               | Crops have no context                                                                      | `locator.png` is a ~400px overview with every region outlined in red                           |
-| Verdicts contradict each other between runs                                                   | Every diff gets asked, including obvious ones                                              | A heuristic settles the confident cases; only `ambiguous` reaches the agent                    |
-| Review burns tokens or times out                                                              | Full-page PNGs, re-sent on every retry                                                     | Tiles are 10–100× smaller; the run is checkpointed and resumes instead of restarting           |
-| Agent "fixes" the failure by re-baselining                                                    | Judging and accepting are the same action                                                  | Verdicts are advisory. `rewrite` is a separate command, blocked in CI                          |
+| Failure | Cause | What BlazeDiff does |
+| --- | --- | --- |
+| Invents differences that are not there | Asked to compare two images in one pass, the model narrates a plausible diff instead of reading one | Regions are found deterministically first. The agent only labels changes that were measured. |
+| Misses a real change | On a full-page 4K PNG the change is a fraction of a percent of the pixels | `regions.png` crops each changed area into a `[baseline \| actual]` pair, so it fills the frame |
+| Cannot say where on the page something is | Crops carry no context | `locator.png` is a ~400px overview with every region outlined in red |
+| Verdicts contradict each other between runs | Every diff gets asked, including the obvious ones | A heuristic settles the confident cases. Only `ambiguous` reaches the agent. |
+| Burns tokens or times out | Full-page PNGs, re-sent on every retry | Tiles are 10x to 100x smaller, and the run is checkpointed so it resumes rather than restarts |
+| "Fixes" the failure by re-baselining | Judging and accepting are the same action | Verdicts are advisory. `rewrite` is a separate command, blocked in CI. |
 
 The rule underneath all of it: **describe each side separately, then diff the
-descriptions**. A model asked to compare two images in one step will fill gaps
-with what it expects to see. A model asked what a single crop contains is
-answering a much easier question, and the comparison afterwards is arithmetic.
-The `--judge local` backend follows the same shape - Moondream describes, then a
+descriptions.** A model asked to compare two images in one step fills gaps with
+what it expects to see. A model asked what a single crop contains is answering a
+much easier question, and the comparison afterwards is arithmetic. The
+`--judge local` backend follows the same shape: Moondream describes, a
 deterministic word diff runs, then Qwen classifies the result.
 
 If your agent is still returning bad verdicts, check in this order:
@@ -91,19 +101,19 @@ If your agent is still returning bad verdicts, check in this order:
 2. Is the entry actually `ambiguous`? A `regression-likely` entry does not need a
    verdict, it needs a look.
 3. Is the diff real, or is the region non-deterministic? Masking a flake is
-   correct; asking an agent to rule on a spinner is not.
+   correct. Asking an agent to rule on a spinner is not.
 
 ## Harnesses
 
 A **harness** is a pluggable ESM script in `.blazediff/harnesses/<name>.js`,
-attached to an entry via its `harnesses: [{ name, params? }]` list. Login is just
-one kind - anything that drives the page before or around a screenshot is a
-harness. Two phases:
+attached to an entry through its `harnesses: [{ name, params? }]` list. Login is
+one kind of harness. Anything that drives the page before or around a screenshot
+is a harness. There are two phases:
 
-- **`setup`** - runs before navigation (establish a session, e.g. login).
-- **`interact`** (default) - runs after the base screenshot; drives the page and
-  may emit extra named screenshots via `screenshot(name)`, each its own baseline
-  entry `<entry>__<name>`.
+- **`setup`** runs before navigation, to establish a session such as a login.
+- **`interact`**, the default, runs after the base screenshot. It drives the page
+  and can emit extra named screenshots through `screenshot(name)`, each becoming
+  its own baseline entry `<entry>__<name>`.
 
 ### Interaction harness
 
@@ -124,8 +134,9 @@ export default {
 
 ### Login harness
 
-Routes behind a login flow capture through a `setup` harness. Credentials live in
-environment variables - never in the harness file, the manifest, or LLM context.
+Routes behind a login capture through a `setup` harness. Credentials live in
+environment variables, never in the harness file, the manifest, or an LLM's
+context.
 
 ```js
 /** @type {import("@blazediff/agent").Harness<{ persona?: string }>} */
@@ -147,34 +158,39 @@ export default {
 };
 ```
 
-Attach it per entry, and drop credentials in `.blazediff/.env` (auto-gitignored):
+Attach it per entry, and put the credentials in `.blazediff/.env`, which is
+gitignored automatically:
 
 ```json
 { "id": "dashboard", "url": "/dashboard",
   "harnesses": [{ "name": "auth", "params": { "persona": "default" } }] }
 ```
 
-For OAuth/SSO, magic links, MFA, or captcha - record interactively instead:
+For OAuth, SSO, magic links, MFA or captcha, record the session interactively
+instead:
 `blazediff-agent auth init --persona default --login-url http://127.0.0.1:3000/login`.
 
 ## Masking flaky regions
 
-When a diff is `noise-likely` - or a real-looking diff is actually caused by
-something non-deterministic - mask it, don't rebaseline. A rebaseline just resets
-the clock on a flake; a mask removes it. Mask auto-cycling animations, third-party
-iframes, timestamps, per-session randomness, and personalization noise. **Don't**
-mask real content that happens to be changing - that's the change you want caught.
+When a diff is `noise-likely`, or a real-looking diff turns out to come from
+something non-deterministic, mask it rather than re-baselining. A re-baseline just
+resets the clock on a flake; a mask removes it.
 
-The agent always masks any element matching `[data-blazediff-agent-mask]` - no
-manifest change needed. Add it to a shared component and it applies on every route:
+Mask auto-cycling animations, third-party iframes, timestamps, per-session
+randomness and personalization noise. Do **not** mask real content that happens to
+change often. That is the change you want caught.
+
+The agent always masks any element matching `[data-blazediff-agent-mask]`, with no
+manifest change needed. Put it on a shared component and it applies on every
+route:
 
 ```tsx
 <div data-blazediff-agent-mask="report-carousel">...</div>
 ```
 
-When you can't edit the source (third-party embed), fall back to a per-entry CSS
-selector. The mask list **replaces** the existing one, so include every selector
-you want kept:
+When you cannot edit the source, such as a third-party embed, fall back to a
+per-entry CSS selector. The mask list **replaces** the existing one, so include
+every selector you want to keep:
 
 ```bash
 cat <<'EOF' | blazediff-agent capture --stdin --mode baseline --json
@@ -184,4 +200,10 @@ cat <<'EOF' | blazediff-agent capture --stdin --mode baseline --json
 EOF
 ```
 
-Full reference: [`@blazediff/agent` docs →](/apis/agent).
+## Next
+
+- [Cross-OS false positives](/guides/cross-os-false-positives) when the same page
+  renders differently on macOS and Linux CI
+- [Anti-aliasing and 1px shifts](/guides/anti-aliasing-false-positives) when text
+  edges are the source of the churn
+- Every command and flag: [`@blazediff/agent` reference](/apis/agent)

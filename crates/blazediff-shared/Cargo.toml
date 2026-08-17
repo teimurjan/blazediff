@@ -1,0 +1,49 @@
+[package]
+name = "blazediff-shared"
+version = "5.4.0"
+edition = "2021"
+authors = ["Teimur Gasanov"]
+description = "Shared BlazeDiff primitives: the RGBA8 image type, YIQ color math, and PNG/JPEG/QOI I/O"
+license = "MIT"
+repository = "https://github.com/teimurjan/blazediff"
+keywords = ["image", "png", "jpeg", "qoi", "yiq"]
+categories = ["multimedia::images", "multimedia::encoding"]
+build = "build.rs"
+readme = "README.md"
+include = [
+    "src/**/*",
+    "build.rs",
+    "vendor/**/*",
+    "!vendor/**/bin/**",
+    "Cargo.toml",
+    "README.md",
+]
+
+[lib]
+name = "blazediff_shared"
+path = "src/lib.rs"
+
+[features]
+default = ["codecs"]
+# PNG/JPEG/QOI decode and encode. With it off the crate is pure Rust with no
+# vendored C and leaves only `Image`, `ImageError` and `ImageFormat` — which is
+# exactly what the wasm build of `blazediff` links.
+codecs = ["dep:memmap2", "dep:libc", "dep:qoi", "dep:rayon", "dep:blazediff-png"]
+# Internal-only: exposes the spng reference decoder to `blazediff-png`'s
+# differential tests and to blazediff's fuzz targets.
+fuzzing = ["codecs"]
+
+[dependencies]
+bytemuck = "1"
+memmap2 = { version = "0.9", optional = true }
+libc = { version = "0.2", optional = true }
+qoi = { version = "0.4", optional = true }
+rayon = { version = "1.10", optional = true }
+# `version` is required to publish `blazediff-shared` to crates.io; kept in lockstep
+# with this crate's version by scripts/release/sync-cargo-version.js.
+blazediff-png = { path = "../blazediff-png", version = "5.4.0", optional = true }
+
+[build-dependencies]
+cc = "1.2"
+pkg-config = "0.3"
+cmake = "0.1.57"

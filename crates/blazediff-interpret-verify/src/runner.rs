@@ -1,5 +1,5 @@
-use blazediff::interpret::{classify_regions, interpret};
 use blazediff::types::DiffOptions;
+use blazediff_interpret::{classify_regions, interpret_diff};
 
 use crate::matching::match_case;
 use crate::types::{CaseResult, EvaluationMode, RegionMatch, ValidationCase};
@@ -69,7 +69,7 @@ fn run_end_to_end(
     iou_threshold: f64,
     min_pixels: u32,
 ) -> CaseResult {
-    let result = interpret(&case.img1, &case.img2, options)
+    let result = interpret_diff(&case.img1, &case.img2, None, options)
         .unwrap_or_else(|e| panic!("interpret failed on case '{}': {e}", case.name));
 
     let predictions = if min_pixels > 0 {
@@ -105,8 +105,8 @@ pub fn run_validation(
 mod tests {
     use super::*;
     use crate::types::{DatasetTier, GroundTruthRegion, ValidationCase};
-    use blazediff::interpret::types::{BoundingBox, ChangeType};
     use blazediff::types::Image;
+    use blazediff_interpret::types::{BoundingBox, ChangeType};
 
     fn solid(width: u32, height: u32, r: u8, g: u8, b: u8) -> Image {
         let mut img = Image::new(width, height);

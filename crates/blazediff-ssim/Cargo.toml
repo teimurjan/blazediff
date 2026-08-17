@@ -1,0 +1,49 @@
+[package]
+name = "blazediff-ssim"
+version = "5.4.0"
+edition = "2021"
+authors = ["Teimur Gasanov"]
+description = "SSIM, MS-SSIM and Hitchhiker's SSIM with compile-time SIMD kernels and MATLAB parity"
+license = "MIT"
+repository = "https://github.com/teimurjan/blazediff"
+keywords = ["ssim", "image-quality", "msssim", "simd", "perceptual"]
+categories = ["multimedia::images", "algorithms"]
+build = "build.rs"
+include = ["src/**/*", "build.rs", "Cargo.toml", "README.md"]
+
+[lib]
+name = "blazediff_ssim"
+path = "src/lib.rs"
+# cdylib is what the `napi` feature turns into a `.node`; the rlib is what
+# blazediff and everyone else links.
+crate-type = ["lib", "cdylib"]
+
+[features]
+# N-API bindings for `@blazediff/ssim-native`. Everything it needs is optional,
+# so a default build of this crate still resolves to zero dependencies —
+# `cargo tree` prints the crate alone.
+napi = [
+    "dep:napi",
+    "dep:napi-derive",
+    "dep:napi-build",
+    "dep:blazediff-shared",
+]
+
+[dependencies]
+# All optional, all `napi`-only. The metrics themselves are std-only, so the
+# crate compiles for every target blazediff does, wasm32 included, with no
+# feature negotiation.
+napi = { version = "2", features = ["napi4"], optional = true }
+napi-derive = { version = "2", optional = true }
+# Decoding for the path/buffer entry points. `version` is required to publish
+# to crates.io; kept in lockstep by scripts/release/sync-cargo-version.js.
+blazediff-shared = { path = "../blazediff-shared", version = "5.4.0", optional = true }
+
+[build-dependencies]
+napi-build = { version = "2", optional = true }
+
+[dev-dependencies]
+# Decodes the eight `fixtures/blazediff` PNGs for tests/matlab_parity.rs.
+# Deliberately not blazediff-png: the parity test's job is to catch SSIM drift,
+# and an in-repo decoder would let a decoder regression masquerade as one.
+png = "0.18.1"

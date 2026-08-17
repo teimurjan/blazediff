@@ -103,7 +103,7 @@ Initializes the wasm module. Safe to call multiple times; subsequent calls retur
 
 ### `diff(a, b, width, height, output?, options?)`
 
-Compares two RGBA pixel buffers and returns the number of differing pixels. Set `interpret: true` to return structured interpretation while producing the diff output in the same pass.
+Compares two RGBA pixel buffers and returns the number of differing pixels.
 
 <table>
   <tr>
@@ -138,12 +138,12 @@ Compares two RGBA pixel buffers and returns the number of differing pixels. Set 
   </tr>
   <tr>
     <td><code>options</code></td>
-    <td>DiffOptions | InterpretedDiffOptions</td>
+    <td>DiffOptions</td>
     <td>Comparison options (optional)</td>
   </tr>
 </table>
 
-**Returns:** `Promise<number>` by default, or `Promise<DiffResult>` with `interpret: true`
+**Returns:** `Promise<number>`
 
 <table>
   <tr>
@@ -176,40 +176,18 @@ Compares two RGBA pixel buffers and returns the number of differing pixels. Set 
     <td>diff color</td>
     <td>Alternative RGB color for darkening differences</td>
   </tr>
-  <tr>
-    <td><code>interpret</code></td>
-    <td>boolean</td>
-    <td>false</td>
-    <td>Return structured interpretation from the same diff pass</td>
-  </tr>
 </table>
 
-With `interpret: true`, `diff()` returns:
-
 ```typescript
-type DiffResult =
-  | { match: true; interpretation: InterpretResult }
-  | {
-      match: false;
-      reason: 'pixel-diff';
-      diffCount: number;
-      diffPercentage: number;
-      interpretation: InterpretResult;
-    };
-```
-
-```typescript
-const result = await diff(a, b, width, height, output, {
+const diffCount = await diff(a, b, width, height, output, {
   diffColorAlt: [0, 128, 255],
-  interpret: true,
 });
 ```
 
-### `interpret(a, b, width, height, options?)`
-
-Returns structured change regions without retaining a diff visualization. It is a convenience wrapper over `diff()` with `interpret: true`.
-
-**Returns:** `Promise<InterpretResult>`
+Region analysis — *what* changed rather than where — is no longer part of this
+package. It lives in
+[`@blazediff/interpret-native`](https://www.npmjs.com/package/@blazediff/interpret-native),
+which is a Node N-API package and has no wasm build.
 
 ## Usage
 

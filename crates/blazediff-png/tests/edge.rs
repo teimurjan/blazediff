@@ -9,7 +9,7 @@ use blazediff_png::{decode, encode, ColorMode, EncodeOptions, Image, PngError};
 #[track_caller]
 fn assert_parity(bytes: &[u8], label: &str) {
     let mine = decode(bytes);
-    let spng = blazediff::decode_spng_reference(bytes).ok();
+    let spng = blazediff_shared::decode_spng_reference(bytes).ok();
     match (&mine, &spng) {
         (Ok(m), Some(s)) => assert_eq!(m.data, s.data, "{label}: pixel mismatch"),
         (Err(_), None) => {}

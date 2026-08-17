@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import ssim from "@blazediff/ssim/ssim";
+import { hasNativeBinding, ssim as ssimNative } from "@blazediff/ssim-native";
 import { Bench, hrtimeNow } from "tinybench";
 import {
 	getStructureBenchmarkImagePairs,
@@ -10,6 +11,12 @@ import {
 
 async function main() {
 	const { iterations, format, output, fixtures } = parseBenchmarkArgs();
+
+	// Both ports take decoded RGBA, so this stays an image-IO-free comparison
+	// of the metric itself. The native side is skipped rather than fatal on a
+	// platform with no prebuilt binary.
+	const native = hasNativeBinding();
+	console.log(`[ssim] Native binding available: ${native}`);
 
 	const pairs = getStructureBenchmarkImagePairs(fixtures);
 	const pairsLoaded = await loadImagePairs(pairs);
@@ -28,6 +35,12 @@ async function main() {
 		bench.add(`ssim - ${pairs[i].name}`, () => {
 			ssim(a.data, b.data, undefined, a.width, a.height);
 		});
+
+		if (native) {
+			bench.add(`ssim-native - ${pairs[i].name}`, () => {
+				ssimNative(a.data, b.data, a.width, a.height);
+			});
+		}
 	}
 
 	await bench.run();

@@ -10,8 +10,8 @@
 //!   PNG at its balanced/default compression. Output size is reported
 //!   alongside time so the speed/ratio trade-off is visible.
 
-use blazediff::spng_ffi::*;
 use blazediff_png::{ColorMode, EncodeOptions, Filter, Image};
+use blazediff_shared::spng_ffi::*;
 use png::DeflateCompression;
 use std::os::raw::c_int;
 

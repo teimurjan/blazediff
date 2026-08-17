@@ -1,9 +1,13 @@
 [workspace]
 members = [
     "blazediff",
+    "blazediff-interpret",
     "blazediff-interpret-verify",
+    "blazediff-shared",
     "blazediff-png",
     "blazediff-png-benchmark",
+    "blazediff-ssim",
+    "blazediff-ssim-benchmark",
 ]
 resolver = "2"
 

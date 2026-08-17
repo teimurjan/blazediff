@@ -1,19 +1,32 @@
-# Pixel-by-pixel Comparison - Rust + N-API in Node
+---
+title: Fastest Image Diff in Node With Native Rust and N-API
+description: Compare screenshots in Node with @blazediff/core-native, a SIMD Rust addon that decodes PNG, JPEG and QOI itself, writes the diff image, and runs a 4K pair about 4x to 5x faster than odiff.
+---
+
+# Pixel-by-pixel Comparison with Node Native
 
 import { Tabs } from "nextra/components";
 import DiffImageComparison from "../../../../components/diff-image-comparison";
 
-The fastest path: native Rust compiled to a Node addon via N-API, ~3-4× faster
-than odiff. `@blazediff/core-native` accepts file paths or encoded `Buffer` and
-`Uint8Array` inputs. It decodes PNG, JPEG, and QOI itself in parallel and can
-write the diff image straight to disk. Reach for it in Node test runners and CI
-when you want maximum throughput.
+**`@blazediff/core-native` is the fastest way to diff two images from Node.** It
+is the Rust core compiled to a Node addon through N-API, with SIMD in both passes.
+Unlike the JS and wasm cores it also handles the file layer: it accepts paths or
+encoded buffers, decodes PNG, JPEG and QOI itself, and writes the diff image to
+disk for you.
+
+Reach for it in test runners and CI, which is where the decode cost and the
+per-run overhead actually add up. It needs a prebuilt binary for the platform, so
+it is not an option in browsers or on the edge. That is what
+[the wasm build](/docs/pixel-comparison/rust-wasm) is for.
 
 ## Installation
 
 ```bash npm2yarn
 npm install @blazediff/core-native
 ```
+
+Platform binaries ship as optional dependencies for macOS, Linux and Windows on
+x64 and arm64. There is no build step and no `node-gyp`.
 
 ## Examples
 
@@ -69,6 +82,7 @@ const result = await compare(expected, actual);
 ```ts
 import { compare } from "@blazediff/core-native";
 
+// Third argument is the diff output path; pass undefined to skip writing one.
 const result = await compare("3a.png", "3b.png", undefined, {
   threshold: 0.5,
   antialiasing: true,
@@ -95,10 +109,30 @@ const result = await compare("3a.png", "3b.png", "diff.png");
   </Tabs.Tab>
 </Tabs>
 
-Encoded inputs are borrowed directly for each synchronous native call, so the
-JavaScript bytes are not copied into Rust. PNG, JPEG, or QOI decoding still
-allocates native RGBA pixel buffers.
+Encoded inputs are borrowed directly for each native call, so the JavaScript bytes
+are never copied into Rust. Decoding still allocates native RGBA buffers, and on a
+4K pair that decode is the larger share of the total.
 
-Want a verdict on *what* changed, not just how many pixels? Pass `interpret: true`
-or use the dedicated [Image Difference Analysis →](/docs/difference-analysis)
-example. Full options in the [API reference →](/apis/core-native).
+## What it costs
+
+Against [odiff](https://github.com/dmtrKovalenko/odiff) on the same fixtures with
+image IO included, measured with hyperfine on an M1 Max, 25 runs:
+
+| Case               | odiff             | `@blazediff/core-native` |
+| ------------------ | ----------------- | ------------------------ |
+| 4K pair            | 1157.12-1677.13ms | 288.01-349.43ms          |
+| 4K pair, identical | 269.36-366.79ms   | 183.94-230.29ms          |
+
+That is 4x to 4.8x on a changed 4K pair. Because decode dominates end-to-end time,
+passing already-decoded buffers moves the number further than any change to the
+diff kernel would. [Full tables](/benchmarks/pixel-by-pixel).
+
+## Next
+
+- Want a verdict on *what* changed rather than how many pixels? Reach for
+  [`@blazediff/interpret-native`](/apis/interpret-native) or read
+  [Image difference analysis](/docs/difference-analysis)
+- Wiring this into Jest, Vitest or Bun:
+  [`@blazediff/vitest` reference](/apis/vitest)
+- Every option and its default:
+  [`@blazediff/core-native` reference](/apis/core-native)

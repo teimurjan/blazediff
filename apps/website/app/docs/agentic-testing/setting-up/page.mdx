@@ -1,11 +1,27 @@
-# Agentic Visual Testing - Setting Up
+---
+title: Set Up Agentic Visual Regression Testing
+description: Install @blazediff/agent, point it at your dev server, and commit a first set of screenshot baselines. Deterministic capture and diffing locally, with your coding agent judging the ambiguous cases.
+---
+
+# Agentic Visual Testing: Setting Up
 
 import { Callout } from "nextra/components";
 
-`@blazediff/agent` captures deterministic screenshots of your routes, diffs them
-against committed baselines with the native BlazeDiff core, and hands ambiguous
-diffs back to your coding agent (Claude Code, Cursor, Codex) to judge. This page
-gets you from zero to a committed set of baselines.
+**`@blazediff/agent` screenshots your routes, diffs them against baselines
+committed to your repo, and hands the diffs it cannot classify to your coding
+agent for a verdict.** Claude Code, Cursor and Codex are supported out of the box.
+There is no hosted service, no API key in the default flow, and no screenshot
+leaves your machine.
+
+The workflow splits in two, on purpose:
+
+- **Authoring happens on your machine.** You capture baselines, add masks, write
+  harnesses, and accept intentional changes. All of it is blocked in CI.
+- **Checking happens in CI.** One command re-captures, diffs, and fails the build
+  on a regression.
+
+This page covers authoring, from nothing to a committed set of baselines. Then
+read [Running in CI](/docs/agentic-testing/running-in-ci).
 
 ## 1. Install
 
@@ -13,7 +29,7 @@ gets you from zero to a committed set of baselines.
 npm install --save-dev @blazediff/agent
 ```
 
-First run prompts to install bundled Playwright Chromium - no `sudo`, no
+The first run offers to install a bundled Playwright Chromium. No `sudo`, no
 `npx playwright install --with-deps`.
 
 ```bash
@@ -24,17 +40,17 @@ blazediff-agent browsers install                  # install if missing
 ## 2. Onboard
 
 `onboard` writes `.blazediff/config.json` from your dev script, sets up
-`.gitignore`, installs Chromium, and installs the playbook into whatever
+`.gitignore`, installs Chromium, and installs the playbook into whichever
 coding-agent stack lives in your project.
 
 ```bash
-# Setup only - baselines are captured explicitly in step 4
+# Setup only. Baselines are captured explicitly in step 4.
 blazediff-agent onboard --no-capture
 ```
 
-It detects your stack automatically (Claude Code, Codex, Cursor); pass
+It detects the stack automatically (Claude Code, Codex, Cursor). Pass
 `--stack <name>` to be explicit, or `--stack local` to install the local
-(Moondream + Qwen) judge when there's no coding agent.
+Moondream and Qwen judge when there is no coding agent in the project.
 
 ## 3. Start the dev server
 
@@ -42,13 +58,13 @@ It detects your stack automatically (Claude Code, Codex, Cursor); pass
 blazediff-agent serve-status --detach --json   # waits up to 60s for the port
 ```
 
-Already have a running URL (e.g. staging)? Skip the dev server and point the agent
-at it: `blazediff-agent onboard --url https://staging.example.com`.
+Already have a running URL, such as staging? Skip the dev server and point the
+agent at it: `blazediff-agent onboard --url https://staging.example.com`.
 
 ## 4. Capture baselines
 
-Pipe a JSON list of routes - one `capture` call screenshots them all and writes the
-manifest plus baseline PNGs.
+Pipe in a JSON list of routes. One `capture` call screenshots them all and writes
+the manifest plus the baseline PNGs.
 
 ```bash
 cat <<'EOF' | blazediff-agent capture --stdin --mode baseline --json
@@ -59,20 +75,20 @@ cat <<'EOF' | blazediff-agent capture --stdin --mode baseline --json
 EOF
 ```
 
-Then tear down the dev server (mandatory):
+Then tear the dev server down. This step is mandatory:
 
 ```bash
 blazediff-agent serve-status --kill --json
 ```
 
 <Callout type="info">
-**Commit `.blazediff/`** - config, manifest, and baselines all live there and are
-the source of truth for future checks.
+**Commit `.blazediff/`.** Config, manifest and baselines all live there, and they
+are the source of truth for every later check.
 </Callout>
 
-## The config
+## What ends up in `.blazediff/`
 
-`.blazediff/config.json` is committed and drives every later run:
+`config.json` is committed and drives every later run:
 
 ```json
 {
@@ -83,9 +99,15 @@ the source of truth for future checks.
 }
 ```
 
-`.blazediff/manifest.json` is written by `capture` - **never edit it directly**.
-Per-route behavior (login, interactions) lives in
-[harnesses](/docs/agentic-testing/judging-and-harnesses#harnesses), not config.
+`manifest.json` is written by `capture`. Never edit it by hand. Per-route
+behavior, such as logging in or clicking through a flow, belongs in a
+[harness](/docs/agentic-testing/judging-and-harnesses#harnesses) rather than in
+config.
 
-Next: [Running in CI →](/docs/agentic-testing/running-in-ci). Full command
-reference lives in the [`@blazediff/agent` docs](/apis/agent).
+## Next
+
+- [Running in CI](/docs/agentic-testing/running-in-ci): the one command CI runs,
+  and what its exit codes mean
+- [Judging and harnesses](/docs/agentic-testing/judging-and-harnesses): what to do
+  when a check fails
+- Every command and flag: [`@blazediff/agent` reference](/apis/agent)

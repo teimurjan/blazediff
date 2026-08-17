@@ -8,8 +8,9 @@ set -euo pipefail
 # Outputs to crates/blazediff/dist/ and syncs CLI binaries to packages/core-native-{platform}/.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=_targets.sh
-source "$SCRIPT_DIR/_targets.sh"
+CRATE_DIR="$(dirname "$SCRIPT_DIR")"
+# shellcheck source=../../scripts/_targets.sh
+source "$CRATE_DIR/../scripts/_targets.sh"
 
 print_usage() {
     cat <<EOF
@@ -181,7 +182,7 @@ case "$MODE" in
         ;;
     target)
         host=$(current_target_triple)
-        if [[ "$SPECIFIC_TARGET" == "$host" ]]; then
+        if [[ "$SPECIFIC_TARGET" == "$host" ]] && ! force_cross "$SPECIFIC_TARGET"; then
             build_target "$SPECIFIC_TARGET" false
         elif [[ "$(uname -s)" == "Darwin" && "$SPECIFIC_TARGET" == *"apple-darwin"* ]]; then
             rustup target add "$SPECIFIC_TARGET" 2>/dev/null || true
@@ -201,7 +202,7 @@ case "$MODE" in
         command -v cross &> /dev/null && has_cross=true
 
         for target in "${DEFAULT_TARGETS_NAPI[@]}"; do
-            if [[ "$target" == "$host" ]]; then
+            if [[ "$target" == "$host" ]] && ! force_cross "$target"; then
                 build_target "$target" false || echo "  Skipped $target"
             elif [[ "$(uname -s)" == "Darwin" && "$target" == *"apple-darwin"* ]]; then
                 rustup target add "$target" 2>/dev/null || true

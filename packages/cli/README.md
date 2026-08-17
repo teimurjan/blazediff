@@ -105,6 +105,36 @@ Integral image-based SSIM implementation for faster computation.
 blazediff-cli hitchhikers-ssim image1.png image2.png [options]
 ```
 
+### `interpret` - What changed, not just where
+Structured region analysis: each change gets a type, a shape, a position and the
+statistics behind them. Every other command answers *where* pixels differ or
+*how alike* two images are; this one describes the change.
+
+```bash
+blazediff-cli interpret image1.png image2.png [output] [options]
+```
+
+`output` is written by the `pixel` source only — the metric sources and
+`--regions` have no diff visualization to write, and passing one is an error
+rather than a silently ignored path.
+
+**Options:**
+- `--source <name>` - How to locate regions: `pixel` (default), `ssim`, `ms-ssim`, `hitchhikers-ssim`
+- `-t, --threshold <num>` - Color difference threshold (0 to 1, default: 0.1). `pixel` only
+- `-a, --antialiasing` - Exclude anti-aliased pixels. `pixel` only
+- `-c, --compression <num>` - PNG compression level (0-9, default: 0)
+- `--window-size <num>` - Local window size for the metric sources (default: 11)
+- `--region-floor <num>` - Window score at or below which it counts as changed (default: 0.99)
+- `--regions <json>` - Skip the search and classify these boxes instead
+- `--json` - Print the full result as JSON
+- `-h, --help` - Show help message
+
+The metric sources locate regions by thresholding a similarity map, so their boxes
+are as coarse as that map's grid. The numbers are not: every box is refined against
+the source pixels first, so pixel counts stay per-pixel.
+
+Exits 0 when nothing actionable changed, 1 when it did, 2 on error.
+
 ## Examples
 
 ```bash
@@ -118,6 +148,11 @@ blazediff-cli core image1.png image2.png -o diff.png -t 0.05
 # GMSD similarity metric
 blazediff-cli gmsd image1.png image2.png
 blazediff-cli gmsd image1.png image2.png -o gms-map.png
+
+# Describe what changed
+blazediff-cli interpret image1.png image2.png
+blazediff-cli interpret image1.png image2.png --source ms-ssim
+blazediff-cli interpret image1.png image2.png --json
 
 # SSIM structural similarity
 blazediff-cli ssim image1.png image2.png

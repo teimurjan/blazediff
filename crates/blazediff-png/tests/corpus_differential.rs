@@ -79,7 +79,7 @@ fn snapshot(bytes: &[u8]) -> Option<(u32, u32, Vec<u8>)> {
 }
 
 fn oracle(bytes: &[u8]) -> Option<(u32, u32, Vec<u8>)> {
-    blazediff::decode_spng_reference(bytes)
+    blazediff_shared::decode_spng_reference(bytes)
         .ok()
         .map(|img| (img.width, img.height, img.data))
 }
@@ -193,7 +193,7 @@ fn assert_format_parity(bytes: &[u8], o: DecodeOptions, label: &str) {
         .ok()
         .map(|d| (d.width, d.height, d.data));
     let (fmt, flags) = spng_args(&o);
-    let spng = blazediff::decode_spng_reference_fmt(bytes, fmt, flags)
+    let spng = blazediff_shared::decode_spng_reference_fmt(bytes, fmt, flags)
         .ok()
         .map(|(w, h, _, _, d)| (w, h, d));
     if mine == spng {
@@ -258,7 +258,7 @@ fn corpus_format_matrix_parity_with_spng() {
 }
 
 fn encode_oracle(png: &[u8]) -> Option<(u32, u32, Vec<u8>)> {
-    blazediff::decode_spng_reference(png)
+    blazediff_shared::decode_spng_reference(png)
         .ok()
         .map(|i| (i.width, i.height, i.data))
 }

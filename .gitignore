@@ -7,3 +7,5 @@ data
 .lethe
 # blazediff-png differential corpus (downloaded on demand, never committed)
 .corpus
+# SSIM quality-harness datasets (downloaded on demand, never committed)
+.datasets

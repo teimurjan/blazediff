@@ -24,7 +24,7 @@ fn pngsuite_parity_with_spng() {
         let name = path.file_name().unwrap().to_string_lossy().into_owned();
         let bytes = std::fs::read(&path).unwrap();
         let mine = decode(&bytes);
-        let spng = blazediff::decode_spng_reference(&bytes).ok();
+        let spng = blazediff_shared::decode_spng_reference(&bytes).ok();
         match (&mine, &spng) {
             (Ok(m), Some(s)) => {
                 assert_eq!(

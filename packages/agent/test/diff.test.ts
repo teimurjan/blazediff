@@ -1,4 +1,4 @@
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import sharp from "sharp";
@@ -81,5 +81,19 @@ describe("diffEntry", () => {
 		);
 		expect(result.match).toBe(false);
 		expect(result.reason).toBe("file-not-exists");
+	});
+
+	/**
+	 * A baseline that exists but cannot be decoded is a real error, not a
+	 * baseline waiting to be recorded — reporting it as `file-not-exists` would
+	 * send the caller off to re-record a file that is already there.
+	 */
+	it("surfaces a decode failure instead of calling the file missing", async () => {
+		const corrupt = path.join(tmp, "corrupt.png");
+		await writeFile(corrupt, "not a png");
+
+		await expect(
+			diffEntry("test-corrupt", corrupt, actual, { emitDiffPng: false }, tmp),
+		).rejects.toThrow(/Failed to load images/);
 	});
 });

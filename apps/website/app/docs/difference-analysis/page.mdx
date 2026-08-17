@@ -1,3 +1,8 @@
+---
+title: Image Difference Analysis - What Changed, Not Just How Much
+description: BlazeDiff interpret mode turns a raw pixel diff into labelled regions - addition, deletion, shift, recolor, content change or rendering noise - with a deterministic pipeline and no ML model.
+---
+
 # Image Difference Analysis
 
 import { Tabs } from "nextra/components";
@@ -5,23 +10,35 @@ import InterpretComparison from "../../../components/interpret-comparison";
 import diffData from "../../../data/interpret/blazediff-3-diff.json";
 import identicalData from "../../../data/interpret/blazediff-3-identical.json";
 
-Takes a raw pixel diff and tells you _what_ changed, _where_, and _how much_. No ML
-models - a deterministic pipeline that runs in the same binary as the diff itself.
-Available in both the native Node binding (`@blazediff/core-native`) and the
-WebAssembly build (`@blazediff/core-wasm`), so you can run it server-side or in the
-browser.
+**Interpret mode takes a raw pixel diff and tells you what changed, where, and how
+much.** Instead of one number, you get a list of regions, each with a bounding
+box, a change type, a percentage, and a severity.
+
+It is deterministic. No model, no weights, no network call. It lives in
+`@blazediff/interpret-native`, a Node binding over the `blazediff-interpret`
+crate, and sits above whatever located the change: a pixel diff, an SSIM map, or
+boxes you already have.
+
+This is what makes agent review tractable. A coding agent asked to compare two
+full-page screenshots invents differences; an agent handed three cropped regions
+that were measured deterministically is answering a much easier question. See
+[Agentic visual testing](/docs/agentic-testing/setting-up).
 
 ## How it works
 
-1. Pixel diff → binary change mask
-2. Morphological close → bridge small gaps
-3. Connected components → isolate regions
-4. Per-region evidence extraction:
-   - **Dual-image gradients** - edges in both images + spatial correlation to detect structural preservation
-   - **Color delta distribution** - mean, max, and stddev of YIQ distance to separate uniform recolors from patchy texture changes
-   - **Background distance** - how much changed pixels blend with local unchanged pixels in each image
-5. Six-label decision tree classifies each region
-6. Post-hoc shift detection matches Addition+Deletion pairs
+1. Pixel diff produces a binary change mask.
+2. A morphological close bridges small gaps in that mask.
+3. Connected components isolate the mask into regions.
+4. Evidence is extracted per region:
+   - **Dual-image gradients.** Edges in both images plus spatial correlation, to
+     detect whether structure was preserved.
+   - **Color delta distribution.** Mean, max and standard deviation of YIQ
+     distance, which separates a uniform recolor from a patchy texture change.
+   - **Background distance.** How far changed pixels sit from the local unchanged
+     pixels, in each image separately.
+5. A six-label decision tree classifies each region.
+6. A post-pass pairs Addition and Deletion regions that look like the same content
+   moving, and relabels them as a Shift.
 
 ## Demo
 
@@ -33,15 +50,15 @@ browser.
 
 ## Usage
 
-Both bindings return the same result shape - `summary`, `regions[]` (with
-`position`, `changeType`, `percentage`, …), and `severity`. The native binding
-reads files; the WASM binding takes pre-decoded RGBA buffers.
+Every entry point returns the same shape: a `summary` string, a `regions[]` array
+with `position`, `changeType` and `percentage` on each entry, and an overall
+`severity`.
 
-<Tabs items={['core-native (Node)', 'core-wasm (browser)']}>
+<Tabs items={['interpret-native', 'CLI']}>
   <Tabs.Tab>
 
 ```ts
-import { interpret } from "@blazediff/core-native";
+import { interpret } from "@blazediff/interpret-native";
 
 const result = await interpret("fixtures/3a.png", "fixtures/3b.png");
 
@@ -51,26 +68,34 @@ for (const region of result.regions) {
 }
 ```
 
+Pass a third argument to keep the diff visualization, and `source` to locate the
+regions with a similarity map instead of a pixel diff:
+
+```ts
+await interpret("3a.png", "3b.png", "diff.png");
+await interpret("3a.png", "3b.png", undefined, { source: "ms-ssim" });
+```
+
+When something else already knows where to look — DOM rectangles from a layout
+pass, say — `interpretRegions` skips the search and classifies those boxes:
+
+```ts
+import { interpretRegions } from "@blazediff/interpret-native";
+
+await interpretRegions("3a.png", "3b.png", [{ x: 0, y: 0, width: 64, height: 64 }]);
+```
+
   </Tabs.Tab>
 
   <Tabs.Tab>
 
-```ts
-import { initBlazediff, interpret } from "@blazediff/core-wasm";
-
-await initBlazediff(); // loads the .wasm; call once
-
-// Decode both images to RGBA Uint8Arrays (see the Rust + WASM example)
-const a = await loadRgba("3a.png");
-const b = await loadRgba("3b.png");
-
-const result = await interpret(a.data, b.data, a.width, a.height);
-
-console.log(result.summary);
-for (const region of result.regions) {
-  console.log(`${region.position}: ${region.changeType} (${region.percentage.toFixed(2)}%)`);
-}
+```bash
+blazediff-cli interpret 3a.png 3b.png
+blazediff-cli interpret 3a.png 3b.png diff.png
+blazediff-cli interpret 3a.png 3b.png --source ms-ssim --json
 ```
+
+Exits 0 when nothing actionable changed, 1 when it did, 2 on error.
 
   </Tabs.Tab>
 </Tabs>
@@ -83,44 +108,52 @@ for (const region of result.regions) {
   fullResult={identicalData}
 />
 
-When nothing changed, `regions` is empty and `summary` reports no differences -
-identical for both bindings.
+When nothing changed, `regions` is empty and `summary` says so.
 
 ## Change types
 
 | Type | Meaning |
 |---|---|
-| `Addition` | Content appeared - blends with background in before image, distinct in after |
-| `Deletion` | Content removed - distinct in before, blends with background in after |
-| `Shift` | Content moved - matched Addition+Deletion pair with similar luminance |
-| `ColorChange` | Recolor - edge structure preserved across both images, uniform color shift |
-| `ContentChange` | Structural change - edges differ between images |
-| `RenderingNoise` | Sub-pixel artifacts - filtered from output |
+| `Addition` | Content appeared. Blends with the background in the before image, distinct in the after image. |
+| `Deletion` | Content was removed. Distinct before, blends with the background after. |
+| `Shift` | Content moved. An Addition and a Deletion with similar luminance, paired by the post-pass. |
+| `ColorChange` | A recolor. Edge structure is preserved in both images, with a uniform color shift. |
+| `ContentChange` | A structural change. Edges differ between the two images. |
+| `RenderingNoise` | Sub-pixel artifacts. Filtered out of the output. |
 
 ## Accuracy
 
-Measured against datasets with hand-labeled change regions (see
-[crates/blazediff-interpret-verify/BENCHMARKS.md](https://github.com/teimurjan/blazediff/blob/main/crates/blazediff-interpret-verify/BENCHMARKS.md)
-for the full breakdown).
+Measured against datasets with hand-labeled change regions. Full breakdown in
+[crates/blazediff-interpret-verify/BENCHMARKS.md](https://github.com/teimurjan/blazediff/blob/main/crates/blazediff-interpret-verify/BENCHMARKS.md).
 
 | Dataset | What it tests | Classifier-only macro F1 | End-to-end macro F1 |
 |---|---|---:|---:|
-| `addition_deletion` | Clean object insert / remove on photographs | **0.998** | **0.888** |
+| `addition_deletion` | Clean object insert and remove on photographs | **0.998** | **0.888** |
 | `shift` | Sub-region translations with pixel-perfect ground truth | **0.813** | **0.628** |
 | `inpaintcoco` | Inpaint edits that mix recolor and texture replacement | **0.440** | **0.260** |
 | `html_color_pairs` | Recolors on rendered Tailwind UI screenshots | **0.993** | **0.786** |
 
-Read this as: on clear add/delete edits the classifier almost never picks
-the wrong label (0.998 means 4 mistakes in 904 regions). On synthetic shifts
-the post-pass pairs about two thirds of moved-block events with near-perfect
-precision. On real inpainted photos it lands the right label in about four
-of every nine regions - the `ColorChange` vs `ContentChange` boundary is the
-dominant confusion and the focus area for the next iteration. `html_color_pairs`
-isolates that same boundary on 100 rendered Tailwind UI screenshots that differ
-only in color classes: a dedicated chromatic-recolor branch admits
-same-luminance hue swaps that YIQ otherwise scores as low-delta, lifting
-classifier F1 to 0.993 with zero false positives.
+Read the two columns as different questions. Classifier-only assumes the regions
+were found correctly and asks whether the label is right. End-to-end runs the full
+detector first, so it also pays for missed regions and spurious small ones.
 
-End-to-end runs the full detector pipeline before classifying, so the score
-also reflects detection misses and spurious small regions; classifier-only
-isolates labeling quality from detection.
+What the numbers say, plainly:
+
+- On clear add and delete edits the classifier almost never picks the wrong label.
+  0.998 is 4 mistakes in 904 regions.
+- On synthetic shifts the post-pass pairs about two thirds of moved-block events,
+  with near-perfect precision on the ones it does pair.
+- On real inpainted photographs it lands the right label roughly four times in
+  nine. The `ColorChange` versus `ContentChange` boundary is the dominant
+  confusion and the current focus.
+- `html_color_pairs` isolates that same boundary on 100 rendered Tailwind
+  screenshots that differ only in color classes. A dedicated chromatic-recolor
+  branch admits same-luminance hue swaps that YIQ otherwise scores as low-delta,
+  which lifts classifier F1 to 0.993 with no false positives.
+
+## Next
+
+- Put this to work in a test loop:
+  [Agentic visual testing](/docs/agentic-testing/setting-up)
+- Full result type and options:
+  [`@blazediff/interpret-native` reference](/apis/interpret-native)

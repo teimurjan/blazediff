@@ -5,8 +5,9 @@ set -euo pipefail
 # Outputs to crates/blazediff/dist/wheels/.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=_targets.sh
-source "$SCRIPT_DIR/_targets.sh"
+CRATE_DIR="$(dirname "$SCRIPT_DIR")"
+# shellcheck source=../../scripts/_targets.sh
+source "$CRATE_DIR/../scripts/_targets.sh"
 
 # Isolate the maturin cdylib target dir from the napi build. See build-napi.sh
 # for the full reasoning - sharing target/<triple>/release/libblazediff.so

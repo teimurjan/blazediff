@@ -130,7 +130,21 @@ const PAIRS = {
 			cmd: "pnpm benchmark:ssim",
 			dir: "apps/image-benchmark",
 			filename: "ssim.json",
+			// ssim.json now also holds "ssim-native - X" tasks; without this the
+			// JS and native rows collide on the same fixture key.
+			taskPrefix: "ssim",
 		},
+		// The Rust port, benchmarked in the same run over the same decoded
+		// buffers — one bench command, two series out of one JSON.
+		extra: [
+			{
+				name: "BlazeDiff (ssim-native)",
+				cmd: "pnpm benchmark:ssim",
+				dir: "apps/image-benchmark",
+				filename: "ssim.json",
+				taskPrefix: "ssim-native",
+			},
+		],
 		compareScript: ".github/workflows/scripts/compare-and-print-ssim.js",
 		iterations: 25,
 		warmup: 3,

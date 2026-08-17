@@ -15,7 +15,7 @@
 
 ---
 
-# Packages
+# API Reference
 
 # @blazediff/core
 
@@ -523,8 +523,6 @@ Options:
   -a, --antialiasing         Enable anti-aliasing detection
   --diff-mask                Output only differences (transparent background)
   -c, --compression <n>      PNG compression level (0-9, default: 0)
-  --interpret                Run structured interpretation (region detection + classification)
-  --output-format <fmt>      Output format: png (default) or html (interpret report)
   -h, --help                 Display help
 ```
 
@@ -545,35 +543,50 @@ fi
 
 > **Info:** **Why so fast?** Uses a two-pass block-based algorithm with SIMD acceleration (NEON on ARM, SSE4.1 on x86). The cold pass quickly identifies unchanged blocks, then the hot pass only processes changed regions.
 
-#### Interpret Mode
+### `blazediff-cli interpret`
 
-Add `--interpret` to get structured diff analysis - region detection, content-aware classification (Addition, Deletion, Shift, ContentChange, ColorChange, RenderingNoise), severity scoring, and human-readable summaries.
+Describes *what* changed rather than only where: region detection,
+content-aware classification (Addition, Deletion, Shift, ContentChange,
+ColorChange, RenderingNoise), severity scoring and a human-readable summary.
+
+#### Basic Usage
 
 ```bash
-# JSON output to stdout
-blazediff-cli image1.png image2.png --interpret
+blazediff-cli interpret <image1> <image2> [output] [options]
 
-# With diff image + interpretation
-blazediff-cli image1.png image2.png diff.png --interpret
-
-# HTML report
-blazediff-cli image1.png image2.png report.html --output-format html
+Options:
+  --source <name>           How to locate regions: pixel (default), ssim,
+                            ms-ssim, hitchhikers-ssim
+  -t, --threshold <num>     Color difference threshold (0-1, default: 0.1). pixel only
+  -a, --antialiasing        Exclude anti-aliased pixels. pixel only
+  -c, --compression <num>   PNG compression level (0-9, default: 0)
+  --window-size <num>       Local window size for the metric sources (default: 11)
+  --region-floor <num>      Window score at or below which it counts as changed (default: 0.99)
+  --regions <json>          Skip the search and classify these boxes instead
+  --json                    Print the full result as JSON
+  -h, --help                Display help
 ```
 
-##### Example
+`output` is written by the `pixel` source only — the metric sources and
+`--regions` have no diff visualization to write.
+
+#### Example
 
 ```bash
-$ blazediff-cli image1.png image2.png --interpret
+$ blazediff-cli interpret image1.png image2.png --json
 {
   "summary": "Moderate visual change detected (1.87% of image, 10 regions).\n...",
   "severity": "Medium",
   "diffPercentage": 1.87,
   "regions": [...]
 }
-
-$ blazediff-cli image1.png image2.png report.html --output-format html
-# writes report.html with side-by-side images and clickable region rows
 ```
+
+#### Exit Codes
+
+- `0` - Nothing actionable changed
+- `1` - Change detected
+- `2` - Error
 
 ### `blazediff-cli core`
 
@@ -797,7 +810,7 @@ SSIM: 0.9597
 
 | Algorithm | Best for |
 |-----------|----------|
-| `core-native` (default) | Maximum speed, CI/CD, large images, `--interpret` analysis |
+| `core-native` (default) | Maximum speed, CI/CD, large images |
 | `core` | Custom diff colors, color space control, no native deps |
 | `gmsd` | Similarity score, compression-tolerant |
 | `ssim` | MATLAB-compatible, research |
@@ -1329,19 +1342,16 @@ Compares two images from file paths or encoded `Buffer`/`Uint8Array` inputs and 
 | `antialiasing`     | `boolean` | `false` | Enable anti-aliasing detection                           |
 | `diffMask`         | `boolean` | `false` | Output only differences with transparent background      |
 | `diffColorAlt`     | `[number, number, number]` | diff color | Alternative RGB color for darkening differences |
-| `interpret`        | `boolean` | `false` | Generate the diff image and structured interpretation in one pass |
 
 #### Return Types
 
 ```typescript
 type BlazeDiffResult =
-  | { match: true; interpretation?: InterpretResult }
+  | { match: true }
   | { match: false; reason: "layout-diff" }
-  | { match: false; reason: "pixel-diff"; diffCount: number; diffPercentage: number; interpretation?: InterpretResult }
+  | { match: false; reason: "pixel-diff"; diffCount: number; diffPercentage: number }
   | { match: false; reason: "file-not-exists"; file: string };
 ```
-
-When `interpret: true`, the requested diff output is written and the result includes an `interpretation` field from the same diff pass.
 
 > **Info:** Encoded inputs are passed by reference across the N-API boundary. Rust borrows the existing JavaScript backing memory for the synchronous call. Image decoding still allocates native RGBA pixel buffers.
 
@@ -1428,7 +1438,6 @@ Options:
       --diff-color-alt <R,G,B> Alternative RGB color for darkening differences
   -c, --compression <LEVEL>    PNG compression level (0-9, 0=fastest, 9=smallest) [default: 0]
   -q, --quality <QUALITY>      JPEG quality (1-100) [default: 90]
-      --interpret              Run structured interpretation after diff
       --output-format <FORMAT> Output format (json or text) [default: json]
   -h, --help                   Print help
   -V, --version                Print version
@@ -1454,50 +1463,23 @@ Input images can be mixed formats (e.g., compare PNG to JPEG). Output format is 
 
 ### Interpret
 
-Structured diff analysis for matching path or encoded byte inputs. Returns classified change regions with human-readable summaries.
-
-**Pipeline:** change mask → morph close → connected components → per-region evidence extraction → classify → describe
-
-**Evidence per region:**
-- Dual-image gradient comparison (edges in both images + spatial correlation)
-- YIQ color delta with uniformity analysis (mean, max, stddev)
-- Background distance (changed pixels vs local unchanged pixels)
-- Shape statistics (fill ratio, border density, occupancy)
-
-**Six-label decision tree:**
-
-| Type | Signal |
-|---|---|
-| `RenderingNoise` | Tiny (≤25px) or sparse + low color delta |
-| `Addition` | Blends with background in img1, distinct in img2 |
-| `Deletion` | Distinct in img1, blends with background in img2 |
-| `ColorChange` | Edge structure preserved across both images + uniform color shift |
-| `ContentChange` | Fallback - structural change |
-| `Shift` | Post-hoc: matched Addition+Deletion pair with similar luminance |
+Structured region analysis is a separate package. This one answers *where*
+pixels differ; [`@blazediff/interpret-native`](/apis/interpret-native) takes the
+same pair and describes *what* changed — labelled regions, severity and a
+human-readable summary — and can locate those regions with a pixel diff, an SSIM
+map, or boxes you already have.
 
 ```typescript
-import { compare, interpret } from '@blazediff/core-native';
+import { interpret } from '@blazediff/interpret-native';
 
 const result = await interpret('expected.png', 'actual.png');
 console.log(result.summary);
 // "Moderate visual change detected (1.87% of image, 10 regions).
 //  Content changed: 4 regions (bottom, center).
 //  Content added: 3 regions (right, bottom, bottom-left)."
-
-// Via compare()
-const diff = await compare('expected.png', 'actual.png', 'diff.png', {
-  interpret: true,
-});
 ```
 
-```bash
-npx blazediff expected.png actual.png --interpret
-npx blazediff expected.png actual.png report.html --output-format html
-```
-
-Severity: Low (&lt;1%), Medium (1-10%), High (&gt;10%). See [Interpret example →](/docs/difference-analysis) for interactive demo.
-
-**Accuracy:** Measured against hand-labeled datasets — classifier-only macro F1 is **0.998** on clean add/delete edits (`addition_deletion`) and **0.440** on inpaint edits that mix recolor and texture replacement (`inpaintcoco`). Full breakdown in [BENCHMARKS.md](https://github.com/teimurjan/blazediff/blob/main/crates/blazediff-interpret-verify/BENCHMARKS.md).
+See [Interpret example →](/docs/difference-analysis) for the interactive demo.
 
 ## Performance
 
@@ -1623,7 +1605,7 @@ await initBlazediff(readFileSync(wasmPath));
 
 ### `diff(a, b, width, height, output?, options?)`
 
-Compares two RGBA pixel buffers and returns the number of differing pixels. Set `interpret: true` to return structured interpretation while producing the diff output in the same pass.
+Compares two RGBA pixel buffers and returns the number of differing pixels.
 
 #### Parameters
 
@@ -1634,7 +1616,7 @@ Compares two RGBA pixel buffers and returns the number of differing pixels. Set 
 | `width`   | `number`              | Image width in pixels                                    |
 | `height`  | `number`              | Image height in pixels                                   |
 | `output`  | `Uint8Array \| undefined` | Optional diff visualization output (same length). Written in place |
-| `options` | `DiffOptions \| InterpretedDiffOptions` | Comparison options (optional)                  |
+| `options` | `DiffOptions`         | Comparison options (optional)                            |
 
 ##### Options
 
@@ -1644,34 +1626,16 @@ Compares two RGBA pixel buffers and returns the number of differing pixels. Set 
 | `includeAA`  | `boolean` | `false` | Count anti-aliased pixels as differences                 |
 | `diffMask`   | `boolean` | `false` | Render diff with transparent background instead of grayscale base |
 | `diffColorAlt` | `[number, number, number]` | diff color | Alternative RGB color for darkening differences |
-| `interpret` | `boolean` | `false` | Return structured interpretation from the same diff pass |
 
 > **Info:** **Threshold Guidelines:** `0.0` exact match · `0.05` strict · `0.1` default · `0.2` lenient
 
-With `interpret: true`, `diff()` returns a `DiffResult` instead of a pixel count:
-
 ```typescript
-const result = await diff(a, b, width, height, output, {
+const diffCount = await diff(a, b, width, height, output, {
   diffColorAlt: [0, 128, 255],
-  interpret: true,
 });
 ```
 
-```typescript
-type DiffResult =
-  | { match: true; interpretation: InterpretResult }
-  | {
-      match: false;
-      reason: 'pixel-diff';
-      diffCount: number;
-      diffPercentage: number;
-      interpretation: InterpretResult;
-    };
-```
-
-### `interpret(a, b, width, height, options?)`
-
-Returns structured change regions without retaining a diff visualization. It is a convenience wrapper over `diff()` with `interpret: true`.
+> **Info:** Region analysis — *what* changed rather than where — is not part of this package. It lives in [`@blazediff/interpret-native`](/apis/interpret-native), a Node N-API package with no wasm build.
 
 ## Usage
 
@@ -1758,6 +1722,254 @@ Average ~51% faster across the full fixture set (~60% across differing pairs). C
 - [GitHub Repository](https://github.com/teimurjan/blazediff)
 - [NPM Package](https://www.npmjs.com/package/@blazediff/core-wasm)
 - [Rust Crate](https://crates.io/crates/blazediff)
+
+---
+
+# @blazediff/interpret-native
+
+Native Rust **structured interpretation** of image diffs: what changed, where, and how much — not just which pixels differ.
+
+## Installation
+
+```sh
+npm install @blazediff/interpret-native
+```
+
+The platform binary installs as an optional dependency; there is no compile step.
+
+## Usage
+
+```ts
+import { interpret } from "@blazediff/interpret-native";
+
+const result = await interpret("expected.png", "actual.png");
+console.log(result.summary);
+// "Low-impact visual change detected (0.18% of image, 2 regions).
+//  Content added: 2 regions (center, bottom-right)."
+
+for (const region of result.regions) {
+  console.log(`${region.position}: ${region.changeType} (${region.pixelCount}px)`);
+}
+```
+
+## Choosing how regions are found
+
+The classifier is independent of whatever locates the change, so the locator is a parameter:
+
+| `source` | How it finds regions | When |
+| --- | --- | --- |
+| `pixel` (default) | connected components over a per-pixel diff | exact boxes; the usual choice |
+| `ssim`, `ms-ssim`, `hitchhikers-ssim` | thresholding a structural-similarity map | tolerant of imperceptible noise |
+
+```ts
+const loose = await interpret("expected.png", "actual.png", undefined, {
+  source: "ms-ssim",
+});
+```
+
+> **Info:** A metric's map is far coarser than a pixel, so its **boxes are blocky**. Its **numbers are not**: every box is refined against the source pixels before anything is measured, so `pixelCount` and `diffCount` count actually-changed pixels on every source, never map windows. On a real fixture pair the pixel diff reports 776 changed pixels and MS-SSIM-located regions report 792.
+
+## Regions you already have
+
+If something else already knows where to look — DOM rectangles from a layout pass, a crop list — skip the search entirely:
+
+```ts
+import { interpretRegions } from "@blazediff/interpret-native";
+
+const result = await interpretRegions("expected.png", "actual.png", [
+  { x: 16, y: 16, width: 32, height: 32 },
+]);
+```
+
+Boxes may be coarse; they are refined the same way. A box outside the image is rejected rather than read past.
+
+## Result
+
+```ts
+interface InterpretResult {
+  summary: string;        // human-readable
+  diffCount: number;      // actually-changed pixels
+  totalRegions: number;
+  regions: ChangeRegion[];
+  severity: string;
+  diffPercentage: number;
+  width: number;
+  height: number;
+}
+```
+
+Each `ChangeRegion` carries a `changeType`, `shape`, `position`, `confidence`, and the statistics behind them — colour delta, gradient/edge correlation, fill ratios, and the classifier's signals.
+
+## Options
+
+```ts
+{
+  source?: "pixel" | "ssim" | "ms-ssim" | "hitchhikers-ssim",
+
+  // pixel source
+  threshold?: number,     // Default: 0.1
+  antialiasing?: boolean, // exclude AA pixels. Default: false
+  compression?: number,   // PNG level for a written diff. Default: 0
+  quality?: number,       // JPEG quality for a written diff. Default: 90
+
+  // metric sources
+  windowSize?: number,    // Default: 11
+  regionFloor?: number,   // window score at/below which it counts as changed. Default: 0.99
+}
+```
+
+Passing a third argument to `interpret` writes the diff visualization to that path (pixel source only). Encoded PNG/JPEG/QOI buffers work in place of paths on the pixel source; the metric sources need paths.
+
+## Relationship to the other packages
+
+[`@blazediff/core-native`](/apis/core-native) answers *where* pixels differ. [`@blazediff/ssim-native`](/apis/ssim-native) answers *how alike* two images look. This package answers *what changed*, and is the only one of the three that depends on the other two — they know nothing about interpretation.
+
+## Platforms
+
+macOS (arm64, x64), Linux (arm64, x64), Windows (arm64, x64). The binding is required; there is no JS fallback.
+
+## Links
+
+- [npm](https://www.npmjs.com/package/@blazediff/interpret-native)
+- [The Rust crate behind it](/apis/blazediff-interpret)
+- [GitHub Repository](https://github.com/teimurjan/blazediff)
+
+---
+
+# @blazediff/ssim-native
+
+Native Rust structural-similarity metrics for Node.js: **SSIM, MS-SSIM, Hitchhiker's SSIM and perceptual SSIM**, through N-API. Decodes PNG, JPEG and QOI. It is the [`blazediff-ssim`](/apis/blazediff-ssim) crate with nothing held back.
+
+## Installation
+
+```sh
+npm install @blazediff/ssim-native
+```
+
+The platform binary installs as an optional dependency; there is no compile step.
+
+## Why a separate package
+
+[`@blazediff/core-native`](/apis/core-native) is a pixel diff: it answers *where* two images differ. This package answers *how alike* they look — a different question, so it is a different package rather than a flag on that one.
+
+It exposes the whole crate: every stability constant, both pooling methods, Hitchhiker's stride, all of `perceptual-ssim`, and the local score map itself. The two are independent and share no code but the decoders; installing one does not pull in the other.
+
+## Usage
+
+```ts
+import { compare } from "@blazediff/ssim-native";
+
+const result = await compare("expected.png", "actual.png", "map.png", {
+  metric: "ms-ssim",
+  minScore: 0.99,
+});
+
+if (result.match) {
+  console.log(`close enough: ${result.score}`);
+} else if (result.reason === "score-below-threshold") {
+  console.log(`scored ${result.score}, ${result.belowCount} windows below the floor`);
+}
+```
+
+`compare` takes two file paths or two encoded buffers (Node `Buffer` works directly). A third argument renders the local score map to that path as grayscale, dark where the score is low.
+
+### Result
+
+`SsimResult` is a discriminated union:
+
+| `match` | `reason` | Carries |
+| --- | --- | --- |
+| `true` | — | `score`, `metric`, `mapWidth`, `mapHeight` |
+| `false` | `"score-below-threshold"` | the above plus `belowCount`, `belowPercentage` |
+| `false` | `"layout-diff"` | — the images are different sizes |
+| `false` | `"file-not-exists"` | `file` |
+
+`score` is pooled similarity in `0..=1`, where 1 is identical. `belowCount` counts map windows scoring under `minScore` — window counts, not pixel counts.
+
+## Metrics
+
+| Metric | What it does |
+| --- | --- |
+| `ssim` (default) | Gaussian-windowed single-scale SSIM, with the automatic downsample to ~256px on the short edge that MATLAB's `ssim.m` does |
+| `ms-ssim` | SSIM pooled across a 5-octave dyadic pyramid, per `msssim.m`. Needs ≥176px on the short edge |
+| `hitchhikers-ssim` | Box windows over five integral images, pooled by coefficient of variation (Venkataramanan et al. 2021). Every window sum is an O(1) summed-area-table lookup instead of ten 11-tap convolutions |
+| `perceptual-ssim` | The tunable variant: CIE L\*a\*b\*, chroma weighting, chroma subsampling and MAD pooling, each an independent knob. At its defaults it reduces *bit-identically* to `ms-ssim`, which is what makes it usable as an ablation study rather than a second opinion |
+
+## Raw RGBA
+
+If you already have decoded pixels, skip the codec. These are synchronous:
+
+```ts
+import { msSsim, renderMap } from "@blazediff/ssim-native";
+
+const result = msSsim(rgba1, rgba2, width, height, { returnMap: true });
+const grayscale = renderMap(result.map!, result.mapWidth, result.mapHeight, width, height);
+```
+
+`ssim`, `msSsim`, `hitchhikersSsim` and `perceptualSsim` all take `(base, comparison, width, height, options?)`. Both buffers are read at the same dimensions, so there is no layout-difference case here — a buffer too short for `width * height` throws.
+
+## Options
+
+```ts
+interface CompareOptions {
+  metric?: "ssim" | "ms-ssim" | "hitchhikers-ssim" | "perceptual-ssim";
+  minScore?: number;   // identical at or above this. Default: 1
+  returnMap?: boolean; // include the Float32Array map. Default: false
+
+  // shared by every metric
+  windowSize?: number; // Default: 11
+  k1?: number;         // Default: 0.01
+  k2?: number;         // Default: 0.03
+  bitDepth?: number;   // Default: 8, so L = 255
+
+  msSsim?: { weights?: number[]; method?: "product" | "weighted-sum" };
+  hitchhikers?: { windowStride?: number; covPooling?: boolean };
+  perceptual?: {
+    weights?: number[]; method?: "product" | "weighted-sum";
+    color?: "gamma-luma" | "lab"; chromaWeight?: number; chromaSubsample?: number;
+    pooling?: "mean" | "mad"; deviationWeight?: number;
+  };
+
+  compression?: number; // PNG level for a rendered map. Default: 0
+  quality?: number;     // JPEG quality for a rendered map. Default: 90
+}
+```
+
+> **Info:** The map is withheld unless `returnMap` is set — it is one float per window and costs a copy across the binding.
+
+## Faster PNG decoding
+
+Decoding is shared with [`@blazediff/core-native`](/apis/core-native) — both sit on the [`blazediff-shared`](/apis/blazediff-shared) crate — so the same opt-in applies here. Setting `BLAZEDIFF_PNG_ENABLED=1` routes PNG decode through the in-house [`blazediff-png`](/apis/blazediff-png) codec instead of libspng:
+
+```bash
+BLAZEDIFF_PNG_ENABLED=1 node compare.mjs
+```
+
+Worth roughly 15% off a 4K `compare()` call, with byte-identical decoded pixels and therefore an unchanged score. It is read once per process, and only affects the path and buffer APIs — the raw RGBA entry points never decode anything.
+
+## Accuracy
+
+The Rust implementation's tap-by-tap accumulation order is frozen to [`@blazediff/ssim`](/apis/ssim), the TypeScript port whose MATLAB agreement was measured, so this package *inherits* that agreement instead of drifting from it by an unmeasured amount. Both sides carry tests pinning the two ports to within 5e-6; SSIM lands within 0.03% of MATLAB across the fixture set.
+
+> **Warning:** `ms-ssim` with the default `"product"` pooling returns `NaN` for globally anticorrelated content (an inverted image). Both references degenerate the same way — the JS gives `NaN`, MATLAB gives a complex number. `"weighted-sum"` stays finite throughout.
+
+## Caveats
+
+All three shipped metrics reduce to luma, so a change carried entirely by chroma or by alpha is invisible to them. `perceptual-ssim` with `color: "lab"` and a non-zero `chromaWeight` sees colour.
+
+Scores are pooled over a local map, so these say *how much* two images differ, not *where* beyond the map's resolution. For exact locations, use [`@blazediff/core-native`](/apis/core-native).
+
+Unlike `@blazediff/core-native` there is no CLI to fall back to — this package ships only the `.node`, so an unsupported platform throws rather than degrading.
+
+## Platforms
+
+macOS (arm64, x64), Linux (arm64, x64), Windows (arm64, x64).
+
+## Links
+
+- [npm](https://www.npmjs.com/package/@blazediff/ssim-native)
+- [The Rust crate behind it](/apis/blazediff-ssim)
+- [GitHub Repository](https://github.com/teimurjan/blazediff)
 
 ---
 
@@ -2865,8 +3077,6 @@ result = compare(
 | `diff_mask`      | `bool`          | `False` | Output only differences with a transparent background                  |
 | `compression`    | `int`           | `0`     | PNG compression level (0-9, 0 = fastest, 9 = smallest)                 |
 | `quality`        | `int`           | `90`    | JPEG quality (1-100)                                                   |
-| `interpret`      | `bool`          | `False` | Run structured interpretation (region detection + classification)      |
-| `output_format`  | `"png" \| "html"` | `"png"` | `"html"` writes an interactive interpret report to `diff_output`     |
 
 #### Return value
 
@@ -2878,21 +3088,8 @@ result = compare(
 | `reason`         | `str \| None`              | `"layout-diff"` or `"pixel-diff"` when `match` is `False`    |
 | `diff_count`     | `int \| None`              | Number of differing pixels (pixel-diff only)                 |
 | `diff_percentage`| `float \| None`            | Percentage of differing pixels (pixel-diff only)             |
-| `interpretation` | `InterpretResult \| None`  | Populated when `interpret=True` or `output_format="html"`    |
 
 > **Info:** **Threshold guidelines:** - `0.0` - Exact match only - `0.05` - Strict comparison - `0.1` - Default balanced comparison - `0.2` - Lenient comparison
-
-### `interpret_images(image1_path, image2_path, *, threshold=0.1, antialiasing=False)`
-
-Returns the full `InterpretResult` (regions, severity, summary) without writing any output file. Equivalent to `compare(..., interpret=True)` minus the diff image.
-
-```python
-from blazediff import interpret_images
-
-result = interpret_images("expected.png", "actual.png")
-print(result.summary)
-print(f"{result.total_regions} regions, severity={result.severity}")
-```
 
 ## Usage
 
@@ -2943,29 +3140,17 @@ compare("expected.jpg", "actual.jpg", "diff.jpg", quality=85)
 
 ### Interpret mode
 
-Structured analysis - change regions, classification (Addition, Deletion, Shift, ContentChange, ColorChange, RenderingNoise), severity scoring, and human-readable summaries.
+Structured analysis — change regions, classification (Addition, Deletion,
+Shift, ContentChange, ColorChange, RenderingNoise), severity scoring and
+human-readable summaries — is not part of the Python wheel. It lives in the
+[`blazediff-interpret`](/apis/blazediff-interpret) crate, reachable from a
+shell with its `blazediff-interpret` CLI:
 
-```python
-from blazediff import compare, interpret_images
-
-# Programmatic
-result = interpret_images("expected.png", "actual.png")
-print(result.summary)
-# "Moderate visual change detected (1.87% of image, 10 regions).
-#  Content changed: 4 regions (bottom, center).
-#  Content added: 3 regions (right, bottom, bottom-left)."
-
-for region in result.regions:
-    print(f"  {region.region_type} @ {region.position}, severity={region.severity}")
-
-# Diff image + interpretation
-result = compare("expected.png", "actual.png", "diff.png", interpret=True)
-
-# Interactive HTML report
-compare("expected.png", "actual.png", "report.html", output_format="html")
+```bash
+blazediff-interpret expected.png actual.png --json
 ```
 
-Severity tiers: `Low` (&lt;1%), `Medium` (1-10%), `High` (&gt;10%). See [Interpret example →](/docs/difference-analysis) for the interactive demo.
+See [Interpret example →](/docs/difference-analysis) for the interactive demo.
 
 ## Links
 
@@ -3023,11 +3208,8 @@ blazediff a.jpg b.jpg diff.jpg -q 85
 # QOI diff output (12x smaller than PNG, faster encode)
 blazediff a.png b.png diff.qoi
 
-# Structured interpretation (JSON)
-blazediff a.png b.png --interpret
-
-# HTML interpret report
-blazediff a.png b.png report.html --output-format html
+# Structured interpretation (separate crate and binary)
+blazediff-interpret a.png b.png --json
 ```
 
 ### CLI Options
@@ -3044,10 +3226,10 @@ Options:
   -t, --threshold <THRESHOLD>  Color difference threshold (0.0-1.0) [default: 0.1]
   -a, --antialiasing           Enable anti-aliasing detection
       --diff-mask              Output only differences (transparent background)
+      --diff-color-alt <R,G,B> Alternative RGB color for darkening differences
   -c, --compression <LEVEL>    PNG compression level (0-9) [default: 0]
   -q, --quality <QUALITY>      JPEG quality (1-100) [default: 90]
-      --interpret              Run structured interpretation after diff
-      --output-format <FORMAT> Output format (json, text, or html for interpret) [default: json]
+      --output-format <FORMAT> Output format (json or text) [default: json]
   -h, --help                   Print help
   -V, --version                Print version
 ```
@@ -3127,7 +3309,10 @@ The `napi` and `python` features are mutually exclusive build modes for distribu
 
 ## Interpret
 
-Structured diff analysis. Takes two images, returns classified change regions with human-readable summaries.
+Structured diff analysis. Takes two images, returns classified change regions
+with human-readable summaries. It is not part of this crate: it lives in
+[`blazediff-interpret`](/apis/blazediff-interpret), which consumes what `diff`
+returns and ships its own `blazediff-interpret` binary.
 
 **Pipeline:** change mask -> morph close -> connected components -> per-region evidence extraction -> classify -> describe
 
@@ -3143,8 +3328,8 @@ Structured diff analysis. Takes two images, returns classified change regions wi
 | `Shift`          | Post-hoc: matched Addition+Deletion pair with similar luminance         |
 
 ```sh
-blazediff a.png b.png --interpret
-blazediff a.png b.png report.html --output-format html
+blazediff-interpret a.png b.png
+blazediff-interpret a.png b.png diff.png --json
 ```
 
 Severity tiers: `Low` (&lt;1%), `Medium` (1-10%), `High` (&gt;10%). See [Interpret example →](/docs/difference-analysis) for the interactive demo, and [INTERPRET.md](https://github.com/teimurjan/blazediff/blob/main/crates/blazediff/INTERPRET.md) for the full algorithm spec.
@@ -3165,6 +3350,205 @@ No system C dependencies; the crate builds standalone with a recent Rust toolcha
 - [INTERPRET.md (algorithm spec)](https://github.com/teimurjan/blazediff/blob/main/crates/blazediff/INTERPRET.md)
 - [NPM Package (`@blazediff/core-native`)](https://www.npmjs.com/package/@blazediff/core-native)
 - [PyPI Package](https://pypi.org/project/blazediff/)
+
+---
+
+# blazediff-interpret
+
+Structured region analysis for image diffs. Given two images and a set of changed regions, it says **what** changed in each one — not just where.
+
+## Installation
+
+```toml
+# Cargo.toml
+[dependencies]
+blazediff-interpret = "5.4.0"
+```
+
+The crate name is `blazediff-interpret`; the library imports as `blazediff_interpret`.
+
+## Why it's a separate crate
+
+The classifier is deliberately independent of whatever *found* the regions. Three producers feed it:
+
+| Producer | `ChangeSource` | How it finds regions |
+| --- | --- | --- |
+| [`blazediff`](/apis/rust) | `Diff` | connected components over a pixel-diff mask |
+| [`blazediff-ssim`](/apis/blazediff-ssim) | `ScoreMap` | thresholding a local SSIM score map |
+| your code | `Regions` | DOM rectangles, a JS-side diff, a crop list — anything |
+
+All three call the same function and get identical treatment; only the description of *where* differs. `blazediff` and `blazediff-ssim` are independent of each other, so a classifier living in either would be unreachable from the other. It sits below both, on [`blazediff-shared`](/apis/blazediff-shared).
+
+## Usage
+
+```rust
+use blazediff_interpret::{interpret, ChangeSource};
+
+// From a pixel diff — what `blazediff` does.
+let result = interpret(&expected, &actual, ChangeSource::Diff {
+    output: &diff_image.data,
+    diff_count: diff.diff_count,
+    diff_percentage: diff.diff_percentage,
+})?;
+
+// From a similarity map — what `blazediff-ssim` does.
+let result = interpret(&expected, &actual, ChangeSource::ScoreMap {
+    map: &outcome.map,
+    width: outcome.map_width,
+    height: outcome.map_height,
+    floor: 0.99,
+})?;
+
+// From boxes you already have.
+let result = interpret(&expected, &actual, ChangeSource::Regions(&boxes))?;
+
+println!("{}", result.summary);
+for region in &result.regions {
+    println!("{:?} at {} ({:.2}%)", region.change_type, region.position, region.percentage);
+}
+```
+
+## Coarse regions are fine
+
+A producer only has to know roughly where something changed. Before any statistic is computed, each supplied box is refined against the source pixels — every pixel whose YIQ delta falls below the noise floor is dropped — so shape, colour and gradient analysis stay per-pixel no matter how blocky the input was:
+
+```rust
+// An 8x8 change, described exactly and then quantized to a 16px grid.
+let exact  = interpret(&a, &b, ChangeSource::Regions(&[BoundingBox { x: 16, y: 16, width: 8,  height: 8  }]))?;
+let coarse = interpret(&a, &b, ChangeSource::Regions(&[BoundingBox { x: 16, y: 16, width: 16, height: 16 }]))?;
+assert_eq!(coarse.diff_count, exact.diff_count); // both 64
+```
+
+That is what makes an SSIM window map a usable region source: its grid is coarse, but the statistics derived from it are not.
+
+> **Info:** `diff_count` therefore means the same thing on every path — actually-changed pixels, never windows. On a real fixture pair, SSIM-located regions report 792 changed pixels where the exact pixel diff reports 776.
+
+## API
+
+| Item | Purpose |
+| --- | --- |
+| `interpret` | the entry point: a `ChangeSource` in, a full `InterpretResult` out |
+| `ChangeSource` | `Diff` (a pixel diff's output + counts), `ScoreMap` (a similarity map), or `Regions` |
+| `regions_from_score_map` | threshold a lower-resolution score map into image-space regions |
+| `classify_region` / `classify_regions` | classify against a mask you already hold |
+| `detect_regions` | connected components over a boolean mask |
+| `extract_change_mask` | recover a mask from an RGBA diff visualization |
+| `detect_shifts` | the shift-relabeling pass, for producers holding an exact mask |
+| `classify_severity`, `build_summary` | the pooling steps, for custom pipelines |
+
+> **Warning:** Regions arriving from a caller are validated: a box outside the image is an `InterpretError::RegionOutOfBounds`, not an out-of-bounds panic. That matters now that regions cross the wasm and N-API boundaries.
+
+## From JavaScript
+
+One package wraps all of it — [`@blazediff/interpret-native`](https://www.npmjs.com/package/@blazediff/interpret-native):
+
+```ts
+import { interpret, interpretRegions } from "@blazediff/interpret-native";
+
+// Regions from a pixel diff (default), or from a similarity map.
+const exact = await interpret("expected.png", "actual.png");
+const loose = await interpret("expected.png", "actual.png", undefined, { source: "ms-ssim" });
+
+// Regions you already know about.
+const given = await interpretRegions("expected.png", "actual.png", [
+  { x: 16, y: 16, width: 32, height: 32 },
+]);
+```
+
+## What it classifies
+
+Each region gets a change type, a shape, a position, a confidence, and the statistics behind them — colour delta, gradient/edge correlation, fill ratios, and the signals the classifier used. See [INTERPRET.md](https://github.com/teimurjan/blazediff/blob/main/crates/blazediff/INTERPRET.md) for the full algorithm.
+
+## Links
+
+- [Crates.io](https://crates.io/crates/blazediff-interpret)
+- [Crate README](https://github.com/teimurjan/blazediff/blob/main/crates/blazediff-interpret/README.md)
+- [GitHub Repository](https://github.com/teimurjan/blazediff)
+
+---
+
+# blazediff-shared
+
+The primitives every BlazeDiff crate sits on: the RGBA8 `Image` buffer, **YIQ color math**, and **PNG, JPEG and QOI** decode and encode — normalized to one representation so the compute crates never see a codec.
+
+## Installation
+
+```toml
+# Cargo.toml
+[dependencies]
+blazediff-shared = "5.4.0"
+```
+
+The crate name is `blazediff-shared`; the library imports as `blazediff_shared`.
+
+## Why it exists
+
+The crates above it form a chain — [`blazediff`](/apis/rust) depends on [`blazediff-ssim`](/apis/blazediff-ssim), which depends on `blazediff-interpret` — so anything two of them share has to live below all of them. Two things qualify: **image I/O**, because everyone needs pixels and nobody wants to be a codec, and **YIQ color math**, because both the pixel diff and the region classifier measure perceptual distance and now sit in different crates.
+
+Keeping I/O here also collapses the format dispatch to one copy. It used to be pasted separately into the CLI, the N-API binding and the Python extension — three places to forget when adding a format.
+
+## Usage
+
+```rust
+use blazediff_shared::{load_image_pair, save_image, Image, ImageFormat};
+
+let (a, b) = load_image_pair("expected.png", "actual.jpg")?;
+println!("{}x{}", a.width, a.height);
+
+let out = Image::new(a.width, a.height);
+save_image(&out, "diff.png", /* compression */ 0, /* quality */ 90)?;
+```
+
+Format comes from the file extension for paths and from the magic bytes for buffers:
+
+```rust
+use blazediff_shared::{decode_image, ImageFormat};
+
+assert_eq!(ImageFormat::from_path("a.JPEG"), Some(ImageFormat::Jpeg));
+assert_eq!(ImageFormat::from_bytes(b"qoif...."), Some(ImageFormat::Qoi));
+
+let image = decode_image(&encoded_bytes)?;
+```
+
+## API
+
+| Item | Purpose |
+| --- | --- |
+| `Image` | RGBA8 buffer plus dimensions, with `as_u32` / `get_pixel` / `set_pixel` helpers |
+| `ImageError` | `Io`, `Png`, `Jpeg`, `Qoi`, `UnsupportedFormat` |
+| `ImageFormat` | `from_path`, `from_bytes`, `as_str` |
+| `load_image`, `load_image_pair` | path in, format auto-detected; the pair loads in parallel |
+| `decode_image`, `decode_image_pair` | encoded bytes in, format sniffed from magic bytes |
+| `save_image` | format from the output extension |
+| `load_png` … `save_qoi` | the per-codec entry points, when you already know the format |
+| `yiq::color_delta` | squared YIQ distance between two packed pixels — the perceptual metric behind both the diff and the region classifier |
+| `yiq::{unpack_pixel, pack_pixel, is_opaque}` | packed-`u32` pixel helpers |
+
+The per-codec modules (`png_io`, `jpeg_io`, `qoi_io`) are public too, for callers that want to skip detection.
+
+## Codecs
+
+- **PNG** — vendored [libspng](https://github.com/randy408/libspng), compiled with its SIMD paths. Setting `BLAZEDIFF_PNG_ENABLED` to a truthy value routes decode and level-0 encode through the in-house [`blazediff-png`](/apis/blazediff-png) codec instead, with spng staying as a defensive fallback.
+- **JPEG** — vendored [libjpeg-turbo](https://github.com/libjpeg-turbo/libjpeg-turbo) via the TurboJPEG API.
+- **QOI** — [`qoi-rust`](https://crates.io/crates/qoi), pure Rust.
+
+> **Info:** Adler-32 verification stays on for PNG decode. These entry points read arbitrary, possibly untrusted files, so a corrupt zlib stream must error rather than hand back wrong pixels.
+
+## Features
+
+- **`codecs`** (default) — everything above. Needs a C toolchain and cmake.
+- Without it the crate is pure Rust and compiles to `wasm32`, leaving only `Image`, `ImageError` and `ImageFormat`. That is what the wasm build of `blazediff` links.
+- **`fuzzing`** — internal only; exposes the spng reference decoder for `blazediff-png`'s differential tests.
+
+## Error messages are contract
+
+`ImageError`'s `Display` strings are surfaced verbatim by the CLI, the N-API binding, the Python extension and the JS wrappers, and `@blazediff/core-native` pattern-matches on them to tell a missing file from a malformed one. Changing their wording is a breaking change.
+
+## Links
+
+- [Crates.io](https://crates.io/crates/blazediff-shared)
+- [Crate README](https://github.com/teimurjan/blazediff/blob/main/crates/blazediff-shared/README.md)
+- [GitHub Repository](https://github.com/teimurjan/blazediff)
 
 ---
 
@@ -3294,16 +3678,313 @@ Byte-identical *encode* output to spng is explicitly **not** a goal — both emi
 
 ---
 
-# Examples
+# blazediff-ssim
 
-# Pixel-by-pixel Comparison - Vanilla JavaScript
+Structural-similarity metrics in Rust: **SSIM, MS-SSIM and Hitchhiker's SSIM, vectorised through one lane-generic SIMD layer and held to the reference MATLAB scripts through Octave**. No dependencies, no threads, no runtime dispatch. It powers the `--metric` family in the BlazeDiff Rust crate.
 
-Compare two images pixel by pixel in pure JavaScript - no native binaries, no
-WebAssembly. `@blazediff/core` runs anywhere JS runs (browser, Node, Deno, Bun,
-edge) and is ~1.5× faster than pixelmatch. Reach for it when you want zero install
-friction and portability over raw throughput. Need more speed? See
-[🐆🐆 Rust + WASM](/docs/pixel-comparison/rust-wasm) and
-[🐆🐆🐆 Rust + N-API](/docs/pixel-comparison/rust-napi).
+[View the dssim comparison and quality harness](https://github.com/teimurjan/blazediff/tree/main/crates/blazediff-ssim-benchmark)
+
+## Installation
+
+```toml
+# Cargo.toml
+[dependencies]
+blazediff-ssim = "5.4.0"
+```
+
+The crate name is `blazediff-ssim`; the library imports as `blazediff_ssim`. Crate sources are available on [crates.io](https://crates.io/crates/blazediff-ssim).
+
+## Why a separate crate
+
+A per-pixel diff answers "which pixels changed", which is the right question until anti-aliasing, font hinting or a codec's rounding moves a few thousand pixels by one unit and the run goes red for no reason a human would call a change. SSIM answers the other question: how alike do these look.
+
+The catch is that "SSIM" names a family whose members disagree by more than their published formulas suggest, because the reference implementations differ in window placement, boundary handling and downsampling. The contract here is not "we implemented the paper", it is **land where MATLAB lands, to a stated tolerance, and keep landing there**.
+
+## Features
+
+- **`ssim`**: Gaussian-windowed single-scale SSIM in `'valid'` mode, with the automatic downsampling to ~256px on the short edge that MATLAB's `ssim.m` does.
+- **`ms_ssim`**: SSIM pooled across a 5-octave dyadic pyramid, per `msssim.m`. Product or weighted-sum pooling. Needs at least 176px on the short edge for the default five scales.
+- **`hitchhikers_ssim`**: box windows over five integral images, pooled by coefficient of variation (Venkataramanan et al. 2021). Every window sum is an O(1) summed-area-table lookup instead of ten 11-tap convolutions.
+- **`perceptual_ssim`**: the tunable variant. CIE L\*a\*b\*, chroma weighting, chroma subsampling and mean-absolute-deviation pooling, each an independent knob. With `PerceptualOptions::default()` it reduces *bit-identically* to `ms_ssim`, which is what makes it usable as an ablation study rather than a second opinion.
+- **Zero dependencies**: std only, so it compiles for every target `blazediff` does, wasm32 included, with no feature negotiation.
+
+## Performance
+
+Wall-clock on a 4K pair, decode included (decode is ~200 ms of each):
+
+| Metric | 4K pair | Why |
+| --- | --- | --- |
+| `ssim` | 320 ms | MATLAB's automatic downsample shrinks the plane to ~256px before any convolution runs |
+| `hitchhikers-ssim` | 380 ms | full resolution, but O(1) window sums |
+| `ms-ssim` | 480 ms | full resolution at the finest of five scales |
+
+Against single-threaded [dssim](https://github.com/kornelski/dssim), `ms_ssim` runs about **1.9×** faster. Two things bought that, neither of them threads:
+
+**One fused statistics pass.** A scale needs five moments (µ1, µ2, σ1², σ2², σ12), which the textbook pipeline computes as eleven full-size intermediates. The streaming kernel computes them in a single pass through a row ring buffer instead, bit-identically to the unfused path by construction.
+
+**Compile-time lane selection.** Five kernel shapes carry nearly all the time, so each is written once against a `SimdF32` trait and instantiated per ISA: NEON on aarch64, SSE2 on x86_64, simd128 on wasm32, a scalar fallback elsewhere. All are baseline for their target, so nothing dispatches inside a hot loop.
+
+## Library Usage
+
+```rust
+use blazediff_ssim::{ms_ssim, MsSsimOptions, Plane, Rgba8, SsimOptions};
+
+let plane1 = Plane::from_rgba8(Rgba8::new(&rgba1, width, height))?;
+let plane2 = Plane::from_rgba8(Rgba8::new(&rgba2, width, height))?;
+
+let outcome = ms_ssim(
+    &plane1,
+    &plane2,
+    &SsimOptions::default(),
+    &MsSsimOptions::default(),
+)?;
+println!("{:.6}", outcome.score); // 1.0 means identical
+```
+
+`Rgba8` is a borrowed view, so nothing is copied to call in. Decoding is the caller's problem: the crate takes RGBA8 bytes and has no I/O.
+
+### Types
+
+```rust
+pub struct Rgba8<'a> {
+    pub data: &'a [u8],   // RGBA8, 4 bytes per pixel, row-major
+    pub width: usize,
+    pub height: usize,
+}
+
+pub struct Plane {
+    pub samples: Vec<f32>, // luma, MATLAB rgb2gray weights
+    pub width: usize,
+    pub height: usize,
+}
+
+pub struct SsimOptions {
+    pub window_size: usize, // default 11
+    pub k1: f64,            // default 0.01
+    pub k2: f64,            // default 0.03
+    pub bit_depth: u32,     // default 8, sets L = 2^bit_depth - 1
+}
+
+pub struct SsimOutcome {
+    pub score: f64,        // pooled, 1.0 = identical
+    pub map: Vec<f32>,     // per-window scores, row-major
+    pub map_width: usize,
+    pub map_height: usize,
+}
+```
+
+### API
+
+| Function | Purpose |
+| --- | --- |
+| `ssim` | single-scale SSIM with MATLAB's automatic downsampling |
+| `ms_ssim` | SSIM pooled over a 5-octave pyramid |
+| `hitchhikers_ssim` | box windows over integral images, CoV pooling |
+| `perceptual_ssim` | tunable Lab / chroma / MAD variant, takes `Rgba8` |
+| `render_map` | paint a local map into an RGBA8 buffer as grayscale |
+
+> **Info:** Every metric returns `Err(SsimError)` rather than panicking on a mismatched or truncated pair. `SsimError` carries the same messages the BlazeDiff CLI, N-API, Python and wasm front-ends print.
+
+## Bit-exactness is the constraint, not an outcome
+
+Tap-by-tap accumulation order is frozen to the [`@blazediff/ssim`](/apis/ssim) TypeScript port. That is a deliberate handcuff: the JS port is the one whose MATLAB agreement was measured, so matching its order means this crate *inherits* that agreement instead of drifting away from it by an unmeasured amount. Anything that would reassociate the sums, including some obvious-looking vectorisations, is out of bounds even when it is faster.
+
+Two consequences worth knowing about: `cube_root` replaces `cbrtf` in the Lab conversion and is checked against libm across the whole L\*a\*b\* domain; and FMA is used inside the vector body but deliberately *not* in the scalar tail, because the reference does not fuse either.
+
+> **Warning:** `MsSsimMethod::Product` returns `NaN` when a scale's mean contrast-structure term goes negative. That takes globally anticorrelated content (an inverted image) rather than ordinary degradation, and both references degenerate the same way: the JS gives `NaN`, MATLAB gives a complex number. `MsSsimMethod::WeightedSum` stays finite throughout.
+
+## Verified
+
+| Layer | Result |
+| --- | --- |
+| MATLAB `ssim.m` | within **0.01%** on three fixture pairs, **0.05%** on the one where downsampling by 5 costs the most precision |
+| MATLAB `msssim.m` | within **0.05** absolute. The reference pools `'valid'` statistics where both ports pool symmetric `'same'`, so the gap is algorithmic, not numerical |
+| TypeScript port | all three metrics agree to within **5e-6**, the only cross-port pin for `hitchhikers-ssim`, which has no MATLAB reference |
+| Fused statistics | bit-identical to the unfused eleven-buffer pipeline |
+| `cube_root` | exhaustive over ~67M f32 values across the Lab domain |
+| Unit + integration tests | 55 + 4 |
+
+The MATLAB half shells out to Octave and reports a skip when Octave is missing, so the default `cargo test` needs no toolchain beyond Rust. Set `BLAZEDIFF_REQUIRE_OCTAVE=1` to turn a missing Octave into a failure so parity cannot pass vacuously.
+
+## Caveats
+
+All three shipped metrics reduce to luma, so a change carried entirely by chroma or by alpha is invisible to them. `perceptual_ssim` with `ColorSpace::Lab` and a non-zero `chroma_weight` sees colour.
+
+Scores are pooled over a local map, so these metrics say *how much* two images differ, not *where* beyond the resolution of that map. For exact locations, use a pixel diff.
+
+## Links
+
+- [Crates.io](https://crates.io/crates/blazediff-ssim)
+- [Crate README](https://github.com/teimurjan/blazediff/blob/main/crates/blazediff-ssim/README.md)
+- [dssim comparison and quality harness](https://github.com/teimurjan/blazediff/tree/main/crates/blazediff-ssim-benchmark)
+- [GitHub Repository](https://github.com/teimurjan/blazediff)
+
+---
+
+# Docs
+
+# Introduction
+
+**BlazeDiff compares two images and tells you what changed, fast enough to run on
+every test.** It is a set of MIT-licensed libraries, not a service. No account, no
+API key, no per-snapshot billing, and no screenshot leaves the machine that took
+it.
+
+Most visual regression setups stop at one number, "N pixels differ", and leave a
+person to decide whether that number matters. BlazeDiff goes two steps past that.
+It classifies each changed region (something appeared, something moved, something
+was recolored), and when the classification is not confident it hands the cropped
+regions to a coding agent you already run, which answers regression or intentional
+with a reason.
+
+## How the pieces fit
+
+Four layers. Each one is useful on its own, and each one feeds the next.
+
+| Layer         | Question it answers                | Packages                                       |
+| ------------- | ---------------------------------- | ---------------------------------------------- |
+| **Compare**   | Which pixels differ?               | `core`, `core-wasm`, `core-native`              |
+| **Score**     | How different does it look?        | `ssim`, `gmsd`, `ssim-native`                   |
+| **Interpret** | What changed, where, and how badly?| `interpret-native`                              |
+| **Judge**     | Regression or intentional?         | `agent`                                         |
+
+Around those sit the surfaces you actually touch: matchers for Jest, Vitest and
+Bun, a CLI, and React and vanilla components for showing a diff to a person.
+
+`@blazediff/object` diffs JavaScript objects rather than images. It shares the
+name and the performance work, not the pipeline. It lives in
+[Object Comparison](/docs/object-comparison).
+
+## Which package do I install?
+
+| You want to                                     | Install                                   | Runs in                            |
+| ------------------------------------------------ | ----------------------------------------- | ---------------------------------- |
+| Count changed pixels in a Node test or CI job     | `@blazediff/core-native`                  | Node                               |
+| Count changed pixels in a browser or edge runtime | `@blazediff/core-wasm`                    | Browsers, Workers, Deno, Bun, edge |
+| Avoid native binaries and wasm entirely           | `@blazediff/core`                         | Anywhere JS runs                   |
+| Score perceived similarity instead of pixels      | `@blazediff/ssim`, `@blazediff/gmsd`      | Anywhere JS runs                   |
+| Know what changed and where, not just how much    | `@blazediff/interpret-native`             | Node                               |
+| Assert a screenshot inside a test                 | `@blazediff/jest`, `/vitest`, `/bun`      | Your test runner                   |
+| Run visual regression over your routes            | `@blazediff/agent`                        | Node plus bundled Chromium         |
+| Show a before/after diff in a UI                  | `@blazediff/react`, `@blazediff/ui`       | Browsers                           |
+| Diff two JavaScript objects                       | `@blazediff/object`                       | Anywhere JS runs                   |
+
+Not sure between an exact pixel count and a similarity score? Start with pixels
+and read [Choosing a Metric](/docs/metrics/choosing-a-metric) when exact matching
+turns out to be too strict.
+
+## Your first diff
+
+```bash
+npm install @blazediff/core-native
+```
+
+```ts
+import { compare } from "@blazediff/core-native";
+
+const result = await compare("baseline.png", "current.png", "diff.png");
+
+if (result.match) {
+  console.log("identical");
+} else if (result.reason === "layout-diff") {
+  console.log("dimensions differ");
+} else {
+  console.log(`${result.diffCount} pixels differ (${result.diffPercentage.toFixed(2)}%)`);
+}
+```
+
+`compare` takes file paths or encoded buffers, decodes PNG, JPEG and QOI itself,
+and writes the diff image when you pass an output path. The same call in the
+browser is [WebAssembly](/docs/pixel-comparison/rust-wasm); the same call with no
+binary at all is [Vanilla JavaScript](/docs/pixel-comparison/vanilla-javascript).
+
+### Inside a test
+
+Where the PNG came from does not matter. Playwright, Puppeteer, Cypress, a
+headless renderer, or a file already on disk all work, because the input is just
+pixels.
+
+```ts
+import { expect, it } from "vitest";
+import "@blazediff/vitest"; // or @blazediff/jest, @blazediff/bun
+
+it("renders the pricing page", async () => {
+  // core-native is the fastest method and reads file paths, so write the
+  // screenshot to disk first.
+  const shot = "screenshots/pricing.png";
+  await page.screenshot({ path: shot });
+
+  await expect(shot).toMatchImageSnapshot({
+    method: "core-native",
+    failureThreshold: 0.1,
+    failureThresholdType: "percent",
+  });
+});
+```
+
+The matcher registers itself on import. `method` picks the algorithm, so the same
+assertion can run a pixel diff, `ssim`, `msssim`, `hitchhikers-ssim` or `gmsd`.
+Every method except `core-native` also accepts an in-memory buffer, which is what
+`core` (the default) is for.
+
+## How fast, exactly
+
+Every number on this site comes from the benchmark suite in the repo, run on an
+Apple M1 Max with Node 22. The 4K rows below are the three `4k/*` fixtures, so
+they are ranges rather than single numbers.
+
+| Comparison                           | Method                   | Baseline          | BlazeDiff       |
+| ------------------------------------ | ------------------------ | ----------------- | --------------- |
+| `@blazediff/core` vs pixelmatch      | 4K pair, decode excluded | 201.60-253.77ms   | 96.52-135.89ms  |
+| `@blazediff/core-wasm` vs pixelmatch | 4K pair, decode excluded | 332.26-423.14ms   | 33.18-68.37ms   |
+| `@blazediff/core-native` vs odiff    | 4K pair, decode included | 1157.12-1677.13ms | 288.01-349.43ms |
+
+Averaged over the full fixture set rather than the 4K pairs: `@blazediff/ssim` is
+~25% faster than ssim.js and the Hitchhiker's variant ~70% faster, and
+`@blazediff/object` is ~55% faster than microdiff.
+
+Per-fixture tables, iteration counts and methodology notes:
+[Benchmarks](/benchmarks/pixel-by-pixel).
+
+> **Info:** Identical images are the common case in a passing suite, and every core has a fast path for them. That is where the largest wins are: the pure-JS core is 7x to 9x faster than pixelmatch on an unchanged 4K pair.
+
+## Where to go next
+
+**Comparing images**
+
+- [Pixel-by-pixel comparison](/docs/pixel-comparison/vanilla-javascript) in JS,
+  WebAssembly, or native Node
+- [Structural comparison](/docs/structural-comparison) with SSIM and GMSD
+- [Choosing a metric](/docs/metrics/choosing-a-metric) when you are not sure which
+
+**Going past a pixel count**
+
+- [Image difference analysis](/docs/difference-analysis): regions, change types,
+  severity
+- [Agentic visual testing](/docs/agentic-testing/setting-up): capture, check, and
+  let a coding agent judge what the thresholds could not
+
+**Everything else**
+
+- [UI components](/docs/ui-components/react) for showing a diff
+- [Object comparison](/docs/object-comparison)
+- [Guides](/guides/claude-code-visual-review) for task-shaped walkthroughs
+- [API reference](/apis/core) for exact signatures and options
+
+---
+
+# Pixel-by-pixel Comparison in Vanilla JavaScript
+
+**`@blazediff/core` counts the pixels that differ between two images, in pure
+JavaScript.** No native binary, no WebAssembly, no install step beyond `npm
+install`. It runs anywhere JS runs and it is API-compatible with
+[pixelmatch](https://github.com/mapbox/pixelmatch), so switching is a one-line
+
+Reach for it when portability matters more than raw throughput: a browser bundle,
+a Deno script, a serverless function where you would rather not ship a binary.
+When throughput is what matters, the same algorithm is available compiled:
+[WebAssembly](/docs/pixel-comparison/rust-wasm) for the browser and the edge,
+[Node native](/docs/pixel-comparison/rust-napi) for CI.
 
 ## Installation
 
@@ -3312,6 +3993,10 @@ npm install @blazediff/core
 ```
 
 ## Examples
+
+You supply decoded RGBA data. `loadImage` below is whatever decoder your runtime
+already has: a canvas in the browser, `@blazediff/codec-pngjs` or `sharp` on the
+server.
 
 ```ts
 import blazediff from "@blazediff/core";
@@ -3327,6 +4012,7 @@ const output = new Uint8Array(img1.width * img1.height * 4);
 const width = img1.width;
 const height = img1.height;
 
+// Returns the number of differing pixels and fills `output` with the diff image.
 const diff = blazediff(img1, img2, output, width, height);
 ```
 
@@ -3344,6 +4030,7 @@ const output = new Uint8Array(img1.width * img1.height * 4);
 const width = img1.width;
 const height = img1.height;
 
+// threshold is a per-pixel color distance from 0 (exact) to 1 (anything goes).
 const diff = blazediff(img1, img2, output, width, height, { threshold: 0.5 });
 ```
 
@@ -3361,23 +4048,52 @@ const output = new Uint8Array(img1.width * img1.height * 4);
 const width = img1.width;
 const height = img1.height;
 
+// Recolor the diff output: anti-aliased pixels red, real differences green.
 const diff = blazediff(img1, img2, output, width, height, {
   aaColor: [255, 0, 0],
   diffColor: [0, 255, 0],
 });
 ```
 
-See the [full API reference →](/apis/core).
+Pass `null` instead of an output buffer when you only need the count. That skips
+writing the diff image, which is the more expensive half of the work.
+
+## What it costs
+
+Measured against pixelmatch on the same fixtures, decode excluded, M1 Max, Node 22,
+50 iterations:
+
+| Case                          | pixelmatch      | `@blazediff/core` |
+| ----------------------------- | --------------- | ----------------- |
+| 4K pair, count only           | 201.60-253.77ms | 96.52-135.89ms    |
+| 4K pair, identical            | 23.79-28.04ms   | 2.50-3.77ms       |
+| 4K pair, writing a diff image | 280.79-336.93ms | 151.72-205.21ms   |
+
+Averaged over the whole fixture set that is ~62% faster when counting and ~28%
+faster when also rendering a diff image. Small images narrow the gap further: the
+win comes from skipping unchanged blocks, and there are fewer of them to skip.
+[Full tables](/benchmarks/pixel-by-pixel).
+
+## Next
+
+- Same algorithm, 5x to 10x faster on 4K:
+  [WebAssembly](/docs/pixel-comparison/rust-wasm) or
+  [Node native](/docs/pixel-comparison/rust-napi)
+- Exact matching too strict? [Structural comparison](/docs/structural-comparison)
+- Every option and its default: [`@blazediff/core` reference](/apis/core)
 
 ---
 
-# Pixel-by-pixel Comparison - Rust + WASM in JavaScript
+# Pixel-by-pixel Comparison with WebAssembly
 
-The same diff core, compiled to WebAssembly with SIMD. `@blazediff/core-wasm` runs
-in browsers, Workers, Deno, Bun, and edge runtimes - ~51% faster than pixelmatch
-from a 32KB binary. Reach for it when you want native-grade speed in the browser
-without a native dependency. The API takes pre-decoded RGBA buffers, so you decode
-images yourself with `createImageBitmap` + a canvas (or the `ImageDecoder` API).
+**`@blazediff/core-wasm` is the Rust diff core compiled to `wasm32` with `v128`
+SIMD, in about 32KB.** It runs in browsers, Web Workers, Deno, Bun, Cloudflare
+Workers, and any other wasm host, with no native dependency and no network call.
+
+Reach for it when you want compiled-code speed on the client or at the edge. In
+Node, [the native binding](/docs/pixel-comparison/rust-napi) is faster still and
+decodes images for you. In an environment where you cannot ship a wasm file at
+all, use [the pure-JS core](/docs/pixel-comparison/vanilla-javascript).
 
 ## Installation
 
@@ -3386,6 +4102,9 @@ npm install @blazediff/core-wasm
 ```
 
 ## Decoding images to RGBA
+
+The wasm module takes pre-decoded RGBA and does not bundle an image decoder, so
+the browser's own decoder does that half:
 
 ```ts
 async function loadRgba(url: string) {
@@ -3441,25 +4160,58 @@ const diffCount = await diff(a.data, b.data, a.width, a.height, output, {
 });
 ```
 
-Loading the `.wasm` from a CDN, a bundler, or the filesystem? `initBlazediff`
-accepts a `URL`, `Response`, or raw bytes - see the
-[full API reference →](/apis/core-wasm).
+`initBlazediff` resolves the sibling `.wasm` by default. Loading it from a CDN, a
+bundler, or the filesystem instead? It also accepts a `URL`, a `Response`, or raw
+bytes.
+
+## What it costs
+
+Against pixelmatch on the same fixtures, decode excluded, M1 Max, Node 22, 25
+iterations:
+
+| Case               | pixelmatch      | `@blazediff/core-wasm` |
+| ------------------ | --------------- | ---------------------- |
+| 4K pair            | 332.26-423.14ms | 33.18-68.37ms          |
+| 4K pair, identical | 19.86-30.53ms   | 17.47-22.17ms          |
+
+So 5x to 10x on a changed 4K pair, and ~51% faster averaged over the whole
+fixture set. Identical images are the weak spot: `wasm32-unknown-unknown` has no
+libc, so the byte-equality shortcut the other cores use lowers to a scalar memcmp
+and is skipped here. The block scan reaches the same answer with `v128` compares,
+which is why that row is close rather than behind.
+[Full tables and the history of that fix](/benchmarks/pixel-by-pixel).
+
+## Next
+
+- Region-level classification runs in wasm too:
+  [Image difference analysis](/docs/difference-analysis)
+- In Node, prefer [the native binding](/docs/pixel-comparison/rust-napi)
+- Every option and its default:
+  [`@blazediff/core-wasm` reference](/apis/core-wasm)
 
 ---
 
-# Pixel-by-pixel Comparison - Rust + N-API in Node
+# Pixel-by-pixel Comparison with Node Native
 
-The fastest path: native Rust compiled to a Node addon via N-API, ~3-4× faster
-than odiff. `@blazediff/core-native` accepts file paths or encoded `Buffer` and
-`Uint8Array` inputs. It decodes PNG, JPEG, and QOI itself in parallel and can
-write the diff image straight to disk. Reach for it in Node test runners and CI
-when you want maximum throughput.
+**`@blazediff/core-native` is the fastest way to diff two images from Node.** It
+is the Rust core compiled to a Node addon through N-API, with SIMD in both passes.
+Unlike the JS and wasm cores it also handles the file layer: it accepts paths or
+encoded buffers, decodes PNG, JPEG and QOI itself, and writes the diff image to
+disk for you.
+
+Reach for it in test runners and CI, which is where the decode cost and the
+per-run overhead actually add up. It needs a prebuilt binary for the platform, so
+it is not an option in browsers or on the edge. That is what
+[the wasm build](/docs/pixel-comparison/rust-wasm) is for.
 
 ## Installation
 
 ```bash
 npm install @blazediff/core-native
 ```
+
+Platform binaries ship as optional dependencies for macOS, Linux and Windows on
+x64 and arm64. There is no build step and no `node-gyp`.
 
 ## Examples
 
@@ -3493,6 +4245,7 @@ const result = await compare(expected, actual);
 ```ts
 import { compare } from "@blazediff/core-native";
 
+// Third argument is the diff output path; pass undefined to skip writing one.
 const result = await compare("3a.png", "3b.png", undefined, {
   threshold: 0.5,
   antialiasing: true,
@@ -3507,27 +4260,52 @@ import { compare } from "@blazediff/core-native";
 const result = await compare("3a.png", "3b.png", "diff.png");
 ```
 
-Encoded inputs are borrowed directly for each synchronous native call, so the
-JavaScript bytes are not copied into Rust. PNG, JPEG, or QOI decoding still
-allocates native RGBA pixel buffers.
+Encoded inputs are borrowed directly for each native call, so the JavaScript bytes
+are never copied into Rust. Decoding still allocates native RGBA buffers, and on a
+4K pair that decode is the larger share of the total.
 
-Want a verdict on *what* changed, not just how many pixels? Pass `interpret: true`
-or use the dedicated [Image Difference Analysis →](/docs/difference-analysis)
-example. Full options in the [API reference →](/apis/core-native).
+## What it costs
+
+Against [odiff](https://github.com/dmtrKovalenko/odiff) on the same fixtures with
+image IO included, measured with hyperfine on an M1 Max, 25 runs:
+
+| Case               | odiff             | `@blazediff/core-native` |
+| ------------------ | ----------------- | ------------------------ |
+| 4K pair            | 1157.12-1677.13ms | 288.01-349.43ms          |
+| 4K pair, identical | 269.36-366.79ms   | 183.94-230.29ms          |
+
+That is 4x to 4.8x on a changed 4K pair. Because decode dominates end-to-end time,
+passing already-decoded buffers moves the number further than any change to the
+diff kernel would. [Full tables](/benchmarks/pixel-by-pixel).
+
+## Next
+
+- Want a verdict on *what* changed rather than how many pixels? Reach for
+  [`@blazediff/interpret-native`](/apis/interpret-native) or read
+  [Image difference analysis](/docs/difference-analysis)
+- Wiring this into Jest, Vitest or Bun:
+  [`@blazediff/vitest` reference](/apis/vitest)
+- Every option and its default:
+  [`@blazediff/core-native` reference](/apis/core-native)
 
 ---
 
 # Structural Image Comparison
 
-Pixel-by-pixel diffing answers "how many pixels changed". Structural metrics answer
-"how *different do these look*" - they tolerate imperceptible noise (compression
-artifacts, sub-pixel shifts) and score perceived similarity instead. Reach for them
-when an exact pixel match is too strict.
+**Pixel diffing answers "how many pixels changed". Structural metrics answer "how
+different does this look".** They score a neighborhood rather than a pixel, so
+compression artifacts and sub-pixel rendering noise barely move them while a real
+change does.
 
-BlazeDiff ships two: **GMSD** (gradient-based, fast) and **SSIM** (the classic
-structural index, with a 4× faster Hitchhiker's variant).
+Reach for one when exact matching is too strict: screenshots that get re-encoded
+somewhere in the pipeline, or the same page rendered by two different machines.
+Keep a pixel diff in the pipeline too, because both metrics work on luminance and
+are close to blind to color-only changes.
 
-New to these metrics? Start with [what SSIM is](/docs/metrics/ssim),
+BlazeDiff ships two: **GMSD**, which compares edges and is the cheaper of the two,
+and **SSIM**, the classic structural index, with a faster Hitchhiker's variant.
+
+New to these? Read [what SSIM measures](/docs/metrics/ssim),
 [how GMSD works](/docs/metrics/gmsd), or
 [which one to pick](/docs/metrics/choosing-a-metric).
 
@@ -3539,8 +4317,8 @@ npm install @blazediff/gmsd @blazediff/ssim
 
 ## GMSD (Gradient Magnitude Similarity Deviation)
 
-Scores gradient (edge) similarity. Returns `0` for identical images; **lower is
-better**, typically in the `0`–`0.35` range.
+Scores gradient (edge) similarity. Returns `0` for identical images. **Lower is
+better**, typically in the `0` to `0.35` range.
 
     ```ts
 
@@ -3565,16 +4343,21 @@ better**, typically in the `0`–`0.35` range.
     );
     const width = img1.width;
     const height = img1.height;
+
+    // Raising c makes the metric more forgiving in low-contrast areas.
     const score = gmsd(img1, img2, undefined, width, height, { c: 100 });
     ```
 
-See the [GMSD API reference →](/apis/gmsd).
+Pass an output buffer as the third argument to get the similarity map back as a
+grayscale image, which shows which edges disagreed.
+[GMSD reference](/apis/gmsd).
 
 ## SSIM (Structural Similarity Index)
 
-Scores luminance, contrast, and structure. Returns `1` for identical images;
-**higher is better**, in the `0`–`1` range. The Hitchhiker's variant uses
-non-overlapping windows for ~4× the throughput at near-identical accuracy.
+Scores luminance, contrast and structure. Returns `1` for identical images.
+**Higher is better**, in the `0` to `1` range. The Hitchhiker's variant swaps the
+Gaussian window for non-overlapping rectangular windows over integral images,
+which runs 2x to 5x faster depending on the image at near-identical accuracy.
 
 ```ts
 import ssim from "@blazediff/ssim/ssim";
@@ -3608,7 +4391,26 @@ const height = img1.height;
 const score = hitchhikersSSIM(img1, img2, output, width, height);
 ```
 
-See the [SSIM API reference →](/apis/ssim).
+The output buffer here receives the SSIM map: dark areas are where the two images
+disagree. `@blazediff/ssim` also ships MS-SSIM, which scores at five scales for
+images that get viewed at more than one size.
+[SSIM reference](/apis/ssim).
+
+## Picking a threshold
+
+Do not copy a number from a table. Run your own baselines twice with no code
+change, see what score the noise alone produces, then set the gate above it. As
+starting points: `0.05` for GMSD when you control the render, `0.15` when
+screenshots pass through lossy compression, and `0.98` for SSIM on full-page
+shots.
+
+## Next
+
+- [Choosing a metric](/docs/metrics/choosing-a-metric) if you are still deciding
+- [What SSIM measures](/docs/metrics/ssim) and
+  [how GMSD works](/docs/metrics/gmsd) for the formulas
+- [Pixel-by-pixel comparison](/docs/pixel-comparison/vanilla-javascript) when you
+  want the exact count instead
 
 ---
 
@@ -3704,7 +4506,8 @@ Every metric is available through the same matcher:
 ```ts
 import "@blazediff/vitest"; // or @blazediff/jest, @blazediff/bun
 
-await expect(screenshot).toMatchImageSnapshot({ method: "core-native" });
+// screenshot is a buffer or a file path. core-native takes file paths only.
+await expect(screenshotPath).toMatchImageSnapshot({ method: "core-native" });
 await expect(screenshot).toMatchImageSnapshot({ method: "gmsd" });
 await expect(screenshot).toMatchImageSnapshot({ method: "ssim" });
 await expect(screenshot).toMatchImageSnapshot({ method: "hitchhikers-ssim" });
@@ -3722,11 +4525,12 @@ blazediff-cli hitchhikers-ssim baseline.png current.png
 ## Measured cost
 
 Numbers from the [pixel benchmarks](/benchmarks/pixel-by-pixel) and
-[structural benchmarks](/benchmarks/structural), M1 Max, Node 22:
+[structural benchmarks](/benchmarks/structural), M1 Max, Node 22, across the three
+4K fixtures:
 
-- Pixel diff, 4K pair, native Rust with image IO included: **215-269ms**
-- Pixel diff, 4K pair, pure JS with IO excluded: **97-136ms**
-- Hitchhiker's SSIM: about **4x faster** than standard SSIM
+- Pixel diff, native Rust, image IO included: **288-349ms**
+- Pixel diff, pure JS, IO excluded: **97-136ms**
+- Hitchhiker's SSIM: **2x to 5x faster** than standard SSIM, depending on the image
 - GMSD: a single pass with two 3x3 convolutions, cheaper than SSIM
 
 Next: [What is SSIM →](/docs/metrics/ssim) ·
@@ -3825,7 +4629,7 @@ own baselines rather than from this table.
 | ------------------- | ----------------------------------- | --------------------------------------------------------------- | -------------------------------- |
 | SSIM                | `@blazediff/ssim/ssim`              | Gaussian windows, one scale                                      | Matching published/MATLAB results |
 | MS-SSIM             | `@blazediff/ssim/msssim`            | 5 scales, downsampled 2x each step, weighted geometric mean       | Images seen at different sizes   |
-| Hitchhiker's SSIM   | `@blazediff/ssim/hitchhikers-ssim`  | Rectangular non-overlapping windows via integral images, ~4x faster | Large batches in CI            |
+| Hitchhiker's SSIM   | `@blazediff/ssim/hitchhikers-ssim`  | Rectangular non-overlapping windows via integral images, 2x to 5x faster | Large batches in CI       |
 
 MS-SSIM computes contrast and structure at every scale but luminance only at the
 coarsest one, then combines them with the default weights
@@ -4045,34 +4849,46 @@ Next: [What is SSIM →](/docs/metrics/ssim) ·
 
 # Image Difference Analysis
 
-Takes a raw pixel diff and tells you _what_ changed, _where_, and _how much_. No ML
-models - a deterministic pipeline that runs in the same binary as the diff itself.
-Available in both the native Node binding (`@blazediff/core-native`) and the
-WebAssembly build (`@blazediff/core-wasm`), so you can run it server-side or in the
-browser.
+**Interpret mode takes a raw pixel diff and tells you what changed, where, and how
+much.** Instead of one number, you get a list of regions, each with a bounding
+box, a change type, a percentage, and a severity.
+
+It is deterministic. No model, no weights, no network call. It lives in
+`@blazediff/interpret-native`, a Node binding over the `blazediff-interpret`
+crate, and sits above whatever located the change: a pixel diff, an SSIM map, or
+boxes you already have.
+
+This is what makes agent review tractable. A coding agent asked to compare two
+full-page screenshots invents differences; an agent handed three cropped regions
+that were measured deterministically is answering a much easier question. See
+[Agentic visual testing](/docs/agentic-testing/setting-up).
 
 ## How it works
 
-1. Pixel diff → binary change mask
-2. Morphological close → bridge small gaps
-3. Connected components → isolate regions
-4. Per-region evidence extraction:
-   - **Dual-image gradients** - edges in both images + spatial correlation to detect structural preservation
-   - **Color delta distribution** - mean, max, and stddev of YIQ distance to separate uniform recolors from patchy texture changes
-   - **Background distance** - how much changed pixels blend with local unchanged pixels in each image
-5. Six-label decision tree classifies each region
-6. Post-hoc shift detection matches Addition+Deletion pairs
+1. Pixel diff produces a binary change mask.
+2. A morphological close bridges small gaps in that mask.
+3. Connected components isolate the mask into regions.
+4. Evidence is extracted per region:
+   - **Dual-image gradients.** Edges in both images plus spatial correlation, to
+     detect whether structure was preserved.
+   - **Color delta distribution.** Mean, max and standard deviation of YIQ
+     distance, which separates a uniform recolor from a patchy texture change.
+   - **Background distance.** How far changed pixels sit from the local unchanged
+     pixels, in each image separately.
+5. A six-label decision tree classifies each region.
+6. A post-pass pairs Addition and Deletion regions that look like the same content
+   moving, and relabels them as a Shift.
 
 ## Demo
 
 ## Usage
 
-Both bindings return the same result shape - `summary`, `regions[]` (with
-`position`, `changeType`, `percentage`, …), and `severity`. The native binding
-reads files; the WASM binding takes pre-decoded RGBA buffers.
+Every entry point returns the same shape: a `summary` string, a `regions[]` array
+with `position`, `changeType` and `percentage` on each entry, and an overall
+`severity`.
 
 ```ts
-import { interpret } from "@blazediff/core-native";
+import { interpret } from "@blazediff/interpret-native";
 
 const result = await interpret("fixtures/3a.png", "fixtures/3b.png");
 
@@ -4082,75 +4898,102 @@ for (const region of result.regions) {
 }
 ```
 
+Pass a third argument to keep the diff visualization, and `source` to locate the
+regions with a similarity map instead of a pixel diff:
+
 ```ts
-import { initBlazediff, interpret } from "@blazediff/core-wasm";
-
-await initBlazediff(); // loads the .wasm; call once
-
-// Decode both images to RGBA Uint8Arrays (see the Rust + WASM example)
-const a = await loadRgba("3a.png");
-const b = await loadRgba("3b.png");
-
-const result = await interpret(a.data, b.data, a.width, a.height);
-
-console.log(result.summary);
-for (const region of result.regions) {
-  console.log(`${region.position}: ${region.changeType} (${region.percentage.toFixed(2)}%)`);
-}
+await interpret("3a.png", "3b.png", "diff.png");
+await interpret("3a.png", "3b.png", undefined, { source: "ms-ssim" });
 ```
+
+When something else already knows where to look — DOM rectangles from a layout
+pass, say — `interpretRegions` skips the search and classifies those boxes:
+
+```ts
+import { interpretRegions } from "@blazediff/interpret-native";
+
+await interpretRegions("3a.png", "3b.png", [{ x: 0, y: 0, width: 64, height: 64 }]);
+```
+
+```bash
+blazediff-cli interpret 3a.png 3b.png
+blazediff-cli interpret 3a.png 3b.png diff.png
+blazediff-cli interpret 3a.png 3b.png --source ms-ssim --json
+```
+
+Exits 0 when nothing actionable changed, 1 when it did, 2 on error.
 
 ### Identical images
 
-When nothing changed, `regions` is empty and `summary` reports no differences -
-identical for both bindings.
+When nothing changed, `regions` is empty and `summary` says so.
 
 ## Change types
 
 | Type | Meaning |
 |---|---|
-| `Addition` | Content appeared - blends with background in before image, distinct in after |
-| `Deletion` | Content removed - distinct in before, blends with background in after |
-| `Shift` | Content moved - matched Addition+Deletion pair with similar luminance |
-| `ColorChange` | Recolor - edge structure preserved across both images, uniform color shift |
-| `ContentChange` | Structural change - edges differ between images |
-| `RenderingNoise` | Sub-pixel artifacts - filtered from output |
+| `Addition` | Content appeared. Blends with the background in the before image, distinct in the after image. |
+| `Deletion` | Content was removed. Distinct before, blends with the background after. |
+| `Shift` | Content moved. An Addition and a Deletion with similar luminance, paired by the post-pass. |
+| `ColorChange` | A recolor. Edge structure is preserved in both images, with a uniform color shift. |
+| `ContentChange` | A structural change. Edges differ between the two images. |
+| `RenderingNoise` | Sub-pixel artifacts. Filtered out of the output. |
 
 ## Accuracy
 
-Measured against datasets with hand-labeled change regions (see
-[crates/blazediff-interpret-verify/BENCHMARKS.md](https://github.com/teimurjan/blazediff/blob/main/crates/blazediff-interpret-verify/BENCHMARKS.md)
-for the full breakdown).
+Measured against datasets with hand-labeled change regions. Full breakdown in
+[crates/blazediff-interpret-verify/BENCHMARKS.md](https://github.com/teimurjan/blazediff/blob/main/crates/blazediff-interpret-verify/BENCHMARKS.md).
 
 | Dataset | What it tests | Classifier-only macro F1 | End-to-end macro F1 |
 |---|---|---:|---:|
-| `addition_deletion` | Clean object insert / remove on photographs | **0.998** | **0.888** |
+| `addition_deletion` | Clean object insert and remove on photographs | **0.998** | **0.888** |
 | `shift` | Sub-region translations with pixel-perfect ground truth | **0.813** | **0.628** |
 | `inpaintcoco` | Inpaint edits that mix recolor and texture replacement | **0.440** | **0.260** |
 | `html_color_pairs` | Recolors on rendered Tailwind UI screenshots | **0.993** | **0.786** |
 
-Read this as: on clear add/delete edits the classifier almost never picks
-the wrong label (0.998 means 4 mistakes in 904 regions). On synthetic shifts
-the post-pass pairs about two thirds of moved-block events with near-perfect
-precision. On real inpainted photos it lands the right label in about four
-of every nine regions - the `ColorChange` vs `ContentChange` boundary is the
-dominant confusion and the focus area for the next iteration. `html_color_pairs`
-isolates that same boundary on 100 rendered Tailwind UI screenshots that differ
-only in color classes: a dedicated chromatic-recolor branch admits
-same-luminance hue swaps that YIQ otherwise scores as low-delta, lifting
-classifier F1 to 0.993 with zero false positives.
+Read the two columns as different questions. Classifier-only assumes the regions
+were found correctly and asks whether the label is right. End-to-end runs the full
+detector first, so it also pays for missed regions and spurious small ones.
 
-End-to-end runs the full detector pipeline before classifying, so the score
-also reflects detection misses and spurious small regions; classifier-only
-isolates labeling quality from detection.
+What the numbers say, plainly:
+
+- On clear add and delete edits the classifier almost never picks the wrong label.
+  0.998 is 4 mistakes in 904 regions.
+- On synthetic shifts the post-pass pairs about two thirds of moved-block events,
+  with near-perfect precision on the ones it does pair.
+- On real inpainted photographs it lands the right label roughly four times in
+  nine. The `ColorChange` versus `ContentChange` boundary is the dominant
+  confusion and the current focus.
+- `html_color_pairs` isolates that same boundary on 100 rendered Tailwind
+  screenshots that differ only in color classes. A dedicated chromatic-recolor
+  branch admits same-luminance hue swaps that YIQ otherwise scores as low-delta,
+  which lifts classifier F1 to 0.993 with no false positives.
+
+## Next
+
+- Put this to work in a test loop:
+  [Agentic visual testing](/docs/agentic-testing/setting-up)
+- Full result type and options:
+  [`@blazediff/interpret-native` reference](/apis/interpret-native)
 
 ---
 
-# Agentic Visual Testing - Setting Up
+# Agentic Visual Testing: Setting Up
 
-`@blazediff/agent` captures deterministic screenshots of your routes, diffs them
-against committed baselines with the native BlazeDiff core, and hands ambiguous
-diffs back to your coding agent (Claude Code, Cursor, Codex) to judge. This page
-gets you from zero to a committed set of baselines.
+**`@blazediff/agent` screenshots your routes, diffs them against baselines
+committed to your repo, and hands the diffs it cannot classify to your coding
+agent for a verdict.** Claude Code, Cursor and Codex are supported out of the box.
+There is no hosted service, no API key in the default flow, and no screenshot
+leaves your machine.
+
+The workflow splits in two, on purpose:
+
+- **Authoring happens on your machine.** You capture baselines, add masks, write
+  harnesses, and accept intentional changes. All of it is blocked in CI.
+- **Checking happens in CI.** One command re-captures, diffs, and fails the build
+  on a regression.
+
+This page covers authoring, from nothing to a committed set of baselines. Then
+read [Running in CI](/docs/agentic-testing/running-in-ci).
 
 ## 1. Install
 
@@ -4158,7 +5001,7 @@ gets you from zero to a committed set of baselines.
 npm install --save-dev @blazediff/agent
 ```
 
-First run prompts to install bundled Playwright Chromium - no `sudo`, no
+The first run offers to install a bundled Playwright Chromium. No `sudo`, no
 `npx playwright install --with-deps`.
 
 ```bash
@@ -4169,17 +5012,17 @@ blazediff-agent browsers install                  # install if missing
 ## 2. Onboard
 
 `onboard` writes `.blazediff/config.json` from your dev script, sets up
-`.gitignore`, installs Chromium, and installs the playbook into whatever
+`.gitignore`, installs Chromium, and installs the playbook into whichever
 coding-agent stack lives in your project.
 
 ```bash
-# Setup only - baselines are captured explicitly in step 4
+# Setup only. Baselines are captured explicitly in step 4.
 blazediff-agent onboard --no-capture
 ```
 
-It detects your stack automatically (Claude Code, Codex, Cursor); pass
+It detects the stack automatically (Claude Code, Codex, Cursor). Pass
 `--stack <name>` to be explicit, or `--stack local` to install the local
-(Moondream + Qwen) judge when there's no coding agent.
+Moondream and Qwen judge when there is no coding agent in the project.
 
 ## 3. Start the dev server
 
@@ -4187,13 +5030,13 @@ It detects your stack automatically (Claude Code, Codex, Cursor); pass
 blazediff-agent serve-status --detach --json   # waits up to 60s for the port
 ```
 
-Already have a running URL (e.g. staging)? Skip the dev server and point the agent
-at it: `blazediff-agent onboard --url https://staging.example.com`.
+Already have a running URL, such as staging? Skip the dev server and point the
+agent at it: `blazediff-agent onboard --url https://staging.example.com`.
 
 ## 4. Capture baselines
 
-Pipe a JSON list of routes - one `capture` call screenshots them all and writes the
-manifest plus baseline PNGs.
+Pipe in a JSON list of routes. One `capture` call screenshots them all and writes
+the manifest plus the baseline PNGs.
 
 ```bash
 cat <<'EOF' | blazediff-agent capture --stdin --mode baseline --json
@@ -4204,17 +5047,17 @@ cat <<'EOF' | blazediff-agent capture --stdin --mode baseline --json
 EOF
 ```
 
-Then tear down the dev server (mandatory):
+Then tear the dev server down. This step is mandatory:
 
 ```bash
 blazediff-agent serve-status --kill --json
 ```
 
-> **Info:** **Commit `.blazediff/`** - config, manifest, and baselines all live there and are the source of truth for future checks.
+> **Info:** **Commit `.blazediff/`.** Config, manifest and baselines all live there, and they are the source of truth for every later check.
 
-## The config
+## What ends up in `.blazediff/`
 
-`.blazediff/config.json` is committed and drives every later run:
+`config.json` is committed and drives every later run:
 
 ```json
 {
@@ -4225,20 +5068,29 @@ blazediff-agent serve-status --kill --json
 }
 ```
 
-`.blazediff/manifest.json` is written by `capture` - **never edit it directly**.
-Per-route behavior (login, interactions) lives in
-[harnesses](/docs/agentic-testing/judging-and-harnesses#harnesses), not config.
+`manifest.json` is written by `capture`. Never edit it by hand. Per-route
+behavior, such as logging in or clicking through a flow, belongs in a
+[harness](/docs/agentic-testing/judging-and-harnesses#harnesses) rather than in
+config.
 
-Next: [Running in CI →](/docs/agentic-testing/running-in-ci). Full command
-reference lives in the [`@blazediff/agent` docs](/apis/agent).
+## Next
+
+- [Running in CI](/docs/agentic-testing/running-in-ci): the one command CI runs,
+  and what its exit codes mean
+- [Judging and harnesses](/docs/agentic-testing/judging-and-harnesses): what to do
+  when a check fails
+- Every command and flag: [`@blazediff/agent` reference](/apis/agent)
 
 ---
 
-# Agentic Visual Testing - Running in CI
+# Agentic Visual Testing: Running in CI
 
-With baselines committed (see [Setting Up](/docs/agentic-testing/setting-up)),
-CI's job is one verb: `check`. It re-captures every manifest entry, diffs each
-against its baseline, and fails the build on any regression.
+**With baselines committed, CI runs one verb: `check`.** It re-captures every
+entry in the manifest, diffs each against its baseline, classifies what changed,
+and fails the build on a regression.
+
+If you have not captured baselines yet, start with
+[Setting Up](/docs/agentic-testing/setting-up).
 
 ## The check command
 
@@ -4246,8 +5098,8 @@ against its baseline, and fails the build on any regression.
 blazediff-agent check --judge host --json
 ```
 
-The CLI starts the dev server automatically when `config.devServer` is set, runs
-every entry through Playwright, diffs each capture, and emits a `CheckReport`:
+It starts the dev server when `config.devServer` is set, runs every entry through
+Playwright, diffs each capture, and emits a `CheckReport`:
 
 ```json
 {
@@ -4271,10 +5123,10 @@ every entry through Playwright, diffs each capture, and emits a `CheckReport`:
 }
 ```
 
-`results[]` lists non-pass entries only. Full per-entry detail lives in
+`results[]` lists non-passing entries only. Full per-entry detail lives in
 `.blazediff/summary.md` and `.blazediff/judgments/<id>/request.json`.
 
-> **Warning:** **Check-only in CI.** When `CI=1` or there's no TTY, only `check` runs. `onboard` / `capture` / `rewrite` / `reset` are blocked - authoring belongs on a developer's machine, where baseline changes can be reviewed.
+> **Warning:** **Check-only in CI.** When `CI=1` or there is no TTY, only `check` runs. `onboard`, `capture`, `rewrite` and `reset` are blocked. Authoring belongs on a developer's machine, where a baseline change gets reviewed like any other diff.
 
 ## GitHub Actions
 
@@ -4289,55 +5141,67 @@ every entry through Playwright, diffs each capture, and emits a `CheckReport`:
     BLAZEDIFF_AUTH_DEFAULT_PASSWORD: ${{ secrets.BLAZEDIFF_AUTH_DEFAULT_PASSWORD }}
 ```
 
-Pass `-C, --cwd <abs-path>` to target one app inside a monorepo.
+Pass `-C, --cwd <abs-path>` to target one app inside a monorepo. Each app keeps
+its own `.blazediff/` directory, so there is nothing central to keep in sync.
 
 ## Exit codes
 
 | Code | Meaning |
 |---|---|
 | `0` | Every entry passed |
-| `1` | At least one regression, intentional, noise, or pending-judgment entry |
-| non-zero + JSON | Infra failure (missing manifest, no Chromium, etc.) |
+| `1` | At least one regression, intentional change, noise, or pending judgment |
+| non-zero, with JSON | Infrastructure failure: missing manifest, no Chromium, and so on |
 
-A route that times out is logged once in the result array and skipped - it never
+A route that times out is logged once in the result array and skipped. It never
 blocks the run.
 
 ## When a check fails
 
-A `1` exit usually means a diff needs a verdict. Locally, your coding agent reads
-the judgment request and decides; intentional changes are accepted with
-`rewrite`. That loop - verdicts, harnesses, and masking flakes - is covered in
-[Judging and Harnesses →](/docs/agentic-testing/judging-and-harnesses).
+Exit code `1` usually means a diff needs a verdict rather than a fix. Locally,
+your coding agent reads the judgment request and decides; intentional changes are
+accepted with `rewrite`.
+
+## Next
+
+- [Judging and harnesses](/docs/agentic-testing/judging-and-harnesses): verdicts,
+  driving the page before a screenshot, and masking flaky regions
+- [Agent-judged screenshots in GitHub Actions](/guides/github-actions-agent-judged-screenshots):
+  a full workflow, including judging inside the job
+- Every command and flag: [`@blazediff/agent` reference](/apis/agent)
 
 ---
 
-# Agentic Visual Testing - Judging and Harnesses
+# Agentic Visual Testing: Judging and Harnesses
 
-A failing `check` isn't always a regression. This page covers the two things that
-turn a raw diff into a decision: **judging** (is this change real, intentional, or
-noise?) and **harnesses** (driving the page - login, interactions - so the right
-thing gets screenshotted in the first place).
+**A failing `check` is not always a regression.** This page covers the two things
+that turn a raw diff into a decision: judging, meaning is this change real,
+intentional, or noise, and harnesses, meaning driving the page so the right thing
+gets screenshotted in the first place.
 
 ## The judging model
 
-The heuristic verdict pipeline emits one of four labels per failing entry:
+The heuristic pipeline puts one of four labels on every failing entry:
 
 | Label | Meaning | Default action |
 |---|---|---|
-| `regression-likely` | Confident structural change | Investigate; do not rewrite |
-| `intentional-likely` | Confident styling/typographic change | Ask user, then rewrite |
-| `noise-likely` | Confident non-deterministic source | Ask user; prefer masking |
-| `ambiguous` | Heuristic couldn't classify | Defer to host judge |
+| `regression-likely` | Confident structural change | Investigate. Do not rewrite. |
+| `intentional-likely` | Confident styling or typographic change | Ask the user, then rewrite |
+| `noise-likely` | Confident non-deterministic source | Ask the user. Prefer masking. |
+| `ambiguous` | The heuristic could not classify it | Defer to the host judge |
+
+Only `ambiguous` reaches an agent. That is the point: asking a model to rule on
+every diff, including the obvious ones, is how you get verdicts that contradict
+each other between runs.
 
 For `ambiguous`, `--judge host` writes a `JudgmentRequest` to
-`.blazediff/judgments/<id>/request.json` with:
+`.blazediff/judgments/<id>/request.json` containing:
 
-- `regions[]` - bounding boxes, pixel counts, and change types per region
-- `paths.locator` (`locator.png`) - a ~400px overview with regions outlined in red
-- `paths.tiles` (`regions.png`) - a vertical stack of `[baseline | actual]` pairs
-- `paths.{baseline,actual,diff}` - full-page PNGs as a fallback
+- `regions[]`, with bounding boxes, pixel counts and change types per region
+- `paths.locator` (`locator.png`), a ~400px overview with regions outlined in red
+- `paths.tiles` (`regions.png`), a vertical stack of `[baseline | actual]` pairs
+- `paths.{baseline,actual,diff}`, the full-page PNGs, as a fallback
 
-> **Info:** **Token discipline.** The region tiles are 10–100× smaller than the full-page PNGs. A well-behaved host agent reads `regions.png` + `locator.png` first and only falls back to the full-page PNGs if a region clearly continues outside its crop.
+> **Info:** **Token discipline.** The region tiles are 10x to 100x smaller than the full-page PNGs. A well-behaved host agent reads `regions.png` and `locator.png` first, and falls back to the full-page PNGs only when a region clearly continues outside its crop.
 
 The host agent writes its verdict to `.blazediff/judgments/<id>/verdict.json`:
 
@@ -4355,14 +5219,14 @@ The host agent writes its verdict to `.blazediff/judgments/<id>/verdict.json`:
 }
 ```
 
-Then merge verdicts into the report - no re-screenshot:
+Merge verdicts into the report without re-screenshotting anything:
 
 ```bash
 blazediff-agent check --apply-judgments --json
 ```
 
-Accept an intentional change by re-baselining the entry (mask/viewport/waitFor are
-preserved; only the PNG regenerates):
+Accept an intentional change by re-baselining the entry. Mask, viewport and
+`waitFor` are preserved; only the PNG is regenerated:
 
 ```bash
 blazediff-agent rewrite agent --json       # by id
@@ -4372,23 +5236,23 @@ blazediff-agent rewrite --failed --json    # all failures from the last check
 ## Why agents fail at visual review
 
 Handing a coding agent two screenshots and asking "what changed" fails reliably.
-The failures have specific causes, and the judgment request is shaped to avoid
-each one.
+The failures have specific causes, and the judgment request is shaped around each
+one.
 
-| Failure                                                                                      | Cause                                                                                    | What BlazeDiff does                                                                          |
-| -------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| Agent invents differences that are not there                                                  | Asked to compare two images in one pass, it narrates a plausible diff instead of reading one | Regions are found deterministically first; the agent only labels changes that were measured    |
-| Agent misses a real change                                                                    | On a full-page 4K PNG the change is a fraction of a percent of the pixels                  | `regions.png` crops each changed area to `[baseline \| actual]` pairs, so it fills the frame   |
-| Agent cannot say where on the page something is                                               | Crops have no context                                                                      | `locator.png` is a ~400px overview with every region outlined in red                           |
-| Verdicts contradict each other between runs                                                   | Every diff gets asked, including obvious ones                                              | A heuristic settles the confident cases; only `ambiguous` reaches the agent                    |
-| Review burns tokens or times out                                                              | Full-page PNGs, re-sent on every retry                                                     | Tiles are 10–100× smaller; the run is checkpointed and resumes instead of restarting           |
-| Agent "fixes" the failure by re-baselining                                                    | Judging and accepting are the same action                                                  | Verdicts are advisory. `rewrite` is a separate command, blocked in CI                          |
+| Failure | Cause | What BlazeDiff does |
+| --- | --- | --- |
+| Invents differences that are not there | Asked to compare two images in one pass, the model narrates a plausible diff instead of reading one | Regions are found deterministically first. The agent only labels changes that were measured. |
+| Misses a real change | On a full-page 4K PNG the change is a fraction of a percent of the pixels | `regions.png` crops each changed area into a `[baseline \| actual]` pair, so it fills the frame |
+| Cannot say where on the page something is | Crops carry no context | `locator.png` is a ~400px overview with every region outlined in red |
+| Verdicts contradict each other between runs | Every diff gets asked, including the obvious ones | A heuristic settles the confident cases. Only `ambiguous` reaches the agent. |
+| Burns tokens or times out | Full-page PNGs, re-sent on every retry | Tiles are 10x to 100x smaller, and the run is checkpointed so it resumes rather than restarts |
+| "Fixes" the failure by re-baselining | Judging and accepting are the same action | Verdicts are advisory. `rewrite` is a separate command, blocked in CI. |
 
 The rule underneath all of it: **describe each side separately, then diff the
-descriptions**. A model asked to compare two images in one step will fill gaps
-with what it expects to see. A model asked what a single crop contains is
-answering a much easier question, and the comparison afterwards is arithmetic.
-The `--judge local` backend follows the same shape - Moondream describes, then a
+descriptions.** A model asked to compare two images in one step fills gaps with
+what it expects to see. A model asked what a single crop contains is answering a
+much easier question, and the comparison afterwards is arithmetic. The
+`--judge local` backend follows the same shape: Moondream describes, a
 deterministic word diff runs, then Qwen classifies the result.
 
 If your agent is still returning bad verdicts, check in this order:
@@ -4398,19 +5262,19 @@ If your agent is still returning bad verdicts, check in this order:
 2. Is the entry actually `ambiguous`? A `regression-likely` entry does not need a
    verdict, it needs a look.
 3. Is the diff real, or is the region non-deterministic? Masking a flake is
-   correct; asking an agent to rule on a spinner is not.
+   correct. Asking an agent to rule on a spinner is not.
 
 ## Harnesses
 
 A **harness** is a pluggable ESM script in `.blazediff/harnesses/<name>.js`,
-attached to an entry via its `harnesses: [{ name, params? }]` list. Login is just
-one kind - anything that drives the page before or around a screenshot is a
-harness. Two phases:
+attached to an entry through its `harnesses: [{ name, params? }]` list. Login is
+one kind of harness. Anything that drives the page before or around a screenshot
+is a harness. There are two phases:
 
-- **`setup`** - runs before navigation (establish a session, e.g. login).
-- **`interact`** (default) - runs after the base screenshot; drives the page and
-  may emit extra named screenshots via `screenshot(name)`, each its own baseline
-  entry `<entry>__<name>`.
+- **`setup`** runs before navigation, to establish a session such as a login.
+- **`interact`**, the default, runs after the base screenshot. It drives the page
+  and can emit extra named screenshots through `screenshot(name)`, each becoming
+  its own baseline entry `<entry>__<name>`.
 
 ### Interaction harness
 
@@ -4431,8 +5295,9 @@ export default {
 
 ### Login harness
 
-Routes behind a login flow capture through a `setup` harness. Credentials live in
-environment variables - never in the harness file, the manifest, or LLM context.
+Routes behind a login capture through a `setup` harness. Credentials live in
+environment variables, never in the harness file, the manifest, or an LLM's
+context.
 
 ```js
 /** @type {import("@blazediff/agent").Harness<{ persona?: string }>} */
@@ -4454,34 +5319,39 @@ export default {
 };
 ```
 
-Attach it per entry, and drop credentials in `.blazediff/.env` (auto-gitignored):
+Attach it per entry, and put the credentials in `.blazediff/.env`, which is
+gitignored automatically:
 
 ```json
 { "id": "dashboard", "url": "/dashboard",
   "harnesses": [{ "name": "auth", "params": { "persona": "default" } }] }
 ```
 
-For OAuth/SSO, magic links, MFA, or captcha - record interactively instead:
+For OAuth, SSO, magic links, MFA or captcha, record the session interactively
+instead:
 `blazediff-agent auth init --persona default --login-url http://127.0.0.1:3000/login`.
 
 ## Masking flaky regions
 
-When a diff is `noise-likely` - or a real-looking diff is actually caused by
-something non-deterministic - mask it, don't rebaseline. A rebaseline just resets
-the clock on a flake; a mask removes it. Mask auto-cycling animations, third-party
-iframes, timestamps, per-session randomness, and personalization noise. **Don't**
-mask real content that happens to be changing - that's the change you want caught.
+When a diff is `noise-likely`, or a real-looking diff turns out to come from
+something non-deterministic, mask it rather than re-baselining. A re-baseline just
+resets the clock on a flake; a mask removes it.
 
-The agent always masks any element matching `[data-blazediff-agent-mask]` - no
-manifest change needed. Add it to a shared component and it applies on every route:
+Mask auto-cycling animations, third-party iframes, timestamps, per-session
+randomness and personalization noise. Do **not** mask real content that happens to
+change often. That is the change you want caught.
+
+The agent always masks any element matching `[data-blazediff-agent-mask]`, with no
+manifest change needed. Put it on a shared component and it applies on every
+route:
 
 ```tsx
 <div data-blazediff-agent-mask="report-carousel">...</div>
 ```
 
-When you can't edit the source (third-party embed), fall back to a per-entry CSS
-selector. The mask list **replaces** the existing one, so include every selector
-you want kept:
+When you cannot edit the source, such as a third-party embed, fall back to a
+per-entry CSS selector. The mask list **replaces** the existing one, so include
+every selector you want to keep:
 
 ```bash
 cat <<'EOF' | blazediff-agent capture --stdin --mode baseline --json
@@ -4491,7 +5361,13 @@ cat <<'EOF' | blazediff-agent capture --stdin --mode baseline --json
 EOF
 ```
 
-Full reference: [`@blazediff/agent` docs →](/apis/agent).
+## Next
+
+- [Cross-OS false positives](/guides/cross-os-false-positives) when the same page
+  renders differently on macOS and Linux CI
+- [Anti-aliasing and 1px shifts](/guides/anti-aliasing-false-positives) when text
+  edges are the source of the churn
+- Every command and flag: [`@blazediff/agent` reference](/apis/agent)
 
 ---
 
@@ -4502,7 +5378,13 @@ Full reference: [`@blazediff/agent` docs →](/apis/agent).
   ReactDifferenceDemo,
 } from "../../../../components/demos/react-modes";
 
-Build interactive image comparison components with React. Every example below is live and runs right on this page.
+**`@blazediff/react` renders a before/after comparison four ways: swipe, two-up,
+onion skin, and a live pixel diff.** Every demo below is the real component,
+running in this page.
+
+The components carry no styling of their own. They take `*ClassName` props and
+render from the [`@blazediff/ui`](/apis/ui) headless engine, so you can restyle
+them freely or drop to the engine and render your own markup.
 
 ## Installation
 
@@ -4512,21 +5394,34 @@ npm install @blazediff/react
 
     ```tsx
 
-    ```
-
-    ```tsx
+    // A draggable divider over two stacked images. position is 0 to 100.
 
     ```
 
     ```tsx
 
+    // Side by side, with a label when the two images differ in size.
+
     ```
 
     ```tsx
 
+    // Blends the two images. Good for spotting small position shifts.
+
     ```
 
-All four components render from the [`@blazediff/ui`](/apis/ui) headless engine and accept `*ClassName` props for styling. See the [full API reference →](/apis/react).
+    ```tsx
+
+    // Runs an actual pixel diff in the browser and paints the result.
+
+    ```
+
+## Next
+
+- Not using React? The same four modes ship as
+  [vanilla mount functions](/docs/ui-components/vanilla)
+- Every prop: [`@blazediff/react` reference](/apis/react)
+- The engine underneath: [`@blazediff/ui` reference](/apis/ui)
 
 ---
 
@@ -4537,7 +5432,14 @@ All four components render from the [`@blazediff/ui`](/apis/ui) headless engine 
   VanillaDifferenceDemo,
 } from "../../../../components/demos/vanilla-modes";
 
-Use the BlazeDiff UI renderer (`mount*` functions) in vanilla JS - or drive the headless engine from any framework. Every example below is live and runs right on this page.
+**`@blazediff/ui` gives you the same four comparison modes as
+[the React package](/docs/ui-components/react), mounted into any DOM node.** Each
+demo below is the real thing, running in this page.
+
+Every `mount*` call returns a `{ update, destroy }` handle: `update(options)`
+swaps sources or options in place, `destroy()` tears the UI down. Underneath sits
+a headless engine you can drive directly from Vue, Svelte, Solid or your own
+renderer, which is what the React package does.
 
 ## Installation
 
@@ -4547,7 +5449,8 @@ npm install @blazediff/ui
 
     ```ts
 
-    mountSwipe(document.getElementById("app"), {
+    // A draggable divider over two stacked images. position is 0 to 100.
+    const handle = mountSwipe(document.getElementById("app"), {
       src1: "before.png",
       src2: "after.png",
       onPositionChange: (position) => console.log(position),
@@ -4556,7 +5459,8 @@ npm install @blazediff/ui
 
     ```ts
 
-    mountTwoUp(document.getElementById("app"), {
+    // Side by side, with a label when the two images differ in size.
+    const handle = mountTwoUp(document.getElementById("app"), {
       src1: "before.png",
       src2: "after.png",
       onImagesLoaded: ({ image1, image2 }) => console.log(image1, image2),
@@ -4565,7 +5469,8 @@ npm install @blazediff/ui
 
     ```ts
 
-    mountOnionSkin(document.getElementById("app"), {
+    // Blends the two images. Good for spotting small position shifts.
+    const handle = mountOnionSkin(document.getElementById("app"), {
       src1: "before.png",
       src2: "after.png",
       opacity: 50,
@@ -4575,7 +5480,8 @@ npm install @blazediff/ui
 
     ```ts
 
-    mountDifference(document.getElementById("app"), {
+    // Runs an actual pixel diff in the browser and paints the result.
+    const handle = mountDifference(document.getElementById("app"), {
       src1: "before.png",
       src2: "after.png",
       threshold: 0.1,
@@ -4584,13 +5490,25 @@ npm install @blazediff/ui
     });
     ```
 
-Each `mount*` call returns a `{ update, destroy }` handle - call `update(options)` to change sources or options in place, and `destroy()` to remove the UI. See the [full API reference →](/apis/ui).
+## Next
+
+- Using React? [The React components](/docs/ui-components/react) wrap these
+- Every option and the engine API: [`@blazediff/ui` reference](/apis/ui)
 
 ---
 
 # Object Comparison
 
-Learn how to use BlazeDiff for comparing JavaScript objects and detecting changes in complex data structures.
+**`@blazediff/object` takes two JavaScript values and returns a flat list of what
+changed, with the path to each change.** It handles nested objects, arrays, dates,
+regexes and circular references, and it is about 55% faster than
+[microdiff](https://github.com/AsyncBanana/microdiff) across the benchmark
+fixtures.
+
+This is the one part of BlazeDiff that has nothing to do with images. It shares
+the name and the performance work, not the pipeline. Use it for audit logs,
+undo stacks, state-change assertions in tests, or anywhere you would otherwise
+`JSON.stringify` two objects and compare strings.
 
 ## Installation
 
@@ -4598,9 +5516,24 @@ Learn how to use BlazeDiff for comparing JavaScript objects and detecting change
 npm install @blazediff/object
 ```
 
-## Overview
+## What you get back
 
-BlazeDiff Object provides fast and efficient comparison of JavaScript objects, detecting additions, removals, and modifications with detailed path information. Try the interactive demos below to see different comparison scenarios in action.
+One entry per change, always the same shape, so V8 keeps a single hidden class for
+the whole array:
+
+```ts
+interface Difference {
+  type: 0 | 1 | 2;            // CREATE | REMOVE | CHANGE
+  path: (string | number)[];  // e.g. ["user", "settings", "theme"]
+  value: unknown;             // the new value
+  oldValue: unknown;          // the previous value
+}
+```
+
+Types are numbers rather than strings on purpose: they get compared in the hot
+loop. `0` is CREATE, `1` is REMOVE, `2` is CHANGE.
+
+## Examples
 
 ```ts
 import diff from "@blazediff/object";
@@ -4608,6 +5541,7 @@ import diff from "@blazediff/object";
 const oldObj = { a: 1, b: 2, c: 3 };
 const newObj = { a: 1, b: 20, d: 4 };
 
+// b changed, c was removed, d was created. a is not reported.
 const changes = diff(oldObj, newObj);
 ```
 
@@ -4637,6 +5571,7 @@ const newObj = {
   }
 };
 
+// Paths go all the way down, e.g. ["user", "settings", "theme"].
 const changes = diff(oldObj, newObj);
 ```
 
@@ -4660,8 +5595,40 @@ const newObj = {
   total: 400
 };
 
+// Arrays are compared by index, so a prepend reports every element as changed.
 const changes = diff(oldObj, newObj);
 ```
+
+## Things worth knowing
+
+- **Arrays are compared by index, not by identity.** Inserting at the front
+  reports every following element as a CHANGE. If you need move detection, key the
+  array yourself before diffing.
+- **Cycles are handled**, and the check costs something. If you know your input is
+  a tree, pass `{ detectCycles: false }`.
+- **Unchanged values are not reported.** An empty array means the two inputs are
+  structurally equal.
+
+## What it costs
+
+Against microdiff, M1 Max, Node 22, 10,000 iterations:
+
+| Fixture                | microdiff | `@blazediff/object` |
+| ---------------------- | --------- | ------------------- |
+| Large nested object    | 3.3318ms  | 1.4536ms            |
+| Large array            | 0.5859ms  | 0.2391ms            |
+| Large identical arrays | 0.0919ms  | 0.0031ms            |
+| Simple object          | 0.0003ms  | 0.0002ms            |
+
+About 55% faster on average, and ~97% faster when the two inputs are identical,
+which is the common case when you are diffing state on every update.
+[Full table](/benchmarks/object).
+
+## Next
+
+- Every option and the full `Difference` type:
+  [`@blazediff/object` reference](/apis/object)
+- Comparing images instead: [Introduction](/docs)
 
 ---
 

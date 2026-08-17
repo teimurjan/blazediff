@@ -232,7 +232,7 @@ const BENCHMARK_GROUPS = [
 
 export default function Home() {
 	return (
-		<LandingShell activeTab="home" ctaLabel="GET STARTED" ctaHref="/apis/core">
+		<LandingShell activeTab="home" ctaLabel="GET STARTED" ctaHref="/docs">
 			<StructuredData />
 			<Hero
 				left={
@@ -353,13 +353,11 @@ export default function Home() {
 
 			<Section>
 				<div className="flex flex-col md:flex-row gap-4">
-					<CtaLink href="/apis/core" variant="primary">
+					<CtaLink href="/docs" variant="primary">
 						READ DOCS
 					</CtaLink>
 					<CtaLink href="/agent">TRY THE AGENT →</CtaLink>
-					<CtaLink href="/docs/pixel-comparison/vanilla-javascript">
-						BROWSE EXAMPLES
-					</CtaLink>
+					<CtaLink href="/apis/core">API REFERENCE</CtaLink>
 					<CtaLink href="https://github.com/teimurjan/blazediff" external>
 						GITHUB
 					</CtaLink>

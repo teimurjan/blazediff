@@ -1,18 +1,28 @@
+---
+title: Structural Image Comparison With SSIM and GMSD
+description: Score how different two images look instead of counting changed pixels. Run SSIM, Hitchhiker's SSIM and GMSD from JavaScript, read the scores, and know which one to gate your visual tests on.
+---
+
 # Structural Image Comparison
 
 import { Tabs } from "nextra/components";
 import GmsdImageComparison from "../../../components/gmsd-image-comparison";
 import SsimImageComparison from "../../../components/ssim-image-comparison";
 
-Pixel-by-pixel diffing answers "how many pixels changed". Structural metrics answer
-"how *different do these look*" - they tolerate imperceptible noise (compression
-artifacts, sub-pixel shifts) and score perceived similarity instead. Reach for them
-when an exact pixel match is too strict.
+**Pixel diffing answers "how many pixels changed". Structural metrics answer "how
+different does this look".** They score a neighborhood rather than a pixel, so
+compression artifacts and sub-pixel rendering noise barely move them while a real
+change does.
 
-BlazeDiff ships two: **GMSD** (gradient-based, fast) and **SSIM** (the classic
-structural index, with a 4× faster Hitchhiker's variant).
+Reach for one when exact matching is too strict: screenshots that get re-encoded
+somewhere in the pipeline, or the same page rendered by two different machines.
+Keep a pixel diff in the pipeline too, because both metrics work on luminance and
+are close to blind to color-only changes.
 
-New to these metrics? Start with [what SSIM is](/docs/metrics/ssim),
+BlazeDiff ships two: **GMSD**, which compares edges and is the cheaper of the two,
+and **SSIM**, the classic structural index, with a faster Hitchhiker's variant.
+
+New to these? Read [what SSIM measures](/docs/metrics/ssim),
 [how GMSD works](/docs/metrics/gmsd), or
 [which one to pick](/docs/metrics/choosing-a-metric).
 
@@ -24,8 +34,8 @@ npm install @blazediff/gmsd @blazediff/ssim
 
 ## GMSD (Gradient Magnitude Similarity Deviation)
 
-Scores gradient (edge) similarity. Returns `0` for identical images; **lower is
-better**, typically in the `0`–`0.35` range.
+Scores gradient (edge) similarity. Returns `0` for identical images. **Lower is
+better**, typically in the `0` to `0.35` range.
 
 <Tabs items={['Basic Comparison', 'Custom C-Constant']}>
   <Tabs.Tab>
@@ -70,19 +80,24 @@ better**, typically in the `0`–`0.35` range.
     );
     const width = img1.width;
     const height = img1.height;
+
+    // Raising c makes the metric more forgiving in low-contrast areas.
     const score = gmsd(img1, img2, undefined, width, height, { c: 100 });
     ```
 
   </Tabs.Tab>
 </Tabs>
 
-See the [GMSD API reference →](/apis/gmsd).
+Pass an output buffer as the third argument to get the similarity map back as a
+grayscale image, which shows which edges disagreed.
+[GMSD reference](/apis/gmsd).
 
 ## SSIM (Structural Similarity Index)
 
-Scores luminance, contrast, and structure. Returns `1` for identical images;
-**higher is better**, in the `0`–`1` range. The Hitchhiker's variant uses
-non-overlapping windows for ~4× the throughput at near-identical accuracy.
+Scores luminance, contrast and structure. Returns `1` for identical images.
+**Higher is better**, in the `0` to `1` range. The Hitchhiker's variant swaps the
+Gaussian window for non-overlapping rectangular windows over integral images,
+which runs 2x to 5x faster depending on the image at near-identical accuracy.
 
 <Tabs items={['Original SSIM', 'Hitchhiker\'s SSIM']}>
   <Tabs.Tab>
@@ -138,4 +153,23 @@ const score = hitchhikersSSIM(img1, img2, output, width, height);
   </Tabs.Tab>
 </Tabs>
 
-See the [SSIM API reference →](/apis/ssim).
+The output buffer here receives the SSIM map: dark areas are where the two images
+disagree. `@blazediff/ssim` also ships MS-SSIM, which scores at five scales for
+images that get viewed at more than one size.
+[SSIM reference](/apis/ssim).
+
+## Picking a threshold
+
+Do not copy a number from a table. Run your own baselines twice with no code
+change, see what score the noise alone produces, then set the gate above it. As
+starting points: `0.05` for GMSD when you control the render, `0.15` when
+screenshots pass through lossy compression, and `0.98` for SSIM on full-page
+shots.
+
+## Next
+
+- [Choosing a metric](/docs/metrics/choosing-a-metric) if you are still deciding
+- [What SSIM measures](/docs/metrics/ssim) and
+  [how GMSD works](/docs/metrics/gmsd) for the formulas
+- [Pixel-by-pixel comparison](/docs/pixel-comparison/vanilla-javascript) when you
+  want the exact count instead

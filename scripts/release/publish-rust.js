@@ -7,8 +7,12 @@ const os = require("node:os");
 const ROOT = path.resolve(__dirname, "..", "..");
 const CRATES_DIR = path.join(ROOT, "crates");
 
-// Order matters: blazediff depends on blazediff-png, so the dependency must be
-// on crates.io before blazediff's publish verification builds.
+// Order matters, and follows the dependency edges:
+//   blazediff-png -> blazediff-shared -> {blazediff, blazediff-ssim}
+//     -> blazediff-interpret
+// Interpret is last: it sits above both producers and consumes what they
+// return, rather than either of them depending on it.
+// Each must be on crates.io before the next one's publish verification builds.
 const CRATES = [
 	{
 		name: "blazediff-png",
@@ -18,11 +22,42 @@ const CRATES = [
 		dockerTag: "blazediff-png-publish",
 	},
 	{
+		name: "blazediff-shared",
+		npmPkgPath: path.join(ROOT, "crates", "blazediff-shared", "package.json"),
+		cargoTomlPath: path.join(ROOT, "crates", "blazediff-shared", "Cargo.toml"),
+		dockerfile: "blazediff-shared/Dockerfile.publish",
+		dockerTag: "blazediff-shared-publish",
+	},
+	{
+		name: "blazediff-ssim",
+		npmPkgPath: path.join(ROOT, "crates", "blazediff-ssim", "package.json"),
+		cargoTomlPath: path.join(ROOT, "crates", "blazediff-ssim", "Cargo.toml"),
+		dockerfile: "blazediff-ssim/Dockerfile.publish",
+		dockerTag: "blazediff-ssim-publish",
+	},
+	{
 		name: "blazediff",
 		npmPkgPath: path.join(ROOT, "crates", "blazediff", "package.json"),
 		cargoTomlPath: path.join(ROOT, "crates", "blazediff", "Cargo.toml"),
 		dockerfile: "blazediff/Dockerfile.publish",
 		dockerTag: "blazediff-publish",
+	},
+	{
+		name: "blazediff-interpret",
+		npmPkgPath: path.join(
+			ROOT,
+			"crates",
+			"blazediff-interpret",
+			"package.json",
+		),
+		cargoTomlPath: path.join(
+			ROOT,
+			"crates",
+			"blazediff-interpret",
+			"Cargo.toml",
+		),
+		dockerfile: "blazediff-interpret/Dockerfile.publish",
+		dockerTag: "blazediff-interpret-publish",
 	},
 ];
 

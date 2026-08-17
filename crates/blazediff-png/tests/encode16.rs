@@ -98,7 +98,7 @@ fn encode16_roundtrips_and_matches_spng() {
 
                         // Cross-decode through spng at SPNG_FMT_RGBA16.
                         let (sw, sh, _, _, sbytes) =
-                            blazediff::decode_spng_reference_fmt(&png, 2, 0)
+                            blazediff_shared::decode_spng_reference_fmt(&png, 2, 0)
                                 .unwrap_or_else(|e| panic!("{label}: spng rejects: {e:?}"));
                         let sdata: Vec<u16> = sbytes
                             .chunks_exact(2)

@@ -1,6 +1,6 @@
 export default {
 	index: {
-		display: "hidden",
+		title: "Introduction",
 	},
 	"pixel-comparison": {
 		title: "Pixel-by-pixel Image Comparison",

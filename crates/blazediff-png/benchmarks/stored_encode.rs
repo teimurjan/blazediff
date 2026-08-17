@@ -10,7 +10,7 @@
 //!
 //! Run: `cargo bench --bench stored_encode`.
 
-use blazediff::spng_ffi::*;
+use blazediff_shared::spng_ffi::*;
 use criterion::{black_box, criterion_group, criterion_main, Criterion, Throughput};
 use std::os::raw::c_int;
 

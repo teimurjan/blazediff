@@ -11,7 +11,7 @@ High-performance image diffing with block-based optimization and SIMD accelerati
 
 - **Block-based optimization** - Skip identical regions for massive speedups on similar images
 - **SIMD acceleration** - Native SSE4.1 (x86) and NEON (ARM) implementations
-- **Multiple formats** - PNG, JPEG, and QOI support
+- **Multiple formats** - PNG, JPEG, and QOI support, via [`blazediff-shared`](../blazediff-shared)
 - **Perceptual diffing** - YIQ-based color difference with antialiasing detection
 - **In-house PNG codec** - optional [`blazediff_png`](../blazediff-png), faster than spng on every fixture, with byte-exact decode parity; opt-in via `BLAZEDIFF_PNG_ENABLED`
 - **Cross-platform** - Linux, macOS, and Windows support
@@ -87,9 +87,20 @@ let result = diff("image1.png", "image2.png", Some("diff.png"), &options)?;
 println!("Different pixels: {}", result.diff_count);
 ```
 
+## Structural similarity
+
+This crate is a pixel diff: it answers *where* two images differ. For *how alike*
+they look — SSIM, MS-SSIM, Hitchhiker's SSIM — use
+[`blazediff-ssim`](../blazediff-ssim), which stands alone and shares nothing with
+this crate but the `blazediff-shared` primitives. It is also what
+[`@blazediff/ssim-native`](https://www.npmjs.com/package/@blazediff/ssim-native)
+wraps.
+
 ## Interpret
 
-Structured region analysis that takes a raw pixel diff and produces human-readable change descriptions. Available via `--interpret` in the CLI or `interpret()` in the library.
+Structured region analysis that produces human-readable change descriptions. It is not part of this crate: it lives in [`blazediff-interpret`](../blazediff-interpret), which consumes what `diff` returns, with its own `blazediff-interpret` CLI.
+
+The classifier is independent of whatever found the regions. Anything that can say *where* something changed can drive it: `blazediff-ssim` by thresholding a score map, or a caller passing boxes directly. Coarse boxes are fine — each is refined against the source pixels before any statistic is computed, so the analysis stays per-pixel.
 
 See [INTERPRET.md](./INTERPRET.md) for the full algorithm documentation - pipeline stages, formulas, classification rules, and output format.
 
@@ -97,9 +108,11 @@ See [INTERPRET.md](./INTERPRET.md) for the full algorithm documentation - pipeli
 
 3-4x faster than odiff, 8x faster than pixelmatch on 4K images.
 
-PNG I/O defaults to spng. Setting `BLAZEDIFF_PNG_ENABLED=1` routes decode and stored
-(level 0) encode through the in-house [`blazediff_png`](../blazediff-png) codec,
-which is faster than spng on every fixture.
+Image I/O lives in [`blazediff-shared`](../blazediff-shared), shared with the other crates;
+`load_png`, `save_jpeg` and friends are re-exported here unchanged. PNG I/O defaults
+to spng. Setting `BLAZEDIFF_PNG_ENABLED=1` routes decode and stored (level 0) encode
+through the in-house [`blazediff_png`](../blazediff-png) codec, which is faster than
+spng on every fixture.
 
 ## License
 

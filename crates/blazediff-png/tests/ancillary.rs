@@ -7,7 +7,9 @@
 use blazediff_png::decode;
 
 fn oracle(bytes: &[u8]) -> Option<Vec<u8>> {
-    blazediff::decode_spng_reference(bytes).ok().map(|i| i.data)
+    blazediff_shared::decode_spng_reference(bytes)
+        .ok()
+        .map(|i| i.data)
 }
 
 #[track_caller]

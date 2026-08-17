@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use blazediff::interpret::types::ChangeType;
+use blazediff_interpret::types::ChangeType;
 use serde::{Deserialize, Serialize};
 
 use crate::types::{CaseResult, FailureDetail};
@@ -319,7 +319,7 @@ pub fn build_metrics(results: &[CaseResult]) -> MetricsSummary {
 mod tests {
     use super::*;
     use crate::types::{CaseResult, DatasetTier, GroundTruthRegion, RegionMatch};
-    use blazediff::interpret::types::{
+    use blazediff_interpret::types::{
         BoundingBox, ChangeRegion, ChangeShape, ClassificationSignals, ColorDeltaStats,
         GradientStats, ShapeStats,
     };
@@ -334,7 +334,7 @@ mod tests {
             },
             pixel_count: 16,
             percentage: 1.0,
-            position: blazediff::interpret::types::SpatialPosition::Center,
+            position: blazediff_interpret::types::SpatialPosition::Center,
             shape: ChangeShape::SolidRegion,
             shape_stats: ShapeStats {
                 fill_ratio: 1.0,
