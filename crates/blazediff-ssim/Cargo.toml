@@ -1,6 +1,6 @@
 [package]
 name = "blazediff-ssim"
-version = "5.4.0"
+version = "6.0.0"
 edition = "2021"
 authors = ["Teimur Gasanov"]
 description = "SSIM, MS-SSIM and Hitchhiker's SSIM with compile-time SIMD kernels and MATLAB parity"
@@ -37,7 +37,7 @@ napi = { version = "2", features = ["napi4"], optional = true }
 napi-derive = { version = "2", optional = true }
 # Decoding for the path/buffer entry points. `version` is required to publish
 # to crates.io; kept in lockstep by scripts/release/sync-cargo-version.js.
-blazediff-shared = { path = "../blazediff-shared", version = "5.4.0", optional = true }
+blazediff-shared = { path = "../blazediff-shared", version = "6.0.0", optional = true }
 
 [build-dependencies]
 napi-build = { version = "2", optional = true }

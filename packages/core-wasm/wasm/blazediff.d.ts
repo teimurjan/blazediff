@@ -1,13 +1,5 @@
 /* tslint:disable */
 /* eslint-disable */
-/**
- * Interpret the diff between two RGBA buffers into structured change regions.
- *
- * Returns the `InterpretResult` (summary, regions with positions, change
- * types, severity, etc.) serialized as a plain JS object - the same shape the
- * native binding produces.
- */
-export function interpretRgba(rgba_a: Uint8Array, rgba_b: Uint8Array, width: number, height: number, threshold: number, include_aa: boolean, diff_mask: boolean, diff_color_alt?: Uint8Array | null, out_diff?: Uint8Array | null): any;
 export function _start(): void;
 /**
  * Diff two RGBA buffers. Returns the count of differing pixels.
@@ -24,10 +16,9 @@ export interface InitOutput {
   readonly memory: WebAssembly.Memory;
   readonly _start: () => void;
   readonly diffRgba: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number, l: number, m: number) => void;
-  readonly interpretRgba: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number, l: number, m: number) => void;
-  readonly __wbindgen_export_0: (a: number, b: number) => number;
-  readonly __wbindgen_export_1: (a: number, b: number, c: number, d: number) => number;
-  readonly __wbindgen_export_2: (a: number, b: number, c: number) => void;
+  readonly __wbindgen_export_0: (a: number, b: number, c: number) => void;
+  readonly __wbindgen_export_1: (a: number, b: number) => number;
+  readonly __wbindgen_export_2: (a: number, b: number, c: number, d: number) => number;
   readonly __wbindgen_add_to_stack_pointer: (a: number) => number;
   readonly __wbindgen_start: () => void;
 }
