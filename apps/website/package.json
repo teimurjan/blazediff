@@ -19,6 +19,7 @@
 		"@blazediff/core": "workspace:*",
 		"@blazediff/core-native": "workspace:*",
 		"@blazediff/gmsd": "workspace:*",
+		"@blazediff/interpret-native": "workspace:*",
 		"@blazediff/object": "workspace:*",
 		"@blazediff/react": "workspace:*",
 		"@blazediff/ssim": "workspace:*",

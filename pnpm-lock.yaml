@@ -183,6 +183,9 @@ importers:
       '@blazediff/gmsd':
         specifier: workspace:*
         version: link:../../packages/gmsd
+      '@blazediff/interpret-native':
+        specifier: workspace:*
+        version: link:../../packages/interpret-native
       '@blazediff/object':
         specifier: workspace:*
         version: link:../../packages/object
