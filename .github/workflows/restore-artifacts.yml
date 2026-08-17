@@ -1,0 +1,167 @@
+name: restore-artifacts
+
+# Re-commits release binaries that a previous `/build` already produced, instead
+# of building them again. Comment `/restore` (or `/restore 6.0.0`) on a PR.
+#
+# This exists because the Changesets "Version Packages" branch is force-pushed
+# from scratch every time main moves, which discards the `build: artifacts for
+# vX.Y.Z` commit along with it. The bytes are still in the earlier run's
+# artifacts, so re-attaching them is a ~1 minute job where `/build` is ~90.
+#
+# The work is done by scripts/release/restore-artifacts.js — the same script a
+# maintainer runs locally as `pnpm restore <version>` — so there is one
+# implementation of "which run, which version, where do the files go", not two.
+#
+# Push uses CHANGESETS_PAT for the same reason build-artifacts.yml does: a
+# GITHUB_TOKEN push triggers no downstream workflows, and re-running
+# release-artifacts-check on the new commit is the point.
+
+on:
+  issue_comment:
+    types: [created]
+
+concurrency:
+  group: restore-artifacts-${{ github.event.issue.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+  # `gh run download` reads another workflow's artifacts.
+  actions: read
+
+jobs:
+  restore:
+    name: Restore artifacts
+    if: |
+      github.event.issue.pull_request &&
+      startsWith(github.event.comment.body, '/restore') &&
+      github.event.comment.user.login == 'teimurjan'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Resolve PR head
+        uses: actions/github-script@v7
+        id: pr
+        with:
+          script: |
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+            });
+            const head = pr.head.repo?.full_name;
+            if (head !== `${context.repo.owner}/${context.repo.repo}`) {
+              core.setFailed(`/restore cannot push to a fork (head is ${head}).`);
+              return;
+            }
+            core.setOutput('ref', pr.head.ref);
+            await github.rest.reactions.createForIssueComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: context.payload.comment.id,
+              content: 'eyes',
+            });
+
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ steps.pr.outputs.ref }}
+          token: ${{ secrets.CHANGESETS_PAT }}
+          # Only pointers are needed: every file this job rewrites gets its
+          # contents from the downloaded artifacts, not from LFS.
+          lfs: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # Read out of the comment rather than the branch so a mistyped version
+      # fails loudly here, instead of silently restoring a different release.
+      # Empty is fine — the script then reads crates/blazediff/Cargo.toml.
+      - name: Parse requested version
+        id: parse
+        env:
+          COMMENT_BODY: ${{ github.event.comment.body }}
+        run: |
+          set -euo pipefail
+          VER=$(printf '%s' "$COMMENT_BODY" \
+            | sed -nE '1s|^/restore[[:space:]]+v?([0-9][0-9A-Za-z.+-]*).*|\1|p')
+          echo "version=$VER" >> "$GITHUB_OUTPUT"
+          echo "Restoring ${VER:-the version in Cargo.toml}"
+
+      - name: Restore artifacts
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.parse.outputs.version }}
+        run: |
+          set -euo pipefail
+          # Unquoted on purpose: an empty VERSION must pass no argument at all.
+          node scripts/release/restore-artifacts.js ${VERSION:+"$VERSION"}
+
+      - name: Commit and push
+        id: push
+        env:
+          VERSION: ${{ steps.parse.outputs.version }}
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          # Binaries are LFS-tracked; the clean filter has to be wired up in
+          # this clone before `git add` sees them.
+          git lfs install --local
+
+          git add -A packages crates/blazediff/wheels
+          if git diff --cached --quiet; then
+            echo "Artifacts already match — nothing to commit."
+            echo "committed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          VER="${VERSION:-$(sed -nE 's/^version *= *"([^"]+)".*/\1/p' crates/blazediff/Cargo.toml | head -1)}"
+          git diff --cached --stat
+          git commit -m "build: artifacts for v${VER}"
+          git push origin "HEAD:${{ steps.pr.outputs.ref }}"
+          echo "committed=true" >> "$GITHUB_OUTPUT"
+          echo "version=$VER" >> "$GITHUB_OUTPUT"
+
+      - name: Report result
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const committed = '${{ steps.push.outputs.committed }}' === 'true';
+            const version = '${{ steps.push.outputs.version }}';
+            await github.rest.reactions.createForIssueComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: context.payload.comment.id,
+              content: 'rocket',
+            });
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: committed
+                ? `Restored release artifacts for \`v${version}\` from an earlier \`/build\` — no rebuild needed.`
+                : `Release artifacts already match; nothing to commit.`,
+            });
+
+      - name: Report failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const run = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            await github.rest.reactions.createForIssueComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: context.payload.comment.id,
+              content: 'confused',
+            });
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `\`/restore\` failed — nothing was committed. The artifacts may have expired, in which case \`/build\` is the only way back. [Logs](${run}).`,
+            });
