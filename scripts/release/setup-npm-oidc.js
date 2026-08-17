@@ -156,32 +156,35 @@ function publishedVersions(name) {
 }
 
 /**
- * Whether npm already holds a trusted publisher for the package: true, false,
- * or null when it can't be told.
- *
- * `npm trust list` is itself an OTP-gated operation on an "auth-and-writes"
- * account, so the query fails long before it can report an empty list. A failed
- * *question* is not a "no" — answering false here would re-register trust on
- * every package that already has it.
+ * Runs npm with its output captured, so a failure can be classified rather than
+ * just dumped. stdin stays attached in case npm decides to prompt.
  */
-function trustState(name) {
-	let stdout;
+function npmQuiet(argv, opts = {}) {
 	try {
-		stdout = run("npm", ["trust", "list", name, "--json"]);
+		return {
+			ok: true,
+			output: execFileSync("npm", argv, {
+				encoding: "utf8",
+				stdio: ["inherit", "pipe", "pipe"],
+				...opts,
+			}),
+		};
 	} catch (error) {
-		stdout = error.stdout ?? "";
+		return {
+			ok: false,
+			output: `${error.stdout ?? ""}${error.stderr ?? ""}`,
+		};
 	}
+}
 
-	let parsed;
-	try {
-		parsed = JSON.parse(stdout);
-	} catch {
-		return null;
-	}
-
-	if (Array.isArray(parsed)) return parsed.length > 0;
-	if (Array.isArray(parsed?.trust)) return parsed.trust.length > 0;
-	return null; // EOTP, or any other error body
+/** The `npm error ...` lines, which is the part worth showing on a failure. */
+function npmErrorSummary(output) {
+	const lines = output
+		.split("\n")
+		.filter((line) => line.includes("npm error"))
+		.slice(0, 3)
+		.join("; ");
+	return lines || output.trim().split("\n").slice(-1)[0] || "npm failed";
 }
 
 // Manifests currently rewritten, against their original contents. `finally`
@@ -210,16 +213,28 @@ function seed({ dir, manifest }) {
 			manifestPath,
 			`${JSON.stringify({ ...manifest, version: SEED_VERSION }, null, "\t")}\n`,
 		);
-		execFileSync("npm", ["publish", "--access", "public", "--tag", SEED_TAG], {
-			cwd: dir,
-			stdio: "inherit",
-		});
+		const { ok, output } = npmQuiet(
+			["publish", "--access", "public", "--tag", SEED_TAG],
+			{ cwd: dir },
+		);
+		if (!ok) throw new Error(npmErrorSummary(output));
 	} finally {
 		fs.writeFileSync(manifestPath, original);
 		rewritten.delete(manifestPath);
 	}
 }
 
+/**
+ * Registers the trusted publisher. Returns "created", or "exists" when npm
+ * already had one.
+ *
+ * There is deliberately no check-before-write: `npm trust list` is OTP-gated
+ * even on a read, so asking is less reliable than trying. npm answers a
+ * duplicate with 409 Conflict, which is the authoritative "already trusted".
+ *
+ * A 409 does not prove the *existing* config matches the one requested here —
+ * only that one is present. `npm trust list <pkg>` shows it, once 2FA allows.
+ */
 function trust(name, slug) {
 	const argv = [
 		"trust",
@@ -236,9 +251,13 @@ function trust(name, slug) {
 	];
 	if (DRY_RUN) {
 		console.log(`  would run: npm ${argv.join(" ")}`);
-		return;
+		return "created";
 	}
-	execFileSync("npm", argv, { stdio: "inherit" });
+
+	const { ok, output } = npmQuiet(argv);
+	if (ok) return "created";
+	if (/\bE?409\b|Conflict/.test(output)) return "exists";
+	throw new Error(npmErrorSummary(output));
 }
 
 function main() {
@@ -265,28 +284,24 @@ function main() {
 		try {
 			const versions = publishedVersions(name);
 
+			let state;
 			if (versions.length === 0) {
-				console.log(`▸ ${name} — not on npm`);
 				seed(pkg);
 				seeded.push(name);
+				state = `seeded ${SEED_VERSION}`;
 			} else {
-				const state = trustState(name);
-				if (state === true) {
-					skipped.push(name);
-					continue;
-				}
-				const latest = versions[versions.length - 1];
-				console.log(
-					`▸ ${name} — on npm (${latest})${
-						state === null ? ", existing trust could not be checked" : ""
-					}`,
-				);
+				state = `on npm (${versions[versions.length - 1]})`;
 			}
 
-			trust(name, slug);
-			trusted.push(name);
+			if (trust(name, slug) === "exists") {
+				skipped.push(name);
+				console.log(`▸ ${name} — ${state}, already trusted`);
+			} else {
+				trusted.push(name);
+				console.log(`▸ ${name} — ${state}, trust registered`);
+			}
 		} catch (error) {
-			console.error(`  failed: ${error.message.split("\n")[0]}`);
+			console.error(`▸ ${name} — failed: ${error.message.split("\n")[0]}`);
 			failed.push(name);
 		}
 	}
