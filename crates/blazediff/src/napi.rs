@@ -114,7 +114,7 @@ fn compare_images(
         });
     }
 
-    let mut diff_options = DiffOptions {
+    let diff_options = DiffOptions {
         threshold,
         include_aa: !antialiasing,
         diff_mask,

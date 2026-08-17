@@ -98,9 +98,9 @@ wraps.
 
 ## Interpret
 
-Structured region analysis that produces human-readable change descriptions. Available via `--interpret` in the CLI or `interpret()` in the library, both of which locate regions with the pixel diff.
+Structured region analysis that produces human-readable change descriptions. It is not part of this crate: it lives in [`blazediff-interpret`](../blazediff-interpret), which consumes what `diff` returns, with its own `blazediff-interpret` CLI.
 
-The classifier itself lives in [`blazediff-interpret`](../blazediff-interpret) and is independent of whatever found the regions. Anything that can say *where* something changed can drive it: `blazediff-ssim` by thresholding a score map, or a caller passing boxes directly. Coarse boxes are fine — each is refined against the source pixels before any statistic is computed, so the analysis stays per-pixel.
+The classifier is independent of whatever found the regions. Anything that can say *where* something changed can drive it: `blazediff-ssim` by thresholding a score map, or a caller passing boxes directly. Coarse boxes are fine — each is refined against the source pixels before any statistic is computed, so the analysis stays per-pixel.
 
 See [INTERPRET.md](./INTERPRET.md) for the full algorithm documentation - pipeline stages, formulas, classification rules, and output format.
 

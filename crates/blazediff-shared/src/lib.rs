@@ -1,12 +1,12 @@
 //! The primitives every BlazeDiff crate sits on: the [`Image`] buffer, [`yiq`]
 //! color math, and RGBA8 decode/encode for PNG, JPEG and QOI.
 //!
-//! It exists because the crates above it form a chain — `blazediff` depends on
-//! `blazediff-ssim`, which depends on `blazediff-interpret` — so anything two
-//! of them share has to live below all of them. Every decoder normalizes to
-//! [`Image`], so the compute crates never see a codec; PNG goes through
-//! vendored libspng, JPEG through vendored libjpeg-turbo, QOI through
-//! `qoi-rust`.
+//! It exists because the crates above it form a chain — `blazediff-interpret`
+//! depends on both `blazediff` and `blazediff-ssim`, which know nothing about
+//! each other — so anything two of them share has to live below all of them.
+//! Every decoder normalizes to [`Image`], so the compute crates never see a
+//! codec; PNG goes through vendored libspng, JPEG through vendored
+//! libjpeg-turbo, QOI through `qoi-rust`.
 //!
 //! ```no_run
 //! use blazediff_shared::{load_image_pair, save_image, ImageFormat};

@@ -6,7 +6,6 @@
 
 use crate::diff::diff;
 use crate::types::{DiffOptions, Image};
-use serde::Serialize;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen(start)]

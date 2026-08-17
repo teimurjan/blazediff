@@ -114,6 +114,10 @@ statistics behind them. Every other command answers *where* pixels differ or
 blazediff-cli interpret image1.png image2.png [output] [options]
 ```
 
+`output` is written by the `pixel` source only — the metric sources and
+`--regions` have no diff visualization to write, and passing one is an error
+rather than a silently ignored path.
+
 **Options:**
 - `--source <name>` - How to locate regions: `pixel` (default), `ssim`, `ms-ssim`, `hitchhikers-ssim`
 - `-t, --threshold <num>` - Color difference threshold (0 to 1, default: 0.1). `pixel` only

@@ -26,8 +26,8 @@ Four layers. Each one is useful on its own, and each one feeds the next.
 | Layer         | Question it answers                | Packages                                       |
 | ------------- | ---------------------------------- | ---------------------------------------------- |
 | **Compare**   | Which pixels differ?               | `core`, `core-wasm`, `core-native`              |
-| **Score**     | How different does it look?        | `ssim`, `gmsd`                                  |
-| **Interpret** | What changed, where, and how badly?| `interpret()` in `core-native` and `core-wasm`  |
+| **Score**     | How different does it look?        | `ssim`, `gmsd`, `ssim-native`                   |
+| **Interpret** | What changed, where, and how badly?| `interpret-native`                              |
 | **Judge**     | Regression or intentional?         | `agent`                                         |
 
 Around those sit the surfaces you actually touch: matchers for Jest, Vitest and
@@ -45,7 +45,7 @@ name and the performance work, not the pipeline. It lives in
 | Count changed pixels in a browser or edge runtime | `@blazediff/core-wasm`                    | Browsers, Workers, Deno, Bun, edge |
 | Avoid native binaries and wasm entirely           | `@blazediff/core`                         | Anywhere JS runs                   |
 | Score perceived similarity instead of pixels      | `@blazediff/ssim`, `@blazediff/gmsd`      | Anywhere JS runs                   |
-| Know what changed and where, not just how much    | `@blazediff/core-native` or `core-wasm`   | Node, browsers                     |
+| Know what changed and where, not just how much    | `@blazediff/interpret-native`             | Node                               |
 | Assert a screenshot inside a test                 | `@blazediff/jest`, `/vitest`, `/bun`      | Your test runner                   |
 | Run visual regression over your routes            | `@blazediff/agent`                        | Node plus bundled Chromium         |
 | Show a before/after diff in a UI                  | `@blazediff/react`, `@blazediff/ui`       | Browsers                           |

@@ -47,11 +47,8 @@ blazediff a.jpg b.jpg diff.jpg -q 85
 # QOI diff output (12x smaller than PNG, faster encode)
 blazediff a.png b.png diff.qoi
 
-# Structured interpretation (JSON)
-blazediff a.png b.png --interpret
-
-# HTML interpret report
-blazediff a.png b.png report.html --output-format html
+# Structured interpretation (separate crate and binary)
+blazediff-interpret a.png b.png --json
 ```
 
 ### CLI Options
@@ -68,10 +65,10 @@ Options:
   -t, --threshold <THRESHOLD>  Color difference threshold (0.0-1.0) [default: 0.1]
   -a, --antialiasing           Enable anti-aliasing detection
       --diff-mask              Output only differences (transparent background)
+      --diff-color-alt <R,G,B> Alternative RGB color for darkening differences
   -c, --compression <LEVEL>    PNG compression level (0-9) [default: 0]
   -q, --quality <QUALITY>      JPEG quality (1-100) [default: 90]
-      --interpret              Run structured interpretation after diff
-      --output-format <FORMAT> Output format (json, text, or html for interpret) [default: json]
+      --output-format <FORMAT> Output format (json or text) [default: json]
   -h, --help                   Print help
   -V, --version                Print version
 ```
@@ -157,7 +154,10 @@ The `napi` and `python` features are mutually exclusive build modes for distribu
 
 ## Interpret
 
-Structured diff analysis. Takes two images, returns classified change regions with human-readable summaries.
+Structured diff analysis. Takes two images, returns classified change regions
+with human-readable summaries. It is not part of this crate: it lives in
+[`blazediff-interpret`](/apis/blazediff-interpret), which consumes what `diff`
+returns and ships its own `blazediff-interpret` binary.
 
 **Pipeline:** change mask -> morph close -> connected components -> per-region evidence extraction -> classify -> describe
 
@@ -173,8 +173,8 @@ Structured diff analysis. Takes two images, returns classified change regions wi
 | `Shift`          | Post-hoc: matched Addition+Deletion pair with similar luminance         |
 
 ```sh
-blazediff a.png b.png --interpret
-blazediff a.png b.png report.html --output-format html
+blazediff-interpret a.png b.png
+blazediff-interpret a.png b.png diff.png --json
 ```
 
 Severity tiers: `Low` (&lt;1%), `Medium` (1-10%), `High` (&gt;10%). See [Interpret example →](/docs/difference-analysis) for the interactive demo, and [INTERPRET.md](https://github.com/teimurjan/blazediff/blob/main/crates/blazediff/INTERPRET.md) for the full algorithm spec.

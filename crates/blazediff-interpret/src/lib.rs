@@ -317,12 +317,20 @@ pub fn recolor_output(output: &mut Image, options: &DiffOptions) {
 pub fn interpret_diff(
     image1: &Image,
     image2: &Image,
-    mut output: Option<&mut Image>,
+    output: Option<&mut Image>,
     options: &DiffOptions,
 ) -> Result<InterpretResult, InterpretError> {
-    let retain_output = output.is_some();
-    let mut internal = Image::new_uninit(image1.width, image1.height);
-    let diff_output = output.as_deref_mut().unwrap_or(&mut internal);
+    // The diff has to paint its mask somewhere, so a caller that doesn't want
+    // the visualization still needs a buffer — but only that caller: allocating
+    // one unconditionally would double the peak memory of every call that does.
+    let mut scratch;
+    let (diff_output, retain_output) = match output {
+        Some(image) => (image, true),
+        None => {
+            scratch = Image::new_uninit(image1.width, image1.height);
+            (&mut scratch, false)
+        }
+    };
 
     let result = blazediff::diff(image1, image2, Some(diff_output), &mask_options(options))
         .map_err(|e| InterpretError::Producer(e.to_string()))?;
@@ -388,7 +396,7 @@ pub fn interpret(
 
     // Each arm produces the regions, the mask the shift pass should read, and
     // — for the diff, which knows better than we do — its own counts.
-    let (mut regions, mask, counts) = match source {
+    let (mut regions, mut mask, counts) = match source {
         ChangeSource::Diff { result, output } => {
             let mask = extract_change_mask(&output.data, width, height);
             let regions = detect_regions(&mask, width, height)
@@ -433,9 +441,11 @@ pub fn interpret(
     regions.retain(|region| region.change_type != ChangeType::RenderingNoise);
 
     // A coarse source has no authoritative count of its own, so it comes from
-    // the pixels that survived refinement.
+    // the pixels that survived refinement — counted over the union of the
+    // boxes, because a coarse source is free to overlap them and DOM
+    // rectangles routinely do.
     let (diff_count, diff_percentage) = counts.unwrap_or_else(|| {
-        let count: u32 = regions.iter().map(|region| region.pixel_count).sum();
+        let count = count_masked_union(&mut mask, width, &regions);
         let percentage = if total_pixels > 0.0 {
             100.0 * count as f64 / total_pixels
         } else {
@@ -523,6 +533,30 @@ fn classify_coarse(
     Ok((regions, refined))
 }
 
+/// Count the changed pixels under `regions`, charging one shared by two boxes
+/// only once.
+///
+/// Overlap is normal for a coarse source — DOM rectangles nest and overlap —
+/// and summing each region's own `pixel_count` would count the shared pixels
+/// twice, which can push `diff_percentage` past 100%. Each pixel is cleared as
+/// it is counted, so a second box over it finds nothing left to count.
+fn count_masked_union(mask: &mut [bool], width: u32, regions: &[ChangeRegion]) -> u32 {
+    let mut count = 0;
+    for region in regions {
+        let bbox = region.bbox;
+        for y in bbox.y..bbox.y + bbox.height {
+            let row = (y * width) as usize;
+            for pixel in &mut mask[row + bbox.x as usize..row + (bbox.x + bbox.width) as usize] {
+                if *pixel {
+                    *pixel = false;
+                    count += 1;
+                }
+            }
+        }
+    }
+    count
+}
+
 #[cfg(test)]
 mod region_entry_tests {
     use super::*;
@@ -564,6 +598,27 @@ mod region_entry_tests {
         assert_eq!(result.total_regions, 1);
         assert_eq!(result.diff_count, 64);
         assert_eq!(result.regions[0].bbox, bbox(16, 16, 8, 8));
+    }
+
+    /// Caller-supplied boxes overlap all the time — nested DOM rectangles do —
+    /// and a pixel under two of them still changed once. Summing each region's
+    /// own count would report it twice and can push the percentage past 100.
+    #[test]
+    fn overlapping_regions_count_a_shared_pixel_once() {
+        let a = make_solid_image(64, 64, 255, 255, 255);
+        let mut b = make_solid_image(64, 64, 255, 255, 255);
+        fill_block(&mut b, 16, 16, 8, 8, 0, 0, 0);
+
+        // Both boxes enclose the whole 8x8 change.
+        let result = interpret(
+            &a,
+            &b,
+            ChangeSource::Regions(&[bbox(8, 8, 24, 24), bbox(16, 16, 16, 16)]),
+        )
+        .unwrap();
+
+        assert_eq!(result.diff_count, 64);
+        assert_eq!(result.diff_percentage, 100.0 * 64.0 / (64.0 * 64.0));
     }
 
     /// The point of the regions-in API: a producer that only knows a coarse
@@ -645,22 +700,21 @@ pub fn regions_from_score_map(
         .map(|score| !(*score >= floor))
         .collect();
 
-    // Map cell `m` covers image pixels [m * size / map_size, (m + 1) * size / map_size).
-    let scale_lo =
+    // Map cell `m` covers image pixels [m * size / map_size, (m + 1) * size / map_size),
+    // so the same floor division gives both edges and the cells tile the image
+    // exactly. Rounding the upper edge up instead would widen every box by a
+    // pixel and make the boxes of two adjacent components overlap.
+    let scale =
         |m: u32, size: u32, map_size: u32| (m as u64 * size as u64 / map_size as u64) as u32;
-    let scale_hi = |m: u32, size: u32, map_size: u32| {
-        let hi = (m as u64 * size as u64).div_ceil(map_size as u64) as u32;
-        hi.min(size)
-    };
 
     detect_regions(&changed, map_width as u32, map_height as u32)
         .into_iter()
         .filter_map(|component| {
             let bbox = component.bbox;
-            let x = scale_lo(bbox.x, width, map_width as u32);
-            let y = scale_lo(bbox.y, height, map_height as u32);
-            let right = scale_hi(bbox.x + bbox.width, width, map_width as u32);
-            let bottom = scale_hi(bbox.y + bbox.height, height, map_height as u32);
+            let x = scale(bbox.x, width, map_width as u32);
+            let y = scale(bbox.y, height, map_height as u32);
+            let right = scale(bbox.x + bbox.width, width, map_width as u32);
+            let bottom = scale(bbox.y + bbox.height, height, map_height as u32);
             // A map cell can scale to zero pixels when the map is larger than
             // the image, which `ssim`'s 'valid' convolution never produces but
             // a caller-supplied map might.
@@ -696,6 +750,26 @@ mod score_map_tests {
                 y: 16,
                 width: 16,
                 height: 16
+            }]
+        );
+    }
+
+    /// The cells tile the image exactly, so a box stops where the next cell
+    /// starts — including when the image size isn't a multiple of the map's,
+    /// which is every 'valid' convolution the metrics produce. Rounding the
+    /// upper edge up instead would hand two adjacent components a shared pixel.
+    #[test]
+    fn a_cell_maps_to_its_exact_slice_of_a_non_divisible_image() {
+        let mut map = vec![1.0f32; 3 * 3];
+        map[4] = 0.1; // cell (1, 1) of a 3x3 map over a 64x64 image
+        let regions = regions_from_score_map(&map, 3, 3, 64, 64, 0.99);
+        assert_eq!(
+            regions,
+            vec![BoundingBox {
+                x: 21,
+                y: 21,
+                width: 21,
+                height: 21
             }]
         );
     }

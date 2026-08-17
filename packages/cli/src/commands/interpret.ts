@@ -25,7 +25,8 @@ type, position and shape — rather than only which pixels differ.
 Arguments:
   image1    Path to the first image
   image2    Path to the second image
-  output    Path for the diff visualization (optional, pixel source only)
+  output    Path for the diff visualization (optional; the pixel source
+            writes it, the metric sources and --regions do not)
 
 Options:
   --source <name>           How to locate regions: pixel (default), ssim,
@@ -168,6 +169,11 @@ export default async function main(): Promise<void> {
 
 		let result: InterpretResult;
 		if (regions !== undefined) {
+			if (output !== undefined) {
+				throw new Error(
+					"--regions does not write a diff visualization; drop the output path",
+				);
+			}
 			let parsed: unknown;
 			try {
 				parsed = JSON.parse(regions);

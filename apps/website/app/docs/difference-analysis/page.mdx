@@ -14,10 +14,10 @@ import identicalData from "../../../data/interpret/blazediff-3-identical.json";
 much.** Instead of one number, you get a list of regions, each with a bounding
 box, a change type, a percentage, and a severity.
 
-It is deterministic. No model, no weights, no network call. The whole pipeline
-runs in the same binary as the diff, in both the Node binding
-(`@blazediff/core-native`) and the WebAssembly build (`@blazediff/core-wasm`), so
-it works server-side and in the browser.
+It is deterministic. No model, no weights, no network call. It lives in
+`@blazediff/interpret-native`, a Node binding over the `blazediff-interpret`
+crate, and sits above whatever located the change: a pixel diff, an SSIM map, or
+boxes you already have.
 
 This is what makes agent review tractable. A coding agent asked to compare two
 full-page screenshots invents differences; an agent handed three cropped regions
@@ -50,16 +50,15 @@ that were measured deterministically is answering a much easier question. See
 
 ## Usage
 
-Both bindings return the same shape: a `summary` string, a `regions[]` array with
-`position`, `changeType` and `percentage` on each entry, and an overall
-`severity`. The Node binding reads files; the wasm binding takes pre-decoded RGBA
-buffers.
+Every entry point returns the same shape: a `summary` string, a `regions[]` array
+with `position`, `changeType` and `percentage` on each entry, and an overall
+`severity`.
 
-<Tabs items={['core-native (Node)', 'core-wasm (browser)']}>
+<Tabs items={['interpret-native', 'CLI']}>
   <Tabs.Tab>
 
 ```ts
-import { interpret } from "@blazediff/core-native";
+import { interpret } from "@blazediff/interpret-native";
 
 const result = await interpret("fixtures/3a.png", "fixtures/3b.png");
 
@@ -69,26 +68,34 @@ for (const region of result.regions) {
 }
 ```
 
+Pass a third argument to keep the diff visualization, and `source` to locate the
+regions with a similarity map instead of a pixel diff:
+
+```ts
+await interpret("3a.png", "3b.png", "diff.png");
+await interpret("3a.png", "3b.png", undefined, { source: "ms-ssim" });
+```
+
+When something else already knows where to look — DOM rectangles from a layout
+pass, say — `interpretRegions` skips the search and classifies those boxes:
+
+```ts
+import { interpretRegions } from "@blazediff/interpret-native";
+
+await interpretRegions("3a.png", "3b.png", [{ x: 0, y: 0, width: 64, height: 64 }]);
+```
+
   </Tabs.Tab>
 
   <Tabs.Tab>
 
-```ts
-import { initBlazediff, interpret } from "@blazediff/core-wasm";
-
-await initBlazediff(); // loads the .wasm; call once
-
-// Decode both images to RGBA Uint8Arrays (see the WebAssembly page)
-const a = await loadRgba("3a.png");
-const b = await loadRgba("3b.png");
-
-const result = await interpret(a.data, b.data, a.width, a.height);
-
-console.log(result.summary);
-for (const region of result.regions) {
-  console.log(`${region.position}: ${region.changeType} (${region.percentage.toFixed(2)}%)`);
-}
+```bash
+blazediff-cli interpret 3a.png 3b.png
+blazediff-cli interpret 3a.png 3b.png diff.png
+blazediff-cli interpret 3a.png 3b.png --source ms-ssim --json
 ```
+
+Exits 0 when nothing actionable changed, 1 when it did, 2 on error.
 
   </Tabs.Tab>
 </Tabs>
@@ -101,7 +108,7 @@ for (const region of result.regions) {
   fullResult={identicalData}
 />
 
-When nothing changed, `regions` is empty and `summary` says so, in both bindings.
+When nothing changed, `regions` is empty and `summary` says so.
 
 ## Change types
 
@@ -149,4 +156,4 @@ What the numbers say, plainly:
 - Put this to work in a test loop:
   [Agentic visual testing](/docs/agentic-testing/setting-up)
 - Full result type and options:
-  [`@blazediff/core-native` reference](/apis/core-native)
+  [`@blazediff/interpret-native` reference](/apis/interpret-native)

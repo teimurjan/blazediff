@@ -6,8 +6,8 @@ name: build-artifacts
 # release-artifacts-check.yml otherwise asks the maintainer to do by hand.
 #
 # Toolchains deliberately mirror `pnpm build:rust && pnpm build:rust:ssim &&
-# pnpm build:wasm && pnpm build:python:all` on a Mac, by calling the exact same
-# scripts with `--target`:
+# pnpm build:rust:interpret && pnpm build:wasm && pnpm build:python:all` on a
+# Mac, by calling the exact same scripts with `--target`:
 #   macOS targets    cargo, natively / rustup-cross from an arm64 runner
 #   Linux targets    `cross` docker images — BLAZEDIFF_FORCE_CROSS keeps the
 #                    x64 build off the runner's own (much newer) glibc
@@ -168,6 +168,9 @@ jobs:
       - name: Build ssim .node
         run: crates/blazediff-ssim/scripts/build-napi.sh --target ${{ matrix.target }}
 
+      - name: Build interpret .node
+        run: crates/blazediff-interpret/scripts/build-napi.sh --target ${{ matrix.target }}
+
       - name: Build Python wheel
         run: |
           set -euo pipefail
@@ -191,6 +194,7 @@ jobs:
             "packages/core-native-${{ matrix.pkg }}/${{ matrix.cli }}" \
             "packages/core-native-${{ matrix.pkg }}/blazediff.node" \
             "packages/ssim-native-${{ matrix.pkg }}/blazediff_ssim.node" \
+            "packages/interpret-native-${{ matrix.pkg }}/blazediff_interpret.node" \
             crates/blazediff/wheels/*.whl; do
             if [[ ! -s "$f" ]]; then
               echo "::error::$f missing or empty after build"
@@ -217,6 +221,7 @@ jobs:
             packages/core-native-${{ matrix.pkg }}/${{ matrix.cli }}
             packages/core-native-${{ matrix.pkg }}/blazediff.node
             packages/ssim-native-${{ matrix.pkg }}/blazediff_ssim.node
+            packages/interpret-native-${{ matrix.pkg }}/blazediff_interpret.node
             crates/blazediff/wheels/*.whl
 
   wasm:

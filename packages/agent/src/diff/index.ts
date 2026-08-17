@@ -74,15 +74,9 @@ export async function diffEntry(
 		});
 	} catch (error) {
 		const message = error instanceof Error ? error.message : String(error);
-		if (/Failed to load images/.test(message)) {
-			return {
-				id,
-				baselinePath,
-				actualPath,
-				match: false,
-				reason: "file-not-exists",
-			};
-		}
+		// A load failure is deliberately not mapped to `file-not-exists`: both
+		// files were checked above, so it means unreadable or undecodable — a
+		// real error, not a baseline waiting to be recorded.
 		if (/Image sizes do not match/.test(message)) {
 			return {
 				id,

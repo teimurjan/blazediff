@@ -187,7 +187,15 @@ function tryLoadNativeBinding(): NativeBinding | null {
 		return null;
 	}
 
-	const require = createRequire(import.meta.url);
+	// createRequire rejects a non-file URL, which is what `import.meta.url` is
+	// for a JSR consumer importing this over https. That is "no native binding
+	// here", not a crash: `hasNativeBinding()` promises a boolean.
+	let require: ReturnType<typeof createRequire>;
+	try {
+		require = createRequire(import.meta.url);
+	} catch {
+		return null;
+	}
 
 	try {
 		const binding = require(platformInfo.packageName) as NativeBinding;
@@ -279,6 +287,16 @@ export async function interpret(
 
 	const binding = requireBinding();
 	const source = options?.source ?? "pixel";
+
+	// Only the pixel source over file paths produces a visualization — a metric
+	// source has no diff image to write and the buffer entry point has nowhere
+	// to write one. Accepting the path and dropping it would leave the caller
+	// waiting on a file that never appears.
+	if (diffOutput !== undefined && (source !== "pixel" || !baseIsPath)) {
+		throw new TypeError(
+			'A diff visualization is only written by the "pixel" source on file-path inputs',
+		);
+	}
 
 	if (source !== "pixel") {
 		if (!baseIsPath || !comparisonIsPath) {

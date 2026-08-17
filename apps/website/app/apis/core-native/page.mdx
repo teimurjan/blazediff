@@ -60,19 +60,16 @@ Compares two images from file paths or encoded `Buffer`/`Uint8Array` inputs and 
 | `antialiasing`     | `boolean` | `false` | Enable anti-aliasing detection                           |
 | `diffMask`         | `boolean` | `false` | Output only differences with transparent background      |
 | `diffColorAlt`     | `[number, number, number]` | diff color | Alternative RGB color for darkening differences |
-| `interpret`        | `boolean` | `false` | Generate the diff image and structured interpretation in one pass |
 
 #### Return Types
 
 ```typescript
 type BlazeDiffResult =
-  | { match: true; interpretation?: InterpretResult }
+  | { match: true }
   | { match: false; reason: "layout-diff" }
-  | { match: false; reason: "pixel-diff"; diffCount: number; diffPercentage: number; interpretation?: InterpretResult }
+  | { match: false; reason: "pixel-diff"; diffCount: number; diffPercentage: number }
   | { match: false; reason: "file-not-exists"; file: string };
 ```
-
-When `interpret: true`, the requested diff output is written and the result includes an `interpretation` field from the same diff pass.
 
 <Callout type="info">
   Encoded inputs are passed by reference across the N-API boundary. Rust borrows
@@ -169,7 +166,6 @@ Options:
       --diff-color-alt <R,G,B> Alternative RGB color for darkening differences
   -c, --compression <LEVEL>    PNG compression level (0-9, 0=fastest, 9=smallest) [default: 0]
   -q, --quality <QUALITY>      JPEG quality (1-100) [default: 90]
-      --interpret              Run structured interpretation after diff
       --output-format <FORMAT> Output format (json or text) [default: json]
   -h, --help                   Print help
   -V, --version                Print version
@@ -197,50 +193,23 @@ Input images can be mixed formats (e.g., compare PNG to JPEG). Output format is 
 
 ### Interpret
 
-Structured diff analysis for matching path or encoded byte inputs. Returns classified change regions with human-readable summaries.
-
-**Pipeline:** change mask → morph close → connected components → per-region evidence extraction → classify → describe
-
-**Evidence per region:**
-- Dual-image gradient comparison (edges in both images + spatial correlation)
-- YIQ color delta with uniformity analysis (mean, max, stddev)
-- Background distance (changed pixels vs local unchanged pixels)
-- Shape statistics (fill ratio, border density, occupancy)
-
-**Six-label decision tree:**
-
-| Type | Signal |
-|---|---|
-| `RenderingNoise` | Tiny (≤25px) or sparse + low color delta |
-| `Addition` | Blends with background in img1, distinct in img2 |
-| `Deletion` | Distinct in img1, blends with background in img2 |
-| `ColorChange` | Edge structure preserved across both images + uniform color shift |
-| `ContentChange` | Fallback - structural change |
-| `Shift` | Post-hoc: matched Addition+Deletion pair with similar luminance |
+Structured region analysis is a separate package. This one answers *where*
+pixels differ; [`@blazediff/interpret-native`](/apis/interpret-native) takes the
+same pair and describes *what* changed — labelled regions, severity and a
+human-readable summary — and can locate those regions with a pixel diff, an SSIM
+map, or boxes you already have.
 
 ```typescript
-import { compare, interpret } from '@blazediff/core-native';
+import { interpret } from '@blazediff/interpret-native';
 
 const result = await interpret('expected.png', 'actual.png');
 console.log(result.summary);
 // "Moderate visual change detected (1.87% of image, 10 regions).
 //  Content changed: 4 regions (bottom, center).
 //  Content added: 3 regions (right, bottom, bottom-left)."
-
-// Via compare()
-const diff = await compare('expected.png', 'actual.png', 'diff.png', {
-  interpret: true,
-});
 ```
 
-```bash
-npx blazediff expected.png actual.png --interpret
-npx blazediff expected.png actual.png report.html --output-format html
-```
-
-Severity: Low (&lt;1%), Medium (1-10%), High (&gt;10%). See [Interpret example →](/docs/difference-analysis) for interactive demo.
-
-**Accuracy:** Measured against hand-labeled datasets — classifier-only macro F1 is **0.998** on clean add/delete edits (`addition_deletion`) and **0.440** on inpaint edits that mix recolor and texture replacement (`inpaintcoco`). Full breakdown in [BENCHMARKS.md](https://github.com/teimurjan/blazediff/blob/main/crates/blazediff-interpret-verify/BENCHMARKS.md).
+See [Interpret example →](/docs/difference-analysis) for the interactive demo.
 
 ## Performance
 

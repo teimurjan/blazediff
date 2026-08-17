@@ -94,6 +94,21 @@ describe("interpret", () => {
 		expect(statSync(output).size).toBeGreaterThan(0);
 	});
 
+	/**
+	 * Only `interpretImages` can write one. Accepting the path on the other
+	 * paths and dropping it would leave the caller waiting on a file that never
+	 * appears.
+	 */
+	it("rejects a diff output it cannot write", async () => {
+		const output = join(scratch, "never.png");
+		await expect(
+			interpret(A, B, output, { source: "ms-ssim" }),
+		).rejects.toThrow(TypeError);
+		await expect(
+			interpret(readFileSync(A), readFileSync(B), output),
+		).rejects.toThrow(TypeError);
+	});
+
 	it("threads the pixel knobs through", async () => {
 		const base = await interpret(A, B);
 		const strict = await interpret(A, B, undefined, { threshold: 0.02 });

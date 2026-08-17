@@ -103,7 +103,7 @@ Initializes the wasm module. Safe to call multiple times; subsequent calls retur
 
 ### `diff(a, b, width, height, output?, options?)`
 
-Compares two RGBA pixel buffers and returns the number of differing pixels. Set `interpret: true` to return structured interpretation while producing the diff output in the same pass.
+Compares two RGBA pixel buffers and returns the number of differing pixels.
 
 <table>
   <tr>
@@ -138,12 +138,12 @@ Compares two RGBA pixel buffers and returns the number of differing pixels. Set 
   </tr>
   <tr>
     <td><code>options</code></td>
-    <td>DiffOptions | InterpretedDiffOptions</td>
+    <td>DiffOptions</td>
     <td>Comparison options (optional)</td>
   </tr>
 </table>
 
-**Returns:** `Promise<number>` by default, or `Promise<DiffResult>` with `interpret: true`
+**Returns:** `Promise<number>`
 
 <table>
   <tr>
@@ -176,92 +176,18 @@ Compares two RGBA pixel buffers and returns the number of differing pixels. Set 
     <td>diff color</td>
     <td>Alternative RGB color for darkening differences</td>
   </tr>
-  <tr>
-    <td><code>interpret</code></td>
-    <td>boolean</td>
-    <td>false</td>
-    <td>Return structured interpretation from the same diff pass</td>
-  </tr>
 </table>
 
-With `interpret: true`, `diff()` returns:
-
 ```typescript
-type DiffResult =
-  | { match: true; interpretation: InterpretResult }
-  | {
-      match: false;
-      reason: 'pixel-diff';
-      diffCount: number;
-      diffPercentage: number;
-      interpretation: InterpretResult;
-    };
-```
-
-```typescript
-const result = await diff(a, b, width, height, output, {
+const diffCount = await diff(a, b, width, height, output, {
   diffColorAlt: [0, 128, 255],
-  interpret: true,
 });
 ```
 
-### `compare(a, b, width, height, output?, options?)`
-
-Same buffers as `diff()`, but with a selectable metric and a full result object.
-
-<table>
-  <tr>
-    <th width="500">Option</th>
-    <th width="500">Type</th>
-    <th width="500">Default</th>
-    <th width="500">Description</th>
-  </tr>
-  <tr>
-    <td><code>metric</code></td>
-    <td>"pixel" | "ssim" | "ms-ssim" | "hitchhikers-ssim"</td>
-    <td>"pixel"</td>
-    <td>Comparison metric. <code>pixel</code> reports which pixels changed; the rest report a pooled similarity <code>score</code> in 0-1</td>
-  </tr>
-  <tr>
-    <td><code>minScore</code></td>
-    <td>number</td>
-    <td>1</td>
-    <td>Score at or above which the ssim metrics call two images identical</td>
-  </tr>
-  <tr>
-    <td><code>ssimWindowSize</code></td>
-    <td>number</td>
-    <td>11</td>
-    <td>Local window size for the ssim metrics</td>
-  </tr>
-</table>
-
-`threshold`, `includeAA`, `diffMask` and `diffColorAlt` carry over from `DiffOptions`. The `pixel` metric writes the usual red-on-gray visualization into `output`; the ssim metrics write their local score map instead.
-
-**Returns:** `Promise<CompareResult>`
-
-```typescript
-type CompareResult = {
-  diffCount: number;      // pixels for `pixel`, sub-threshold windows for ssim
-  diffPercentage: number;
-  identical: boolean;
-  metric: BlazeDiffMetric;
-  score?: number;         // pooled similarity, ssim metrics only
-};
-```
-
-```typescript
-const result = await compare(a, b, width, height, undefined, {
-  metric: 'ssim',
-  minScore: 0.99,
-});
-```
-
-### `interpret(a, b, width, height, options?)`
-
-Returns structured change regions without retaining a diff visualization. It is a convenience wrapper over `diff()` with `interpret: true`.
-
-**Returns:** `Promise<InterpretResult>`
+Region analysis — *what* changed rather than where — is no longer part of this
+package. It lives in
+[`@blazediff/interpret-native`](https://www.npmjs.com/package/@blazediff/interpret-native),
+which is a Node N-API package and has no wasm build.
 
 ## Usage
 

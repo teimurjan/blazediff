@@ -53,13 +53,11 @@ struct Args {
     json: bool,
 }
 
-fn load(path: &str) -> Result<Image, String> {
-    blazediff_shared::load_image(path).map_err(|e| format!("Failed to load {path}: {e}"))
-}
-
 fn run(args: &Args) -> Result<InterpretResult, String> {
-    let image1 = load(&args.image1)?;
-    let image2 = load(&args.image2)?;
+    // Decodes both in parallel, the same helper the `blazediff` CLI and every
+    // N-API binding use.
+    let (image1, image2) = blazediff_shared::load_image_pair(&args.image1, &args.image2)
+        .map_err(|e| format!("Failed to load images: {e}"))?;
 
     if args.source == "pixel" {
         let options = DiffOptions {

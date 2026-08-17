@@ -236,7 +236,15 @@ function tryLoadNativeBinding(): NativeBinding | null {
 		return null;
 	}
 
-	const require = createRequire(import.meta.url);
+	// createRequire rejects a non-file URL, which is what `import.meta.url` is
+	// for a JSR consumer importing this over https. That is "no native binding
+	// here", not a crash: `hasNativeBinding()` promises a boolean.
+	let require: ReturnType<typeof createRequire>;
+	try {
+		require = createRequire(import.meta.url);
+	} catch {
+		return null;
+	}
 
 	try {
 		const binding = require(platformInfo.packageName) as NativeBinding;
