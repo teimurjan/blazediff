@@ -10,10 +10,10 @@
 // them from the run that already built them.
 //
 // Selective, like `/build` itself: scripts/release/changed-artifacts.js
-// decides which artifact families (core / ssim / interpret / wasm) the
-// current tree actually needs refreshed — version-only bumps don't count —
-// and only those files are restored. Wheels are always restored. `--all`
-// restores everything the run built regardless.
+// decides which artifact families (core / ssim / interpret / wasm) changed
+// since their last published release tags — version-only bumps don't
+// count — and only those files are restored. Wheels are restored whenever
+// the run carries them. `--all` restores everything the run built.
 //
 // Usage:
 //   node scripts/release/restore-artifacts.js 6.0.0
@@ -88,7 +88,7 @@ function neededFamilies() {
 		return Object.fromEntries(FAMILIES.map((family) => [family, true]));
 	}
 	const { families, reasons } = changedFamilies(BASE_REF);
-	console.log(`Families changed since ${BASE_REF}:`);
+	console.log(`Families changed since their last release (base ${BASE_REF}):`);
 	for (const family of FAMILIES) {
 		console.log(`  ${family}=${families[family]}`);
 	}
@@ -379,9 +379,14 @@ function main() {
 		download(slug, chosen.id, artifactsDir);
 
 		// Wheels are a single-version set, so last release's have to go before
-		// this one's land — same reasoning as the commit job.
+		// this one's land — same reasoning as the commit job. But only when
+		// the run actually carries wheels: a run that skipped the wheel build
+		// (core sources unchanged) must not strip the valid committed set.
+		const runHasWheels = TARGETS.some((target) =>
+			fs.existsSync(path.join(artifactsDir, `target-${target}`, WHEELS_DIR)),
+		);
 		const wheelDir = path.join(ROOT, WHEELS_DIR);
-		if (!DRY_RUN && fs.existsSync(wheelDir)) {
+		if (!DRY_RUN && runHasWheels && fs.existsSync(wheelDir)) {
 			for (const file of fs.readdirSync(wheelDir)) {
 				if (file.endsWith(".whl")) fs.rmSync(path.join(wheelDir, file));
 			}

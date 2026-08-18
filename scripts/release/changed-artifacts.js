@@ -1,13 +1,15 @@
 #!/usr/bin/env node
 
-// Which release artifact families actually need rebuilding, given a base ref.
+// Which release artifact families actually need rebuilding.
 //
-// The Changesets "Version Packages" PR bumps every crate's Cargo.toml,
-// package.json shadow, pyproject.toml and Cargo.lock — all in one fixed
-// version group — so a naive `git diff -- crates/<dir>` reports every crate
-// as changed on every native release. This script answers the question the
-// release tooling actually has: did the *sources* that end up inside each
-// shipped binary change, ignoring version-only churn?
+// The right reference is each family's *last published release* — the git tag
+// changesets made for it — not the release PR's base: by the time the
+// Changesets "Version Packages" PR exists, the source changes are already
+// merged into its base, and the PR's own diff is pure version churn. So for
+// each family this asks: did the crate sources compiled into it change since
+// the version the base branch is currently at? Version-only churn (the
+// `changeset version` bumps in Cargo.toml / Cargo.lock / pyproject.toml) is
+// masked out of the comparison.
 //
 // Families and the crate sources compiled into them:
 //   core       CLI binary + core .node    blazediff, blazediff-shared, blazediff-png
@@ -16,18 +18,22 @@
 //                                         blazediff-shared, blazediff-png
 //   wasm       core wasm module           blazediff, blazediff-shared (built without codecs)
 //
-// Wheels are deliberately not a family: their filenames encode the release
-// version, so every native release needs a fresh set regardless.
+// Wheels are deliberately not a family: their filenames encode the core
+// version, so build-artifacts.yml derives their gating from `core` plus a
+// wheels-for-this-version-exist check.
 //
-// Used by release-artifacts-check.yml (which families must be fresh),
+// Used by release-artifacts-check.yml (which families must be fresh, and the
+// `--check-bumps` guard for sources changed without a version bump),
 // build-artifacts.yml (which families /build compiles) and
 // restore-artifacts.js (which files to restore). Keeping them on one
 // implementation is the point: a build that skips what the check requires
 // would wedge the release PR red.
 //
-// CLI: node scripts/release/changed-artifacts.js <base-ref>
-// Prints `core=true` style lines to stdout (eval-able, $GITHUB_OUTPUT-able);
-// the reasoning goes to stderr.
+// CLI: node scripts/release/changed-artifacts.js [--check-bumps] <base-ref>
+// The base ref only anchors which versions count as "published" (its
+// package.json versions name the tags to diff against). Prints `core=true`
+// style lines to stdout (eval-able, $GITHUB_OUTPUT-able); reasoning goes to
+// stderr.
 
 const { execFileSync } = require("node:child_process");
 const fs = require("node:fs");
@@ -37,16 +43,38 @@ const ROOT = path.resolve(__dirname, "..", "..");
 
 const FAMILIES = ["core", "ssim", "interpret", "wasm"];
 
-/** Which families each crate's sources are compiled into. */
-const CRATE_FAMILIES = {
-	blazediff: ["core", "interpret", "wasm"],
-	"blazediff-shared": ["core", "ssim", "interpret", "wasm"],
-	// Pulled in via blazediff-shared's `codecs` feature, which the wasm build
-	// turns off.
-	"blazediff-png": ["core", "ssim", "interpret"],
-	"blazediff-ssim": ["ssim", "interpret"],
-	"blazediff-interpret": ["interpret"],
+/** The crate sources compiled into each family's artifacts. */
+const FAMILY_CRATES = {
+	core: ["blazediff", "blazediff-shared", "blazediff-png"],
+	ssim: ["blazediff-ssim", "blazediff-shared", "blazediff-png"],
+	interpret: [
+		"blazediff-interpret",
+		"blazediff",
+		"blazediff-ssim",
+		"blazediff-shared",
+		"blazediff-png",
+	],
+	// blazediff-shared's `codecs` feature (and blazediff-png with it) is off
+	// in the wasm build.
+	wasm: ["blazediff", "blazediff-shared"],
 };
+
+/** The npm package whose changesets tag anchors each family's last release. */
+const FAMILY_NPM = {
+	core: "@blazediff/core-native",
+	ssim: "@blazediff/ssim-native",
+	interpret: "@blazediff/interpret-native",
+	wasm: "@blazediff/core-wasm",
+};
+
+const FAMILY_PACKAGE = {
+	core: "packages/core-native/package.json",
+	ssim: "packages/ssim-native/package.json",
+	interpret: "packages/interpret-native/package.json",
+	wasm: "packages/core-wasm/package.json",
+};
+
+const ALL_CRATES = [...new Set(Object.values(FAMILY_CRATES).flat())];
 
 /** Crates under crates/ that never ship in an artifact. */
 const UNSHIPPED_CRATES = new Set([
@@ -64,6 +92,14 @@ function git(argv, options = {}) {
 	});
 }
 
+function tryGit(argv) {
+	try {
+		return git(argv, { stdio: ["ignore", "pipe", "ignore"] });
+	} catch {
+		return null;
+	}
+}
+
 /** Mask every `version = "..."` so version-only bumps compare equal. */
 function maskManifestVersions(src) {
 	return src.replace(/version\s*=\s*"[^"]*"/g, 'version = "*"');
@@ -75,7 +111,7 @@ function maskManifestVersions(src) {
  * read as a source change.
  */
 function maskLockVersions(src) {
-	const workspaceCrates = Object.keys(CRATE_FAMILIES).join("|");
+	const workspaceCrates = ALL_CRATES.join("|");
 	const re = new RegExp(
 		`(name = "(?:${workspaceCrates})"\\nversion = ")[^"]*(")`,
 		"g",
@@ -83,62 +119,33 @@ function maskLockVersions(src) {
 	return src.replace(re, "$1*$2");
 }
 
-function baseContent(base, file) {
-	try {
-		return git(["show", `${base}:${file}`], {
-			stdio: ["ignore", "pipe", "ignore"],
-		});
-	} catch {
-		return null; // didn't exist at base
-	}
+function contentAt(ref, file) {
+	return tryGit(["show", `${ref}:${file}`]);
 }
 
 function currentContent(file) {
 	try {
 		return fs.readFileSync(path.join(ROOT, file), "utf8");
 	} catch {
-		return null; // deleted since base
+		return null; // deleted
 	}
 }
 
-/** True when the file differs beyond version-only churn. */
-function meaningfullyChanged(base, file, mask) {
-	const before = baseContent(base, file);
+/** True when the file differs from `ref` beyond version-only churn. */
+function meaningfullyChanged(ref, file, mask) {
+	const before = contentAt(ref, file);
 	const after = currentContent(file);
 	if (before === null || after === null) return true;
 	return mask(before) !== mask(after);
 }
 
-/**
- * Families whose compiled sources changed between `baseRef` and the working
- * tree. Returns `{ families: {core, ssim, interpret, wasm}, reasons: [..] }`.
- */
-function changedFamilies(baseRef) {
-	// The release branch may be behind the base ref's branch tip; diff from
-	// the fork point so unrelated later commits on base don't read as changes.
-	let base = baseRef;
-	try {
-		base = git(["merge-base", baseRef, "HEAD"]).trim();
-	} catch {
-		// baseRef may be a detached SHA with no better merge-base; use as-is.
-	}
-
-	const families = Object.fromEntries(FAMILIES.map((f) => [f, false]));
-	const reasons = [];
-	const markAll = (why) => {
-		for (const family of FAMILIES) families[family] = true;
-		reasons.push(`${why} -> all families`);
-	};
-	const mark = (crate, why) => {
-		for (const family of CRATE_FAMILIES[crate]) families[family] = true;
-		reasons.push(`${why} -> ${CRATE_FAMILIES[crate].join(", ")}`);
-	};
-
-	const changed = git(["diff", "--name-only", base, "--", "crates/"])
+/** Changed paths under crates/ since `ref`, including untracked files. */
+function changedPathsSince(ref) {
+	const changed = git(["diff", "--name-only", ref, "--", "crates/"])
 		.split("\n")
 		.filter(Boolean);
 	// A freshly added, not-yet-committed source file is invisible to `git
-	// diff <base>`; on CI everything is committed, but locally it matters.
+	// diff <ref>`; on CI everything is committed, but locally it matters.
 	const untracked = git([
 		"ls-files",
 		"--others",
@@ -151,8 +158,16 @@ function changedFamilies(baseRef) {
 	for (const file of untracked) {
 		if (!changed.includes(file)) changed.push(file);
 	}
+	return changed;
+}
 
-	for (const file of changed) {
+/**
+ * Did the sources of any crate in `crates` change between `ref` and the
+ * working tree? Returns a reason string, or null.
+ */
+function sourcesChangedSince(ref, crates) {
+	const relevant = new Set(crates);
+	for (const file of changedPathsSince(ref)) {
 		const parts = file.split("/");
 		const crate = parts[1];
 		const basename = parts[parts.length - 1];
@@ -162,49 +177,154 @@ function changedFamilies(baseRef) {
 		if (UNSHIPPED_CRATES.has(crate)) continue;
 		if (parts.includes("fuzz")) continue;
 
-		if (crate in CRATE_FAMILIES) {
+		if (ALL_CRATES.includes(crate)) {
+			if (!relevant.has(crate)) continue;
 			// Version-only churn from `changeset version`:
-			// the npm shadow package and its changelog,
+			// the npm shadow package,
 			if (parts.length === 3 && basename === "package.json") continue;
 			// and the version lines of the crate manifests.
 			if (basename === "Cargo.toml" || basename === "pyproject.toml") {
-				if (meaningfullyChanged(base, file, maskManifestVersions)) {
-					mark(crate, `${file} changed beyond versions`);
+				if (meaningfullyChanged(ref, file, maskManifestVersions)) {
+					return `${file} changed beyond versions`;
 				}
 				continue;
 			}
-			mark(crate, `${file} changed`);
-			continue;
+			return `${file} changed`;
 		}
 
 		if (file === "crates/Cargo.lock") {
-			if (meaningfullyChanged(base, file, maskLockVersions)) {
-				markAll(`${file} changed beyond workspace crate versions`);
+			if (meaningfullyChanged(ref, file, maskLockVersions)) {
+				return `${file} changed beyond workspace crate versions`;
 			}
 			continue;
 		}
 
 		// Workspace manifest, shared build scripts, Cross.toml, anything not
 		// attributed above: assume it can affect every artifact.
-		markAll(`${file} changed`);
+		return `${file} changed`;
+	}
+	return null;
+}
+
+function versionAt(ref, file) {
+	const content = contentAt(ref, file);
+	if (content === null) return null;
+	try {
+		return JSON.parse(content).version ?? null;
+	} catch {
+		return null;
+	}
+}
+
+function versionNow(file) {
+	const content = currentContent(file);
+	if (content === null) return null;
+	try {
+		return JSON.parse(content).version ?? null;
+	} catch {
+		return null;
+	}
+}
+
+/**
+ * Per family: the tag of the version the base branch is at, i.e. the last
+ * published release to compare sources against. Missing data degrades to
+ * null, which callers treat as "assume changed".
+ */
+function lastReleaseRef(family, mergeBase) {
+	const version = versionAt(mergeBase, FAMILY_PACKAGE[family]);
+	if (version === null) return { ref: null, tag: null };
+	const tag = `${FAMILY_NPM[family]}@${version}`;
+	const ref = tryGit(["rev-parse", "--verify", `refs/tags/${tag}^{commit}`]);
+	return { ref: ref ? ref.trim() : null, tag };
+}
+
+function resolveMergeBase(baseRef) {
+	const mergeBase = tryGit(["merge-base", baseRef, "HEAD"]);
+	return mergeBase ? mergeBase.trim() : baseRef;
+}
+
+/**
+ * Families whose compiled sources changed since their last published
+ * release. `baseRef` anchors which versions count as published. Returns
+ * `{ families: {core, ssim, interpret, wasm}, reasons: [..] }`.
+ */
+function changedFamilies(baseRef) {
+	const mergeBase = resolveMergeBase(baseRef);
+	const families = {};
+	const reasons = [];
+
+	for (const family of FAMILIES) {
+		const { ref, tag } = lastReleaseRef(family, mergeBase);
+		if (ref === null) {
+			families[family] = true;
+			reasons.push(
+				`${family}: release tag ${tag ?? "?"} not found — assuming changed`,
+			);
+			continue;
+		}
+		const reason = sourcesChangedSince(ref, FAMILY_CRATES[family]);
+		families[family] = reason !== null;
+		reasons.push(
+			reason === null
+				? `${family}: sources unchanged since ${tag}`
+				: `${family}: ${reason} since ${tag}`,
+		);
 	}
 
 	return { families, reasons };
 }
 
-module.exports = { changedFamilies, FAMILIES };
+/**
+ * Sources changed since the last release but the version didn't bump: with
+ * per-family version groups there is no all-bump safety net, so a crate edit
+ * without a changeset would silently ship stale packages. Returns the
+ * offending packages.
+ */
+function missingBumps(baseRef) {
+	const mergeBase = resolveMergeBase(baseRef);
+	const offenders = [];
+	for (const family of FAMILIES) {
+		const { ref, tag } = lastReleaseRef(family, mergeBase);
+		if (ref === null) continue; // nothing released yet to be stale against
+		const reason = sourcesChangedSince(ref, FAMILY_CRATES[family]);
+		if (reason === null) continue;
+		const before = versionAt(mergeBase, FAMILY_PACKAGE[family]);
+		const after = versionNow(FAMILY_PACKAGE[family]);
+		if (before !== null && after !== null && before === after) {
+			offenders.push(
+				`${FAMILY_PACKAGE[family]} — ${reason} since ${tag}, but the version is still ${after}`,
+			);
+		}
+	}
+	return offenders;
+}
+
+module.exports = { changedFamilies, missingBumps, FAMILIES };
 
 if (require.main === module) {
-	const baseRef = process.argv[2];
+	const argv = process.argv.slice(2);
+	const checkBumps = argv.includes("--check-bumps");
+	const baseRef = argv.find((arg) => !arg.startsWith("-"));
 	if (!baseRef) {
-		console.error("usage: changed-artifacts.js <base-ref>");
+		console.error("usage: changed-artifacts.js [--check-bumps] <base-ref>");
 		process.exit(2);
+	}
+	if (checkBumps) {
+		const offenders = missingBumps(baseRef);
+		if (offenders.length > 0) {
+			console.error(
+				"Sources changed since the last release but these packages did not\n" +
+					"bump — a changeset naming them (or their version group) is missing:",
+			);
+			for (const offender of offenders) console.error(`  - ${offender}`);
+			process.exit(1);
+		}
+		console.error("every family with source changes has a version bump");
+		process.exit(0);
 	}
 	const { families, reasons } = changedFamilies(baseRef);
 	for (const reason of reasons) console.error(`  ${reason}`);
-	if (reasons.length === 0) {
-		console.error("  no shipped crate sources changed");
-	}
 	for (const family of FAMILIES) {
 		console.log(`${family}=${families[family]}`);
 	}

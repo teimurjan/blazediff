@@ -41,8 +41,10 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           # Need base commit for the staleness diff on binaries whose
-          # filenames don't encode the version (.node, CLI, .wasm).
+          # filenames don't encode the version (.node, CLI, .wasm), and the
+          # release tags each family's sources are compared against.
           fetch-depth: 0
+          fetch-tags: true
           # We only diff LFS pointer hashes (changed pointer = changed
           # binary); pulling the actual blobs from LFS would burn
           # bandwidth on every PR sync for no information gained.
@@ -59,14 +61,19 @@ jobs:
           echo "Base SHA: $BASE_SHA"
 
           # Binaries and WASM only need rebuilding when the crate sources
-          # compiled into them actually changed. The version bumps that
-          # `changeset version` writes into every Cargo.toml / Cargo.lock /
-          # pyproject.toml don't count — changed-artifacts.js masks them, so
-          # an interpret-only release doesn't demand fresh core binaries.
-          # Same script drives build-artifacts.yml, keeping what /build
-          # produces aligned with what this check requires.
+          # compiled into them changed since the family's last published
+          # release tag. Version churn from `changeset version` doesn't
+          # count — changed-artifacts.js masks it — so an interpret-only
+          # release doesn't demand fresh core binaries. Same script drives
+          # build-artifacts.yml, keeping what /build produces aligned with
+          # what this check requires.
           eval "$(node scripts/release/changed-artifacts.js "$BASE_SHA")"
           echo "families needing fresh artifacts: core=$core ssim=$ssim interpret=$interpret wasm=$wasm"
+
+          # With per-family version groups there is no all-bump safety net:
+          # crate sources changed without a changeset would ship stale
+          # packages. Fail loudly instead.
+          node scripts/release/changed-artifacts.js --check-bumps "$BASE_SHA"
 
           missing=()
           stale=()
