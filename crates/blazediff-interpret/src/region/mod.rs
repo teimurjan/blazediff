@@ -2,6 +2,8 @@ mod label_extract;
 mod morphology;
 
 use super::types::BoundingBox;
+use blazediff_shared::yiq::color_delta;
+use blazediff_shared::Image;
 use label_extract::extract_labeled_regions;
 use morphology::morph_close;
 
@@ -170,18 +172,106 @@ fn label_connected_components(mask: &[bool], width: u32, height: u32) -> Vec<i32
     labels
 }
 
+/// Squared YIQ delta above which a pixel counts as touched at all. Far below
+/// the diff's own threshold on purpose: the question here is not what changed
+/// enough to report, it is whether the pixels *between* two reported patches
+/// were left alone. 16.0 is a YIQ-weighted distance of 4, a perceptual delta
+/// of roughly 0.007.
+const TOUCHED_DELTA: f64 = 16.0;
+
+/// Share of a bounding box that must be touched for the patches inside it to
+/// count as fragments of one change.
+const TOUCHED_SHARE_FLOOR: f64 = 0.45;
+
+/// How much of any rectangle differs between the two images at all, answered
+/// in constant time from a summed-area table.
+///
+/// Merging patches is a question about the gaps between them, and the change
+/// mask cannot answer it: everything below the diff threshold reads as
+/// background there. A regenerated or recolored area leaves a faint delta
+/// across the whole of itself, so its patches sit in touched space; two
+/// distinct edits are separated by pixels that are identical in both images.
+pub struct ChangeDensity {
+    /// Inclusive prefix sums of touched pixels, `(width + 1) * (height + 1)`.
+    sums: Vec<u32>,
+    width: usize,
+}
+
+impl ChangeDensity {
+    pub fn new(img1: &Image, img2: &Image) -> Self {
+        let width = img1.width as usize;
+        let height = img1.height as usize;
+        let pixels1 = img1.as_u32();
+        let pixels2 = img2.as_u32();
+        let stride = width + 1;
+        let mut sums = vec![0u32; stride * (height + 1)];
+
+        for y in 0..height {
+            let mut row_total = 0u32;
+            for x in 0..width {
+                let index = y * width + x;
+                if color_delta(pixels1[index], pixels2[index], index).abs() > TOUCHED_DELTA {
+                    row_total += 1;
+                }
+                sums[(y + 1) * stride + x + 1] = sums[y * stride + x + 1] + row_total;
+            }
+        }
+
+        Self { sums, width }
+    }
+
+    /// Share of `bbox` that differs between the two images, in `0.0..=1.0`.
+    pub fn share(&self, bbox: &BoundingBox) -> f64 {
+        let area = (bbox.width as f64) * (bbox.height as f64);
+        if area <= 0.0 {
+            return 0.0;
+        }
+        let stride = self.width + 1;
+        let height = self.sums.len() / stride - 1;
+        let x0 = (bbox.x as usize).min(self.width);
+        let y0 = (bbox.y as usize).min(height);
+        let x1 = ((bbox.x + bbox.width) as usize).min(self.width);
+        let y1 = ((bbox.y + bbox.height) as usize).min(height);
+        let touched = self.sums[y1 * stride + x1] + self.sums[y0 * stride + x0]
+            - self.sums[y0 * stride + x1]
+            - self.sums[y1 * stride + x0];
+        touched as f64 / area
+    }
+}
+
+fn union(a: &BoundingBox, b: &BoundingBox) -> BoundingBox {
+    let x = a.x.min(b.x);
+    let y = a.y.min(b.y);
+    let right = (a.x + a.width).max(b.x + b.width);
+    let bottom = (a.y + a.height).max(b.y + b.height);
+    BoundingBox {
+        x,
+        y,
+        width: right - x,
+        height: bottom - y,
+    }
+}
+
 /// Merge components whose bounding boxes overlap (or sit within `slack`
 /// pixels of each other) into single regions. Fragmented detections — an
 /// inpainted photo region shattered into dozens of patches by the diff —
 /// have heavily interleaved bboxes, while genuinely separate changes do not,
 /// so bbox proximity is a reliable merge criterion where a larger
 /// morphological radius would bridge unrelated regions across background.
+///
+/// Proximity alone is not enough, because every merge widens the box and a
+/// wider box reaches further: on a dense screenshot single linkage walks from
+/// one change to the next until the region spans half the image. A merge is
+/// therefore refused unless [`ChangeDensity`] finds the enclosing box mostly
+/// touched, which is true of one change scattered into patches and false of
+/// two changes with untouched background between them.
 pub fn merge_overlapping_components(
     mut components: Vec<ComponentInfo>,
     slack_x: u32,
     slack_y: u32,
+    density: &ChangeDensity,
 ) -> Vec<ComponentInfo> {
-    let overlaps = |a: &BoundingBox, b: &BoundingBox| -> bool {
+    let near = |a: &BoundingBox, b: &BoundingBox| -> bool {
         a.x <= b.x + b.width + slack_x
             && b.x <= a.x + a.width + slack_x
             && a.y <= b.y + b.height + slack_y
@@ -193,19 +283,20 @@ pub fn merge_overlapping_components(
         let mut result: Vec<ComponentInfo> = Vec::with_capacity(components.len());
         'outer: for component in components {
             for existing in &mut result {
-                if overlaps(&existing.bbox, &component.bbox) {
-                    let right = (existing.bbox.x + existing.bbox.width)
-                        .max(component.bbox.x + component.bbox.width);
-                    let bottom = (existing.bbox.y + existing.bbox.height)
-                        .max(component.bbox.y + component.bbox.height);
-                    existing.bbox.x = existing.bbox.x.min(component.bbox.x);
-                    existing.bbox.y = existing.bbox.y.min(component.bbox.y);
-                    existing.bbox.width = right - existing.bbox.x;
-                    existing.bbox.height = bottom - existing.bbox.y;
-                    existing.pixel_count += component.pixel_count;
-                    merged_any = true;
-                    continue 'outer;
+                if !near(&existing.bbox, &component.bbox) {
+                    continue;
                 }
+                let merged_bbox = union(&existing.bbox, &component.bbox);
+                // A component that already sits inside the region adds no
+                // background, whatever the density says.
+                if merged_bbox != existing.bbox && density.share(&merged_bbox) < TOUCHED_SHARE_FLOOR
+                {
+                    continue;
+                }
+                existing.bbox = merged_bbox;
+                existing.pixel_count += component.pixel_count;
+                merged_any = true;
+                continue 'outer;
             }
             result.push(component);
         }
@@ -238,6 +329,84 @@ pub fn detect_regions(mask: &[bool], width: u32, height: u32) -> Vec<ComponentIn
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::test_helpers::{fill_block, make_solid_image};
+
+    fn comp(x: u32, y: u32, w: u32, h: u32, pixels: u32) -> ComponentInfo {
+        ComponentInfo {
+            bbox: BoundingBox {
+                x,
+                y,
+                width: w,
+                height: h,
+            },
+            pixel_count: pixels,
+        }
+    }
+
+    #[test]
+    fn change_density_share_matches_brute_force() {
+        // A recolored strip down the middle; the background is untouched.
+        let img1 = make_solid_image(40, 30, 10, 10, 10);
+        let mut img2 = make_solid_image(40, 30, 10, 10, 10);
+        fill_block(&mut img2, 12, 0, 8, 30, 200, 40, 40);
+        let density = ChangeDensity::new(&img1, &img2);
+
+        // The strip is fully touched, the whole image is 8/40 touched.
+        let strip = BoundingBox {
+            x: 12,
+            y: 0,
+            width: 8,
+            height: 30,
+        };
+        assert!((density.share(&strip) - 1.0).abs() < 1e-9);
+        let full = BoundingBox {
+            x: 0,
+            y: 0,
+            width: 40,
+            height: 30,
+        };
+        assert!((density.share(&full) - 8.0 / 40.0).abs() < 1e-9);
+        // An untouched corner is empty.
+        let corner = BoundingBox {
+            x: 0,
+            y: 0,
+            width: 8,
+            height: 8,
+        };
+        assert_eq!(density.share(&corner), 0.0);
+    }
+
+    #[test]
+    fn merge_bridges_fragments_of_one_change() {
+        // Two nearby patches with the gap between them also changed: one
+        // fragmented change, so the union is dense and they merge.
+        let img1 = make_solid_image(60, 20, 10, 10, 10);
+        let mut img2 = make_solid_image(60, 20, 10, 10, 10);
+        fill_block(&mut img2, 5, 5, 32, 10, 220, 30, 30);
+        let density = ChangeDensity::new(&img1, &img2);
+
+        // 8px gap between the boxes, within the 12px slack.
+        let components = vec![comp(5, 5, 12, 10, 120), comp(25, 5, 12, 10, 120)];
+        let merged = merge_overlapping_components(components, 12, 8, &density);
+        assert_eq!(merged.len(), 1, "dense union should merge");
+    }
+
+    #[test]
+    fn merge_keeps_distinct_changes_apart() {
+        // Two distinct changes, each a thin mark inside a larger box with
+        // untouched background around it — the shape a map label or a table
+        // cell takes. The boxes sit within the 12px slack, so proximity alone
+        // would merge them; the sparse union must stop it.
+        let img1 = make_solid_image(60, 20, 10, 10, 10);
+        let mut img2 = make_solid_image(60, 20, 10, 10, 10);
+        fill_block(&mut img2, 7, 5, 1, 12, 220, 30, 30);
+        fill_block(&mut img2, 20, 5, 1, 12, 30, 30, 220);
+        let density = ChangeDensity::new(&img1, &img2);
+
+        let components = vec![comp(5, 5, 10, 12, 12), comp(18, 5, 10, 12, 12)];
+        let merged = merge_overlapping_components(components, 12, 8, &density);
+        assert_eq!(merged.len(), 2, "sparse union should stay split");
+    }
 
     #[test]
     fn test_extract_change_mask_gray_pixels() {

@@ -56,7 +56,7 @@ use types::ChangeType;
 /// a perceptual delta of ~0.017 — filters near-identical pixels without
 /// throwing away genuine edits.
 pub use region::{
-    detect_regions, extract_change_mask, merge_overlapping_components, ComponentInfo,
+    detect_regions, extract_change_mask, merge_overlapping_components, ChangeDensity, ComponentInfo,
 };
 pub use severity::classify_severity;
 // Exposed for producers that already hold an exact per-pixel mask and so must
@@ -459,8 +459,12 @@ pub fn interpret(
                 .count();
             let area_floor = (NOISE_FLOOR_PER_SPECK * n_small as f64) as u32;
             components.retain(|component| component.pixel_count >= SPECK_FLOOR);
-            let mut components =
-                merge_overlapping_components(components, MERGE_SLACK_X, MERGE_SLACK_Y);
+            let mut components = if components.len() > 1 {
+                let density = ChangeDensity::new(image1, image2);
+                merge_overlapping_components(components, MERGE_SLACK_X, MERGE_SLACK_Y, &density)
+            } else {
+                components
+            };
             components.retain(|component| component.pixel_count >= area_floor.max(NOISE_FLOOR_MIN));
             let regions = components
                 .into_iter()

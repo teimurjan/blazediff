@@ -76,9 +76,9 @@ replacement, so the pixel evidence for the two classes overlaps heavily.
 | Dataset | Correct | Misses | Extras | Class errors | Macro F1 |
 |---|---:|---:|---:|---:|---:|
 | `addition_deletion` | 896 | 6 | 74 | 2 | **0.958** |
-| `shift` | 520 | 95 | 61 | 161 | **0.799** |
-| `inpaintcoco` | 644 | 333 | 486 | 283 | **0.488** |
-| `html_color_pairs` | 132 | 18 | 24 | 0 | **0.874** |
+| `shift` | 522 | 94 | 62 | 160 | **0.801** |
+| `inpaintcoco` | 651 | 318 | 502 | 291 | **0.492** |
+| `html_color_pairs` | 132 | 18 | 26 | 0 | **0.868** |
 
 Plain English: on add/delete the pipeline finds essentially every edit and
 labels all but two correctly. On `shift` two thirds of the moved-block pairs
@@ -88,6 +88,22 @@ image) out of the region set, which took detection extras from ~40 000 to
 under 500. On `html_color_pairs` the remaining misses are recolors whose
 pixel delta never crosses the diff threshold, which end-to-end detection
 cannot see by construction.
+
+### Density-gated bbox merge (2026-08-18)
+
+The proximity-based bbox merge that assembles fragments into regions now
+consults a sub-threshold change-density map before each merge. Merging widens
+a region's box, and a wider box reaches further, so pure proximity chained
+distinct changes across a dense screenshot — on a map with many nearby edits
+the whole lower half collapsed into one `ContentChange`, hiding the additions
+and deletions inside it. A merge is now refused unless the enclosing box is at
+least 45% touched (any pixel differing by a YIQ distance above ~0.007, far
+below the diff threshold): one change scattered into patches leaves a faint
+delta across the whole of itself and passes, two changes separated by
+untouched background do not. Effect on the tables above versus the pure-
+proximity merge: `shift` +0.002, `inpaintcoco` +0.003, `addition_deletion`
+unchanged, `html_color_pairs` −0.006 (two extra fragments in one page whose
+ground-truth region the detector already missed).
 
 ## How current results compare to the prior baseline
 

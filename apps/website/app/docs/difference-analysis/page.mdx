@@ -32,9 +32,12 @@ that were measured deterministically is answering a much easier question. See
 4. Fragments are assembled into regions: a **noise census** counts speck-sized
    fragments to measure how noisy the pair is, nearby bounding boxes are merged
    (an inpainted object shattered into patches, the words of one recolored text
-   run), and a noise floor that scales with the census drops the rest — so a
-   clean UI render keeps its smallest real regions while a recompressed photo
-   sheds hundreds of ringing fragments.
+   run) — but only when the box that would enclose them is mostly _touched_
+   below the diff threshold, so two distinct edits with untouched background
+   between them stay separate instead of collapsing into one region — and a
+   noise floor that scales with the census drops the rest, so a clean UI render
+   keeps its smallest real regions while a recompressed photo sheds hundreds of
+   ringing fragments.
 5. Evidence is extracted per region:
    - **Dual-image gradients and luminance correlation.** Edges in both images
      plus spatial correlation, to detect whether structure was preserved.
