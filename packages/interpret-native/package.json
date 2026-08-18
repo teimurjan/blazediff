@@ -1,6 +1,6 @@
 {
 	"name": "@blazediff/interpret-native",
-	"version": "6.0.0",
+	"version": "6.1.0",
 	"description": "Native Rust structured image-diff interpretation: what changed, where, and how much",
 	"private": false,
 	"publishConfig": {
@@ -27,12 +27,12 @@
 		"test:watch": "vitest"
 	},
 	"optionalDependencies": {
-		"@blazediff/interpret-native-darwin-arm64": "6.0.0",
-		"@blazediff/interpret-native-darwin-x64": "6.0.0",
-		"@blazediff/interpret-native-linux-arm64": "6.0.0",
-		"@blazediff/interpret-native-linux-x64": "6.0.0",
-		"@blazediff/interpret-native-win32-arm64": "6.0.0",
-		"@blazediff/interpret-native-win32-x64": "6.0.0"
+		"@blazediff/interpret-native-darwin-arm64": "6.1.0",
+		"@blazediff/interpret-native-darwin-x64": "6.1.0",
+		"@blazediff/interpret-native-linux-arm64": "6.1.0",
+		"@blazediff/interpret-native-linux-x64": "6.1.0",
+		"@blazediff/interpret-native-win32-arm64": "6.1.0",
+		"@blazediff/interpret-native-win32-x64": "6.1.0"
 	},
 	"keywords": [
 		"image",
