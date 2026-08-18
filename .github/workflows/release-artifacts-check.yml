@@ -58,36 +58,15 @@ jobs:
           BASE_SHA="${{ github.event.pull_request.base.sha }}"
           echo "Base SHA: $BASE_SHA"
 
-          # Binaries and WASM only need rebuilding when the Rust crates
-          # actually changed; for JS-only releases the existing artifacts
-          # from the previous version are still valid. blazediff links
-          # blazediff-shared and blazediff-ssim, so a change to either lands in
-          # its binaries too.
-          if git diff --quiet "$BASE_SHA" -- crates/blazediff/ crates/blazediff-shared/ crates/blazediff-ssim/; then
-            crate_changed=false
-            echo "blazediff crates unchanged since base — skipping binary/WASM freshness checks."
-          else
-            crate_changed=true
-            echo "blazediff crates changed since base — binaries and WASM must be rebuilt."
-          fi
-
-          # The interpret .node sits above both producers, so any of them.
-          if git diff --quiet "$BASE_SHA" -- crates/blazediff-interpret/ crates/blazediff/ crates/blazediff-ssim/ crates/blazediff-shared/; then
-            interpret_crate_changed=false
-            echo "interpret crates unchanged since base — skipping interpret .node freshness checks."
-          else
-            interpret_crate_changed=true
-            echo "interpret crates changed since base — interpret .node files must be rebuilt."
-          fi
-
-          # The ssim .node only depends on blazediff-ssim and blazediff-shared.
-          if git diff --quiet "$BASE_SHA" -- crates/blazediff-ssim/ crates/blazediff-shared/; then
-            ssim_crate_changed=false
-            echo "ssim crates unchanged since base — skipping ssim .node freshness checks."
-          else
-            ssim_crate_changed=true
-            echo "ssim crates changed since base — ssim .node files must be rebuilt."
-          fi
+          # Binaries and WASM only need rebuilding when the crate sources
+          # compiled into them actually changed. The version bumps that
+          # `changeset version` writes into every Cargo.toml / Cargo.lock /
+          # pyproject.toml don't count — changed-artifacts.js masks them, so
+          # an interpret-only release doesn't demand fresh core binaries.
+          # Same script drives build-artifacts.yml, keeping what /build
+          # produces aligned with what this check requires.
+          eval "$(node scripts/release/changed-artifacts.js "$BASE_SHA")"
+          echo "families needing fresh artifacts: core=$core ssim=$ssim interpret=$interpret wasm=$wasm"
 
           missing=()
           stale=()
@@ -120,7 +99,7 @@ jobs:
             require_file "crates/blazediff/wheels/blazediff-${VER}-cp38-abi3-${plat}.whl"
           done
 
-          if [[ "$crate_changed" == "true" ]]; then
+          if [[ "$core" == "true" ]]; then
             # --- NAPI .node + per-platform CLI -----------------------------
             for plat in darwin-arm64 darwin-x64 linux-arm64 linux-x64; do
               require_fresh_file "packages/core-native-${plat}/blazediff.node"
@@ -130,20 +109,22 @@ jobs:
               require_fresh_file "packages/core-native-${plat}/blazediff.node"
               require_fresh_file "packages/core-native-${plat}/blazediff.exe"
             done
+          fi
 
+          if [[ "$wasm" == "true" ]]; then
             # --- WASM ------------------------------------------------------
             require_fresh_file "packages/core-wasm/wasm/blazediff_bg.wasm"
             require_fresh_file "packages/core-wasm/wasm/blazediff.js"
           fi
 
-          if [[ "$ssim_crate_changed" == "true" ]]; then
+          if [[ "$ssim" == "true" ]]; then
             # --- SSIM NAPI .node -------------------------------------------
             for plat in darwin-arm64 darwin-x64 linux-arm64 linux-x64 win32-arm64 win32-x64; do
               require_fresh_file "packages/ssim-native-${plat}/blazediff_ssim.node"
             done
           fi
 
-          if [[ "$interpret_crate_changed" == "true" ]]; then
+          if [[ "$interpret" == "true" ]]; then
             # --- Interpret NAPI .node --------------------------------------
             for plat in darwin-arm64 darwin-x64 linux-arm64 linux-x64 win32-arm64 win32-x64; do
               require_fresh_file "packages/interpret-native-${plat}/blazediff_interpret.node"
@@ -162,12 +143,12 @@ jobs:
             fi
             echo
             echo "Comment '/build' on this PR to rebuild them on CI and push, or"
-            echo "do it locally:"
+            echo "do it locally (only the families listed above need rebuilding):"
             echo "  git fetch origin && git checkout ${{ github.head_ref }}"
-            echo "  pnpm build:rust"
-            echo "  pnpm build:rust:ssim"
-            echo "  pnpm build:rust:interpret"
-            echo "  pnpm build:wasm"
+            [[ "$core" == "true" ]] && echo "  pnpm build:rust"
+            [[ "$ssim" == "true" ]] && echo "  pnpm build:rust:ssim"
+            [[ "$interpret" == "true" ]] && echo "  pnpm build:rust:interpret"
+            [[ "$wasm" == "true" ]] && echo "  pnpm build:wasm"
             echo "  pnpm build:python:all -- --version ${VER}"
             # --no-verify: the no-binaries pre-commit hook blocks artifact
             # commits, since this is normally CI's job.

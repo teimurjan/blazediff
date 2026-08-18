@@ -170,6 +170,53 @@ fn label_connected_components(mask: &[bool], width: u32, height: u32) -> Vec<i32
     labels
 }
 
+/// Merge components whose bounding boxes overlap (or sit within `slack`
+/// pixels of each other) into single regions. Fragmented detections — an
+/// inpainted photo region shattered into dozens of patches by the diff —
+/// have heavily interleaved bboxes, while genuinely separate changes do not,
+/// so bbox proximity is a reliable merge criterion where a larger
+/// morphological radius would bridge unrelated regions across background.
+pub fn merge_overlapping_components(
+    mut components: Vec<ComponentInfo>,
+    slack_x: u32,
+    slack_y: u32,
+) -> Vec<ComponentInfo> {
+    let overlaps = |a: &BoundingBox, b: &BoundingBox| -> bool {
+        a.x <= b.x + b.width + slack_x
+            && b.x <= a.x + a.width + slack_x
+            && a.y <= b.y + b.height + slack_y
+            && b.y <= a.y + a.height + slack_y
+    };
+
+    loop {
+        let mut merged_any = false;
+        let mut result: Vec<ComponentInfo> = Vec::with_capacity(components.len());
+        'outer: for component in components {
+            for existing in &mut result {
+                if overlaps(&existing.bbox, &component.bbox) {
+                    let right = (existing.bbox.x + existing.bbox.width)
+                        .max(component.bbox.x + component.bbox.width);
+                    let bottom = (existing.bbox.y + existing.bbox.height)
+                        .max(component.bbox.y + component.bbox.height);
+                    existing.bbox.x = existing.bbox.x.min(component.bbox.x);
+                    existing.bbox.y = existing.bbox.y.min(component.bbox.y);
+                    existing.bbox.width = right - existing.bbox.x;
+                    existing.bbox.height = bottom - existing.bbox.y;
+                    existing.pixel_count += component.pixel_count;
+                    merged_any = true;
+                    continue 'outer;
+                }
+            }
+            result.push(component);
+        }
+        components = result;
+        if !merged_any {
+            components.sort_by(|a, b| b.pixel_count.cmp(&a.pixel_count));
+            return components;
+        }
+    }
+}
+
 /// Full region detection pipeline:
 /// binary mask → morph close → connected components → extract with original mask
 pub fn detect_regions(mask: &[bool], width: u32, height: u32) -> Vec<ComponentInfo> {

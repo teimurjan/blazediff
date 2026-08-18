@@ -1,9 +1,16 @@
 name: build-artifacts
 
-# Builds every release-shipped binary on GitHub runners and commits them back to
+# Builds release-shipped binaries on GitHub runners and commits them back to
 # the PR branch. Comment `/build` on a PR — normally the Changesets "Version
 # Packages" PR — and this replaces the local rebuild that
 # release-artifacts-check.yml otherwise asks the maintainer to do by hand.
+#
+# Selective: scripts/release/changed-artifacts.js decides which artifact
+# families (core / ssim / interpret / wasm) actually changed since the PR
+# base — version-only bumps don't count — and only those get compiled.
+# Wheels are always rebuilt because their filenames encode the release
+# version. The same script drives release-artifacts-check.yml, so what
+# /build produces is exactly what the merge gate requires.
 #
 # Toolchains mirror `pnpm build:rust && pnpm build:rust:ssim &&
 # pnpm build:rust:interpret && pnpm build:wasm && pnpm build:python:all` by
@@ -49,6 +56,10 @@ jobs:
       ref: ${{ steps.pr.outputs.ref }}
       sha: ${{ steps.pr.outputs.sha }}
       version: ${{ steps.version.outputs.version }}
+      core: ${{ steps.families.outputs.core }}
+      ssim: ${{ steps.families.outputs.ssim }}
+      interpret: ${{ steps.families.outputs.interpret }}
+      wasm: ${{ steps.families.outputs.wasm }}
     steps:
       - name: Resolve PR head
         uses: actions/github-script@v7
@@ -69,6 +80,7 @@ jobs:
             }
             core.setOutput('ref', pr.head.ref);
             core.setOutput('sha', pr.head.sha);
+            core.setOutput('base', pr.base.sha);
             await github.rest.reactions.createForIssueComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -79,6 +91,16 @@ jobs:
       - uses: actions/checkout@v5
         with:
           ref: ${{ steps.pr.outputs.sha }}
+          # The family resolution diffs against the PR base commit.
+          fetch-depth: 0
+
+      # Which artifact families the diff since base actually touches —
+      # version-only churn from `changeset version` doesn't count.
+      - name: Resolve changed artifact families
+        id: families
+        run: |
+          set -euo pipefail
+          node scripts/release/changed-artifacts.js "${{ steps.pr.outputs.base }}" | tee -a "$GITHUB_OUTPUT"
 
       # Single source of truth for the version everything is built for; the
       # wheel builds assert against it and the commit job re-checks the
@@ -157,15 +179,19 @@ jobs:
           zig version
 
       - name: Build CLI binary
+        if: needs.resolve.outputs.core == 'true'
         run: crates/blazediff/scripts/build-all.sh --target ${{ matrix.target }}
 
       - name: Build core .node
+        if: needs.resolve.outputs.core == 'true'
         run: crates/blazediff/scripts/build-napi.sh --target ${{ matrix.target }}
 
       - name: Build ssim .node
+        if: needs.resolve.outputs.ssim == 'true'
         run: crates/blazediff-ssim/scripts/build-napi.sh --target ${{ matrix.target }}
 
       - name: Build interpret .node
+        if: needs.resolve.outputs.interpret == 'true'
         run: crates/blazediff-interpret/scripts/build-napi.sh --target ${{ matrix.target }}
 
       - name: Build Python wheel
@@ -187,12 +213,20 @@ jobs:
       - name: Verify artifacts
         run: |
           set -euo pipefail
-          for f in \
-            "packages/core-native-${{ matrix.pkg }}/${{ matrix.cli }}" \
-            "packages/core-native-${{ matrix.pkg }}/blazediff.node" \
-            "packages/ssim-native-${{ matrix.pkg }}/blazediff_ssim.node" \
-            "packages/interpret-native-${{ matrix.pkg }}/blazediff_interpret.node" \
-            crates/blazediff/wheels/*.whl; do
+          files=(crates/blazediff/wheels/*.whl)
+          if [[ "${{ needs.resolve.outputs.core }}" == "true" ]]; then
+            files+=(
+              "packages/core-native-${{ matrix.pkg }}/${{ matrix.cli }}"
+              "packages/core-native-${{ matrix.pkg }}/blazediff.node"
+            )
+          fi
+          if [[ "${{ needs.resolve.outputs.ssim }}" == "true" ]]; then
+            files+=("packages/ssim-native-${{ matrix.pkg }}/blazediff_ssim.node")
+          fi
+          if [[ "${{ needs.resolve.outputs.interpret }}" == "true" ]]; then
+            files+=("packages/interpret-native-${{ matrix.pkg }}/blazediff_interpret.node")
+          fi
+          for f in "${files[@]}"; do
             if [[ ! -s "$f" ]]; then
               echo "::error::$f missing or empty after build"
               exit 1
@@ -203,6 +237,24 @@ jobs:
             fi
             ls -lh "$f"
           done
+
+      # The checkout leaves LFS pointer files at every artifact path
+      # (lfs: false). For families this run didn't build, those pointers must
+      # not reach the upload: the commit job would harmlessly re-commit them,
+      # but restore-artifacts.js would plant them into a real checkout.
+      - name: Prune unbuilt families
+        run: |
+          set -euo pipefail
+          if [[ "${{ needs.resolve.outputs.core }}" != "true" ]]; then
+            rm -f "packages/core-native-${{ matrix.pkg }}/${{ matrix.cli }}" \
+                  "packages/core-native-${{ matrix.pkg }}/blazediff.node"
+          fi
+          if [[ "${{ needs.resolve.outputs.ssim }}" != "true" ]]; then
+            rm -f "packages/ssim-native-${{ matrix.pkg }}/blazediff_ssim.node"
+          fi
+          if [[ "${{ needs.resolve.outputs.interpret }}" != "true" ]]; then
+            rm -f "packages/interpret-native-${{ matrix.pkg }}/blazediff_interpret.node"
+          fi
 
       - uses: actions/upload-artifact@v4
         with:
@@ -228,6 +280,7 @@ jobs:
   wasm:
     name: wasm32-unknown-unknown
     needs: resolve
+    if: needs.resolve.outputs.wasm == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -275,6 +328,13 @@ jobs:
   commit:
     name: Commit to PR
     needs: [resolve, build, wasm]
+    # wasm is skipped when its sources didn't change; that must not skip the
+    # commit of everything else.
+    if: >-
+      always() &&
+      needs.resolve.result == 'success' &&
+      needs.build.result == 'success' &&
+      (needs.wasm.result == 'success' || needs.wasm.result == 'skipped')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -308,6 +368,7 @@ jobs:
           merge-multiple: true
 
       - uses: actions/download-artifact@v4
+        if: needs.resolve.outputs.wasm == 'true'
         with:
           name: wasm
           path: packages/core-wasm/wasm
@@ -360,6 +421,13 @@ jobs:
           script: |
             const committed = '${{ steps.push.outputs.committed }}' === 'true';
             const version = '${{ needs.resolve.outputs.version }}';
+            const built = [
+              '${{ needs.resolve.outputs.core }}' === 'true' && 'core binaries',
+              '${{ needs.resolve.outputs.ssim }}' === 'true' && 'ssim',
+              '${{ needs.resolve.outputs.interpret }}' === 'true' && 'interpret',
+              '${{ needs.resolve.outputs.wasm }}' === 'true' && 'wasm',
+              'wheels',
+            ].filter(Boolean).join(', ');
             await github.rest.reactions.createForIssueComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -371,7 +439,7 @@ jobs:
               repo: context.repo.repo,
               issue_number: context.issue.number,
               body: committed
-                ? `Built and committed release artifacts for \`v${version}\` — binaries, wasm and wheels for all six platforms.`
+                ? `Built and committed release artifacts for \`v${version}\` — ${built} across all six platforms. Families whose sources didn't change were skipped.`
                 : `Release artifacts for \`v${version}\` were already up to date; nothing to commit.`,
             });
 

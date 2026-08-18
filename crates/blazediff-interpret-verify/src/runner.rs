@@ -50,6 +50,7 @@ fn run_classifier_only(case: &ValidationCase) -> CaseResult {
             confidence: Some(prediction.confidence),
             pair_id: gt.pair_id.clone(),
             tags: gt.tags.clone(),
+            region: Some(prediction.clone()),
         })
         .collect();
 
@@ -57,6 +58,8 @@ fn run_classifier_only(case: &ValidationCase) -> CaseResult {
         case_name: case.name.clone(),
         tier: case.tier,
         case_tags: case.tags.clone(),
+        image_width: case.img1.width,
+        image_height: case.img1.height,
         matches,
         unmatched_predictions: Vec::new(),
         unmatched_ground_truth: Vec::new(),

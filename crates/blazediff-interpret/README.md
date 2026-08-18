@@ -50,7 +50,9 @@ either would be unreachable from the other. It sits below both instead.
 A producer only has to know roughly where something changed. Before any statistic is computed,
 the supplied boxes are refined against the source pixels — every pixel whose YIQ delta falls
 below the noise floor is dropped — so shape, colour and gradient analysis stay per-pixel no
-matter how blocky the input was:
+matter how blocky the input was. (If a claimed box refines to nothing but the content does
+differ — a sub-threshold edit such as a subtle uniform recolor — the box is kept as-is so the
+region still gets meaningful statistics.)
 
 ```rust
 // An 8x8 change, described exactly and then quantized to a 16px grid.
@@ -71,6 +73,7 @@ actually-changed pixels, never windows.
 | `ChangeSource` | `Diff` (a pixel diff's output + counts), `ScoreMap` (a similarity map), or `Regions` |
 | `classify_region` / `classify_regions` | classify against a mask you already hold |
 | `detect_regions` | connected components over a boolean mask |
+| `merge_overlapping_components` | fuse fragmented components whose bboxes overlap or nearly touch |
 | `extract_change_mask` | recover a mask from an RGBA diff visualization |
 | `detect_shifts` | the shift-relabeling pass, for producers holding an exact mask |
 | `classify_severity`, `build_summary` | the pooling steps, exposed for custom pipelines |
@@ -82,7 +85,8 @@ cross the wasm and N-API boundaries.
 ## What it classifies
 
 Each region gets a change type, a shape, a position, a confidence, and the statistics behind
-them — colour delta, gradient/edge correlation, fill ratios, and the signals the classifier used.
+them — colour delta, gradient/edge correlation, luminance correlation, chroma-plane movement
+(hue rotation, saturation, delta smoothness), fill ratios, and the signals the classifier used.
 See [INTERPRET.md](https://github.com/teimurjan/blazediff/blob/main/crates/blazediff/INTERPRET.md)
 for the full algorithm: pipeline stages, formulas, and classification rules.
 

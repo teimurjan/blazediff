@@ -9,11 +9,19 @@
 // minutes of runner time to reproduce bytes that already exist, so this pulls
 // them from the run that already built them.
 //
+// Selective, like `/build` itself: scripts/release/changed-artifacts.js
+// decides which artifact families (core / ssim / interpret / wasm) the
+// current tree actually needs refreshed — version-only bumps don't count —
+// and only those files are restored. Wheels are always restored. `--all`
+// restores everything the run built regardless.
+//
 // Usage:
 //   node scripts/release/restore-artifacts.js 6.0.0
 //   node scripts/release/restore-artifacts.js            # version from Cargo.toml
 //   node scripts/release/restore-artifacts.js 6.0.0 --run 32029701621
 //   node scripts/release/restore-artifacts.js --list
+//   node scripts/release/restore-artifacts.js --all      # skip family filtering
+//   node scripts/release/restore-artifacts.js --base origin/main
 //
 // Nothing is committed: the files land in the working tree and the commit is
 // yours to make. `scripts/checks/check-no-binaries.sh` will reject it, which is
@@ -29,11 +37,15 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 
+const { changedFamilies, FAMILIES } = require("./changed-artifacts.js");
+
 const ROOT = path.resolve(__dirname, "..", "..");
 const WORKFLOW = "build-artifacts.yml";
 
 // The build matrix in build-artifacts.yml. A run missing any of these built
-// only part of the set — restoring from it would mix versions across platforms.
+// only part of the platform set — restoring from it would mix versions across
+// platforms. (The wasm artifact is optional: a run skips it when the wasm
+// sources didn't change.)
 const TARGETS = [
 	"aarch64-apple-darwin",
 	"x86_64-apple-darwin",
@@ -51,10 +63,43 @@ const MAX_RUNS_PROBED = 5;
 const args = process.argv.slice(2);
 const DRY_RUN = args.includes("--dry-run");
 const LIST = args.includes("--list");
+const ALL = args.includes("--all");
 const RUN_ID = args.includes("--run") ? args[args.indexOf("--run") + 1] : null;
+const BASE_REF = args.includes("--base")
+	? args[args.indexOf("--base") + 1]
+	: "origin/main";
 const requestedVersion = args.find(
-	(arg) => !arg.startsWith("-") && arg !== RUN_ID,
+	(arg) => !arg.startsWith("-") && arg !== RUN_ID && arg !== BASE_REF,
 );
+
+/** Which family a restored path belongs to, or "wheels" (always wanted). */
+function familyOf(relative) {
+	if (relative.startsWith("packages/core-native-")) return "core";
+	if (relative.startsWith("packages/ssim-native-")) return "ssim";
+	if (relative.startsWith("packages/interpret-native-")) return "interpret";
+	if (relative.startsWith(path.join("packages", "core-wasm"))) return "wasm";
+	if (relative.startsWith(WHEELS_DIR)) return "wheels";
+	return null;
+}
+
+/** The families this working tree needs refreshed, per changed-artifacts.js. */
+function neededFamilies() {
+	if (ALL) {
+		return Object.fromEntries(FAMILIES.map((family) => [family, true]));
+	}
+	const { families, reasons } = changedFamilies(BASE_REF);
+	console.log(`Families changed since ${BASE_REF}:`);
+	for (const family of FAMILIES) {
+		console.log(`  ${family}=${families[family]}`);
+	}
+	if (reasons.length === 0) {
+		console.log(
+			"  (no shipped crate sources changed — only wheels will be restored;\n" +
+				"   pass --all to restore every family the run built)",
+		);
+	}
+	return families;
+}
 
 function gh(argv) {
 	return execFileSync("gh", argv, {
@@ -122,16 +167,15 @@ function usableArtifacts(slug, runId) {
 	const live = artifacts.filter((artifact) => !artifact.expired);
 	const names = new Set(live.map((artifact) => artifact.name));
 
-	const missing = [
-		...TARGETS.map((target) => `target-${target}`),
-		WASM_ARTIFACT,
-	].filter((name) => !names.has(name));
+	const missing = TARGETS.map((target) => `target-${target}`).filter(
+		(name) => !names.has(name),
+	);
 
 	if (missing.length > 0) {
 		const expired = artifacts.some((artifact) => artifact.expired);
 		return { ok: false, missing, expired };
 	}
-	return { ok: true, artifacts: live };
+	return { ok: true, artifacts: live, hasWasm: names.has(WASM_ARTIFACT) };
 }
 
 function download(slug, runId, dir, name = null) {
@@ -165,33 +209,44 @@ function walk(dir, base = dir) {
  * one-to-one. The `wasm` archive is rooted at the wasm directory itself,
  * matching how the commit job unpacks them.
  */
-function applyArtifacts(stagingDir) {
+function applyArtifacts(stagingDir, needed) {
 	const restored = [];
+	const skipped = [];
+
+	const apply = (source, relative, destRelative = relative) => {
+		const family = familyOf(destRelative);
+		if (family !== "wheels" && !(family && needed[family])) {
+			skipped.push(destRelative);
+			return;
+		}
+		const dest = path.join(ROOT, destRelative);
+		if (!DRY_RUN) {
+			fs.mkdirSync(path.dirname(dest), { recursive: true });
+			fs.copyFileSync(source, dest);
+		}
+		restored.push(destRelative);
+	};
 
 	for (const target of TARGETS) {
 		const dir = path.join(stagingDir, `target-${target}`);
 		for (const relative of walk(dir)) {
-			const dest = path.join(ROOT, relative);
-			if (!DRY_RUN) {
-				fs.mkdirSync(path.dirname(dest), { recursive: true });
-				fs.copyFileSync(path.join(dir, relative), dest);
-			}
-			restored.push(relative);
+			apply(path.join(dir, relative), relative);
 		}
 	}
 
 	const wasmSource = path.join(stagingDir, WASM_ARTIFACT);
 	const wasmDest = path.join("packages", "core-wasm", "wasm");
-	for (const relative of walk(wasmSource)) {
-		const dest = path.join(ROOT, wasmDest, relative);
-		if (!DRY_RUN) {
-			fs.mkdirSync(path.dirname(dest), { recursive: true });
-			fs.copyFileSync(path.join(wasmSource, relative), dest);
+	if (fs.existsSync(wasmSource)) {
+		for (const relative of walk(wasmSource)) {
+			apply(
+				path.join(wasmSource, relative),
+				relative,
+				path.join(wasmDest, relative),
+			);
 		}
-		restored.push(path.join(wasmDest, relative));
 	}
 
-	return restored;
+	return { restored, skipped };
 }
 
 /**
@@ -239,7 +294,7 @@ function listRuns(slug) {
 	for (const run of successfulRuns(slug)) {
 		const state = usableArtifacts(slug, run.id);
 		const status = state.ok
-			? "artifacts available"
+			? `artifacts available${state.hasWasm ? "" : " (no wasm)"}`
 			: state.expired
 				? "artifacts expired"
 				: `incomplete (missing ${state.missing.join(", ")})`;
@@ -260,6 +315,8 @@ function main() {
 	console.log(`Restoring v${version} artifacts into ${ROOT}`);
 	if (DRY_RUN) console.log("(dry run — no files will be written)\n");
 
+	const needed = neededFamilies();
+
 	const runs = RUN_ID
 		? [{ id: RUN_ID, createdAt: "(explicit --run)", url: "" }]
 		: successfulRuns(slug);
@@ -277,6 +334,12 @@ function main() {
 			if (!state.ok) {
 				rejected.push(
 					`  run ${run.id} — ${state.expired ? "artifacts expired" : `missing ${state.missing.join(", ")}`}`,
+				);
+				continue;
+			}
+			if (needed.wasm && !state.hasWasm) {
+				rejected.push(
+					`  run ${run.id} — has no wasm artifact, but the wasm sources changed`,
 				);
 				continue;
 			}
@@ -324,12 +387,31 @@ function main() {
 			}
 		}
 
-		const restored = applyArtifacts(artifactsDir);
+		const { restored, skipped } = applyArtifacts(artifactsDir, needed);
 		restoreExecutableBits();
 		verify(restored);
 
+		// Every family this tree needs must actually have come out of the run:
+		// a run built for a different change set may have skipped it.
+		const covered = new Set(restored.map(familyOf));
+		const uncovered = FAMILIES.filter(
+			(family) => needed[family] && !covered.has(family),
+		);
+		if (uncovered.length > 0) {
+			throw new Error(
+				`run ${chosen.id} built nothing for: ${uncovered.join(", ")}.\n` +
+					"       It ran against a different change set; comment /build on the\n" +
+					"       PR to build the families this release actually needs.",
+			);
+		}
+
 		console.log(`Restored ${restored.length} files:\n`);
 		for (const relative of restored.sort()) console.log(`  ${relative}`);
+		if (skipped.length > 0) {
+			console.log(
+				`\nSkipped ${skipped.length} files for unchanged families (use --all to restore them).`,
+			);
+		}
 		console.log(
 			DRY_RUN
 				? "\n(dry run — nothing was written)"

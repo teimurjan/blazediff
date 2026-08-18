@@ -69,6 +69,8 @@ pub struct RegionMatch {
     pub confidence: Option<f32>,
     pub pair_id: Option<String>,
     pub tags: Vec<String>,
+    /// Full prediction stats, for offline signal analysis via --dump-regions.
+    pub region: Option<ChangeRegion>,
 }
 
 #[derive(Serialize)]
@@ -76,6 +78,8 @@ pub struct CaseResult {
     pub case_name: String,
     pub tier: DatasetTier,
     pub case_tags: Vec<String>,
+    pub image_width: u32,
+    pub image_height: u32,
     pub matches: Vec<RegionMatch>,
     pub unmatched_predictions: Vec<ChangeRegion>,
     pub unmatched_ground_truth: Vec<GroundTruthRegion>,

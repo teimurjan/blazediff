@@ -20,7 +20,7 @@ import { interpret } from "@blazediff/interpret-native";
 const result = await interpret("expected.png", "actual.png");
 console.log(result.summary);
 // "Low-impact visual change detected (0.18% of image, 2 regions).
-//  Content added: 2 regions (center, bottom-right)."
+//  Content added: 2 regions (bottom-right, center)."
 
 for (const region of result.regions) {
   console.log(`${region.position}: ${region.changeType} (${region.pixelCount}px)`);
@@ -75,7 +75,7 @@ interface InterpretResult {
 }
 ```
 
-Each `ChangeRegion` carries a `changeType`, `shape`, `position`, `confidence`, and the statistics behind them — colour delta, gradient/edge correlation, fill ratios, and the classifier's signals.
+Each `ChangeRegion` carries a `changeType`, `shape`, `position`, `confidence`, and the statistics behind them — colour delta, gradient/edge correlation, chroma-plane movement (`chroma`: hue rotation, saturation, delta smoothness), fill ratios, and the classifier's signals.
 
 ## Options
 

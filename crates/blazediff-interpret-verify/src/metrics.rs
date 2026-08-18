@@ -320,8 +320,8 @@ mod tests {
     use super::*;
     use crate::types::{CaseResult, DatasetTier, GroundTruthRegion, RegionMatch};
     use blazediff_interpret::types::{
-        BoundingBox, ChangeRegion, ChangeShape, ClassificationSignals, ColorDeltaStats,
-        GradientStats, ShapeStats,
+        BoundingBox, ChangeRegion, ChangeShape, ChromaStats, ClassificationSignals,
+        ColorDeltaStats, GradientStats, ShapeStats,
     };
 
     fn dummy_prediction(change_type: ChangeType) -> ChangeRegion {
@@ -356,6 +356,8 @@ mod tests {
                 edges_correlated: false,
                 luminance_ncc: 0.0,
                 structure_asymmetry: 0.0,
+                bg_distance_img1: 0.0,
+                bg_distance_img2: 0.0,
                 confidence: 0.5,
             },
             confidence: 0.5,
@@ -369,6 +371,17 @@ mod tests {
                 edge_score_img2: 0.2,
                 edge_correlation: 0.4,
             },
+            chroma: ChromaStats {
+                mean_abs_dy: 0.0,
+                mean_dy: 0.0,
+                mean_abs_di: 0.0,
+                mean_abs_dq: 0.0,
+                mean_abs_dc: 0.0,
+                chroma_cos: 1.0,
+                sat1: 0.0,
+                sat2: 0.0,
+                chroma_rough: 0.0,
+            },
         }
     }
 
@@ -378,6 +391,8 @@ mod tests {
             case_name: "case".to_string(),
             tier: DatasetTier::Regression,
             case_tags: Vec::new(),
+            image_width: 32,
+            image_height: 32,
             matches: vec![RegionMatch {
                 gt_region_id: "gt-1".to_string(),
                 expected_type: ChangeType::ColorChange,
@@ -400,6 +415,7 @@ mod tests {
                 confidence: None,
                 pair_id: None,
                 tags: vec!["uniform-recolor".to_string()],
+                region: None,
             }],
             unmatched_predictions: vec![dummy_prediction(ChangeType::Addition)],
             unmatched_ground_truth: vec![GroundTruthRegion {

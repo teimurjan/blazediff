@@ -57,7 +57,7 @@ for region in &result.regions {
 
 ## Coarse regions are fine
 
-A producer only has to know roughly where something changed. Before any statistic is computed, each supplied box is refined against the source pixels — every pixel whose YIQ delta falls below the noise floor is dropped — so shape, colour and gradient analysis stay per-pixel no matter how blocky the input was:
+A producer only has to know roughly where something changed. Before any statistic is computed, each supplied box is refined against the source pixels — every pixel whose YIQ delta falls below the noise floor is dropped — so shape, colour and gradient analysis stay per-pixel no matter how blocky the input was. (If a claimed box refines to nothing but the content does differ — a sub-threshold edit such as a subtle uniform recolor — the box is kept as-is so the region still gets meaningful statistics.)
 
 ```rust
 // An 8x8 change, described exactly and then quantized to a 16px grid.
@@ -81,6 +81,7 @@ That is what makes an SSIM window map a usable region source: its grid is coarse
 | `regions_from_score_map` | threshold a lower-resolution score map into image-space regions |
 | `classify_region` / `classify_regions` | classify against a mask you already hold |
 | `detect_regions` | connected components over a boolean mask |
+| `merge_overlapping_components` | fuse fragmented components whose bboxes overlap or nearly touch |
 | `extract_change_mask` | recover a mask from an RGBA diff visualization |
 | `detect_shifts` | the shift-relabeling pass, for producers holding an exact mask |
 | `classify_severity`, `build_summary` | the pooling steps, for custom pipelines |
@@ -108,7 +109,7 @@ const given = await interpretRegions("expected.png", "actual.png", [
 
 ## What it classifies
 
-Each region gets a change type, a shape, a position, a confidence, and the statistics behind them — colour delta, gradient/edge correlation, fill ratios, and the signals the classifier used. See [INTERPRET.md](https://github.com/teimurjan/blazediff/blob/main/crates/blazediff/INTERPRET.md) for the full algorithm.
+Each region gets a change type, a shape, a position, a confidence, and the statistics behind them — colour delta, gradient/edge correlation, luminance correlation, chroma-plane movement (hue rotation, saturation, delta smoothness), fill ratios, and the signals the classifier used. See [INTERPRET.md](https://github.com/teimurjan/blazediff/blob/main/crates/blazediff/INTERPRET.md) for the full algorithm.
 
 ## Links
 

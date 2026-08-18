@@ -159,18 +159,18 @@ with human-readable summaries. It is not part of this crate: it lives in
 [`blazediff-interpret`](/apis/blazediff-interpret), which consumes what `diff`
 returns and ships its own `blazediff-interpret` binary.
 
-**Pipeline:** change mask -> morph close -> connected components -> per-region evidence extraction -> classify -> describe
+**Pipeline:** change mask -> morph close -> connected components -> noise census + fragment merge -> per-region evidence extraction -> classify -> shift pairing -> describe
 
-**Six-label decision tree:**
+**Six-label rule cascade:**
 
-| Type             | Signal                                                                  |
-| ---------------- | ----------------------------------------------------------------------- |
-| `RenderingNoise` | Tiny (&lt;=25px) or sparse + low color delta                             |
-| `Addition`       | Blends with background in img1, distinct in img2                        |
-| `Deletion`       | Distinct in img1, blends with background in img2                        |
-| `ColorChange`    | Edge structure preserved across both images + uniform color shift       |
-| `ContentChange`  | Fallback - structural change                                            |
-| `Shift`          | Post-hoc: matched Addition+Deletion pair with similar luminance         |
+| Type             | Signal                                                                     |
+| ---------------- | -------------------------------------------------------------------------- |
+| `RenderingNoise` | Tiny (&lt;=25px) or sparse + low color delta, without an add/delete signature |
+| `Addition`       | Blends with background in img1, distinct in img2                           |
+| `Deletion`       | Distinct in img1, blends with background in img2                           |
+| `ColorChange`    | Luminance structure preserved under a color shift, or a coherent chroma move (hue rotation, smooth delta field) over regenerated texture |
+| `ContentChange`  | Fallback - structure replaced, chroma scattered                            |
+| `Shift`          | Post-hoc: region pair whose before-crop and after-crop hold the same content, matched by patch correlation |
 
 ```sh
 blazediff-interpret a.png b.png

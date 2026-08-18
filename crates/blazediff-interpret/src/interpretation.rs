@@ -1,6 +1,7 @@
 use super::content_analysis::{ContentEvidence, BG_BLEND_THRESHOLD};
 use super::types::{
-    BoundingBox, ChangeType, ClassificationSignals, ColorDeltaStats, GradientStats, ShapeStats,
+    BoundingBox, ChangeType, ChromaStats, ClassificationSignals, ColorDeltaStats, GradientStats,
+    ShapeStats,
 };
 
 /// NCC threshold above which the luminance pattern is treated as preserved
@@ -22,19 +23,48 @@ const STRUCTURE_ASYMMETRY_MARGIN: f32 = 0.04;
 /// luminance, so a clearly visible chromatic-only recolor (e.g. Tailwind
 /// `text-blue-600` → `text-red-600`, both ~equal luminance) lands around
 /// 0.005–0.05 here — well above this floor but below `low_color_delta=0.05`.
-/// Floor exists to keep sub-noise pixel jitter from getting upgraded.
-const RECOLOR_MIN_MEAN_DELTA: f32 = 0.001;
+/// Sub-threshold recolors (every pixel under the refine floor, kept by the
+/// coarse-mask fallback) dilute the mean well below 0.001, so the floor sits
+/// just above single-LSB jitter (~2.8e-5); the NCC>0.88 + correlated-edges
+/// gate carries the rest of the burden.
+const RECOLOR_MIN_MEAN_DELTA: f32 = 0.00005;
 /// Stricter NCC gate for the low-delta chromatic-recolor branch. Tighter than
 /// `STRUCTURE_PRESERVED_NCC` so we don't admit photographic edits where
 /// structure is only weakly preserved — empirical floor on html_color_pairs
 /// UI recolors is NCC=0.88, so 0.88 keeps them while filtering noise.
 const CHROMATIC_RECOLOR_NCC: f32 = 0.88;
+/// Mean chroma-delta magnitude above which a photographic edit moved color
+/// mass enough to read as a recolor, provided the movement is coherent.
+/// Calibrated on inpaintcoco's ColorChange/ContentChange boundary.
+const CHROMA_DELTA_RECOLOR_FLOOR: f32 = 0.131;
+/// Chroma cosine below which the hues genuinely rotated (a recolor). Above
+/// it the colors stayed in the same family, which for a large chroma delta
+/// means texture moved rather than hue — a content change.
+const CHROMA_SAME_HUE_COS: f32 = 0.235;
+/// Mean |ΔQ| floor: even same-hue-family edits with substantial movement on
+/// the Q axis (purple↔green) read as recolors.
+const CHROMA_DQ_RECOLOR_FLOOR: f32 = 0.071;
+/// img1 saturation below which a large chroma delta means color was
+/// *introduced* onto drab content — a recolor, whatever the hue cosine says.
+const CHROMA_DRAB_SAT: f32 = 0.072;
+/// Chroma-delta roughness above which a large chroma move is scattered
+/// pixel noise (checkerboard-style replacement), not a recolor. Real
+/// recolors — even diffusion-regenerated ones — stay below ~0.3.
+const CHROMA_ROUGH_CEIL: f32 = 0.75;
+/// Consistent luminance push (signed mean ΔY) that reads as a lighten/darken
+/// recolor when the chroma barely moved.
+const LUMA_PUSH_UP: f32 = 0.268;
+const LUMA_PUSH_DOWN: f32 = -0.150;
+/// Edge-density ceiling for the darken-recolor branch: darkening that also
+/// grows new structure is a content change, not a recolor.
+const LUMA_PUSH_EDGE_CEIL: f32 = 0.101;
 
 pub fn classify_change_type(
     content: &ContentEvidence,
     color_delta: &ColorDeltaStats,
     gradient: &GradientStats,
     shape_stats: &ShapeStats,
+    chroma: &ChromaStats,
     bbox: &BoundingBox,
     luminance_ncc: f32,
 ) -> (ChangeType, ClassificationSignals) {
@@ -68,8 +98,19 @@ pub fn classify_change_type(
         edges_correlated,
         luminance_ncc,
         structure_asymmetry,
+        bg_distance_img1: content.bg_distance_img1 as f32,
+        bg_distance_img2: content.bg_distance_img2 as f32,
         confidence: 0.0,
     };
+
+    // Strong bg-blend asymmetry is the addition/deletion signature: one image
+    // blends into the local background where the other holds distinct content.
+    // Sparse-but-real edits (thin strokes, faint text, a block vacated to
+    // background fill) carry it, so it vetoes the sparse-noise rule below.
+    let strong_bg_asymmetry = (blends_bg1
+        && !blends_bg2
+        && content.bg_distance_img2 > content.bg_distance_img1 * 2.0)
+        || (blends_bg2 && !blends_bg1 && content.bg_distance_img1 > content.bg_distance_img2 * 2.0);
 
     // Rule 1: RenderingNoise - tiny regions with subtle color delta
     if tiny_region && low_color_delta {
@@ -77,8 +118,9 @@ pub fn classify_change_type(
         return (ChangeType::RenderingNoise, signals);
     }
 
-    // Rule 2: RenderingNoise - sparse, subtle noise
-    if sparse_fill && low_color_delta && low_edge_change {
+    // Rule 2: RenderingNoise - sparse, subtle noise without an add/delete
+    // signature
+    if sparse_fill && low_color_delta && low_edge_change && !strong_bg_asymmetry {
         signals.confidence = matched_ratio(&[sparse_fill, low_color_delta, low_edge_change]);
         return (ChangeType::RenderingNoise, signals);
     }
@@ -109,12 +151,9 @@ pub fn classify_change_type(
     }
 
     // Rule 5: ColorChange - meaningful color shift over an existing visual
-    // pattern. The strongest evidence is luminance NCC: structure preserved
-    // means the edit recolored existing content, not replaced it. We also
-    // accept binary edge correlation as a fallback for graphical/UI edits
-    // where NCC under-counts due to anti-aliasing. Patchy (high stddev) and
-    // very low NCC together imply a true content replacement and fall
-    // through to ContentChange.
+    // pattern, evidenced by preserved luminance structure. This is the
+    // graphical/UI recolor path: high NCC means the edit recolored existing
+    // content rather than replacing it.
     //
     // The `!low_color_delta` gate is loosened when structure is strongly
     // preserved (high NCC, correlated edges): YIQ weights luminance heavily,
@@ -123,19 +162,44 @@ pub fn classify_change_type(
     // visible. Rules 1 and 2 still take RenderingNoise cases first, so this
     // only affects non-tiny, non-sparse regions with confirmed structure.
     let highly_patchy = color_delta.delta_stddev > color_delta.mean_delta * 2.0 + 0.1;
-    let recolor_evidence = structure_preserved
-        || (edges_correlated && !highly_patchy)
-        || (luminance_ncc > STRUCTURE_REPLACED_NCC && !highly_patchy);
     let chromatic_recolor = luminance_ncc > CHROMATIC_RECOLOR_NCC
         && edges_correlated
         && color_delta.mean_delta > RECOLOR_MIN_MEAN_DELTA;
     let delta_evidence = !low_color_delta || chromatic_recolor;
-    if delta_evidence && !(structure_replaced && highly_patchy) && recolor_evidence {
+    if delta_evidence && !(structure_replaced && highly_patchy) && structure_preserved {
         let ncc_boost = luminance_ncc.max(0.0);
-        signals.confidence = ((color_delta.mean_delta * 5.0).min(1.0) * 0.5
-            + ncc_boost as f32 * 0.5)
-            .clamp(0.0, 1.0);
+        signals.confidence =
+            ((color_delta.mean_delta * 5.0).min(1.0) * 0.5 + ncc_boost * 0.5).clamp(0.0, 1.0);
         return (ChangeType::ColorChange, signals);
+    }
+
+    // Rule 5b: photographic recolor. Inpaint-style edits regenerate texture,
+    // so pixel-level NCC saturates low for recolors and replacements alike;
+    // what separates them is how the *chroma* moved. A recolor moves color
+    // mass coherently — a hue rotation (low chroma cosine), color introduced
+    // onto drab content, or a strong movement on the Q axis — while a
+    // replacement shuffles texture and leaves hues in the same family.
+    let big_chroma_move =
+        chroma.mean_abs_dc > CHROMA_DELTA_RECOLOR_FLOOR && chroma.chroma_rough < CHROMA_ROUGH_CEIL;
+    if big_chroma_move {
+        let same_hue_family = chroma.chroma_cos > CHROMA_SAME_HUE_COS
+            && chroma.mean_abs_dq <= CHROMA_DQ_RECOLOR_FLOOR
+            && chroma.sat1 > CHROMA_DRAB_SAT;
+        if !same_hue_family {
+            signals.confidence = (chroma.mean_abs_dc * 3.0).clamp(0.0, 1.0) * 0.5 + 0.25;
+            return (ChangeType::ColorChange, signals);
+        }
+    } else {
+        // Small chroma move: only a consistent luminance push (lighten/darken
+        // of the same content) still reads as a recolor. Darkening that also
+        // grows new edge structure is content, not color.
+        let lighten = chroma.mean_dy > LUMA_PUSH_UP;
+        let darken =
+            chroma.mean_dy <= LUMA_PUSH_DOWN && gradient.edge_score_img2 <= LUMA_PUSH_EDGE_CEIL;
+        if lighten || darken {
+            signals.confidence = 0.6;
+            return (ChangeType::ColorChange, signals);
+        }
     }
 
     // Rule 6: ContentChange - fallback
@@ -151,6 +215,20 @@ fn matched_ratio(conditions: &[bool]) -> f32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn neutral_chroma() -> ChromaStats {
+        ChromaStats {
+            mean_abs_dy: 0.0,
+            mean_dy: 0.0,
+            mean_abs_di: 0.0,
+            mean_abs_dq: 0.0,
+            mean_abs_dc: 0.0,
+            chroma_cos: 1.0,
+            sat1: 0.0,
+            sat2: 0.0,
+            chroma_rough: 0.0,
+        }
+    }
 
     fn default_shape_stats() -> ShapeStats {
         ShapeStats {
@@ -242,6 +320,7 @@ mod tests {
             },
             &flat_gradient(),
             &default_shape_stats(),
+            &neutral_chroma(),
             &BoundingBox {
                 x: 50,
                 y: 50,
@@ -270,6 +349,7 @@ mod tests {
             },
             &flat_gradient(),
             &stats,
+            &neutral_chroma(),
             &square_bbox(),
             1.0,
         );
@@ -294,6 +374,7 @@ mod tests {
             },
             &img2_only_edges(),
             &default_shape_stats(),
+            &neutral_chroma(),
             &square_bbox(),
             0.0,
         );
@@ -319,6 +400,7 @@ mod tests {
             },
             &img1_only_edges(),
             &default_shape_stats(),
+            &neutral_chroma(),
             &square_bbox(),
             0.0,
         );
@@ -341,6 +423,7 @@ mod tests {
             },
             &correlated_edges(),
             &default_shape_stats(),
+            &neutral_chroma(),
             &square_bbox(),
             0.95,
         );
@@ -361,6 +444,7 @@ mod tests {
             },
             &flat_gradient(),
             &default_shape_stats(),
+            &neutral_chroma(),
             &square_bbox(),
             1.0,
         );
@@ -385,6 +469,7 @@ mod tests {
             },
             &flat_gradient(),
             &stats,
+            &neutral_chroma(),
             &square_bbox(),
             1.0,
         );
@@ -402,12 +487,13 @@ mod tests {
         let (ct, _) = classify_change_type(
             &no_blends(),
             &ColorDeltaStats {
-                mean_delta: 0.0005,
-                max_delta: 0.001,
-                delta_stddev: 0.0002,
+                mean_delta: 0.00002,
+                max_delta: 0.00003,
+                delta_stddev: 0.00001,
             },
             &flat_gradient(),
             &stats,
+            &neutral_chroma(),
             &square_bbox(),
             1.0,
         );
@@ -426,6 +512,7 @@ mod tests {
             },
             &uncorrelated_edges(),
             &default_shape_stats(),
+            &neutral_chroma(),
             &square_bbox(),
             0.0,
         );
@@ -449,6 +536,7 @@ mod tests {
             },
             &img2_only_edges(),
             &default_shape_stats(),
+            &neutral_chroma(),
             &BoundingBox {
                 x: 50,
                 y: 50,

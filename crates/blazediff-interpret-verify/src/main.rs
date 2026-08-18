@@ -66,6 +66,79 @@ struct Args {
     /// Optional max allowed class F1 drops, repeatable, example: --max-class-f1-drop Shift=0.02
     #[arg(long)]
     max_class_f1_drop: Vec<String>,
+
+    /// Optional JSONL dump of every match/extra/miss with full region stats,
+    /// for offline signal analysis
+    #[arg(long)]
+    dump_regions: Option<String>,
+}
+
+fn dump_regions(path: &str, results: &[types::CaseResult]) -> std::io::Result<()> {
+    use std::io::Write;
+    let file = std::fs::File::create(path)?;
+    let mut out = std::io::BufWriter::new(file);
+    for result in results {
+        let base = serde_json::json!({
+            "case": result.case_name,
+            "image_width": result.image_width,
+            "image_height": result.image_height,
+        });
+        for matched in &result.matches {
+            let mut row = base.clone();
+            let obj = row.as_object_mut().unwrap();
+            obj.insert("kind".into(), "match".into());
+            obj.insert(
+                "expected".into(),
+                serde_json::to_value(matched.expected_type).unwrap(),
+            );
+            obj.insert(
+                "predicted".into(),
+                serde_json::to_value(matched.predicted_type).unwrap(),
+            );
+            obj.insert("gt_region_id".into(), matched.gt_region_id.clone().into());
+            obj.insert(
+                "gt_bbox".into(),
+                serde_json::to_value(matched.gt_bbox).unwrap(),
+            );
+            obj.insert("iou".into(), serde_json::to_value(matched.iou).unwrap());
+            obj.insert(
+                "pair_id".into(),
+                serde_json::to_value(&matched.pair_id).unwrap(),
+            );
+            obj.insert("tags".into(), serde_json::to_value(&matched.tags).unwrap());
+            obj.insert(
+                "region".into(),
+                serde_json::to_value(&matched.region).unwrap(),
+            );
+            writeln!(out, "{row}")?;
+        }
+        for prediction in &result.unmatched_predictions {
+            let mut row = base.clone();
+            let obj = row.as_object_mut().unwrap();
+            obj.insert("kind".into(), "extra".into());
+            obj.insert(
+                "predicted".into(),
+                serde_json::to_value(prediction.change_type).unwrap(),
+            );
+            obj.insert("region".into(), serde_json::to_value(prediction).unwrap());
+            writeln!(out, "{row}")?;
+        }
+        for gt in &result.unmatched_ground_truth {
+            let mut row = base.clone();
+            let obj = row.as_object_mut().unwrap();
+            obj.insert("kind".into(), "miss".into());
+            obj.insert(
+                "expected".into(),
+                serde_json::to_value(gt.expected_type).unwrap(),
+            );
+            obj.insert("gt_region_id".into(), gt.id.clone().into());
+            obj.insert("gt_bbox".into(), serde_json::to_value(gt.bbox).unwrap());
+            obj.insert("pair_id".into(), serde_json::to_value(&gt.pair_id).unwrap());
+            obj.insert("tags".into(), serde_json::to_value(&gt.tags).unwrap());
+            writeln!(out, "{row}")?;
+        }
+    }
+    out.flush()
 }
 
 fn parse_floor_map(values: &[String]) -> Result<BTreeMap<String, f64>, String> {
@@ -136,6 +209,13 @@ fn main() {
         args.iou_threshold,
         args.min_pixels,
     );
+    if let Some(path) = &args.dump_regions {
+        if let Err(e) = dump_regions(path, &results) {
+            eprintln!("Failed to write --dump-regions file: {e}");
+            std::process::exit(1);
+        }
+    }
+
     let metrics = build_metrics(&results);
     let gate = evaluate_gates(
         &metrics,

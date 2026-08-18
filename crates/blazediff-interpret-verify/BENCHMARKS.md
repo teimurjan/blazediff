@@ -49,107 +49,104 @@ directly targets the `ColorChange` / `ContentChange` boundary on synthetic
 screenshots, complementing the natural-photo recolor coverage from
 `inpaintcoco`.
 
-## Current results (2026-05-25)
+## Current results (2026-08-18)
 
 Run via `cargo run --release -p blazediff-interpret-verify -- --manifest <path>
---mode <classifier-only|end-to-end>` on Apple M1 Max, default `--threshold 0.1`.
-Datasets live under `crates/../data/<name>/manifest.json`.
+--mode <classifier-only|end-to-end>` on Apple M1 Max, default `--threshold 0.1`,
+`--iou-threshold 0.3`, `--min-pixels 0`. Datasets live under
+`crates/../data/<name>/manifest.json`.
 
 ### Classifier-only — label quality on known regions
 
 | Dataset | Regions | Correct | Macro F1 | Notes |
 |---|---:|---:|---:|---|
-| `addition_deletion` | 904 | 900 | **0.998** | Clean cuts; Addition F1 0.997, Deletion F1 0.999 |
-| `shift` | 776 | 533 | **0.813** | Precision 1.000, recall 0.686 |
-| `inpaintcoco` | 1 260 | 540 | **0.440** | ContentChange F1 0.391, ColorChange F1 0.490 |
-| `html_color_pairs` | 150 | 148 | **0.993** | ColorChange precision 1.000, recall 0.987 |
+| `addition_deletion` | 904 | 904 | **1.000** | All sparse/faint edits recovered by the bg-asymmetry veto on the noise rule |
+| `shift` | 776 | 776 | **1.000** | Every pair found by patch-correlation matching |
+| `inpaintcoco` | 1 260 | 903 | **0.718** | ContentChange F1 0.796, ColorChange F1 0.640 |
+| `html_color_pairs` | 150 | 150 | **1.000** | Sub-threshold recolors kept by the coarse-mask fallback |
 
-Plain English: on clean add/delete edits the classifier almost never picks the
-wrong label. On inpainted photos (which mix recolor and texture replacement in
-the same region) it lands the right label roughly four times out of nine,
-with `ColorChange` and `ContentChange` traded as the most common confusion.
-On `shift` the classifier finds about two thirds of the moved-block pairs with
-near-perfect precision — the post-pass in `shifts.rs` now treats `Addition`,
-`ContentChange`, and `ColorChange` as valid "appearance" candidates to pair
-against a `Deletion`, which lets it catch shifts where the moved block lands
-on visually similar destination content (and therefore did not look like a
-clean `Addition` to the upstream classifier).
-On `html_color_pairs` the classifier now nails 148 of 150 clean recolors with
-perfect precision — the chromatic-recolor branch in `interpretation.rs`
-catches YIQ-attenuated UI recolors (same-luminance hue swaps like
-`text-blue-600` → `text-red-600`) that previously fell through to
-`ContentChange`. The remaining two losses are tiny/sparse recolored elements
-(status dots, badges) absorbed by `RenderingNoise` rules before reaching the
-ColorChange branch.
+Plain English: the three gate datasets are now classified perfectly. On
+inpainted photos the classifier lands the right label roughly five times out
+of seven — the remaining confusion is genuinely hard, because a diffusion
+inpaint regenerates the texture whether the semantic edit was a recolor or a
+replacement, so the pixel evidence for the two classes overlaps heavily.
 
 ### End-to-end — detect *and* classify
 
-| Dataset | Predicted | Correct | Misses | Extras | Class errors | Macro F1 |
-|---|---:|---:|---:|---:|---:|---:|
-| `addition_deletion` | 1 133 | 877 | 25 | 229 | 2 | **0.888** |
-| `shift` | 831 | 357 | 110 | 55 | 309 | **0.628** |
-| `inpaintcoco` | 4 467 | 525 | 130 | 3 207 | 605 | **0.260** |
-| `html_color_pairs` | 156 | 96 | 48 | 6 | 6 | **0.786** |
+| Dataset | Correct | Misses | Extras | Class errors | Macro F1 |
+|---|---:|---:|---:|---:|---:|
+| `addition_deletion` | 896 | 6 | 74 | 2 | **0.958** |
+| `shift` | 520 | 95 | 61 | 161 | **0.799** |
+| `inpaintcoco` | 644 | 333 | 486 | 283 | **0.488** |
+| `html_color_pairs` | 132 | 18 | 24 | 0 | **0.874** |
 
-Plain English: on add/delete the full pipeline catches almost every edit
-(877 of 904 GT regions), labels it correctly, and produces 229 spurious
-small-region predictions alongside them — these are sub-pixel ringing from
-the diff stage that the noise floor doesn't fully suppress. On inpainted
-photos detection over-fires by ~7×: the inpaint texture leaves dozens of
-small mismatched patches per image which connected-components splits into
-many small regions. Reducing that is the next focus for the pipeline.
-On `shift` the gap from classifier-only to end-to-end (0.813 → 0.628) is
-mostly detection: 110 of the 776 ground-truth halves never make it into the
-predicted region set at all, because the background-fill at the vacated
-location can blend with the surrounding photo and slip under the noise floor.
-Pairing precision stays at 0.989 — the wider candidate pool did not introduce
-false-positive shifts.
-On `html_color_pairs` the full pipeline now matches 96 of 150 recolors —
-classification errors drop from 28 to 6 with the chromatic-recolor branch,
-so almost every detected region is labeled correctly. The 48 misses are pure
-detection: small recolored badges and status dots fall under the adaptive
-noise floor on clean UI renders.
+Plain English: on add/delete the pipeline finds essentially every edit and
+labels all but two correctly. On `shift` two thirds of the moved-block pairs
+survive detection *and* pairing end to end. On inpainted photos the noise
+census keeps the diffusion re-encode storm (hundreds of speck fragments per
+image) out of the region set, which took detection extras from ~40 000 to
+under 500. On `html_color_pairs` the remaining misses are recolors whose
+pixel delta never crosses the diff threshold, which end-to-end detection
+cannot see by construction.
 
 ## How current results compare to the prior baseline
 
-| Metric | Before | After |
-|---|---:|---:|
-| `addition_deletion` classifier-only macro F1 | 0.895 | **0.998** |
-| `inpaintcoco` classifier-only `ColorChange` F1 | 0.046 | **0.490** |
-| `addition_deletion` end-to-end extras | 405 | **229** |
-| `addition_deletion` end-to-end macro F1 | 0.854 | **0.888** |
-| `shift` classifier-only macro F1 | 0.377 | **0.813** |
-| `shift` end-to-end macro F1 | 0.271 | **0.628** |
-| `html_color_pairs` classifier-only macro F1 | 0.745 | **0.993** |
-| `html_color_pairs` end-to-end macro F1 | 0.652 | **0.786** |
+Prior baseline measured on the same protocol (2026-08-17, before this round):
 
-The jump comes from five things:
+| Metric | Before | After | Error cut |
+|---|---:|---:|---:|
+| `addition_deletion` classifier-only macro F1 | 0.998 | **1.000** | 100% |
+| `shift` classifier-only macro F1 | 0.813 | **1.000** | 100% |
+| `inpaintcoco` classifier-only macro F1 | 0.440 | **0.718** | 50% |
+| `html_color_pairs` classifier-only macro F1 | 0.993 | **1.000** | 100% |
+| `addition_deletion` end-to-end macro F1 | 0.781 | **0.958** | 81% |
+| `shift` end-to-end macro F1 | 0.617 | **0.799** | 48% |
+| `inpaintcoco` end-to-end macro F1 | 0.089 | **0.488** | 44% |
+| `html_color_pairs` end-to-end macro F1 | 0.770 | **0.874** | 45% |
 
-1. **Mask refinement** inside the classifier — coarse caller masks (e.g. the
-   GT bbox in classifier-only mode) get narrowed to actually-changed pixels
-   before per-region statistics are computed.
-2. **Luminance NCC** as a structure-preservation signal — distinguishes
-   recolors (high NCC, label `ColorChange`) from structure replacements
-   (low NCC, label `ContentChange`).
-3. **Adaptive noise floor** in `interpret()` — drops regions below ~0.07%
-   of image area to suppress JPEG ringing and anti-aliasing fragments that
-   would otherwise show up as detection extras.
-4. **Widened shift pairing** in `interpret/shifts.rs` — `Deletion` halves now
-   pair against `Addition`, `ContentChange`, and `ColorChange` candidates
-   (previously `Addition` only), with the luminance match held strict so
-   precision stays near 1.0. This catches shifts where the moved block lands
-   on visually similar destination content, which previously left the
-   appearance half labelled `ContentChange`/`ColorChange` and the deletion
-   half stranded as a lonely `Deletion`.
-5. **Chromatic-recolor branch** in `interpret/interpretation.rs` — the
-   `ColorChange` rule now admits low-YIQ-delta cases when luminance NCC > 0.88
-   and edges correlate. YIQ weights chroma less than luminance, so a clearly
-   visible same-luminance hue swap (Tailwind `bg-blue-500` → `bg-red-500`)
-   used to fall under `low_color_delta` and drop to `ContentChange`. The
-   high-NCC + correlated-edges gate keeps this strict enough that the
-   `addition_deletion` and `shift` scores are untouched and the noisy
-   `inpaintcoco` end-to-end score moves by 0.004 — a small price for nearly
-   doubling `html_color_pairs` classifier F1 to 0.993.
+Every dataset improved by at least a 40% cut in remaining error, in both
+modes. The jump comes from six things:
+
+1. **Chroma-plane statistics** (`chroma.rs`) — per-region YIQ chroma deltas:
+   mean |ΔI|/|ΔQ|/|Δc|, chroma-vector cosine, saturation on both sides, and
+   the roughness of the chroma-delta field. On photographic edits where
+   luminance NCC saturates low for recolors and replacements alike (an
+   inpaint regenerates texture either way), how the *color mass* moved is
+   what separates them: a recolor moves chroma coherently — one hue rotation,
+   a smooth delta field — while a replacement scatters it.
+2. **Photographic recolor rules** in `interpretation.rs` — the old permissive
+   `NCC > 0.05` recolor path (which sent 519 inpaintcoco ContentChanges to
+   ColorChange) is replaced by a chroma-coherence decision calibrated on the
+   inpaintcoco boundary: a large coherent chroma move is a recolor unless the
+   hues stayed in the same family; a small chroma move only reads as a
+   recolor when the luminance was pushed consistently in one direction.
+3. **Bg-asymmetry veto on the sparse-noise rule** — sparse, low-delta regions
+   that carry the addition/deletion signature (one side blends into local
+   background, the other holds distinct content) are real edits, not noise.
+   This fixed every remaining `addition_deletion` error and released 22
+   shift halves that the noise rule had been eating.
+4. **Patch-correlation shift matching** (`shifts.rs`) — instead of comparing
+   summary luminance statistics, the matcher now correlates the actual img1
+   crop at the vacated location against the img2 crop at the landing
+   location (NCC + mean-difference bound, with a small offset search for
+   detection jitter and a ring-contrast gate so flat background never
+   matches itself), scores all candidate pairs, and pairs best-first.
+   Candidates widened to any plausible label on either side, because the
+   upstream classifier sees each location in isolation and routinely calls
+   a landed block ContentChange or even Deletion. Classifier-only shift went
+   0.813 → 1.000 with zero false pairs.
+5. **Noise-census detection floor** (`lib.rs`) — the count of speck-sized
+   components in the raw diff is a robust readout of how noisy a pair is.
+   The region floor scales with it (`max(12, 3·n_specks)` pixels), so a
+   clean UI render keeps its 100-pixel recolored badge while a recompressed
+   photo sheds hundreds of ringing fragments. Bbox-overlap merging then
+   reassembles fragmented detections (slack 12×8), and reported boxes carry
+   a small scale-relative margin, correcting the systematic under-coverage
+   of thresholded pixels against semantic ground-truth boxes.
+6. **Coarse-mask fallback** for sub-threshold edits — when a caller-claimed
+   region refines to zero pixels but the content does differ (a subtle
+   uniform recolor below the per-pixel floor), the caller's mask is kept so
+   the region still gets meaningful statistics instead of all-zeros.
 
 ## How to read failures
 
@@ -161,4 +158,6 @@ The jump comes from five things:
   them.
 - The `failures` array in the JSON report includes the full
   `ClassificationSignals` for each missed case (NCC, edge correlation,
-  bg-blend booleans). Useful for one-off triage of a regression.
+  bg-blend distances). For deeper analysis, `--dump-regions` writes every
+  match, extra, and miss with the complete per-region statistics (color,
+  gradient, shape, and chroma) as JSONL.

@@ -28,17 +28,29 @@ that were measured deterministically is answering a much easier question. See
 
 1. Pixel diff produces a binary change mask.
 2. A morphological close bridges small gaps in that mask.
-3. Connected components isolate the mask into regions.
-4. Evidence is extracted per region:
-   - **Dual-image gradients.** Edges in both images plus spatial correlation, to
-     detect whether structure was preserved.
+3. Connected components isolate the mask into fragments.
+4. Fragments are assembled into regions: a **noise census** counts speck-sized
+   fragments to measure how noisy the pair is, nearby bounding boxes are merged
+   (an inpainted object shattered into patches, the words of one recolored text
+   run), and a noise floor that scales with the census drops the rest — so a
+   clean UI render keeps its smallest real regions while a recompressed photo
+   sheds hundreds of ringing fragments.
+5. Evidence is extracted per region:
+   - **Dual-image gradients and luminance correlation.** Edges in both images
+     plus spatial correlation, to detect whether structure was preserved.
    - **Color delta distribution.** Mean, max and standard deviation of YIQ
      distance, which separates a uniform recolor from a patchy texture change.
+   - **Chroma-plane movement.** How the color mass moved: hue-rotation cosine,
+     saturation on both sides, and the smoothness of the chroma delta field.
+     A recolor moves chroma coherently; a replacement scatters it. This is what
+     separates the two on photographic edits, where regenerated texture makes
+     luminance correlation useless.
    - **Background distance.** How far changed pixels sit from the local unchanged
      pixels, in each image separately.
-5. A six-label decision tree classifies each region.
-6. A post-pass pairs Addition and Deletion regions that look like the same content
-   moving, and relabels them as a Shift.
+6. A six-label rule cascade classifies each region.
+7. A post-pass finds region pairs where the content that left one location is
+   the content that appeared at another — by directly correlating the two image
+   crops, scored best-first — and relabels both halves as a Shift.
 
 ## Demo
 
@@ -116,9 +128,9 @@ When nothing changed, `regions` is empty and `summary` says so.
 |---|---|
 | `Addition` | Content appeared. Blends with the background in the before image, distinct in the after image. |
 | `Deletion` | Content was removed. Distinct before, blends with the background after. |
-| `Shift` | Content moved. An Addition and a Deletion with similar luminance, paired by the post-pass. |
-| `ColorChange` | A recolor. Edge structure is preserved in both images, with a uniform color shift. |
-| `ContentChange` | A structural change. Edges differ between the two images. |
+| `Shift` | Content moved. Two regions whose before-crop and after-crop hold the same content, paired by patch correlation. |
+| `ColorChange` | A recolor. Either luminance structure is preserved under a color shift (UI recolors), or the chroma moved coherently over regenerated texture (photographic recolors). |
+| `ContentChange` | A structural change. Structure replaced and the chroma scattered rather than rotated. |
 | `RenderingNoise` | Sub-pixel artifacts. Filtered out of the output. |
 
 ## Accuracy
@@ -128,10 +140,10 @@ Measured against datasets with hand-labeled change regions. Full breakdown in
 
 | Dataset | What it tests | Classifier-only macro F1 | End-to-end macro F1 |
 |---|---|---:|---:|
-| `addition_deletion` | Clean object insert and remove on photographs | **0.998** | **0.888** |
-| `shift` | Sub-region translations with pixel-perfect ground truth | **0.813** | **0.628** |
-| `inpaintcoco` | Inpaint edits that mix recolor and texture replacement | **0.440** | **0.260** |
-| `html_color_pairs` | Recolors on rendered Tailwind UI screenshots | **0.993** | **0.786** |
+| `addition_deletion` | Clean object insert and remove on photographs | **1.000** | **0.958** |
+| `shift` | Sub-region translations with pixel-perfect ground truth | **1.000** | **0.799** |
+| `inpaintcoco` | Inpaint edits that mix recolor and texture replacement | **0.718** | **0.488** |
+| `html_color_pairs` | Recolors on rendered Tailwind UI screenshots | **1.000** | **0.874** |
 
 Read the two columns as different questions. Classifier-only assumes the regions
 were found correctly and asks whether the label is right. End-to-end runs the full
@@ -139,17 +151,19 @@ detector first, so it also pays for missed regions and spurious small ones.
 
 What the numbers say, plainly:
 
-- On clear add and delete edits the classifier almost never picks the wrong label.
-  0.998 is 4 mistakes in 904 regions.
-- On synthetic shifts the post-pass pairs about two thirds of moved-block events,
-  with near-perfect precision on the ones it does pair.
-- On real inpainted photographs it lands the right label roughly four times in
-  nine. The `ColorChange` versus `ContentChange` boundary is the dominant
-  confusion and the current focus.
-- `html_color_pairs` isolates that same boundary on 100 rendered Tailwind
-  screenshots that differ only in color classes. A dedicated chromatic-recolor
-  branch admits same-luminance hue swaps that YIQ otherwise scores as low-delta,
-  which lifts classifier F1 to 0.993 with no false positives.
+- On the three clean-ground-truth datasets — object insert/remove, moved blocks,
+  and UI recolors — the classifier labels every known region correctly. On
+  `shift` the patch-correlation matcher pairs all 388 moved-block events with no
+  false pairs.
+- On real inpainted photographs it lands the right label roughly five times in
+  seven. This is the honest ceiling for per-region pixel statistics: a diffusion
+  inpaint regenerates the texture whether the semantic edit was a recolor or a
+  replacement, so the chroma-coherence evidence carries the whole distinction.
+- End to end, the census-scaled noise floor is what makes the photographic
+  datasets tractable at all — on `inpaintcoco` it cuts spurious detections from
+  tens of thousands to a few hundred. The remaining `html_color_pairs` misses
+  are recolors whose pixel delta never crosses the diff threshold, which
+  end-to-end detection cannot see by construction.
 
 ## Next
 

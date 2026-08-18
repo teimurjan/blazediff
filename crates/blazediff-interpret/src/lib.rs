@@ -17,6 +17,7 @@
 //! # Ok::<(), blazediff_interpret::InterpretError>(())
 //! ```
 
+mod chroma;
 mod color_delta;
 mod content_analysis;
 mod gradient;
@@ -40,6 +41,7 @@ use blazediff::{DiffOptions, DiffResult};
 use blazediff_shared::yiq::color_delta;
 use blazediff_shared::Image;
 use blazediff_ssim::SsimOutcome;
+use chroma::compute_chroma_stats;
 use color_delta::compute_color_delta;
 use content_analysis::analyze_content;
 use gradient::{compute_gradient_stats, compute_luminance_ncc};
@@ -53,7 +55,9 @@ use types::ChangeType;
 /// 100.0 corresponds to a YIQ-weighted distance of 10, roughly equivalent to
 /// a perceptual delta of ~0.017 — filters near-identical pixels without
 /// throwing away genuine edits.
-pub use region::{detect_regions, extract_change_mask, ComponentInfo};
+pub use region::{
+    detect_regions, extract_change_mask, merge_overlapping_components, ComponentInfo,
+};
 pub use severity::classify_severity;
 // Exposed for producers that already hold an exact per-pixel mask and so must
 // not go through `classify_regions`, which refines a coarse one.
@@ -114,6 +118,27 @@ impl std::error::Error for InterpretError {}
 
 const REFINE_DELTA_FLOOR_SQ: f32 = 100.0;
 
+/// Components below this size never survive detection: single-digit-pixel
+/// specks are compression jitter at any image scale.
+const SPECK_FLOOR: u32 = 8;
+/// Component size that counts as a "speck" for the noise census.
+const NOISE_CENSUS_PIXELS: u32 = 64;
+/// Pixels of noise floor added per censused speck. A pair with hundreds of
+/// speck components (a recompressed photo) raises its own floor into the
+/// hundreds of pixels; a clean render keeps the minimum.
+const NOISE_FLOOR_PER_SPECK: f64 = 3.0;
+/// Noise floor for perfectly clean pairs.
+const NOISE_FLOOR_MIN: u32 = 12;
+/// Bbox-merge slack: components this close are one change. Horizontal slack
+/// is wider than vertical because text fragments on a line sit further apart
+/// than the strokes within them.
+const MERGE_SLACK_X: u32 = 12;
+const MERGE_SLACK_Y: u32 = 8;
+/// Reported-bbox margin: one third of the region dimension, clamped.
+const MARGIN_DIVISOR: u32 = 3;
+const MARGIN_MIN: u32 = 2;
+const MARGIN_MAX: u32 = 12;
+
 /// Refine a coarse mask down to the actually-changed pixels inside the given
 /// bboxes. Pixels marked true in `input_mask` but with a tiny YIQ delta between
 /// `img1` and `img2` are dropped. Used by classifier-only paths so callers can
@@ -129,6 +154,8 @@ fn refine_change_mask_in_bboxes(
     let pixels2 = img2.as_u32();
     let mut refined = input_mask.to_vec();
     for bbox in bboxes {
+        let mut survivors = 0u32;
+        let mut any_delta = false;
         for y in bbox.y..bbox.y + bbox.height {
             for x in bbox.x..bbox.x + bbox.width {
                 let idx = (y * width + x) as usize;
@@ -138,6 +165,22 @@ fn refine_change_mask_in_bboxes(
                 let delta = color_delta(pixels1[idx], pixels2[idx], idx).abs() as f32;
                 if delta < REFINE_DELTA_FLOOR_SQ {
                     refined[idx] = false;
+                    any_delta |= delta > 0.0;
+                } else {
+                    survivors += 1;
+                }
+            }
+        }
+        // A caller claimed a change here and the pixels do differ, just all
+        // below the floor (a sub-threshold edit, e.g. a subtle uniform
+        // recolor). Refining to nothing would erase the region and zero out
+        // every statistic, so keep the caller's mask for this bbox. Byte-
+        // identical content stays refined away.
+        if survivors == 0 && any_delta {
+            for y in bbox.y..bbox.y + bbox.height {
+                for x in bbox.x..bbox.x + bbox.width {
+                    let idx = (y * width + x) as usize;
+                    refined[idx] = input_mask[idx];
                 }
             }
         }
@@ -180,11 +223,13 @@ fn classify_region_with_mask(
     let gradient_stats = compute_gradient_stats(img1, img2, mask, &bbox, width, height);
     let luminance_ncc = compute_luminance_ncc(img1, img2, mask, &bbox, width);
     let content = analyze_content(img1, img2, mask, &bbox, width, height);
+    let chroma_stats = compute_chroma_stats(img1, img2, mask, &bbox, width);
     let (change_type, signals) = classify_change_type(
         &content,
         &color_delta,
         &gradient_stats,
         &shape_stats,
+        &chroma_stats,
         &bbox,
         luminance_ncc,
     );
@@ -201,6 +246,7 @@ fn classify_region_with_mask(
         confidence: signals.confidence,
         color_delta,
         gradient: gradient_stats,
+        chroma: chroma_stats,
     }
 }
 
@@ -394,12 +440,29 @@ pub fn interpret(
 
     let total_pixels = (width as f64) * (height as f64);
 
+    let margin_output = matches!(source, ChangeSource::Diff { .. });
+
     // Each arm produces the regions, the mask the shift pass should read, and
     // — for the diff, which knows better than we do — its own counts.
     let (mut regions, mut mask, counts) = match source {
         ChangeSource::Diff { result, output } => {
             let mask = extract_change_mask(&output.data, width, height);
-            let regions = detect_regions(&mask, width, height)
+            let mut components = detect_regions(&mask, width, height);
+            // Noise census: the count of speck-sized components is a robust
+            // readout of how noisy this pair is. Clean renders produce none;
+            // recompressed or regenerated photos produce hundreds. The noise
+            // floor below scales with it, so clean pairs keep their smallest
+            // real regions while noisy pairs shed their fragment storm.
+            let n_small = components
+                .iter()
+                .filter(|c| c.pixel_count < NOISE_CENSUS_PIXELS)
+                .count();
+            let area_floor = (NOISE_FLOOR_PER_SPECK * n_small as f64) as u32;
+            components.retain(|component| component.pixel_count >= SPECK_FLOOR);
+            let mut components =
+                merge_overlapping_components(components, MERGE_SLACK_X, MERGE_SLACK_Y);
+            components.retain(|component| component.pixel_count >= area_floor.max(NOISE_FLOOR_MIN));
+            let regions = components
                 .into_iter()
                 .map(|component| {
                     let mut region =
@@ -439,6 +502,27 @@ pub fn interpret(
 
     detect_shifts(&mut regions, image1, image2, &mask, width);
     regions.retain(|region| region.change_type != ChangeType::RenderingNoise);
+
+    // Detected regions get a small scale-relative margin: thresholded pixels
+    // systematically under-cover the perceptual change (anti-aliased fringes,
+    // the unchanged interior padding of a recolored element), so the reported
+    // box extends slightly past them. Caller-supplied and score-map boxes are
+    // echoed exactly.
+    if margin_output {
+        for region in &mut regions {
+            let bbox = &mut region.bbox;
+            let pad_x = (bbox.width / MARGIN_DIVISOR).clamp(MARGIN_MIN, MARGIN_MAX);
+            let pad_y = (bbox.height / MARGIN_DIVISOR).clamp(MARGIN_MIN, MARGIN_MAX);
+            let x0 = bbox.x.saturating_sub(pad_x);
+            let y0 = bbox.y.saturating_sub(pad_y);
+            let x1 = (bbox.x + bbox.width + pad_x).min(width);
+            let y1 = (bbox.y + bbox.height + pad_y).min(height);
+            bbox.x = x0;
+            bbox.y = y0;
+            bbox.width = x1 - x0;
+            bbox.height = y1 - y0;
+        }
+    }
 
     // A coarse source has no authoritative count of its own, so it comes from
     // the pixels that survived refinement — counted over the union of the
@@ -846,24 +930,32 @@ mod source_parity_tests {
         assert_eq!(from_diff.total_regions, 1);
         assert_eq!(from_ssim.total_regions, 1);
 
-        // The boxes differ, and are meant to: the diff knows the change to the
-        // pixel, the map only to its window. The coarse one encloses it.
-        let (exact, coarse) = (from_diff.regions[0].bbox, from_ssim.regions[0].bbox);
-        assert_eq!(
-            exact,
-            BoundingBox {
-                x: 16,
-                y: 16,
-                width: 8,
-                height: 8
-            }
-        );
+        // The boxes differ, and are meant to: the diff localizes the change
+        // to the pixel and reports it with a small presentation margin, the
+        // map only knows its window. Both must enclose the true change.
+        let change = BoundingBox {
+            x: 16,
+            y: 16,
+            width: 8,
+            height: 8,
+        };
+        let encloses = |outer: &BoundingBox, inner: &BoundingBox| {
+            outer.x <= inner.x
+                && outer.y <= inner.y
+                && outer.x + outer.width >= inner.x + inner.width
+                && outer.y + outer.height >= inner.y + inner.height
+        };
+        let (margined, coarse) = (from_diff.regions[0].bbox, from_ssim.regions[0].bbox);
         assert!(
-            coarse.x <= exact.x
-                && coarse.y <= exact.y
-                && coarse.x + coarse.width >= exact.x + exact.width
-                && coarse.y + coarse.height >= exact.y + exact.height,
-            "{coarse:?} should enclose {exact:?}"
+            encloses(&margined, &change),
+            "{margined:?} should enclose {change:?}"
+        );
+        // The margin is bounded: no more than MARGIN_MAX past the change.
+        assert!(margined.x + margined.width <= change.x + change.width + MARGIN_MAX);
+        assert!(margined.width <= change.width + 2 * MARGIN_MAX);
+        assert!(
+            encloses(&coarse, &change),
+            "{coarse:?} should enclose {change:?}"
         );
 
         // What must match is everything measured from the pixels.

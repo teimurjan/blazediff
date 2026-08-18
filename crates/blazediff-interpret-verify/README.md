@@ -39,6 +39,7 @@ cargo run -p blazediff-interpret-verify -- \
 | `--iou-threshold` | `0.3` | End-to-end matching threshold |
 | `--threshold` | `0.1` | Diff threshold passed to `interpret()` in end-to-end mode |
 | `--min-pixels` | `0` | End-to-end minimum predicted region size |
+| `--dump-regions` | unset | JSONL dump of every match/extra/miss with full region stats, for offline signal analysis |
 
 ## Manifest Format
 

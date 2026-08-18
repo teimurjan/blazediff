@@ -204,9 +204,9 @@ import { interpret } from '@blazediff/interpret-native';
 
 const result = await interpret('expected.png', 'actual.png');
 console.log(result.summary);
-// "Moderate visual change detected (1.87% of image, 10 regions).
-//  Content changed: 4 regions (bottom, center).
-//  Content added: 3 regions (right, bottom, bottom-left)."
+// "Moderate visual change detected (1.87% of image, 4 regions).
+//  Content changed: 1 region (bottom).
+//  Content added: 2 regions (right, bottom-left)."
 ```
 
 See [Interpret example →](/docs/difference-analysis) for the interactive demo.

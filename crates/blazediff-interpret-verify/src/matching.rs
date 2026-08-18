@@ -55,6 +55,7 @@ pub fn match_regions(
             confidence: Some(predictions[pi].confidence),
             pair_id: ground_truth[gi].pair_id.clone(),
             tags: ground_truth[gi].tags.clone(),
+            region: Some(predictions[pi].clone()),
         });
     }
 
@@ -100,6 +101,7 @@ pub fn match_case(
                     confidence: None,
                     pair_id: gt.pair_id.clone(),
                     tags: gt.tags.clone(),
+                    region: None,
                 });
                 continue;
             }
@@ -124,6 +126,8 @@ pub fn match_case(
         case_name: case.name.clone(),
         tier: case.tier,
         case_tags: case.tags.clone(),
+        image_width: case.img1.width,
+        image_height: case.img1.height,
         matches: resolved_matches,
         unmatched_predictions,
         unmatched_ground_truth,

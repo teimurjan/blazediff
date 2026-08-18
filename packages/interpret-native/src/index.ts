@@ -43,6 +43,27 @@ export interface GradientStats {
 	edgeCorrelation: number;
 }
 
+export interface ChromaStats {
+	/** Mean |ΔY| (luminance delta magnitude), normalized to 255. */
+	meanAbsDy: number;
+	/** Signed mean ΔY. */
+	meanDy: number;
+	/** Mean |ΔI|. */
+	meanAbsDi: number;
+	/** Mean |ΔQ|. */
+	meanAbsDq: number;
+	/** Mean chroma-delta magnitude √(ΔI²+ΔQ²). */
+	meanAbsDc: number;
+	/** Cosine between the chroma vectors; near 1 = same hues, negative = hue rotation. */
+	chromaCos: number;
+	/** Mean chroma magnitude (saturation) in the first image. */
+	sat1: number;
+	/** Mean chroma magnitude in the second image. */
+	sat2: number;
+	/** Roughness of the chroma-delta field; low = smooth recolor, high = patchy replacement. */
+	chromaRough: number;
+}
+
 export interface ClassificationSignals {
 	blendsWithBgInImg1: boolean;
 	blendsWithBgInImg2: boolean;
@@ -52,6 +73,14 @@ export interface ClassificationSignals {
 	sparseFill: boolean;
 	tinyRegion: boolean;
 	edgesCorrelated: boolean;
+	/** Luminance NCC over the changed pixels; high = structure preserved. */
+	luminanceNcc: number;
+	/** Signed img2-minus-img1 edge density; positive = structure gained. */
+	structureAsymmetry: number;
+	/** Normalized RGB distance of changed pixels from local background in the first image. */
+	bgDistanceImg1: number;
+	/** Same measurement against the second image. */
+	bgDistanceImg2: number;
 	confidence: number;
 }
 
@@ -68,6 +97,7 @@ export interface ChangeRegion {
 	confidence: number;
 	colorDelta: ColorDeltaStats;
 	gradient: GradientStats;
+	chroma: ChromaStats;
 }
 
 export interface InterpretResult {

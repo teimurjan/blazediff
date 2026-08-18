@@ -27,6 +27,7 @@ pub struct ChangeRegion {
     pub confidence: f32,
     pub color_delta: ColorDeltaStats,
     pub gradient: GradientStats,
+    pub chroma: ChromaStats,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
@@ -59,7 +60,44 @@ pub struct ClassificationSignals {
     /// indicate img2 gained structure (additive), negative values indicate
     /// img1 lost structure (deletion).
     pub structure_asymmetry: f32,
+    /// Normalized RGB distance of changed pixels from the local background in
+    /// img1. Low values mean the pixels blended with the background there
+    /// (content was absent before the change).
+    pub bg_distance_img1: f32,
+    /// Same measurement against img2.
+    pub bg_distance_img2: f32,
     pub confidence: f32,
+}
+
+/// Chroma-plane statistics of the changed pixels, all normalized to 255.
+/// Separates recolors (coherent, smooth chroma movement) from content
+/// replacements (scattered chroma) on photographic edits where luminance
+/// correlation alone saturates.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct ChromaStats {
+    /// Mean |ΔY| (luminance delta magnitude).
+    pub mean_abs_dy: f32,
+    /// Signed mean ΔY — a recolor often pushes luminance consistently in one
+    /// direction, while a replacement balances out.
+    pub mean_dy: f32,
+    /// Mean |ΔI|.
+    pub mean_abs_di: f32,
+    /// Mean |ΔQ|.
+    pub mean_abs_dq: f32,
+    /// Mean chroma-delta magnitude √(ΔI²+ΔQ²).
+    pub mean_abs_dc: f32,
+    /// Cosine between the chroma vectors of img1 and img2, weighted by their
+    /// magnitudes. Near 1 = same hues, negative = coherent hue rotation.
+    pub chroma_cos: f32,
+    /// Mean chroma magnitude (saturation) in img1.
+    pub sat1: f32,
+    /// Mean chroma magnitude in img2.
+    pub sat2: f32,
+    /// Roughness of the chroma-delta field: mean |∇|Δc|| between adjacent
+    /// changed pixels over the std of |Δc|. Low = smooth recolor, high =
+    /// patchy replacement.
+    pub chroma_rough: f32,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
