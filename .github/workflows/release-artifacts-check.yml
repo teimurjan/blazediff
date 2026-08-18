@@ -1,8 +1,11 @@
 name: release-artifacts-check
 
 # Merge gate on the Changesets "Version Packages" PR. Goes green only when
-# every release-shipped binary matches the version recorded in
-# `crates/blazediff/Cargo.toml`. Non-Changesets PRs short-circuit to success.
+# every artifact family whose sources changed since its last release carries
+# freshly rebuilt binaries, and the wheel set matches the core version in
+# `crates/blazediff/Cargo.toml` (families version independently, so that is
+# the wheels' version, not "the" release version). Non-Changesets PRs
+# short-circuit to success.
 #
 # Workflow:
 #   1. Changesets opens a PR on `changeset-release/main` bumping versions.
@@ -55,7 +58,7 @@ jobs:
         run: |
           set -euo pipefail
           VER=$(sed -nE 's/^version *= *"([^"]+)".*/\1/p' crates/blazediff/Cargo.toml | head -1)
-          echo "Target version: $VER"
+          echo "Core / wheel version: $VER"
 
           BASE_SHA="${{ github.event.pull_request.base.sha }}"
           echo "Base SHA: $BASE_SHA"
@@ -139,7 +142,7 @@ jobs:
           fi
 
           if [[ ${#missing[@]} -gt 0 || ${#stale[@]} -gt 0 ]]; then
-            echo "::error::Release artifacts for v${VER} are not ready."
+            echo "::error::Release artifacts are not ready."
             if [[ ${#missing[@]} -gt 0 ]]; then
               echo "Missing:"
               for f in "${missing[@]}"; do echo "  - $f"; done
@@ -159,8 +162,8 @@ jobs:
             echo "  pnpm build:python:all -- --version ${VER}"
             # --no-verify: the no-binaries pre-commit hook blocks artifact
             # commits, since this is normally CI's job.
-            echo "  git add -A && git commit --no-verify -m 'build: artifacts for v${VER}' && git push"
+            echo "  git add -A && git commit --no-verify -m 'build: release artifacts' && git push"
             exit 1
           fi
 
-          echo "All expected v${VER} artifacts present and rebuilt."
+          echo "All expected release artifacts present and rebuilt."

@@ -62,6 +62,7 @@ jobs:
       interpret: ${{ steps.families.outputs.interpret }}
       wasm: ${{ steps.families.outputs.wasm }}
       wheels: ${{ steps.version.outputs.wheels }}
+      label: ${{ steps.version.outputs.label }}
     steps:
       - name: Resolve PR head
         uses: actions/github-script@v7
@@ -106,9 +107,10 @@ jobs:
           set -euo pipefail
           node scripts/release/changed-artifacts.js "${{ steps.pr.outputs.base }}" | tee -a "$GITHUB_OUTPUT"
 
-      # Single source of truth for the version everything is built for; the
+      # `version` is the *core / wheel* version from crates/blazediff — the
       # wheel builds assert against it and the commit job re-checks the
-      # filenames, so a half-synced version bump fails here rather than on npm.
+      # filenames. Families version independently, so it is not "the" release
+      # version; `label` names what this run actually ships, per family.
       - name: Read target version
         id: version
         run: |
@@ -122,12 +124,38 @@ jobs:
           # wheels are already the right ones.
           if [[ "${{ steps.families.outputs.core }}" == "true" ]] \
             || ! ls crates/blazediff/wheels/blazediff-"$VER"-*.whl > /dev/null 2>&1; then
-            echo "wheels=true" >> "$GITHUB_OUTPUT"
+            WHEELS=true
           else
-            echo "wheels=false" >> "$GITHUB_OUTPUT"
+            WHEELS=false
             echo "wheels for v$VER already committed — skipping wheel builds"
           fi
-          echo "Building artifacts for v$VER (${{ steps.pr.outputs.sha }})"
+          echo "wheels=$WHEELS" >> "$GITHUB_OUTPUT"
+
+          pkg_version() { node -p "require('./$1/package.json').version"; }
+          parts=()
+          if [[ "${{ steps.families.outputs.core }}" == "true" ]]; then
+            parts+=("core v$(pkg_version packages/core-native)")
+          fi
+          if [[ "${{ steps.families.outputs.ssim }}" == "true" ]]; then
+            parts+=("ssim v$(pkg_version packages/ssim-native)")
+          fi
+          if [[ "${{ steps.families.outputs.interpret }}" == "true" ]]; then
+            parts+=("interpret v$(pkg_version packages/interpret-native)")
+          fi
+          if [[ "${{ steps.families.outputs.wasm }}" == "true" ]]; then
+            parts+=("wasm v$(pkg_version packages/core-wasm)")
+          fi
+          if [[ "$WHEELS" == "true" ]]; then
+            parts+=("wheels v$VER")
+          fi
+          if [[ ${#parts[@]} -eq 0 ]]; then
+            LABEL="nothing — no artifact sources changed"
+          else
+            LABEL=$(printf '%s, ' "${parts[@]}")
+            LABEL=${LABEL%, }
+          fi
+          echo "label=$LABEL" >> "$GITHUB_OUTPUT"
+          echo "Building: $LABEL (${{ steps.pr.outputs.sha }})"
 
   build:
     name: ${{ matrix.target }}
@@ -443,7 +471,7 @@ jobs:
           fi
 
           git diff --cached --stat
-          git commit -m "build: artifacts for v${{ needs.resolve.outputs.version }}"
+          git commit -m "build: artifacts for ${{ needs.resolve.outputs.label }}"
           git push origin "HEAD:${{ needs.resolve.outputs.ref }}"
           echo "committed=true" >> "$GITHUB_OUTPUT"
 
@@ -452,14 +480,7 @@ jobs:
         with:
           script: |
             const committed = '${{ steps.push.outputs.committed }}' === 'true';
-            const version = '${{ needs.resolve.outputs.version }}';
-            const built = [
-              '${{ needs.resolve.outputs.core }}' === 'true' && 'core binaries',
-              '${{ needs.resolve.outputs.ssim }}' === 'true' && 'ssim',
-              '${{ needs.resolve.outputs.interpret }}' === 'true' && 'interpret',
-              '${{ needs.resolve.outputs.wasm }}' === 'true' && 'wasm',
-              'wheels',
-            ].filter(Boolean).join(', ');
+            const label = '${{ needs.resolve.outputs.label }}';
             await github.rest.reactions.createForIssueComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -471,8 +492,8 @@ jobs:
               repo: context.repo.repo,
               issue_number: context.issue.number,
               body: committed
-                ? `Built and committed release artifacts for \`v${version}\` — ${built} across all six platforms. Families whose sources didn't change were skipped.`
-                : `Release artifacts for \`v${version}\` were already up to date; nothing to commit.`,
+                ? `Built and committed release artifacts — ${label} — across all six platforms. Families whose sources didn't change were skipped.`
+                : `Release artifacts (${label}) were already up to date; nothing to commit.`,
             });
 
   report-failure:

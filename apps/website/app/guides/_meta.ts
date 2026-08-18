@@ -1,4 +1,5 @@
 export default {
+	index: { display: "hidden" },
 	"agents-separator": {
 		type: "separator",
 		title: "Coding Agents",
