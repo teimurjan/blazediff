@@ -1,6 +1,6 @@
 [package]
 name = "blazediff-interpret"
-version = "6.1.0"
+version = "6.2.0"
 edition = "2021"
 authors = ["Teimur Gasanov"]
 description = "Structured region analysis for image diffs: classify what changed, not just where"
