@@ -1,5 +1,12 @@
 # @blazediff/agent
 
+## 0.10.2
+
+### Patch Changes
+
+- Updated dependencies [5b9f7f8]
+  - @blazediff/interpret-native@6.2.0
+
 ## 0.10.1
 
 ### Patch Changes
