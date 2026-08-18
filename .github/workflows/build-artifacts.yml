@@ -149,6 +149,10 @@ jobs:
     env:
       # See force_cross() in crates/scripts/_targets.sh — no effect off Linux.
       BLAZEDIFF_FORCE_CROSS: "1"
+      # cargo-binstall resolves prebuilt artifacts through the GitHub API;
+      # unauthenticated calls rate-limit (403) and drop it into a
+      # compile-from-source fallback that upstream yanks can break.
+      GITHUB_TOKEN: ${{ github.token }}
     defaults:
       run:
         # The build scripts are bash, and the Windows targets now build on a
@@ -171,19 +175,28 @@ jobs:
       - uses: cargo-bins/cargo-binstall@main
 
       # Pinned to the versions the artifacts are built with locally, so a
-      # /build and a maintainer's `pnpm build:rust` stay comparable.
+      # /build and a maintainer's `pnpm build:rust` stay comparable. Only the
+      # wheel build needs maturin. The compile fallback is disabled: a source
+      # build of maturin trips over yanked transitive deps, and a fast retry
+      # of /build beats minutes of doomed compilation.
       - name: Install maturin
-        run: cargo binstall -y maturin@1.13.1
+        if: needs.resolve.outputs.wheels == 'true'
+        run: cargo binstall -y --disable-strategies compile maturin@1.13.1
 
+      # cross only backs the linux CLI/.node builds; wheels link with zig.
       - name: Install cross
-        if: matrix.kind == 'linux'
-        run: cargo binstall -y cross@0.2.5
+        if: >-
+          matrix.kind == 'linux' &&
+          (needs.resolve.outputs.core == 'true' ||
+           needs.resolve.outputs.ssim == 'true' ||
+           needs.resolve.outputs.interpret == 'true')
+        run: cargo binstall -y --disable-strategies compile cross@0.2.5
 
       # maturin cross-links the Linux wheels with zig (build-maturin.sh), which
       # is what gets them the manylinux_2_17 tag. ziglang is the same
       # distribution homebrew's zig is, just installed without a package manager.
       - name: Install zig
-        if: matrix.kind == 'linux'
+        if: matrix.kind == 'linux' && needs.resolve.outputs.wheels == 'true'
         run: |
           set -euo pipefail
           python3 -m venv "$HOME/.zig-venv"
