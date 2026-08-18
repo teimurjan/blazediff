@@ -1,5 +1,12 @@
 # @blazediff/cli
 
+## 5.0.1
+
+### Patch Changes
+
+- Updated dependencies [2d09fea]
+  - @blazediff/interpret-native@6.1.0
+
 ## 5.0.0
 
 ### Major Changes

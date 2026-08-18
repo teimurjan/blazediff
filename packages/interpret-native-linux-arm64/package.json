@@ -1,6 +1,6 @@
 {
 	"name": "@blazediff/interpret-native-linux-arm64",
-	"version": "6.0.0",
+	"version": "6.1.0",
 	"description": "blazediff-interpret N-API binary for Linux ARM64",
 	"main": "blazediff_interpret.node",
 	"os": [
