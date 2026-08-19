@@ -13,6 +13,7 @@ import {
 	NO_DEV_SCRIPT_ERROR,
 } from "../../onboard/config";
 import { type InstallResult, installStack } from "../../onboard/install";
+import { SKILLS } from "../../onboard/skill-loader";
 import {
 	CODING_AGENT_STACKS,
 	detectStacks,
@@ -44,7 +45,7 @@ async function promptForStacks(): Promise<Stack[]> {
 		...CODING_AGENT_STACKS.map((id) => ({
 			label: STACKS[id].label,
 			value: [id] as Stack[],
-			hint: STACKS[id].target?.(process.cwd()) ?? "",
+			hint: STACKS[id].target?.(process.cwd(), SKILLS[0]) ?? "",
 		})),
 		{ label: "All three coding agents", value: [...CODING_AGENT_STACKS] },
 		{
@@ -184,7 +185,7 @@ function humanizeInstall(results: InstallResult[]): string[] {
 						? "unchanged"
 						: "skipped (exists; --force to overwrite)";
 		const scope = info.scope === "user" ? " [user-global]" : "";
-		return `  ${info.label}: ${verb} ${r.path}${scope}`;
+		return `  ${info.label} /${r.skill}: ${verb} ${r.path}${scope}`;
 	});
 }
 
@@ -281,7 +282,7 @@ export function registerOnboard(program: Command, out: Output): void {
 			const targets = await resolveStacks(opts, interactive);
 			const installed: InstallResult[] = [];
 			for (const t of targets) {
-				installed.push(await installStack(t, cwd, { force: opts.force }));
+				installed.push(...(await installStack(t, cwd, { force: opts.force })));
 			}
 			let judge: JudgeBackend = config?.judge ?? "host";
 			if (targets.length === 0) {
