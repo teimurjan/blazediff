@@ -29,7 +29,7 @@ get_friendly_name() {
     esac
 }
 
-# Target triple -> platform-package directory name (under packages/).
+# Target triple -> platform-package directory name.
 # $2 is the package family prefix: "core-native" for blazediff, "ssim-native"
 # for blazediff-ssim. Defaults to core-native so existing callers are unchanged.
 get_package_name() {
@@ -43,6 +43,16 @@ get_package_name() {
         aarch64-pc-windows-msvc|aarch64-pc-windows-gnu) echo "${prefix}-win32-arm64" ;;
         *) echo "" ;;
     esac
+}
+
+# Target triple -> absolute platform-package directory. Each family lives in
+# packages/<prefix>/, alongside the wrapper package of the same name, so the
+# family prefix doubles as the group folder. Empty for an unmapped triple.
+get_package_dir() {
+    local prefix="${2:-core-native}"
+    local name; name=$(get_package_name "$1" "$prefix")
+    [[ -z "$name" ]] && return 0
+    echo "$PACKAGES_DIR/$prefix/$name"
 }
 
 # libdeflate-sys compiles its full x86 runtime-dispatch table, including the

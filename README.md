@@ -26,17 +26,20 @@
 ## Available Packages
 
 ### Core Libraries
-- **[@blazediff/core-native](./packages/core-native#readme)** - The fastest single-threaded image diff in the world (Rust + SIMD, 4.4-4.9x faster than odiff on 4K images)
+- **[@blazediff/core-native](./packages/core-native/core-native#readme)** - The fastest single-threaded image diff in the world (Rust + SIMD, 4.4-4.9x faster than odiff on 4K images)
 - **[@blazediff/core-wasm](./packages/core-wasm#readme)** - WebAssembly build of the same Rust algorithm (wasm32 + v128 SIMD, ~51% faster than pixelmatch). For browsers, edge runtimes, and any wasm host.
 - **[@blazediff/core](./packages/core#readme)** - Pixel-perfect image comparison (1.5x faster than pixelmatch)
+- **[@blazediff/interpret-native](./packages/interpret-native/interpret-native#readme)** - Native Rust structured interpretation of a diff: what changed in each region, where, and how much - not just which pixels differ
 - **[@blazediff/object](./packages/object#readme)** - High-performance object diffing with detailed change tracking
 - **[@blazediff/ssim](./packages/ssim#readme)** - SSIM, MS-SSIM, and Hitchhiker's SSIM for perceptual quality assessment
+- **[@blazediff/ssim-native](./packages/ssim-native/ssim-native#readme)** - Native Rust build of the same metrics plus perceptual SSIM (~15x faster than the JS port; ~4x for Hitchhiker's)
 - **[@blazediff/gmsd](./packages/gmsd#readme)** - Gradient Magnitude Similarity Deviation metric
 
 ### Rust Crates
 - **[blazediff](https://crates.io/crates/blazediff)** - The Rust crate powering `@blazediff/core-native`: block-based image diffing with SIMD ([source](./crates/blazediff#readme))
 - **[blazediff-png](https://crates.io/crates/blazediff-png)** - From-scratch PNG codec in Rust, single-threaded and SIMD-first, with byte-exact decode parity to libspng and faster on every fixture ([source](./crates/blazediff-png#readme))
 - **[blazediff-ssim](https://crates.io/crates/blazediff-ssim)** - SSIM, MS-SSIM and Hitchhiker's SSIM in Rust, dependency-free and SIMD-vectorised, held to the reference MATLAB scripts through Octave ([source](./crates/blazediff-ssim#readme))
+- **[blazediff-interpret](https://crates.io/crates/blazediff-interpret)** - Structured region analysis for image diffs: classify what changed, not just where. Powers `@blazediff/interpret-native` ([source](./crates/blazediff-interpret#readme))
 
 ### Python Package
 - **[blazediff](https://pypi.org/project/blazediff/)** - Python bindings (via maturin) for the Rust diff core ([source](./crates/blazediff#readme))
@@ -75,7 +78,7 @@ cargo add blazediff
 pip install blazediff
 ```
 
-Every package above is available on both registries **except** the test-runner adapters (`@blazediff/vitest`, `@blazediff/jest`, `@blazediff/bun`) and the UI libraries (`@blazediff/ui`, `@blazediff/react`), which remain NPM-only - the adapters augment each runner's `Matchers` types and the UI packages have browser-DOM and React type surfaces that JSR's publish-time slow-types check doesn't allow. Native-binary sub-packages under `@blazediff/core-native-*` are also NPM-only; Deno consumers resolve them transparently via `npm:` specifiers declared inside `@blazediff/core-native`.
+Every package above is available on both registries **except** the test-runner adapters (`@blazediff/vitest`, `@blazediff/jest`, `@blazediff/bun`) and the UI libraries (`@blazediff/ui`, `@blazediff/react`), which remain NPM-only - the adapters augment each runner's `Matchers` types and the UI packages have browser-DOM and React type surfaces that JSR's publish-time slow-types check doesn't allow. Native-binary sub-packages under `@blazediff/core-native-*`, `@blazediff/ssim-native-*` and `@blazediff/interpret-native-*` are also NPM-only; Deno consumers resolve them transparently via `npm:` specifiers declared inside the parent package.
 
 ## Performance
 
@@ -84,7 +87,8 @@ BlazeDiff delivers significant performance improvements across all components:
 - **Native (Rust)**: 4.4-4.9x faster than odiff on 4K images (5.7-6.7x from encoded buffers)
 - **WASM**: ~51% faster than pixelmatch, up to ~10x on 4K (browser, edge, any wasm host)
 - **Image Pixel-by-Pixel (JS)**: ~50% faster than pixelmatch (up to 88% on identical images)
-- **SSIM**: ~25% faster than ssim.js, ~70% faster with Hitchhiker's SSIM
+- **SSIM (JS)**: ~30% faster than ssim.js, ~75% faster with Hitchhiker's SSIM
+- **SSIM (Rust)**: ~15x faster again than the JS port (~4x for Hitchhiker's SSIM), from the same decoded buffers
 - **Object Diff**: ~55% faster than microdiff (up to 96% on identical arrays)
 
 **[View Detailed Benchmarks](./BENCHMARKS.md)** - Complete performance data, test methodology, and hardware specifications.

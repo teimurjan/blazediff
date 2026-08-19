@@ -74,9 +74,10 @@ const requestedVersion = args.find(
 
 /** Which family a restored path belongs to, or "wheels" (always wanted). */
 function familyOf(relative) {
-	if (relative.startsWith("packages/core-native-")) return "core";
-	if (relative.startsWith("packages/ssim-native-")) return "ssim";
-	if (relative.startsWith("packages/interpret-native-")) return "interpret";
+	if (relative.startsWith("packages/core-native/core-native-")) return "core";
+	if (relative.startsWith("packages/ssim-native/ssim-native-")) return "ssim";
+	if (relative.startsWith("packages/interpret-native/interpret-native-"))
+		return "interpret";
 	if (relative.startsWith(path.join("packages", "core-wasm"))) return "wasm";
 	if (relative.startsWith(WHEELS_DIR)) return "wheels";
 	return null;

@@ -95,13 +95,25 @@ function ensureLoggedIn() {
 	console.log(`npm: logged in as ${user}`);
 }
 
+/**
+ * Every package directory under packages/. The native families are nested one
+ * level deeper (packages/<family>/<package>), so a directory without its own
+ * package.json is descended into rather than skipped.
+ */
+function packageDirs(dir = PACKAGES_DIR, depth = 2) {
+	return fs
+		.readdirSync(dir, { withFileTypes: true })
+		.filter((entry) => entry.isDirectory() && entry.name !== "node_modules")
+		.flatMap((entry) => {
+			const child = path.join(dir, entry.name);
+			if (fs.existsSync(path.join(child, "package.json"))) return [child];
+			return depth > 1 ? packageDirs(child, depth - 1) : [];
+		});
+}
+
 /** Every workspace package under packages/ that npm would accept. */
 function publishablePackages() {
-	return fs
-		.readdirSync(PACKAGES_DIR, { withFileTypes: true })
-		.filter((entry) => entry.isDirectory())
-		.map((entry) => path.join(PACKAGES_DIR, entry.name))
-		.filter((dir) => fs.existsSync(path.join(dir, "package.json")))
+	return packageDirs()
 		.map((dir) => ({
 			dir,
 			manifest: JSON.parse(

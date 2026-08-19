@@ -16,7 +16,7 @@ import { PNG } from "pngjs";
 import { describe, expect, it } from "vitest";
 import { compare } from "./index";
 
-const FIXTURES_PATH = join(__dirname, "../../../fixtures");
+const FIXTURES_PATH = join(__dirname, "../../../../fixtures");
 
 interface FixturePair {
 	name: string;

@@ -151,6 +151,13 @@ const GROUPS = {
 					side: "right",
 					role: "blazediff",
 				},
+				{
+					name: "@blazediff/ssim-native (ssim)",
+					pair: "ssim",
+					variant: 0,
+					series: 2,
+					role: "blazediff",
+				},
 			],
 		},
 		{
@@ -168,6 +175,13 @@ const GROUPS = {
 					pair: "hitchhikers-ssim",
 					variant: 0,
 					side: "right",
+					role: "blazediff",
+				},
+				{
+					name: "@blazediff/ssim-native (hitchhikers)",
+					pair: "hitchhikers-ssim",
+					variant: 0,
+					series: 2,
 					role: "blazediff",
 				},
 			],

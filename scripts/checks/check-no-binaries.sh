@@ -23,6 +23,13 @@ staged=$(git diff --cached --name-only --diff-filter=ACMR)
 # packages, and catches pointer files, which magic bytes can't.
 lfs_tracked=$(printf '%s\n' "$staged" | git check-attr --stdin filter | sed -n 's/: filter: lfs$//p')
 
+# Moving an artifact is not committing one: the content is already in history,
+# so the rename costs no new LFS object and CI has nothing to overwrite. R100
+# is git's exact-similarity score, so a rename that also rebuilt the binary
+# scores below it and is still rejected.
+exact_renames=$(git diff --cached --name-status --diff-filter=R |
+	awk -F'\t' '$1 == "R100" { print $3 }')
+
 is_compiled() {
 	case "$1" in
 		*.node|*.wasm|*.whl|*.exe|*.dll|*.dylib|*.so|*.so.*|*.a|*.lib|*.o|*.obj|*.pdb|*.rlib)
@@ -46,6 +53,9 @@ is_compiled() {
 blocked=""
 while IFS= read -r file; do
 	[ -f "$file" ] || continue
+	if printf '%s\n' "$exact_renames" | grep -qxF "$file"; then
+		continue
+	fi
 	if printf '%s\n' "$lfs_tracked" | grep -qxF "$file" || is_compiled "$file"; then
 		blocked="${blocked}       ${file}
 "

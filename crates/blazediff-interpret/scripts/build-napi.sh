@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Build blazediff-interpret's N-API .node files -> packages/interpret-native-{platform}/.
+# Build blazediff-interpret's N-API .node files ->
+# packages/interpret-native/interpret-native-{platform}/.
 # The matrix itself lives in crates/scripts/build-napi.sh, shared with
 # blazediff and blazediff-ssim; this only names the artifacts.
 

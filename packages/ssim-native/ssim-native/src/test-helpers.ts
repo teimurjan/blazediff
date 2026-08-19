@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { PNG } from "pngjs";
 import type { SsimResult } from "./index";
 
-export const FIXTURES = join(__dirname, "../../../fixtures/blazediff");
+export const FIXTURES = join(__dirname, "../../../../fixtures/blazediff");
 
 export interface DecodedImage {
 	data: Buffer;

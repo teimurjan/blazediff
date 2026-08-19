@@ -34,30 +34,38 @@ function getBinaryName() {
 	return os.platform() === "win32" ? "blazediff.exe" : "blazediff";
 }
 
+/**
+ * Every package directory under packages/, relative to it. The native families
+ * are nested one level deeper (packages/<family>/<package>), so a directory
+ * without its own package.json is descended into rather than skipped.
+ */
+function packageDirs(relative = "", depth = 2) {
+	return fs
+		.readdirSync(path.join(PACKAGES_DIR, relative), { withFileTypes: true })
+		.filter((entry) => entry.isDirectory() && entry.name !== "node_modules")
+		.flatMap((entry) => {
+			const dir = path.join(relative, entry.name);
+			if (fs.existsSync(path.join(PACKAGES_DIR, dir, "package.json")))
+				return [dir];
+			return depth > 1 ? packageDirs(dir, depth - 1) : [];
+		});
+}
+
 function findPackagesWithBinDependency() {
-	const packages = [];
-	const entries = fs.readdirSync(PACKAGES_DIR, { withFileTypes: true });
+	return packageDirs().filter((dir) => {
+		// Skip the platform packages themselves — they ship the binary.
+		if (path.basename(dir).startsWith("core-native-")) return false;
 
-	for (const entry of entries) {
-		if (!entry.isDirectory()) continue;
-		if (entry.name.startsWith("core-native-")) continue; // Skip platform packages
-
-		const pkgJsonPath = path.join(PACKAGES_DIR, entry.name, "package.json");
-		if (!fs.existsSync(pkgJsonPath)) continue;
-
-		const pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath, "utf8"));
+		const pkgJson = JSON.parse(
+			fs.readFileSync(path.join(PACKAGES_DIR, dir, "package.json"), "utf8"),
+		);
 		const deps = {
 			...pkgJson.dependencies,
 			...pkgJson.devDependencies,
 			...pkgJson.optionalDependencies,
 		};
-
-		if (deps["@blazediff/core-native"]) {
-			packages.push(entry.name);
-		}
-	}
-
-	return packages;
+		return Boolean(deps["@blazediff/core-native"]);
+	});
 }
 
 function ensureSymlink(target, linkPath) {
@@ -77,7 +85,12 @@ function ensureSymlink(target, linkPath) {
 function main() {
 	const platformPkgDir = getPlatformPackageDir();
 	const binaryName = getBinaryName();
-	const sourceBinary = path.join(PACKAGES_DIR, platformPkgDir, binaryName);
+	const sourceBinary = path.join(
+		PACKAGES_DIR,
+		"core-native",
+		platformPkgDir,
+		binaryName,
+	);
 
 	if (!fs.existsSync(sourceBinary)) {
 		console.error(`Binary not found: ${sourceBinary}`);

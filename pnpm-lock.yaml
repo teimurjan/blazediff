@@ -37,7 +37,7 @@ importers:
         version: link:../../packages/core
       '@blazediff/core-native':
         specifier: workspace:*
-        version: link:../../packages/core-native
+        version: link:../../packages/core-native/core-native
       '@blazediff/core-wasm':
         specifier: workspace:*
         version: link:../../packages/core-wasm
@@ -49,7 +49,7 @@ importers:
         version: link:../../packages/ssim
       '@blazediff/ssim-native':
         specifier: workspace:*
-        version: link:../../packages/ssim-native
+        version: link:../../packages/ssim-native/ssim-native
       '@types/node':
         specifier: ^24.3.0
         version: 24.3.0
@@ -179,13 +179,13 @@ importers:
         version: link:../../packages/core
       '@blazediff/core-native':
         specifier: workspace:*
-        version: link:../../packages/core-native
+        version: link:../../packages/core-native/core-native
       '@blazediff/gmsd':
         specifier: workspace:*
         version: link:../../packages/gmsd
       '@blazediff/interpret-native':
         specifier: workspace:*
-        version: link:../../packages/interpret-native
+        version: link:../../packages/interpret-native/interpret-native
       '@blazediff/object':
         specifier: workspace:*
         version: link:../../packages/object
@@ -336,10 +336,10 @@ importers:
     dependencies:
       '@blazediff/core-native':
         specifier: workspace:*
-        version: link:../core-native
+        version: link:../core-native/core-native
       '@blazediff/interpret-native':
         specifier: workspace:*
-        version: link:../interpret-native
+        version: link:../interpret-native/interpret-native
       '@langchain/core':
         specifier: ^1.1.44
         version: 1.1.46(ws@8.18.3)
@@ -440,7 +440,7 @@ importers:
         version: link:../core
       '@blazediff/core-native':
         specifier: workspace:*
-        version: link:../core-native
+        version: link:../core-native/core-native
       '@blazediff/core-wasm':
         specifier: workspace:*
         version: link:../core-wasm
@@ -449,7 +449,7 @@ importers:
         version: link:../gmsd
       '@blazediff/interpret-native':
         specifier: workspace:*
-        version: link:../interpret-native
+        version: link:../interpret-native/interpret-native
       '@blazediff/ssim':
         specifier: workspace:*
         version: link:../ssim
@@ -536,11 +536,11 @@ importers:
         specifier: ^3.2.4
         version: 3.2.4(@types/debug@4.1.12)(@types/node@24.3.0)(@vitest/ui@3.2.4)(happy-dom@18.0.1)(jiti@2.6.0)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.20.6)(yaml@2.8.1)
 
-  packages/core-native:
+  packages/core-native/core-native:
     devDependencies:
       '@blazediff/core':
         specifier: workspace:*
-        version: link:../core
+        version: link:../../core
       '@types/node':
         specifier: ^24.3.0
         version: 24.3.0
@@ -560,23 +560,23 @@ importers:
         specifier: ^3.2.4
         version: 3.2.4(@types/debug@4.1.12)(@types/node@24.3.0)(@vitest/ui@3.2.4)(happy-dom@18.0.1)(jiti@2.6.0)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.20.6)(yaml@2.8.1)
 
-  packages/core-native-darwin-arm64: {}
+  packages/core-native/core-native-darwin-arm64: {}
 
-  packages/core-native-darwin-x64: {}
+  packages/core-native/core-native-darwin-x64: {}
 
-  packages/core-native-linux-arm64: {}
+  packages/core-native/core-native-linux-arm64: {}
 
-  packages/core-native-linux-x64: {}
+  packages/core-native/core-native-linux-x64: {}
 
-  packages/core-native-win32-arm64: {}
+  packages/core-native/core-native-win32-arm64: {}
 
-  packages/core-native-win32-x64: {}
+  packages/core-native/core-native-win32-x64: {}
 
   packages/core-wasm:
     devDependencies:
       '@blazediff/core-native':
         specifier: workspace:*
-        version: link:../core-native
+        version: link:../core-native/core-native
       '@types/node':
         specifier: ^24.3.0
         version: 24.3.0
@@ -620,7 +620,7 @@ importers:
         specifier: ^3.2.4
         version: 3.2.4(@types/debug@4.1.12)(@types/node@24.3.0)(@vitest/ui@3.2.4)(happy-dom@18.0.1)(jiti@2.6.0)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.20.6)(yaml@2.8.1)
 
-  packages/interpret-native:
+  packages/interpret-native/interpret-native:
     devDependencies:
       '@types/node':
         specifier: ^24.3.0
@@ -641,17 +641,17 @@ importers:
         specifier: ^3.2.4
         version: 3.2.4(@types/debug@4.1.12)(@types/node@24.3.0)(@vitest/ui@3.2.4)(happy-dom@18.0.1)(jiti@2.6.0)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.20.6)(yaml@2.8.1)
 
-  packages/interpret-native-darwin-arm64: {}
+  packages/interpret-native/interpret-native-darwin-arm64: {}
 
-  packages/interpret-native-darwin-x64: {}
+  packages/interpret-native/interpret-native-darwin-x64: {}
 
-  packages/interpret-native-linux-arm64: {}
+  packages/interpret-native/interpret-native-linux-arm64: {}
 
-  packages/interpret-native-linux-x64: {}
+  packages/interpret-native/interpret-native-linux-x64: {}
 
-  packages/interpret-native-win32-arm64: {}
+  packages/interpret-native/interpret-native-win32-arm64: {}
 
-  packages/interpret-native-win32-x64: {}
+  packages/interpret-native/interpret-native-win32-x64: {}
 
   packages/jest:
     dependencies:
@@ -688,7 +688,7 @@ importers:
         version: link:../core
       '@blazediff/core-native':
         specifier: workspace:*
-        version: link:../core-native
+        version: link:../core-native/core-native
       '@blazediff/core-wasm':
         specifier: workspace:*
         version: link:../core-wasm
@@ -830,11 +830,11 @@ importers:
         specifier: ^3.2.4
         version: 3.2.4(@types/debug@4.1.12)(@types/node@24.3.0)(@vitest/ui@3.2.4)(happy-dom@18.0.1)(jiti@2.6.0)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.20.6)(yaml@2.8.1)
 
-  packages/ssim-native:
+  packages/ssim-native/ssim-native:
     devDependencies:
       '@blazediff/ssim':
         specifier: workspace:*
-        version: link:../ssim
+        version: link:../../ssim
       '@types/node':
         specifier: ^24.3.0
         version: 24.3.0
@@ -854,17 +854,17 @@ importers:
         specifier: ^3.2.4
         version: 3.2.4(@types/debug@4.1.12)(@types/node@24.3.0)(@vitest/ui@3.2.4)(happy-dom@18.0.1)(jiti@2.6.0)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.20.6)(yaml@2.8.1)
 
-  packages/ssim-native-darwin-arm64: {}
+  packages/ssim-native/ssim-native-darwin-arm64: {}
 
-  packages/ssim-native-darwin-x64: {}
+  packages/ssim-native/ssim-native-darwin-x64: {}
 
-  packages/ssim-native-linux-arm64: {}
+  packages/ssim-native/ssim-native-linux-arm64: {}
 
-  packages/ssim-native-linux-x64: {}
+  packages/ssim-native/ssim-native-linux-x64: {}
 
-  packages/ssim-native-win32-arm64: {}
+  packages/ssim-native/ssim-native-win32-arm64: {}
 
-  packages/ssim-native-win32-x64: {}
+  packages/ssim-native/ssim-native-win32-x64: {}
 
   packages/ui:
     dependencies:

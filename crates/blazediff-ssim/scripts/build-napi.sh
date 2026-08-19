@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Build blazediff-ssim's N-API .node files -> packages/ssim-native-{platform}/.
+# Build blazediff-ssim's N-API .node files -> packages/ssim-native/ssim-native-{platform}/.
 # The matrix itself lives in crates/scripts/build-napi.sh, shared with
 # blazediff; this only names the artifacts.
 

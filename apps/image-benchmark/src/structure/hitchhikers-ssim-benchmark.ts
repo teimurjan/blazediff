@@ -1,6 +1,10 @@
 #!/usr/bin/env node
 
 import hitchhikersSsim from "@blazediff/ssim/hitchhikers-ssim";
+import {
+	hasNativeBinding,
+	hitchhikersSsim as hitchhikersSsimNative,
+} from "@blazediff/ssim-native";
 import { Bench, hrtimeNow } from "tinybench";
 import {
 	getStructureBenchmarkImagePairs,
@@ -10,6 +14,12 @@ import {
 
 async function main() {
 	const { iterations, format, output, fixtures } = parseBenchmarkArgs();
+
+	// Both ports take decoded RGBA, so this stays an image-IO-free comparison
+	// of the metric itself. The native side is skipped rather than fatal on a
+	// platform with no prebuilt binary.
+	const native = hasNativeBinding();
+	console.log(`[hitchhikers-ssim] Native binding available: ${native}`);
 
 	const pairs = getStructureBenchmarkImagePairs(fixtures);
 	const pairsLoaded = await loadImagePairs(pairs);
@@ -28,6 +38,12 @@ async function main() {
 		bench.add(`hitchhikers-ssim - ${pairs[i].name}`, () => {
 			hitchhikersSsim(a.data, b.data, undefined, a.width, a.height);
 		});
+
+		if (native) {
+			bench.add(`hitchhikers-ssim-native - ${pairs[i].name}`, () => {
+				hitchhikersSsimNative(a.data, b.data, a.width, a.height);
+			});
+		}
 	}
 
 	await bench.run();

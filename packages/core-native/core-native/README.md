@@ -40,12 +40,12 @@ npm install @blazediff/core-native
 Also available as a Rust crate: [`cargo install blazediff`](https://crates.io/crates/blazediff)
 
 Pre-built binaries are included via platform-specific packages:
-- [`@blazediff/core-native-darwin-arm64`](https://github.com/teimurjan/blazediff/tree/main/packages/core-native-darwin-arm64) - macOS ARM64 (Apple Silicon)
-- [`@blazediff/core-native-darwin-x64`](https://github.com/teimurjan/blazediff/tree/main/packages/core-native-darwin-x64) - macOS x64 (Intel)
-- [`@blazediff/core-native-linux-arm64`](https://github.com/teimurjan/blazediff/tree/main/packages/core-native-linux-arm64) - Linux ARM64
-- [`@blazediff/core-native-linux-x64`](https://github.com/teimurjan/blazediff/tree/main/packages/core-native-linux-x64) - Linux x64
-- [`@blazediff/core-native-win32-arm64`](https://github.com/teimurjan/blazediff/tree/main/packages/core-native-win32-arm64) - Windows ARM64
-- [`@blazediff/core-native-win32-x64`](https://github.com/teimurjan/blazediff/tree/main/packages/core-native-win32-x64) - Windows x64
+- [`@blazediff/core-native-darwin-arm64`](https://github.com/teimurjan/blazediff/tree/main/packages/core-native/core-native-darwin-arm64) - macOS ARM64 (Apple Silicon)
+- [`@blazediff/core-native-darwin-x64`](https://github.com/teimurjan/blazediff/tree/main/packages/core-native/core-native-darwin-x64) - macOS x64 (Intel)
+- [`@blazediff/core-native-linux-arm64`](https://github.com/teimurjan/blazediff/tree/main/packages/core-native/core-native-linux-arm64) - Linux ARM64
+- [`@blazediff/core-native-linux-x64`](https://github.com/teimurjan/blazediff/tree/main/packages/core-native/core-native-linux-x64) - Linux x64
+- [`@blazediff/core-native-win32-arm64`](https://github.com/teimurjan/blazediff/tree/main/packages/core-native/core-native-win32-arm64) - Windows ARM64
+- [`@blazediff/core-native-win32-x64`](https://github.com/teimurjan/blazediff/tree/main/packages/core-native/core-native-win32-x64) - Windows x64
 
 ## API
 

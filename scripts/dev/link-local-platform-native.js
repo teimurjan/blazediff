@@ -51,10 +51,13 @@ function ensureSymlink(target, linkPath) {
 	fs.symlinkSync(relativeTarget, linkPath);
 }
 
+// Each family lives in its own folder under packages/, holding the wrapper
+// package and its six platform packages side by side.
 function link({ pkg, prefix }, suffix) {
+	const familyDir = path.join(PACKAGES_DIR, prefix);
 	const platformPkgDir = `${prefix}-${suffix}`;
-	const platformPkgPath = path.join(PACKAGES_DIR, platformPkgDir);
-	const consumerDir = path.join(PACKAGES_DIR, pkg);
+	const platformPkgPath = path.join(familyDir, platformPkgDir);
+	const consumerDir = path.join(familyDir, pkg);
 
 	if (!fs.existsSync(consumerDir)) return;
 	if (!fs.existsSync(platformPkgPath)) {
@@ -69,7 +72,7 @@ function link({ pkg, prefix }, suffix) {
 	try {
 		ensureSymlink(platformPkgPath, linkPath);
 		console.log(
-			`Linked: @blazediff/${platformPkgDir} -> packages/${pkg}/node_modules/@blazediff/${platformPkgDir}`,
+			`Linked: @blazediff/${platformPkgDir} -> packages/${prefix}/${pkg}/node_modules/@blazediff/${platformPkgDir}`,
 		);
 	} catch (err) {
 		console.error(

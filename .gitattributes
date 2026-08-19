@@ -10,19 +10,12 @@
 *.wasm    filter=lfs diff=lfs merge=lfs -text
 *.exe     filter=lfs diff=lfs merge=lfs -text
 # Extension-less per-platform CLI binaries (Linux + macOS). Pattern is scoped
-# to packages/core-native-*/blazediff so we don't accidentally LFS-track e.g.
-# `apps/*/blazediff` source files.
-packages/core-native-darwin-arm64/blazediff filter=lfs diff=lfs merge=lfs -text
-packages/core-native-darwin-x64/blazediff   filter=lfs diff=lfs merge=lfs -text
-packages/core-native-linux-arm64/blazediff  filter=lfs diff=lfs merge=lfs -text
-packages/core-native-linux-x64/blazediff    filter=lfs diff=lfs merge=lfs -text
-*.node filter=lfs diff=lfs merge=lfs -text
-*.whl filter=lfs diff=lfs merge=lfs -text
-*.wasm filter=lfs diff=lfs merge=lfs -text
-*.exe filter=lfs diff=lfs merge=lfs -text
-packages/core-native-darwin-x64/blazediff filter=lfs diff=lfs merge=lfs -text
-packages/core-native-linux-arm64/blazediff filter=lfs diff=lfs merge=lfs -text
-packages/core-native-linux-x64/blazediff filter=lfs diff=lfs merge=lfs -text
+# to packages/core-native/core-native-*/blazediff so we don't accidentally
+# LFS-track e.g. `apps/*/blazediff` source files.
+packages/core-native/core-native-darwin-arm64/blazediff filter=lfs diff=lfs merge=lfs -text
+packages/core-native/core-native-darwin-x64/blazediff   filter=lfs diff=lfs merge=lfs -text
+packages/core-native/core-native-linux-arm64/blazediff  filter=lfs diff=lfs merge=lfs -text
+packages/core-native/core-native-linux-x64/blazediff    filter=lfs diff=lfs merge=lfs -text
 
 # build-artifacts.yml runs these under git-bash on the Windows runners, where
 # Git for Windows would otherwise check them out CRLF and break the shebang.

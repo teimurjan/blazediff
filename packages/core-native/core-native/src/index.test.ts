@@ -8,7 +8,7 @@ import { compare, getBinaryPath, hasNativeBinding } from "./index";
 
 const execFileAsync = promisify(execFile);
 
-const FIXTURES_PATH = join(__dirname, "../../../fixtures");
+const FIXTURES_PATH = join(__dirname, "../../../../fixtures");
 
 describe("compare", () => {
 	it("should return match: true for identical images", async () => {

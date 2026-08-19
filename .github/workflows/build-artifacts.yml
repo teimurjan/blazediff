@@ -134,13 +134,13 @@ jobs:
           pkg_version() { node -p "require('./$1/package.json').version"; }
           parts=()
           if [[ "${{ steps.families.outputs.core }}" == "true" ]]; then
-            parts+=("core v$(pkg_version packages/core-native)")
+            parts+=("core v$(pkg_version packages/core-native/core-native)")
           fi
           if [[ "${{ steps.families.outputs.ssim }}" == "true" ]]; then
-            parts+=("ssim v$(pkg_version packages/ssim-native)")
+            parts+=("ssim v$(pkg_version packages/ssim-native/ssim-native)")
           fi
           if [[ "${{ steps.families.outputs.interpret }}" == "true" ]]; then
-            parts+=("interpret v$(pkg_version packages/interpret-native)")
+            parts+=("interpret v$(pkg_version packages/interpret-native/interpret-native)")
           fi
           if [[ "${{ steps.families.outputs.wasm }}" == "true" ]]; then
             parts+=("wasm v$(pkg_version packages/core-wasm)")
@@ -276,15 +276,15 @@ jobs:
           fi
           if [[ "${{ needs.resolve.outputs.core }}" == "true" ]]; then
             files+=(
-              "packages/core-native-${{ matrix.pkg }}/${{ matrix.cli }}"
-              "packages/core-native-${{ matrix.pkg }}/blazediff.node"
+              "packages/core-native/core-native-${{ matrix.pkg }}/${{ matrix.cli }}"
+              "packages/core-native/core-native-${{ matrix.pkg }}/blazediff.node"
             )
           fi
           if [[ "${{ needs.resolve.outputs.ssim }}" == "true" ]]; then
-            files+=("packages/ssim-native-${{ matrix.pkg }}/blazediff_ssim.node")
+            files+=("packages/ssim-native/ssim-native-${{ matrix.pkg }}/blazediff_ssim.node")
           fi
           if [[ "${{ needs.resolve.outputs.interpret }}" == "true" ]]; then
-            files+=("packages/interpret-native-${{ matrix.pkg }}/blazediff_interpret.node")
+            files+=("packages/interpret-native/interpret-native-${{ matrix.pkg }}/blazediff_interpret.node")
           fi
           for f in "${files[@]}"; do
             if [[ ! -s "$f" ]]; then
@@ -306,14 +306,14 @@ jobs:
         run: |
           set -euo pipefail
           if [[ "${{ needs.resolve.outputs.core }}" != "true" ]]; then
-            rm -f "packages/core-native-${{ matrix.pkg }}/${{ matrix.cli }}" \
-                  "packages/core-native-${{ matrix.pkg }}/blazediff.node"
+            rm -f "packages/core-native/core-native-${{ matrix.pkg }}/${{ matrix.cli }}" \
+                  "packages/core-native/core-native-${{ matrix.pkg }}/blazediff.node"
           fi
           if [[ "${{ needs.resolve.outputs.ssim }}" != "true" ]]; then
-            rm -f "packages/ssim-native-${{ matrix.pkg }}/blazediff_ssim.node"
+            rm -f "packages/ssim-native/ssim-native-${{ matrix.pkg }}/blazediff_ssim.node"
           fi
           if [[ "${{ needs.resolve.outputs.interpret }}" != "true" ]]; then
-            rm -f "packages/interpret-native-${{ matrix.pkg }}/blazediff_interpret.node"
+            rm -f "packages/interpret-native/interpret-native-${{ matrix.pkg }}/blazediff_interpret.node"
           fi
 
       - uses: actions/upload-artifact@v4
@@ -331,10 +331,10 @@ jobs:
           # and crates/ also keeps the repo root as the archive root, which is
           # what lets the commit job unpack straight into the checkout.
           path: |
-            packages/core-native-${{ matrix.pkg }}/${{ matrix.cli }}
-            packages/core-native-${{ matrix.pkg }}/blazediff.node
-            packages/ssim-native-${{ matrix.pkg }}/blazediff_ssim.node
-            packages/interpret-native-${{ matrix.pkg }}/blazediff_interpret.node
+            packages/core-native/core-native-${{ matrix.pkg }}/${{ matrix.cli }}
+            packages/core-native/core-native-${{ matrix.pkg }}/blazediff.node
+            packages/ssim-native/ssim-native-${{ matrix.pkg }}/blazediff_ssim.node
+            packages/interpret-native/interpret-native-${{ matrix.pkg }}/blazediff_interpret.node
             crates/blazediff/wheels/*.whl
 
   wasm:

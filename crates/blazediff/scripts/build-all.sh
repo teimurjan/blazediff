@@ -5,7 +5,8 @@ set -euo pipefail
 # - Always builds the CLI binary (`blazediff`) for the chosen target(s).
 # - With --napi, delegates to build-napi.sh for the same target scope.
 # - With --maturin, delegates to build-maturin.sh for the same target scope.
-# Outputs to crates/blazediff/dist/ and syncs CLI binaries to packages/core-native-{platform}/.
+# Outputs to crates/blazediff/dist/ and syncs CLI binaries to
+# packages/core-native/core-native-{platform}/.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CRATE_DIR="$(dirname "$SCRIPT_DIR")"
@@ -112,9 +113,8 @@ sync_binaries_to_packages() {
             *) continue ;;
         esac
 
-        local pkg_name; pkg_name=$(get_package_name "$target")
-        local pkg_dir="$PACKAGES_DIR/$pkg_name"
-        if [[ -n "$pkg_name" && -d "$pkg_dir" ]]; then
+        local pkg_dir; pkg_dir=$(get_package_dir "$target")
+        if [[ -n "$pkg_dir" && -d "$pkg_dir" ]]; then
             local out="blazediff"
             [[ "$name" == *.exe ]] && out="blazediff.exe"
             cp "$binary" "$pkg_dir/$out"

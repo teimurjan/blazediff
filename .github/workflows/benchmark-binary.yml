@@ -62,7 +62,7 @@ jobs:
       # commit or fails outright. It can no longer report numbers for an older
       # release while appearing to benchmark the branch.
       - name: Remove prebuilt native artifacts
-        run: rm -f packages/core-native-*/blazediff packages/core-native-*/blazediff.node
+        run: rm -f packages/core-native/core-native-*/blazediff packages/core-native/core-native-*/blazediff.node
 
       # `--target <host triple>` compiles natively (no cross/Docker) with the
       # same per-target RUSTFLAGS the published artifacts use: `-C
@@ -88,7 +88,7 @@ jobs:
         run: |
           set -euo pipefail
           shopt -s nullglob
-          nodes=(packages/core-native-*/blazediff.node)
+          nodes=(packages/core-native/core-native-*/blazediff.node)
           if [ ${#nodes[@]} -eq 0 ]; then
             echo "::error::No .node produced; the benchmark would have no native binding."
             exit 1

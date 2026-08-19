@@ -166,7 +166,22 @@ const PAIRS = {
 			cmd: "pnpm benchmark:hitchhikers-ssim",
 			dir: "apps/image-benchmark",
 			filename: "hitchhikers-ssim.json",
+			// hitchhikers-ssim.json also holds "hitchhikers-ssim-native - X"
+			// tasks; without this the JS and native rows collide on the same
+			// fixture key.
+			taskPrefix: "hitchhikers-ssim",
 		},
+		// The Rust port, benchmarked in the same run over the same decoded
+		// buffers — one bench command, two series out of one JSON.
+		extra: [
+			{
+				name: "BlazeDiff (ssim-native)",
+				cmd: "pnpm benchmark:hitchhikers-ssim",
+				dir: "apps/image-benchmark",
+				filename: "hitchhikers-ssim.json",
+				taskPrefix: "hitchhikers-ssim-native",
+			},
+		],
 		compareScript: null,
 		iterations: 25,
 		warmup: 3,

@@ -68,9 +68,9 @@ const FAMILY_NPM = {
 };
 
 const FAMILY_PACKAGE = {
-	core: "packages/core-native/package.json",
-	ssim: "packages/ssim-native/package.json",
-	interpret: "packages/interpret-native/package.json",
+	core: "packages/core-native/core-native/package.json",
+	ssim: "packages/ssim-native/ssim-native/package.json",
+	interpret: "packages/interpret-native/interpret-native/package.json",
 	wasm: "packages/core-wasm/package.json",
 };
 

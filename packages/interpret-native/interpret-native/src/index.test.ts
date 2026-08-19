@@ -9,7 +9,7 @@ import {
 	type RegionSource,
 } from "./index";
 
-const FIXTURES = join(__dirname, "../../../fixtures/blazediff");
+const FIXTURES = join(__dirname, "../../../../fixtures/blazediff");
 const A = join(FIXTURES, "1a.png");
 const B = join(FIXTURES, "1b.png");
 /** A different size to 1a/1b. */

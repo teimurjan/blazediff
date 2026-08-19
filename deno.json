@@ -7,15 +7,18 @@
 		"./packages/codec-pngjs",
 		"./packages/codec-sharp",
 		"./packages/codec-jsquash-png",
-		"./packages/core-native",
+		"./packages/core-native/core-native",
 		"./packages/core-wasm",
-		"./packages/interpret-native",
-		"./packages/ssim-native",
+		"./packages/interpret-native/interpret-native",
+		"./packages/ssim-native/ssim-native",
 		"./packages/matcher",
 		"./packages/cli"
 	],
 	"test": {
-		"include": ["packages/*/src/**/*.deno.test.ts"]
+		"include": [
+			"packages/*/src/**/*.deno.test.ts",
+			"packages/*/*/src/**/*.deno.test.ts"
+		]
 	},
 	"nodeModulesDir": "manual",
 	"unstable": ["sloppy-imports"],

@@ -1,5 +1,10 @@
 packages:
   - packages/*
+  # The three native families are grouped one level deeper: the wrapper package
+  # and its six platform-binary packages share a folder named after the family.
+  - packages/core-native/*
+  - packages/ssim-native/*
+  - packages/interpret-native/*
   - apps/*
   - examples/*
   # Version-only shadows for the Rust crates + Python wheel (private; crates.io/PyPI, not npm).

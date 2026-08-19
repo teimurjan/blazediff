@@ -2,7 +2,8 @@
 set -euo pipefail
 
 # Build N-API .node files for a crate that exposes a `napi` feature.
-# Outputs to <crate>/dist/ and syncs to packages/${NAPI_PKG_PREFIX}-{platform}/.
+# Outputs to <crate>/dist/ and syncs to
+# packages/${NAPI_PKG_PREFIX}/${NAPI_PKG_PREFIX}-{platform}/.
 #
 # Driven by four variables, so blazediff and blazediff-ssim share this script
 # instead of keeping two copies of the cross/xwin matrix. Each crate's
@@ -52,11 +53,12 @@ Options:
   --native           Build for the current host (target-cpu=native)
   --macos            Build both macOS targets (arm64 + x64)
   --all              Build all supported platforms
-  --no-sync          Do not sync .node files into packages/${NAPI_PKG_PREFIX}-*
+  --no-sync          Do not sync .node files into
+                     packages/${NAPI_PKG_PREFIX}/${NAPI_PKG_PREFIX}-*
   --help             Show this help
 
 Output: \$DIST_DIR/${NAPI_ARTIFACT}-{os}-{arch}.node
-Sync:   packages/${NAPI_PKG_PREFIX}-{platform}/${NAPI_NODE}
+Sync:   packages/${NAPI_PKG_PREFIX}/${NAPI_PKG_PREFIX}-{platform}/${NAPI_NODE}
 EOF
 }
 
@@ -184,9 +186,8 @@ sync_napi_to_packages() {
             windows-x64)   target="x86_64-pc-windows-msvc" ;;
             *) continue ;;
         esac
-        local pkg_name; pkg_name=$(get_package_name "$target" "$NAPI_PKG_PREFIX")
-        local pkg_dir="$PACKAGES_DIR/$pkg_name"
-        if [[ -n "$pkg_name" && -d "$pkg_dir" ]]; then
+        local pkg_dir; pkg_dir=$(get_package_dir "$target" "$NAPI_PKG_PREFIX")
+        if [[ -n "$pkg_dir" && -d "$pkg_dir" ]]; then
             cp "$binary" "$pkg_dir/$NAPI_NODE"
             echo "  -> $pkg_dir/$NAPI_NODE"
             synced=$((synced + 1))

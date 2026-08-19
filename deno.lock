@@ -10158,7 +10158,7 @@
           ]
         }
       },
-      "packages/core-native": {
+      "packages/core-native/core-native": {
         "dependencies": [
           "npm:@blazediff/core-native-darwin-arm64@4.2.0",
           "npm:@blazediff/core-native-darwin-x64@4.2.0",
@@ -10202,7 +10202,7 @@
           ]
         }
       },
-      "packages/interpret-native": {
+      "packages/interpret-native/interpret-native": {
         "dependencies": [
           "npm:@blazediff/interpret-native-darwin-arm64@5.4.0",
           "npm:@blazediff/interpret-native-darwin-x64@5.4.0",
@@ -10304,7 +10304,7 @@
           ]
         }
       },
-      "packages/ssim-native": {
+      "packages/ssim-native/ssim-native": {
         "dependencies": [
           "npm:@blazediff/ssim-native-darwin-arm64@5.4.0",
           "npm:@blazediff/ssim-native-darwin-x64@5.4.0",
