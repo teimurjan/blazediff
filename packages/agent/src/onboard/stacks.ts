@@ -16,7 +16,7 @@ interface StackBase {
 export interface SkillInstallStack extends StackBase {
 	kind: "skill-install";
 	detect: (cwd: string) => boolean;
-	target: (cwd: string) => string;
+	target: (cwd: string, skill: string) => string;
 	format: "skill-file" | "cursor-rule";
 	scope: "project" | "user";
 }
@@ -53,7 +53,7 @@ export const STACKS: Record<Stack, StackInfo> = {
 				join(cwd, "CLAUDE.md"),
 				join(cwd, "AGENTS.md"),
 			]),
-		target: (cwd) => join(cwd, ".claude", "skills", "blazediff", "SKILL.md"),
+		target: (cwd, skill) => join(cwd, ".claude", "skills", skill, "SKILL.md"),
 		format: "skill-file",
 		scope: "project",
 	},
@@ -68,7 +68,8 @@ export const STACKS: Record<Stack, StackInfo> = {
 				join(cwd, ".codex"),
 				join(homedir(), ".codex"),
 			]),
-		target: () => join(homedir(), ".codex", "skills", "blazediff", "SKILL.md"),
+		target: (_cwd, skill) =>
+			join(homedir(), ".codex", "skills", skill, "SKILL.md"),
 		format: "skill-file",
 		scope: "user",
 	},
@@ -79,7 +80,7 @@ export const STACKS: Record<Stack, StackInfo> = {
 		judge: "host",
 		detect: (cwd) =>
 			someExists([join(cwd, ".cursor"), join(cwd, ".cursorrules")]),
-		target: (cwd) => join(cwd, ".cursor", "rules", "blazediff.mdc"),
+		target: (cwd, skill) => join(cwd, ".cursor", "rules", `${skill}.mdc`),
 		format: "cursor-rule",
 		scope: "project",
 	},

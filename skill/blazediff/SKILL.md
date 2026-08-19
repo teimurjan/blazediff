@@ -7,6 +7,8 @@ description: Run, author, or update BlazeDiff visual regression tests. Trigger o
 
 CLI binary is `blazediff-agent` (the name `blazediff` belongs to the cargo image-diff binary).
 
+**Not this skill:** comparing two image files already on disk ("what changed between these two PNGs", "did this render drift") → use the `image-compare` skill. This skill is for capturing a running app and managing baselines; it owns `.blazediff/`.
+
 Sibling files in this skill directory — read on demand:
 - `JUDGING.md` — judging ambiguous diffs (`pendingJudgments > 0`) + zsh-safe shell loops for writing verdicts.
 - `MASKING.md` — picking selectors, mass-masking shared noise across routes, applying masks.

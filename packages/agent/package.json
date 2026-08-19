@@ -21,17 +21,15 @@
 	},
 	"files": [
 		"dist",
-		"SKILL.md",
-		"JUDGING.md",
-		"MASKING.md"
+		"skills"
 	],
 	"scripts": {
 		"typecheck": "tsc --noEmit",
-		"prebuild": "node -e \"const {readdirSync,copyFileSync}=require('node:fs');for(const f of readdirSync('../../skill/blazediff'))if(f.endsWith('.md')&&f!=='INSTALL.md')copyFileSync('../../skill/blazediff/'+f,f)\"",
+		"prebuild": "node scripts/copy-skills.mjs",
 		"build": "tsup && vite build",
 		"dev": "tsup --watch",
 		"dev:client": "vite",
-		"clean": "rm -rf dist SKILL.md JUDGING.md MASKING.md",
+		"clean": "rm -rf dist skills",
 		"test": "vitest run --passWithNoTests"
 	},
 	"keywords": [

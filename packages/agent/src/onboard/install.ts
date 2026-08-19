@@ -1,7 +1,14 @@
 import { readFileSync } from "node:fs";
 import { lstat, mkdir, unlink, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { loadSkillFiles, type SkillFile, skillBodyOnly } from "./skill-loader";
+import {
+	loadSkillFiles,
+	SKILLS,
+	type SkillFile,
+	type SkillName,
+	skillBodyOnly,
+	skillDescription,
+} from "./skill-loader";
 import { STACKS, type Stack, type StackInfo } from "./stacks";
 
 export type InstallStatus =
@@ -13,6 +20,8 @@ export type InstallStatus =
 
 export interface InstallResult {
 	stack: Stack;
+	/** Absent only for local-judge stacks, which install no skill. */
+	skill?: SkillName;
 	path?: string;
 	status: InstallStatus;
 }
@@ -25,9 +34,12 @@ function renderCursorRule(files: SkillFile[]): string {
 	const skill = files.find((f) => f.name === "SKILL.md")?.content ?? "";
 	const sidecars = files.filter((f) => f.name !== "SKILL.md");
 	const body = skillBodyOnly(skill).trim();
+	// JSON.stringify, not hand-quoting: skill descriptions contain double quotes
+	// around their trigger phrases, and a bare YAML double-quoted scalar would
+	// terminate on the first one.
 	const frontmatter = [
 		"---",
-		'description: "Run, author, or update BlazeDiff visual regression tests. Trigger on visual test, screenshot regression, blazediff, /blazediff."',
+		`description: ${JSON.stringify(skillDescription(skill))}`,
 		"alwaysApply: false",
 		"---",
 		"",
@@ -71,39 +83,52 @@ function combineStatuses(statuses: InstallStatus[]): InstallStatus {
 	return "unchanged";
 }
 
-export async function installStack(
+async function installSkill(
 	stack: Stack,
+	info: StackInfo & { kind: "skill-install" },
+	skill: SkillName,
 	cwd: string,
-	opts: { force?: boolean } = {},
+	force: boolean | undefined,
 ): Promise<InstallResult> {
-	const info: StackInfo = STACKS[stack];
-
-	// Local-judge stacks (moondream) install no skill file; onboarding wires the
-	// judge backend into config instead (see the onboard command).
-	if (info.kind === "local-judge") {
-		return { stack, status: "configured" };
-	}
-
-	// `info` narrowed to a skill-install stack above, so these are guaranteed.
-	const target = info.target(cwd);
-	const files = loadSkillFiles();
+	const target = info.target(cwd, skill);
+	const files = loadSkillFiles(skill);
 
 	if (info.format === "cursor-rule") {
-		const content = renderCursorRule(files);
-		const status = await writeIfChanged(target, content, opts.force);
-		return { stack, path: target, status };
+		const status = await writeIfChanged(target, renderCursorRule(files), force);
+		return { stack, skill, path: target, status };
 	}
 
 	const targetDir = dirname(target);
 	const statuses: InstallStatus[] = [];
 	for (const file of files) {
-		const filePath = join(targetDir, file.name);
-		const status = await writeIfChanged(
-			filePath,
-			ensureTrailingNewline(file.content),
-			opts.force,
+		statuses.push(
+			await writeIfChanged(
+				join(targetDir, file.name),
+				ensureTrailingNewline(file.content),
+				force,
+			),
 		);
-		statuses.push(status);
 	}
-	return { stack, path: target, status: combineStatuses(statuses) };
+	return { stack, skill, path: target, status: combineStatuses(statuses) };
+}
+
+/** Installs every bundled skill for one stack — one result per skill. */
+export async function installStack(
+	stack: Stack,
+	cwd: string,
+	opts: { force?: boolean } = {},
+): Promise<InstallResult[]> {
+	const info: StackInfo = STACKS[stack];
+
+	// Local-judge stacks (moondream) install no skill file; onboarding wires the
+	// judge backend into config instead (see the onboard command).
+	if (info.kind === "local-judge") {
+		return [{ stack, status: "configured" }];
+	}
+
+	const results: InstallResult[] = [];
+	for (const skill of SKILLS) {
+		results.push(await installSkill(stack, info, skill, cwd, opts.force));
+	}
+	return results;
 }

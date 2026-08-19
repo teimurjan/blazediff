@@ -23,10 +23,12 @@ Paste this file into any coding agent (Claude Code, Codex, Cursor, …) and tell
 
    Verify: `blazediff-agent --version` prints `0.1.2` or later.
 
-2. **Onboard.** Run `blazediff-agent onboard --json`. In one step it writes `.blazediff/config.json`, ensures bundled Chromium is installed (no `npx playwright install`, no `--with-deps`, no sudo — on Linux missing system libs can be fixed later with `npx playwright install-deps chromium`, which the user runs themselves), and writes the bundled playbook to the location for the active stack it detects in `cwd`:
-   - **Claude Code (project-scope):** `<project>/.claude/skills/blazediff/SKILL.md`
-   - **Codex (user-global):** `~/.codex/skills/blazediff/SKILL.md`
-   - **Cursor (project-scope):** `<project>/.cursor/rules/blazediff.mdc` with the right frontmatter
+2. **Onboard.** Run `blazediff-agent onboard --json`. In one step it writes `.blazediff/config.json`, ensures bundled Chromium is installed (no `npx playwright install`, no `--with-deps`, no sudo — on Linux missing system libs can be fixed later with `npx playwright install-deps chromium`, which the user runs themselves), and writes both bundled skills to the location for the active stack it detects in `cwd`:
+   - **Claude Code (project-scope):** `<project>/.claude/skills/<skill>/SKILL.md`
+   - **Codex (user-global):** `~/.codex/skills/<skill>/SKILL.md`
+   - **Cursor (project-scope):** `<project>/.cursor/rules/<skill>.mdc` with the right frontmatter
+
+   Two skills are installed: `blazediff` (visual regression against a running app — capture, check, rebaseline) and `image-compare` (compare two image files already on disk).
 
    Under `--json` it never prompts and never captures. Force a specific subset with `--stack claude,codex,cursor` (or `--stack all`); pass `--force` to overwrite. To judge diffs locally instead of with a host agent, use `--stack local` (installs no skill file; sets `config.judge: "local"` — a two-step Moondream + Qwen pipeline). Skip the Chromium step with `--no-browsers`.
 
@@ -34,7 +36,7 @@ Paste this file into any coding agent (Claude Code, Codex, Cursor, …) and tell
 
 3. **Reload** the host agent's skill list if it supports it (Claude Code: `/reload-plugins`).
 
-4. **Final summary line.** Print exactly: `BlazeDiff installed. Try /blazediff in your agent.`
+4. **Final summary line.** Print exactly: `BlazeDiff installed. Try /blazediff or /image-compare in your agent.`
 
 ## Hard rules
 - Only use `--version` and `onboard --json` during install. Do not capture, check, or rewrite — authoring happens when the user runs `/blazediff`.
