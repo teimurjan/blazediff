@@ -1,5 +1,11 @@
 # @blazediff/agent
 
+## 0.11.0
+
+### Minor Changes
+
+- 0fc2662: Ship a second skill, `image-compare`, and turn `skill/` into a registry that onboarding installs from. The existing `blazediff` skill only covers visual regression against a running app; comparing two image files already on disk had no entry point, so `blazediff-cli`'s `interpret` was reachable only by someone willing to set up a whole baseline suite. `onboard` now writes every bundled skill for each detected stack — `.claude/skills/<skill>/`, `~/.codex/skills/<skill>/`, `.cursor/rules/<skill>.mdc` — and `installStack` returns one `InstallResult` per skill instead of one per stack. Stack targets take the skill name, `loadSkillFiles(skill)` discovers a skill's files from disk rather than a hardcoded list, and the Cursor rule's `description` is now parsed from the skill's own frontmatter instead of being duplicated in the installer (which also fixes the trigger phrases losing their quotes). The prebuild copy moved to `scripts/copy-skills.mjs` and mirrors `skill/*/` into `packages/agent/skills/*/`.
+
 ## 0.10.2
 
 ### Patch Changes
