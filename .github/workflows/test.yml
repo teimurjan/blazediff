@@ -39,6 +39,32 @@ jobs:
       - name: Cargo Test
         run: cargo test --manifest-path crates/Cargo.toml -p blazediff -p blazediff-shared -p blazediff-ssim -p blazediff-interpret
 
+      # The PyO3 bindings are behind a feature the line above doesn't enable.
+      # `check` rather than `test` because it doesn't link: pyo3's
+      # extension-module leaves the CPython symbols to be resolved by the
+      # interpreter, which only the maturin-built wheel below provides.
+      - name: Cargo Check (python bindings)
+        run: |
+          for crate in blazediff blazediff-ssim blazediff-interpret; do
+            cargo check --manifest-path crates/Cargo.toml -p "$crate" --features python
+          done
+
+      - uses: astral-sh/setup-uv@v5
+
+      - uses: cargo-bins/cargo-binstall@main
+
+      # Pinned to the version build-artifacts.yml ships the released wheels
+      # with, so what this imports is what users get.
+      - name: Install maturin
+        run: cargo binstall -y --disable-strategies compile maturin@1.13.1
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      # Builds each wheel for the host and imports it — the only step that
+      # proves a #[pymodule] actually registers what it promises.
+      - name: Python Test
+        run: pnpm test:python
+
       - name: Build
         run: pnpm build
       

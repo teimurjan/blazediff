@@ -1,0 +1,39 @@
+[build-system]
+requires = ["maturin>=1.7,<2"]
+build-backend = "maturin"
+
+[project]
+name = "blazediff-interpret"
+# Synced from the @blazediff/rust-interpret changesets shadow by scripts/release/sync-pyproject-version.js.
+version = "6.2.0"
+description = "Structured region analysis for image diffs: classify what changed, not just where"
+license = { text = "MIT" }
+authors = [{ name = "Teimur Gasanov" }]
+readme = "README.md"
+keywords = [
+    "image",
+    "diff",
+    "classification",
+    "visual-regression",
+    "screenshot",
+]
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Rust",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Topic :: Multimedia :: Graphics",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS",
+    "Operating System :: Microsoft :: Windows",
+]
+requires-python = ">=3.8"
+
+[project.urls]
+Repository = "https://github.com/teimurjan/blazediff"
+Homepage = "https://blazediff.dev"
+
+[tool.maturin]
+module-name = "blazediff_interpret"
+features = ["pyo3/extension-module", "python"]
+bindings = "pyo3"
+strip = true

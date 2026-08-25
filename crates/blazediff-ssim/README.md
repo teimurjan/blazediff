@@ -63,6 +63,33 @@ println!("{:.6}", outcome.score); // 1.0 means identical
 `Rgba8` is a borrowed view, so nothing is copied to call in. Decoding is the
 caller's problem: the crate takes RGBA8 bytes and has no I/O.
 
+### Python - `blazediff-ssim`
+
+```bash
+pip install blazediff-ssim
+```
+
+PyO3 bindings shipped as `abi3-py38` wheels for CPython ≥ 3.8 (macOS, Linux
+manylinux, Windows; arm64 + x86_64). Built from this crate's `python` Cargo
+feature, which pulls in PNG/JPEG/QOI decoding so paths and encoded bytes work
+directly.
+
+```python
+import blazediff_ssim as ssim
+
+result = ssim.compare("expected.png", "actual.png", metric="ms-ssim")
+print(result.score)  # 1.0 means identical
+
+# Also: compare_buffers(bytes, bytes), compare_rgba(bytes, bytes, w, h),
+# render_map(map, map_w, map_h, w, h) and metrics().
+```
+
+Every knob the Rust API exposes is a keyword argument: `min_score`,
+`window_size`, `k1`, `k2`, `bit_depth`, `weights`, `method`, `window_stride`,
+`cov_pooling`, `color`, `chroma_weight`, `chroma_subsample`, `pooling` and
+`deviation_weight`. Pass `return_map=True` to get the local scores back as
+little-endian `float32` bytes — `numpy.frombuffer(result.map, dtype="<f4")`.
+
 ## Performance
 
 Wall-clock on a 4K pair, decode included (decode is ~200 ms of each):

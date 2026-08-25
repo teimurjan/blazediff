@@ -82,6 +82,33 @@ Regions arriving from a caller are validated: a box outside the image is an
 `InterpretError::RegionOutOfBounds`, not an out-of-bounds panic. That matters now that regions
 cross the wasm and N-API boundaries.
 
+### Python - `blazediff-interpret`
+
+```bash
+pip install blazediff-interpret
+```
+
+PyO3 bindings shipped as `abi3-py38` wheels for CPython ≥ 3.8 (macOS, Linux
+manylinux, Windows; arm64 + x86_64). Built from this crate's `python` Cargo
+feature.
+
+```python
+import blazediff_interpret as interpret
+
+result = interpret.interpret_images("expected.png", "actual.png", "diff.png")
+print(result["summary"])
+for region in result["regions"]:
+    print(region["changeType"], region["bbox"])
+
+# Also: interpret_buffers(bytes, bytes), interpret_ssim(base, compare,
+# metric=...) and interpret_regions(base, compare, regions).
+```
+
+The result crosses as a plain dict with camelCase keys, matching the N-API
+binding and the CLI's `--json`. `interpret_regions` takes `(x, y, width,
+height)` tuples or mappings with those keys, so a `bbox` from a prior result
+feeds straight back in.
+
 ## What it classifies
 
 Each region gets a change type, a shape, a position, a confidence, and the statistics behind

@@ -24,6 +24,8 @@ mod gradient;
 mod interpretation;
 #[cfg(feature = "napi")]
 mod napi;
+#[cfg(feature = "python")]
+mod python;
 mod region;
 mod severity;
 mod shape;

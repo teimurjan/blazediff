@@ -28,13 +28,17 @@ napi = [
     "dep:napi-build",
     "dep:blazediff-shared",
 ]
+# PyO3 bindings for the `blazediff-ssim` PyPI wheel. Same shape as `napi`:
+# optional deps only, so it costs a default build nothing.
+python = ["dep:pyo3", "dep:blazediff-shared"]
 
 [dependencies]
-# All optional, all `napi`-only. The metrics themselves are std-only, so the
+# All optional, all binding-only. The metrics themselves are std-only, so the
 # crate compiles for every target blazediff does, wasm32 included, with no
 # feature negotiation.
 napi = { version = "2", features = ["napi4"], optional = true }
 napi-derive = { version = "2", optional = true }
+pyo3 = { version = "0.22", features = ["extension-module", "abi3-py38", "generate-import-lib"], optional = true }
 # Decoding for the path/buffer entry points. `version` is required to publish
 # to crates.io; kept in lockstep by scripts/release/sync-cargo-version.js.
 blazediff-shared = { path = "../blazediff-shared", version = "6.0.0", optional = true }

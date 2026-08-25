@@ -5,6 +5,9 @@ node_modules
 dist
 data
 .lethe
+# Python test byproducts (scripts/checks/test-python.sh; its venv lives in dist/)
+__pycache__
+.pytest_cache
 # blazediff-png differential corpus (downloaded on demand, never committed)
 .corpus
 # SSIM quality-harness datasets (downloaded on demand, never committed)

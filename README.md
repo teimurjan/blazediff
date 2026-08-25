@@ -41,8 +41,10 @@
 - **[blazediff-ssim](https://crates.io/crates/blazediff-ssim)** - SSIM, MS-SSIM and Hitchhiker's SSIM in Rust, dependency-free and SIMD-vectorised, held to the reference MATLAB scripts through Octave ([source](./crates/blazediff-ssim#readme))
 - **[blazediff-interpret](https://crates.io/crates/blazediff-interpret)** - Structured region analysis for image diffs: classify what changed, not just where. Powers `@blazediff/interpret-native` ([source](./crates/blazediff-interpret#readme))
 
-### Python Package
+### Python Packages
 - **[blazediff](https://pypi.org/project/blazediff/)** - Python bindings (via maturin) for the Rust diff core ([source](./crates/blazediff#readme))
+- **[blazediff-ssim](https://pypi.org/project/blazediff-ssim/)** - Python bindings for the SSIM family, imported as `blazediff_ssim` ([source](./crates/blazediff-ssim#readme))
+- **[blazediff-interpret](https://pypi.org/project/blazediff-interpret/)** - Python bindings for the region classifier, imported as `blazediff_interpret` ([source](./crates/blazediff-interpret#readme))
 
 ### Command Line Tools
 - **[@blazediff/cli](./packages/cli#readme)** - JS CLI with multiple algorithms (diff, GMSD, SSIM, MS-SSIM, Hitchhiker's SSIM)
@@ -75,7 +77,7 @@ bunx jsr add @blazediff/core
 cargo add blazediff
 
 # Python via pip
-pip install blazediff
+pip install blazediff blazediff-ssim blazediff-interpret
 ```
 
 Every package above is available on both registries **except** the test-runner adapters (`@blazediff/vitest`, `@blazediff/jest`, `@blazediff/bun`) and the UI libraries (`@blazediff/ui`, `@blazediff/react`), which remain NPM-only - the adapters augment each runner's `Matchers` types and the UI packages have browser-DOM and React type surfaces that JSR's publish-time slow-types check doesn't allow. Native-binary sub-packages under `@blazediff/core-native-*`, `@blazediff/ssim-native-*` and `@blazediff/interpret-native-*` are also NPM-only; Deno consumers resolve them transparently via `npm:` specifiers declared inside the parent package.

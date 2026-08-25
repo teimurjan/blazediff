@@ -18,8 +18,10 @@
 //                                         blazediff-shared, blazediff-png
 //   wasm       core wasm module           blazediff, blazediff-shared (built without codecs)
 //
-// Wheels are deliberately not a family: their filenames encode the core
-// version, so build-artifacts.yml derives their gating from `core` plus a
+// Wheels are deliberately not families of their own: each of the three sets
+// (blazediff / blazediff-ssim / blazediff-interpret) is built from the crate a
+// family is already named after, and its filenames encode that crate's version.
+// So build-artifacts.yml derives each set's gating from its family flag plus a
 // wheels-for-this-version-exist check.
 //
 // Used by release-artifacts-check.yml (which families must be fresh, and the

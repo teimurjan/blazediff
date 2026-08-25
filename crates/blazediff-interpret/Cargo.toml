@@ -23,6 +23,8 @@ napi = [
     "dep:serde_json",
     "blazediff-shared/codecs",
 ]
+# PyO3 bindings for the `blazediff-interpret` PyPI wheel.
+python = ["dep:pyo3", "dep:pythonize", "blazediff-shared/codecs"]
 # The `blazediff-interpret` CLI.
 cli = ["dep:clap", "dep:serde_json", "blazediff-shared/codecs"]
 
@@ -47,6 +49,11 @@ blazediff-ssim = { path = "../blazediff-ssim", version = "6.0.0" }
 serde = { version = "1", features = ["derive"] }
 napi = { version = "2", features = ["napi4", "serde-json"], optional = true }
 napi-derive = { version = "2", optional = true }
+pyo3 = { version = "0.22", features = ["extension-module", "abi3-py38", "generate-import-lib"], optional = true }
+# Turns the `Serialize` below straight into a Python dict, for the same reason
+# `serde_json::Value` serves the N-API front-end: ten nested result structs are
+# not worth restating in a second binding dialect. Its minor tracks pyo3's.
+pythonize = { version = "0.22", optional = true }
 clap = { version = "4", features = ["derive"], optional = true }
 # `InterpretResult` already derives Serialize, so the front-ends hand it across
 # as a plain object rather than restating ten `#[napi(object)]` structs.

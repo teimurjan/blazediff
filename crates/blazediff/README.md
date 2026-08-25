@@ -53,7 +53,7 @@ PyO3 bindings shipped as `abi3-py38` wheels for CPython ≥ 3.8 (macOS, Linux ma
 from blazediff import compare
 
 result = compare("expected.png", "actual.png", "diff.png", threshold=0.1)
-if result.match:
+if result.match_result:
     print("identical")
 else:
     print(f"{result.diff_count} pixels differ ({result.diff_percentage:.2f}%)")
