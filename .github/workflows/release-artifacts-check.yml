@@ -2,18 +2,17 @@ name: release-artifacts-check
 
 # Merge gate on the Changesets "Version Packages" PR. Goes green only when
 # every artifact family whose sources changed since its last release carries
-# freshly rebuilt binaries, and the wheel set matches the core version in
-# `crates/blazediff/Cargo.toml` (families version independently, so that is
-# the wheels' version, not "the" release version). Non-Changesets PRs
-# short-circuit to success.
+# freshly rebuilt binaries, and each of the three wheel sets matches its own
+# crate's version (families version independently, so there is no single
+# release version). Non-Changesets PRs short-circuit to success.
 #
 # Workflow:
 #   1. Changesets opens a PR on `changeset-release/main` bumping versions.
 #   2. This check goes red — artifacts are stale or missing.
 #   3. Maintainer comments `/build` on the PR; build-artifacts.yml rebuilds
 #      every platform on GitHub runners and pushes the artifacts to the branch.
-#      (Locally that is: pnpm build:rust, build:rust:ssim, build:wasm and
-#      build:python:all -- --version <NEW>, committed and pushed.)
+#      (Locally that is: pnpm build:rust, build:rust:ssim, build:wasm and the
+#      build:python:*:all scripts with -- --version <NEW>, committed and pushed.)
 #   4. Check turns green; PR is mergeable; merge fires release.yml.
 
 on:
@@ -57,8 +56,11 @@ jobs:
         if: steps.gate.outputs.release_pr == 'true'
         run: |
           set -euo pipefail
-          VER=$(sed -nE 's/^version *= *"([^"]+)".*/\1/p' crates/blazediff/Cargo.toml | head -1)
-          echo "Core / wheel version: $VER"
+          crate_version() { sed -nE 's/^version *= *"([^"]+)".*/\1/p' "crates/$1/Cargo.toml" | head -1; }
+          CORE_VER=$(crate_version blazediff)
+          SSIM_VER=$(crate_version blazediff-ssim)
+          INTERPRET_VER=$(crate_version blazediff-interpret)
+          echo "Wheel versions: blazediff=$CORE_VER blazediff-ssim=$SSIM_VER blazediff-interpret=$INTERPRET_VER"
 
           BASE_SHA="${{ github.event.pull_request.base.sha }}"
           echo "Base SHA: $BASE_SHA"
@@ -99,15 +101,23 @@ jobs:
           }
 
           # --- Python wheels (version is in filename) ----------------------
-          for plat in \
-              "macosx_10_12_x86_64" \
-              "macosx_11_0_arm64" \
-              "manylinux_2_17_aarch64.manylinux2014_aarch64" \
-              "manylinux_2_17_x86_64.manylinux2014_x86_64" \
-              "win_amd64" \
-              "win_arm64"; do
-            require_file "crates/blazediff/wheels/blazediff-${VER}-cp38-abi3-${plat}.whl"
-          done
+          # One set per PyPI distribution, each at its own crate's version, with
+          # the crate name PEP 427-escaped into the filename.
+          require_wheels() {
+            local crate="$1" version="$2" prefix="${1//-/_}"
+            for plat in \
+                "macosx_10_12_x86_64" \
+                "macosx_11_0_arm64" \
+                "manylinux_2_17_aarch64.manylinux2014_aarch64" \
+                "manylinux_2_17_x86_64.manylinux2014_x86_64" \
+                "win_amd64" \
+                "win_arm64"; do
+              require_file "crates/${crate}/wheels/${prefix}-${version}-cp38-abi3-${plat}.whl"
+            done
+          }
+          require_wheels blazediff "$CORE_VER"
+          require_wheels blazediff-ssim "$SSIM_VER"
+          require_wheels blazediff-interpret "$INTERPRET_VER"
 
           if [[ "$core" == "true" ]]; then
             # --- NAPI .node + per-platform CLI -----------------------------
@@ -155,11 +165,15 @@ jobs:
             echo "Comment '/build' on this PR to rebuild them on CI and push, or"
             echo "do it locally (only the families listed above need rebuilding):"
             echo "  git fetch origin && git checkout ${{ github.head_ref }}"
-            [[ "$core" == "true" ]] && echo "  pnpm build:rust"
-            [[ "$ssim" == "true" ]] && echo "  pnpm build:rust:ssim"
-            [[ "$interpret" == "true" ]] && echo "  pnpm build:rust:interpret"
-            [[ "$wasm" == "true" ]] && echo "  pnpm build:wasm"
-            echo "  pnpm build:python:all -- --version ${VER}"
+            # Plain `if`, not `[[ ... ]] && echo`: under `set -e` a false test
+            # would abort the script and swallow every hint after it.
+            if [[ "$core" == "true" ]]; then echo "  pnpm build:rust"; fi
+            if [[ "$ssim" == "true" ]]; then echo "  pnpm build:rust:ssim"; fi
+            if [[ "$interpret" == "true" ]]; then echo "  pnpm build:rust:interpret"; fi
+            if [[ "$wasm" == "true" ]]; then echo "  pnpm build:wasm"; fi
+            echo "  pnpm build:python:all -- --version ${CORE_VER}"
+            echo "  pnpm build:python:ssim:all -- --version ${SSIM_VER}"
+            echo "  pnpm build:python:interpret:all -- --version ${INTERPRET_VER}"
             # --no-verify: the no-binaries pre-commit hook blocks artifact
             # commits, since this is normally CI's job.
             echo "  git add -A && git commit --no-verify -m 'build: release artifacts' && git push"

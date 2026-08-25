@@ -1,0 +1,33 @@
+[build-system]
+requires = ["maturin>=1.7,<2"]
+build-backend = "maturin"
+
+[project]
+name = "blazediff-ssim"
+# Synced from the @blazediff/rust-ssim changesets shadow by scripts/release/sync-pyproject-version.js.
+version = "6.0.0"
+description = "SSIM, MS-SSIM and Hitchhiker's SSIM with compile-time SIMD kernels and MATLAB parity"
+license = { text = "MIT" }
+authors = [{ name = "Teimur Gasanov" }]
+readme = "README.md"
+keywords = ["ssim", "image-quality", "msssim", "simd", "perceptual"]
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Rust",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Topic :: Multimedia :: Graphics",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS",
+    "Operating System :: Microsoft :: Windows",
+]
+requires-python = ">=3.8"
+
+[project.urls]
+Repository = "https://github.com/teimurjan/blazediff"
+Homepage = "https://blazediff.dev"
+
+[tool.maturin]
+module-name = "blazediff_ssim"
+features = ["pyo3/extension-module", "python"]
+bindings = "pyo3"
+strip = true

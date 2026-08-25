@@ -43,6 +43,8 @@ mod multiscale;
 #[cfg(feature = "napi")]
 mod napi;
 mod perceptual;
+#[cfg(feature = "python")]
+mod python;
 mod simd;
 mod standard;
 mod stats;

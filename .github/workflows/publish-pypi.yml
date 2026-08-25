@@ -1,16 +1,17 @@
 name: Publish to PyPI
 
 # Manually triggered after wheels for a new version are committed to
-# crates/blazediff/wheels/. The committed wheels are the source of truth -
+# crates/<crate>/wheels/. The committed wheels are the source of truth -
 # the workflow checks them out and uploads to PyPI via Trusted Publishing
 # (OIDC, no PyPI token needed).
 #
-# Trigger via: `pnpm release:pypi`  (which calls `gh workflow run publish-pypi.yml -f version=...`)
-# Or directly: `gh workflow run publish-pypi.yml -f version=3.1.2`
+# Trigger via: `pnpm release:pypi`  (which calls `gh workflow run publish-pypi.yml
+# -f package=... -f version=...` once per package with fresh wheels)
+# Or directly: `gh workflow run publish-pypi.yml -f package=blazediff-ssim -f version=6.0.0`
 #
-# Set up Trusted Publishing first:
+# Set up Trusted Publishing first, once per PyPI project:
 #   https://pypi.org/manage/account/publishing/
-#     Project:     blazediff
+#     Project:     blazediff / blazediff-ssim / blazediff-interpret
 #     Owner:       teimurjan
 #     Repository:  blazediff
 #     Workflow:    publish-pypi.yml
@@ -20,17 +21,26 @@ name: Publish to PyPI
 on:
   workflow_dispatch:
     inputs:
+      package:
+        description: "PyPI distribution to publish"
+        required: true
+        default: blazediff
+        type: choice
+        options:
+          - blazediff
+          - blazediff-ssim
+          - blazediff-interpret
       version:
-        description: "Version to publish (must match crates/blazediff/Cargo.toml)"
+        description: "Version to publish (must match the crate's Cargo.toml)"
         required: true
 
 concurrency:
-  group: publish-pypi-${{ inputs.version }}
+  group: publish-pypi-${{ inputs.package }}-${{ inputs.version }}
   cancel-in-progress: false
 
 jobs:
   publish:
-    name: Publish wheels to PyPI
+    name: Publish ${{ inputs.package }} wheels to PyPI
     runs-on: ubuntu-latest
     environment: pypi
     permissions:
@@ -42,30 +52,39 @@ jobs:
           lfs: true
 
       - name: Sanity-check committed wheels
+        id: wheels
         run: |
           set -e
           shopt -s nullglob
-          wheels=(crates/blazediff/wheels/*.whl)
+
+          # Every distribution is built from the crate of the same name, and
+          # PEP 427 escapes that name in the wheel filename.
+          CRATE="${{ inputs.package }}"
+          PREFIX="${CRATE//-/_}"
+          DIR="crates/$CRATE/wheels"
+          echo "dir=$DIR" >> "$GITHUB_OUTPUT"
+
+          wheels=("$DIR"/*.whl)
           if [[ ${#wheels[@]} -eq 0 ]]; then
-            echo "::error::No wheels in crates/blazediff/wheels/"
+            echo "::error::No wheels in $DIR/"
             exit 1
           fi
 
           # All wheels must share the input version.
-          versions=$(printf '%s\n' "${wheels[@]}" | sed -E 's|.*/blazediff-([^-]+)-.*|\1|' | sort -u)
+          versions=$(printf '%s\n' "${wheels[@]}" | sed -E "s|.*/${PREFIX}-([^-]+)-.*|\1|" | sort -u)
           if [[ "$versions" != "${{ inputs.version }}" ]]; then
             echo "::error::Wheel versions ($versions) don't match input version (${{ inputs.version }})"
             exit 1
           fi
 
           # Wheel version must match Cargo.toml.
-          cargo_version=$(grep -m1 '^version' crates/blazediff/Cargo.toml | sed -E 's/version *= *"([^"]+)"/\1/')
+          cargo_version=$(grep -m1 '^version' "crates/$CRATE/Cargo.toml" | sed -E 's/version *= *"([^"]+)"/\1/')
           if [[ "$cargo_version" != "${{ inputs.version }}" ]]; then
-            echo "::error::Cargo.toml version ($cargo_version) doesn't match input (${{ inputs.version }})"
+            echo "::error::crates/$CRATE/Cargo.toml version ($cargo_version) doesn't match input (${{ inputs.version }})"
             exit 1
           fi
 
-          echo "Publishing ${#wheels[@]} wheel(s) for v${{ inputs.version }}:"
+          echo "Publishing ${#wheels[@]} wheel(s) of ${{ inputs.package }} v${{ inputs.version }}:"
           printf '  %s\n' "${wheels[@]}"
 
       - name: Publish to PyPI
@@ -74,4 +93,4 @@ jobs:
           command: upload
           # --skip-existing makes re-runs safe; if a wheel was already uploaded
           # for this version (e.g. partial earlier run), it's silently skipped.
-          args: --skip-existing crates/blazediff/wheels/*.whl
+          args: --skip-existing ${{ steps.wheels.outputs.dir }}/*.whl

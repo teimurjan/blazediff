@@ -8,14 +8,15 @@ name: build-artifacts
 # Selective: scripts/release/changed-artifacts.js decides which artifact
 # families (core / ssim / interpret / wasm) changed since each family's last
 # published release tag — version-only churn doesn't count — and only those
-# get compiled. Wheels are rebuilt when the core sources changed or the core
-# version bumped without a matching wheel set. The same script drives
-# release-artifacts-check.yml, so what /build produces is exactly what the
-# merge gate requires.
+# get compiled. Each of the three wheel sets is rebuilt when its family's
+# sources changed or its version bumped without a matching wheel set. The same
+# script drives release-artifacts-check.yml, so what /build produces is exactly
+# what the merge gate requires.
 #
 # Toolchains mirror `pnpm build:rust && pnpm build:rust:ssim &&
-# pnpm build:rust:interpret && pnpm build:wasm && pnpm build:python:all` by
-# calling the exact same scripts with `--target`:
+# pnpm build:rust:interpret && pnpm build:wasm && pnpm build:python:all` (and
+# its :ssim / :interpret siblings) by calling the exact same scripts with
+# `--target`:
 #   macOS targets    cargo, natively / rustup-cross from an arm64 runner
 #   Linux targets    `cross` docker images — BLAZEDIFF_FORCE_CROSS keeps the
 #                    x64 build off the runner's own (much newer) glibc
@@ -56,12 +57,17 @@ jobs:
     outputs:
       ref: ${{ steps.pr.outputs.ref }}
       sha: ${{ steps.pr.outputs.sha }}
-      version: ${{ steps.version.outputs.version }}
       core: ${{ steps.families.outputs.core }}
       ssim: ${{ steps.families.outputs.ssim }}
       interpret: ${{ steps.families.outputs.interpret }}
       wasm: ${{ steps.families.outputs.wasm }}
-      wheels: ${{ steps.version.outputs.wheels }}
+      core_version: ${{ steps.version.outputs.core_version }}
+      ssim_version: ${{ steps.version.outputs.ssim_version }}
+      interpret_version: ${{ steps.version.outputs.interpret_version }}
+      wheels_core: ${{ steps.version.outputs.wheels_core }}
+      wheels_ssim: ${{ steps.version.outputs.wheels_ssim }}
+      wheels_interpret: ${{ steps.version.outputs.wheels_interpret }}
+      wheels_any: ${{ steps.version.outputs.wheels_any }}
       label: ${{ steps.version.outputs.label }}
     steps:
       - name: Resolve PR head
@@ -107,29 +113,58 @@ jobs:
           set -euo pipefail
           node scripts/release/changed-artifacts.js "${{ steps.pr.outputs.base }}" | tee -a "$GITHUB_OUTPUT"
 
-      # `version` is the *core / wheel* version from crates/blazediff — the
-      # wheel builds assert against it and the commit job re-checks the
-      # filenames. Families version independently, so it is not "the" release
-      # version; `label` names what this run actually ships, per family.
-      - name: Read target version
+      # Each wheel set carries its own crate's version in the filename, and the
+      # wheel builds assert against it. Families version independently, so
+      # there is no single release version; `label` names what this run
+      # actually ships, per family.
+      - name: Read target versions
         id: version
         run: |
           set -euo pipefail
-          VER=$(sed -nE 's/^version *= *"([^"]+)".*/\1/p' crates/blazediff/Cargo.toml | head -1)
-          [[ -n "$VER" ]] || { echo "::error::could not read version from crates/blazediff/Cargo.toml"; exit 1; }
-          echo "version=$VER" >> "$GITHUB_OUTPUT"
-          # Wheels carry the core version in their filenames, so they need a
-          # rebuild when the core sources changed *or* the core version bumped
-          # without them (a TS-only core release). If neither, the committed
-          # wheels are already the right ones.
-          if [[ "${{ steps.families.outputs.core }}" == "true" ]] \
-            || ! ls crates/blazediff/wheels/blazediff-"$VER"-*.whl > /dev/null 2>&1; then
-            WHEELS=true
+          crate_version() {
+            local v; v=$(sed -nE 's/^version *= *"([^"]+)".*/\1/p' "crates/$1/Cargo.toml" | head -1)
+            [[ -n "$v" ]] || { echo "::error::could not read version from crates/$1/Cargo.toml"; exit 1; }
+            echo "$v"
+          }
+
+          # A wheel set needs rebuilding when its family's sources changed *or*
+          # its version bumped without it (a TS-only release for that family).
+          # If neither, the committed wheels are already the right ones.
+          wheels_needed() {
+            local crate="$1" version="$2" changed="$3"
+            local prefix="${crate//-/_}"
+            if [[ "$changed" == "true" ]] \
+              || ! ls "crates/$crate/wheels/$prefix-$version-"*.whl > /dev/null 2>&1; then
+              echo true
+            else
+              echo "$crate wheels for v$version already committed — skipping" >&2
+              echo false
+            fi
+          }
+
+          CORE_VER=$(crate_version blazediff)
+          SSIM_VER=$(crate_version blazediff-ssim)
+          INTERPRET_VER=$(crate_version blazediff-interpret)
+          WHEELS_CORE=$(wheels_needed blazediff "$CORE_VER" '${{ steps.families.outputs.core }}')
+          WHEELS_SSIM=$(wheels_needed blazediff-ssim "$SSIM_VER" '${{ steps.families.outputs.ssim }}')
+          WHEELS_INTERPRET=$(wheels_needed blazediff-interpret "$INTERPRET_VER" '${{ steps.families.outputs.interpret }}')
+
+          {
+            echo "core_version=$CORE_VER"
+            echo "ssim_version=$SSIM_VER"
+            echo "interpret_version=$INTERPRET_VER"
+            echo "wheels_core=$WHEELS_CORE"
+            echo "wheels_ssim=$WHEELS_SSIM"
+            echo "wheels_interpret=$WHEELS_INTERPRET"
+          } >> "$GITHUB_OUTPUT"
+
+          # One flag for the steps that only care whether maturin and zig are
+          # needed at all.
+          if [[ "$WHEELS_CORE$WHEELS_SSIM$WHEELS_INTERPRET" == *true* ]]; then
+            echo "wheels_any=true" >> "$GITHUB_OUTPUT"
           else
-            WHEELS=false
-            echo "wheels for v$VER already committed — skipping wheel builds"
+            echo "wheels_any=false" >> "$GITHUB_OUTPUT"
           fi
-          echo "wheels=$WHEELS" >> "$GITHUB_OUTPUT"
 
           pkg_version() { node -p "require('./$1/package.json').version"; }
           parts=()
@@ -145,8 +180,14 @@ jobs:
           if [[ "${{ steps.families.outputs.wasm }}" == "true" ]]; then
             parts+=("wasm v$(pkg_version packages/core-wasm)")
           fi
-          if [[ "$WHEELS" == "true" ]]; then
-            parts+=("wheels v$VER")
+          if [[ "$WHEELS_CORE" == "true" ]]; then
+            parts+=("blazediff wheels v$CORE_VER")
+          fi
+          if [[ "$WHEELS_SSIM" == "true" ]]; then
+            parts+=("blazediff-ssim wheels v$SSIM_VER")
+          fi
+          if [[ "$WHEELS_INTERPRET" == "true" ]]; then
+            parts+=("blazediff-interpret wheels v$INTERPRET_VER")
           fi
           if [[ ${#parts[@]} -eq 0 ]]; then
             LABEL="nothing — no artifact sources changed"
@@ -208,7 +249,7 @@ jobs:
       # build of maturin trips over yanked transitive deps, and a fast retry
       # of /build beats minutes of doomed compilation.
       - name: Install maturin
-        if: needs.resolve.outputs.wheels == 'true'
+        if: needs.resolve.outputs.wheels_any == 'true'
         run: cargo binstall -y --disable-strategies compile maturin@1.13.1
 
       # cross only backs the linux CLI/.node builds; wheels link with zig.
@@ -224,7 +265,7 @@ jobs:
       # is what gets them the manylinux_2_17 tag. ziglang is the same
       # distribution homebrew's zig is, just installed without a package manager.
       - name: Install zig
-        if: matrix.kind == 'linux' && needs.resolve.outputs.wheels == 'true'
+        if: matrix.kind == 'linux' && needs.resolve.outputs.wheels_any == 'true'
         run: |
           set -euo pipefail
           python3 -m venv "$HOME/.zig-venv"
@@ -250,20 +291,34 @@ jobs:
         if: needs.resolve.outputs.interpret == 'true'
         run: crates/blazediff-interpret/scripts/build-napi.sh --target ${{ matrix.target }}
 
-      - name: Build Python wheel
-        if: needs.resolve.outputs.wheels == 'true'
+      # zig links against a bare glibc sysroot with no zlib, and picking up the
+      # runner's libz would undo the manylinux tag. The vendored miniz is what
+      # the macOS-hosted build already ships in these wheels; build.rs only
+      # auto-selects it when the *host* isn't Linux, and it reads the override
+      # with `is_ok()` — so it must stay *unset* everywhere else. Every wheel
+      # here decodes images through blazediff-shared, so all three need it.
+      - name: Build Python wheels
+        if: needs.resolve.outputs.wheels_any == 'true'
         run: |
           set -euo pipefail
-          # zig links against a bare glibc sysroot with no zlib, and picking up
-          # the runner's libz would undo the manylinux tag. The vendored miniz
-          # is what the macOS-hosted build already ships in these wheels;
-          # build.rs only auto-selects it when the *host* isn't Linux.
           if [[ "${{ matrix.kind }}" == "linux" ]]; then
             export BLAZEDIFF_FORCE_MINIZ=1
           fi
-          crates/blazediff/scripts/build-maturin.sh \
-            --target ${{ matrix.target }} \
-            --version ${{ needs.resolve.outputs.version }}
+          if [[ "${{ needs.resolve.outputs.wheels_core }}" == "true" ]]; then
+            crates/blazediff/scripts/build-maturin.sh \
+              --target ${{ matrix.target }} \
+              --version ${{ needs.resolve.outputs.core_version }}
+          fi
+          if [[ "${{ needs.resolve.outputs.wheels_ssim }}" == "true" ]]; then
+            crates/blazediff-ssim/scripts/build-maturin.sh \
+              --target ${{ matrix.target }} \
+              --version ${{ needs.resolve.outputs.ssim_version }}
+          fi
+          if [[ "${{ needs.resolve.outputs.wheels_interpret }}" == "true" ]]; then
+            crates/blazediff-interpret/scripts/build-maturin.sh \
+              --target ${{ matrix.target }} \
+              --version ${{ needs.resolve.outputs.interpret_version }}
+          fi
 
       # The build scripts warn-and-continue on some paths; make sure this job
       # never uploads a stale checkout file (an LFS pointer) as a fresh binary.
@@ -271,8 +326,14 @@ jobs:
         run: |
           set -euo pipefail
           files=()
-          if [[ "${{ needs.resolve.outputs.wheels }}" == "true" ]]; then
+          if [[ "${{ needs.resolve.outputs.wheels_core }}" == "true" ]]; then
             files+=(crates/blazediff/wheels/*.whl)
+          fi
+          if [[ "${{ needs.resolve.outputs.wheels_ssim }}" == "true" ]]; then
+            files+=(crates/blazediff-ssim/wheels/*.whl)
+          fi
+          if [[ "${{ needs.resolve.outputs.wheels_interpret }}" == "true" ]]; then
+            files+=(crates/blazediff-interpret/wheels/*.whl)
           fi
           if [[ "${{ needs.resolve.outputs.core }}" == "true" ]]; then
             files+=(
@@ -336,6 +397,8 @@ jobs:
             packages/ssim-native/ssim-native-${{ matrix.pkg }}/blazediff_ssim.node
             packages/interpret-native/interpret-native-${{ matrix.pkg }}/blazediff_interpret.node
             crates/blazediff/wheels/*.whl
+            crates/blazediff-ssim/wheels/*.whl
+            crates/blazediff-interpret/wheels/*.whl
 
   wasm:
     name: wasm32-unknown-unknown
@@ -416,10 +479,13 @@ jobs:
             exit 1
           fi
 
-      # Wheels are a single-version set (publish-pypi.yml enforces it), so the
-      # previous release's have to go before this release's land.
+      # Each wheels dir is a single-version set (publish-pypi.yml enforces it),
+      # so the previous release's have to go before this release's land.
       - name: Drop previous wheels
-        run: rm -f crates/blazediff/wheels/*.whl
+        run: |
+          rm -f crates/blazediff/wheels/*.whl \
+                crates/blazediff-ssim/wheels/*.whl \
+                crates/blazediff-interpret/wheels/*.whl
 
       - uses: actions/download-artifact@v4
         with:
@@ -436,22 +502,29 @@ jobs:
       - name: Stage artifacts
         run: |
           set -euo pipefail
-          VER='${{ needs.resolve.outputs.version }}'
 
           # upload-artifact drops the executable bit; restore it from what git
           # already records rather than guessing which paths need it.
-          git ls-files -s packages crates/blazediff/wheels \
+          git ls-files -s packages crates/*/wheels \
             | awk '$1 == "100755" { print $4 }' \
             | xargs -r chmod +x
 
-          # Guards a version bump that only landed in half the manifests: the
-          # wheel names encode the version the whole release is cut at.
-          for whl in crates/blazediff/wheels/*.whl; do
-            case "$(basename "$whl")" in
-              "blazediff-${VER}-"*) ;;
-              *) echo "::error::$whl is not a v${VER} wheel"; exit 1 ;;
-            esac
-          done
+          # Guards a version bump that only landed in half the manifests: each
+          # wheel name encodes the version its own family is cut at, with the
+          # crate name PEP 427-escaped.
+          shopt -s nullglob
+          check_wheels() {
+            local crate="$1" version="$2" prefix="${1//-/_}"
+            for whl in "crates/$crate/wheels"/*.whl; do
+              case "$(basename "$whl")" in
+                "${prefix}-${version}-"*) ;;
+                *) echo "::error::$whl is not a v${version} ${prefix} wheel"; exit 1 ;;
+              esac
+            done
+          }
+          check_wheels blazediff '${{ needs.resolve.outputs.core_version }}'
+          check_wheels blazediff-ssim '${{ needs.resolve.outputs.ssim_version }}'
+          check_wheels blazediff-interpret '${{ needs.resolve.outputs.interpret_version }}'
 
       - name: Commit and push
         id: push
@@ -463,7 +536,10 @@ jobs:
           # this clone before `git add` sees them.
           git lfs install --local
 
-          git add -A packages crates/blazediff/wheels
+          git add -A packages \
+            crates/blazediff/wheels \
+            crates/blazediff-ssim/wheels \
+            crates/blazediff-interpret/wheels
           if git diff --cached --quiet; then
             echo "Artifacts already up to date — nothing to commit."
             echo "committed=false" >> "$GITHUB_OUTPUT"

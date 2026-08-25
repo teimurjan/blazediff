@@ -123,6 +123,8 @@ dependencies = [
  "napi",
  "napi-build",
  "napi-derive",
+ "pyo3",
+ "pythonize",
  "serde",
  "serde_json",
 ]
@@ -192,6 +194,7 @@ dependencies = [
  "napi-build",
  "napi-derive",
  "png",
+ "pyo3",
 ]
 
 [[package]]
@@ -872,6 +875,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d80ba7540edb18890d444c5aa8e1f1f99b1bdf26fb26ae383135325f4a36042b"
 dependencies = [
  "cc",
+]
+
+[[package]]
+name = "pythonize"
+version = "0.22.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "90fcf491425978bd889015d5430f6473d91bdfa2097262f1e731aadcf6c2113e"
+dependencies = [
+ "pyo3",
+ "serde",
 ]
 
 [[package]]

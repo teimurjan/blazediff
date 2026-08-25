@@ -55,7 +55,16 @@ const TARGETS = [
 	"x86_64-pc-windows-msvc",
 ];
 const WASM_ARTIFACT = "wasm";
-const WHEELS_DIR = path.join("crates", "blazediff", "wheels");
+// One committed wheels dir per PyPI distribution, each named after its crate.
+const WHEELS_DIRS = [
+	path.join("crates", "blazediff", "wheels"),
+	path.join("crates", "blazediff-ssim", "wheels"),
+	path.join("crates", "blazediff-interpret", "wheels"),
+];
+// The one the version probe reads: `blazediff`'s is the set every /build run
+// that touched wheels at all is most likely to carry, and its version is the
+// one repoVersion() reports.
+const CORE_WHEELS_DIR = WHEELS_DIRS[0];
 
 // How many recent runs to probe before giving up, when no --run is given.
 const MAX_RUNS_PROBED = 5;
@@ -79,7 +88,7 @@ function familyOf(relative) {
 	if (relative.startsWith("packages/interpret-native/interpret-native-"))
 		return "interpret";
 	if (relative.startsWith(path.join("packages", "core-wasm"))) return "wasm";
-	if (relative.startsWith(WHEELS_DIR)) return "wheels";
+	if (WHEELS_DIRS.some((dir) => relative.startsWith(dir))) return "wheels";
 	return null;
 }
 
@@ -187,7 +196,7 @@ function download(slug, runId, dir, name = null) {
 
 /** The version a downloaded target artifact was built at, read off its wheel. */
 function versionOf(targetDir) {
-	const wheelDir = path.join(targetDir, WHEELS_DIR);
+	const wheelDir = path.join(targetDir, CORE_WHEELS_DIR);
 	if (!fs.existsSync(wheelDir)) return null;
 	const wheel = fs.readdirSync(wheelDir).find((file) => file.endsWith(".whl"));
 	if (!wheel) return null;
@@ -258,7 +267,7 @@ function restoreExecutableBits() {
 	if (DRY_RUN) return;
 	const listed = execFileSync(
 		"git",
-		["ls-files", "-s", "packages", WHEELS_DIR],
+		["ls-files", "-s", "packages", ...WHEELS_DIRS],
 		{ cwd: ROOT, encoding: "utf8", maxBuffer: 32 * 1024 * 1024 },
 	);
 	for (const line of listed.split("\n")) {
@@ -379,17 +388,19 @@ function main() {
 		const artifactsDir = path.join(staging, "full");
 		download(slug, chosen.id, artifactsDir);
 
-		// Wheels are a single-version set, so last release's have to go before
-		// this one's land — same reasoning as the commit job. But only when
-		// the run actually carries wheels: a run that skipped the wheel build
-		// (core sources unchanged) must not strip the valid committed set.
-		const runHasWheels = TARGETS.some((target) =>
-			fs.existsSync(path.join(artifactsDir, `target-${target}`, WHEELS_DIR)),
-		);
-		const wheelDir = path.join(ROOT, WHEELS_DIR);
-		if (!DRY_RUN && runHasWheels && fs.existsSync(wheelDir)) {
-			for (const file of fs.readdirSync(wheelDir)) {
-				if (file.endsWith(".whl")) fs.rmSync(path.join(wheelDir, file));
+		// Each wheels dir is a single-version set, so last release's have to go
+		// before this one's land — same reasoning as the commit job. But only
+		// when the run actually carries that dir: a run that skipped a wheel
+		// build (that family's sources unchanged) must not strip its valid
+		// committed set.
+		for (const wheelsDir of WHEELS_DIRS) {
+			const runHasWheels = TARGETS.some((target) =>
+				fs.existsSync(path.join(artifactsDir, `target-${target}`, wheelsDir)),
+			);
+			const dir = path.join(ROOT, wheelsDir);
+			if (DRY_RUN || !runHasWheels || !fs.existsSync(dir)) continue;
+			for (const file of fs.readdirSync(dir)) {
+				if (file.endsWith(".whl")) fs.rmSync(path.join(dir, file));
 			}
 		}
 
