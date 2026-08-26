@@ -433,7 +433,7 @@ function main() {
 			DRY_RUN
 				? "\n(dry run — nothing was written)"
 				: "\nNothing is committed. To commit these:\n" +
-						"  git add -A packages crates/blazediff/wheels\n" +
+						`  git add -A packages ${WHEELS_DIRS.join(" ")}\n` +
 						"  git commit --no-verify -m 'build: artifacts for v" +
 						version +
 						"'\n" +
