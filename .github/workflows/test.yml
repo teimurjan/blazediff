@@ -56,7 +56,7 @@ jobs:
       # Pinned to the version build-artifacts.yml ships the released wheels
       # with, so what this imports is what users get.
       - name: Install maturin
-        run: cargo binstall -y --disable-strategies compile maturin@1.13.1
+        run: cargo binstall -y --disable-strategies compile maturin@1.15.0
         env:
           GITHUB_TOKEN: ${{ github.token }}
 

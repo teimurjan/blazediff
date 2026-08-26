@@ -72,6 +72,20 @@ if ! command -v maturin &> /dev/null; then
     exit 1
 fi
 
+# rustc 1.98 started passing `-Wl,--fix-cortex-a53-843419` when linking
+# aarch64-linux, and `zig cc` rejects linker args it doesn't recognise.
+# cargo-zigbuild 0.23 filters it (rust-cross/cargo-zigbuild#452); maturin 1.14.1
+# is the first release to bundle that. Below it, the Linux arm64 wheel dies
+# three minutes into a link with `error: unsupported linker arg`, which names
+# neither maturin nor the toolchain that moved.
+MIN_MATURIN="1.14.1"
+MATURIN_VERSION="$(maturin --version | awk '{print $2}')"
+if [[ "$(printf '%s\n%s\n' "$MIN_MATURIN" "$MATURIN_VERSION" | sort -V | head -1)" != "$MIN_MATURIN" ]]; then
+    echo "Error: maturin $MATURIN_VERSION is too old; $MIN_MATURIN or newer is required."
+    echo "Upgrade with: uv tool install maturin --force"
+    exit 1
+fi
+
 # Maturin's default Windows target uses MSVC ABI (Python on Windows is MSVC-built).
 DEFAULT_TARGETS_MATURIN=(
     aarch64-apple-darwin
