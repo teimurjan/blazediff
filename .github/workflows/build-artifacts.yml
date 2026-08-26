@@ -248,9 +248,12 @@ jobs:
       # wheel build needs maturin. The compile fallback is disabled: a source
       # build of maturin trips over yanked transitive deps, and a fast retry
       # of /build beats minutes of doomed compilation.
+      #
+      # The floor is 1.14.1, the first release to bundle cargo-zigbuild 0.23 —
+      # see the version check in crates/scripts/build-maturin.sh for why.
       - name: Install maturin
         if: needs.resolve.outputs.wheels_any == 'true'
-        run: cargo binstall -y --disable-strategies compile maturin@1.13.1
+        run: cargo binstall -y --disable-strategies compile maturin@1.15.0
 
       # cross only backs the linux CLI/.node builds; wheels link with zig.
       - name: Install cross
