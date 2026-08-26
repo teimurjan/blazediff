@@ -5,7 +5,7 @@ build-backend = "maturin"
 [project]
 name = "blazediff-interpret"
 # Synced from the @blazediff/rust-interpret changesets shadow by scripts/release/sync-pyproject-version.js.
-version = "6.2.0"
+version = "6.3.0"
 description = "Structured region analysis for image diffs: classify what changed, not just where"
 license = { text = "MIT" }
 authors = [{ name = "Teimur Gasanov" }]

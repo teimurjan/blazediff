@@ -1,5 +1,12 @@
 # @blazediff/matcher
 
+## 2.0.7
+
+### Patch Changes
+
+- @blazediff/core-native@6.0.1
+- @blazediff/core-wasm@6.0.1
+
 ## 2.0.6
 
 ### Patch Changes

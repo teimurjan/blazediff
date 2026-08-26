@@ -1,6 +1,6 @@
 {
 	"name": "@blazediff/ssim-native-win32-x64",
-	"version": "6.0.0",
+	"version": "6.1.0",
 	"description": "blazediff-ssim N-API binary for Windows x64",
 	"main": "blazediff_ssim.node",
 	"os": [
