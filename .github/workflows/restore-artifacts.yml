@@ -111,7 +111,13 @@ jobs:
           # this clone before `git add` sees them.
           git lfs install --local
 
-          git add -A packages crates/blazediff/wheels
+          # Every wheels dir, not just the core one: restore-artifacts.js
+          # rewrites all three, and staging one would drop the other two's
+          # wheels on the floor while still reporting success.
+          git add -A packages \
+            crates/blazediff/wheels \
+            crates/blazediff-ssim/wheels \
+            crates/blazediff-interpret/wheels
           if git diff --cached --quiet; then
             echo "Artifacts already match — nothing to commit."
             echo "committed=false" >> "$GITHUB_OUTPUT"
