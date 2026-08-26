@@ -133,8 +133,16 @@ jobs:
 
           if [[ "$wasm" == "true" ]]; then
             # --- WASM ------------------------------------------------------
+            # The module is the freshness proof for this family. Its JS glue is
+            # not: wasm-bindgen derives it from the exported API alone, so a
+            # release that changes the implementation but not the surface
+            # regenerates it byte-for-byte identical, and a content diff cannot
+            # tell that apart from "never rebuilt". Requiring both went red on
+            # the v6.0.1 release for exactly that reason. build-wasm.sh writes
+            # the pair in one invocation, so the module's freshness already
+            # covers the glue.
             require_fresh_file "packages/core-wasm/wasm/blazediff_bg.wasm"
-            require_fresh_file "packages/core-wasm/wasm/blazediff.js"
+            require_file "packages/core-wasm/wasm/blazediff.js"
           fi
 
           if [[ "$ssim" == "true" ]]; then
