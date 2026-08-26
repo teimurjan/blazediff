@@ -19,6 +19,14 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 VENV="$ROOT/dist/python-test-venv"
 PYTHON="$VENV/bin/python"
 
+# `_targets.sh` adds -mevex512 to the x86_64 Linux C flags to appease zig's
+# clang, which is how the *released* wheels are cross-built. Everything here is
+# a `--native` build, which never goes through zig, and GCC below 14 — the
+# runner's cc — has no such flag. Same reason benchmark-binary.yml sets it.
+# Overridable for the one case that still needs the flag natively: a host cc
+# that is clang 18 or newer.
+export BLAZEDIFF_SKIP_EVEX512="${BLAZEDIFF_SKIP_EVEX512:-1}"
+
 CRATES=(blazediff blazediff-ssim blazediff-interpret)
 
 for tool in uv maturin; do
