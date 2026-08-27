@@ -1,3 +1,5 @@
 # @blazediff/ssim-native-linux-arm64
 
+## 6.1.0
+
 ## 6.0.0

@@ -1,5 +1,13 @@
 # @blazediff/cli
 
+## 5.0.3
+
+### Patch Changes
+
+- @blazediff/core-native@6.0.1
+- @blazediff/core-wasm@6.0.1
+- @blazediff/interpret-native@6.3.0
+
 ## 5.0.2
 
 ### Patch Changes

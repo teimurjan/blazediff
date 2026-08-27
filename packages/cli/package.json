@@ -1,6 +1,6 @@
 {
 	"name": "@blazediff/cli",
-	"version": "5.0.2",
+	"version": "5.0.3",
 	"description": "Command-line interface for the blazediff image comparison library",
 	"private": false,
 	"publishConfig": {

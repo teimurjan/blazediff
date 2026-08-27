@@ -1,6 +1,6 @@
 {
 	"name": "@blazediff/interpret-native-win32-arm64",
-	"version": "6.2.0",
+	"version": "6.3.0",
 	"description": "blazediff-interpret N-API binary for Windows ARM64",
 	"main": "blazediff_interpret.node",
 	"os": [
