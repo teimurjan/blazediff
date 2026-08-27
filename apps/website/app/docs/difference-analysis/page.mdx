@@ -7,8 +7,6 @@ description: BlazeDiff interpret mode turns a raw pixel diff into labelled regio
 
 import { Tabs } from "nextra/components";
 import InterpretComparison from "../../../components/interpret-comparison";
-import diffData from "../../../data/interpret/blazediff-3-diff.json";
-import identicalData from "../../../data/interpret/blazediff-3-identical.json";
 
 **Interpret mode takes a raw pixel diff and tells you what changed, where, and how
 much.** Instead of one number, you get a list of regions, each with a bounding
@@ -55,13 +53,10 @@ that were measured deterministically is answering a much easier question. See
    the content that appeared at another — by directly correlating the two image
    crops, scored best-first — and relabels both halves as a Shift.
 
-## Demo
+Pick a fixture pair. The analysis runs in your browser, in a Web Worker, on the
+same Rust classifier compiled to wasm — nothing here is precomputed.
 
-<InterpretComparison
-  fixtureA="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3a.png"
-  fixtureB="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3b.png"
-  fullResult={diffData}
-/>
+<InterpretComparison />
 
 ## Usage
 
@@ -117,11 +112,7 @@ Exits 0 when nothing actionable changed, 1 when it did, 2 on error.
 
 ### Identical images
 
-<InterpretComparison
-  fixtureA="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3a.png"
-  fixtureB="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3a.png"
-  fullResult={identicalData}
-/>
+<InterpretComparison pairIds={["blazediff/3-identical"]} />
 
 When nothing changed, `regions` is empty and `summary` says so.
 

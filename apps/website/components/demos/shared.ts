@@ -1,7 +1,8 @@
 // Shared fixtures + class props so the React and vanilla demos render identically.
 
-const RAW =
-	"https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff";
+import { RAW_FIXTURES } from "../../utils/fixtures";
+
+const RAW = `${RAW_FIXTURES}/blazediff`;
 
 export const A = `${RAW}/1a.png`;
 export const B = `${RAW}/1b.png`;

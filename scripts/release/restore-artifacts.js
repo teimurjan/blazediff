@@ -54,7 +54,17 @@ const TARGETS = [
 	"aarch64-pc-windows-msvc",
 	"x86_64-pc-windows-msvc",
 ];
-const WASM_ARTIFACT = "wasm";
+// The wasm packages, keyed by the artifact name build-artifacts.yml uploads.
+// Each archive is rooted at its wasm directory rather than the repo root, so
+// the destination is spelled out here.
+const WASM_FAMILIES = [
+	{ artifact: "wasm", family: "wasm", pkg: "core-wasm" },
+	{
+		artifact: "interpret-wasm",
+		family: "wasm_interpret",
+		pkg: "interpret-wasm",
+	},
+];
 // One committed wheels dir per PyPI distribution, each named after its crate.
 const WHEELS_DIRS = [
 	path.join("crates", "blazediff", "wheels"),
@@ -87,7 +97,9 @@ function familyOf(relative) {
 	if (relative.startsWith("packages/ssim-native/ssim-native-")) return "ssim";
 	if (relative.startsWith("packages/interpret-native/interpret-native-"))
 		return "interpret";
-	if (relative.startsWith(path.join("packages", "core-wasm"))) return "wasm";
+	for (const { family, pkg } of WASM_FAMILIES) {
+		if (relative.startsWith(path.join("packages", pkg))) return family;
+	}
 	if (WHEELS_DIRS.some((dir) => relative.startsWith(dir))) return "wheels";
 	return null;
 }
@@ -185,7 +197,11 @@ function usableArtifacts(slug, runId) {
 		const expired = artifacts.some((artifact) => artifact.expired);
 		return { ok: false, missing, expired };
 	}
-	return { ok: true, artifacts: live, hasWasm: names.has(WASM_ARTIFACT) };
+	const wasm = {};
+	for (const { family, artifact } of WASM_FAMILIES) {
+		wasm[family] = names.has(artifact);
+	}
+	return { ok: true, artifacts: live, wasm };
 }
 
 function download(slug, runId, dir, name = null) {
@@ -244,9 +260,10 @@ function applyArtifacts(stagingDir, needed) {
 		}
 	}
 
-	const wasmSource = path.join(stagingDir, WASM_ARTIFACT);
-	const wasmDest = path.join("packages", "core-wasm", "wasm");
-	if (fs.existsSync(wasmSource)) {
+	for (const { artifact, pkg } of WASM_FAMILIES) {
+		const wasmSource = path.join(stagingDir, artifact);
+		if (!fs.existsSync(wasmSource)) continue;
+		const wasmDest = path.join("packages", pkg, "wasm");
 		for (const relative of walk(wasmSource)) {
 			apply(
 				path.join(wasmSource, relative),
@@ -299,12 +316,20 @@ function verify(restored) {
 	}
 }
 
+/** " (no wasm, no interpret-wasm)" — or "" when a run carries them all. */
+function missingWasmLabel(state) {
+	const absent = WASM_FAMILIES.filter(({ family }) => !state.wasm[family]).map(
+		({ artifact }) => `no ${artifact}`,
+	);
+	return absent.length > 0 ? ` (${absent.join(", ")})` : "";
+}
+
 function listRuns(slug) {
 	console.log(`Recent successful ${WORKFLOW} runs:\n`);
 	for (const run of successfulRuns(slug)) {
 		const state = usableArtifacts(slug, run.id);
 		const status = state.ok
-			? `artifacts available${state.hasWasm ? "" : " (no wasm)"}`
+			? `artifacts available${missingWasmLabel(state)}`
 			: state.expired
 				? "artifacts expired"
 				: `incomplete (missing ${state.missing.join(", ")})`;
@@ -347,9 +372,12 @@ function main() {
 				);
 				continue;
 			}
-			if (needed.wasm && !state.hasWasm) {
+			const staleWasm = WASM_FAMILIES.find(
+				({ family }) => needed[family] && !state.wasm[family],
+			);
+			if (staleWasm) {
 				rejected.push(
-					`  run ${run.id} — has no wasm artifact, but the wasm sources changed`,
+					`  run ${run.id} — has no ${staleWasm.artifact} artifact, but the ${staleWasm.artifact} sources changed`,
 				);
 				continue;
 			}

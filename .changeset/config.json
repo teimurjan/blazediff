@@ -32,6 +32,7 @@
 			"@blazediff/interpret-native-linux-x64",
 			"@blazediff/interpret-native-win32-arm64",
 			"@blazediff/interpret-native-win32-x64",
+			"@blazediff/interpret-wasm",
 			"@blazediff/rust-interpret"
 		]
 	],

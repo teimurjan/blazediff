@@ -120,13 +120,17 @@ dependencies = [
  "blazediff-shared",
  "blazediff-ssim",
  "clap",
+ "console_error_panic_hook",
+ "js-sys",
  "napi",
  "napi-build",
  "napi-derive",
  "pyo3",
  "pythonize",
  "serde",
+ "serde-wasm-bindgen",
  "serde_json",
+ "wasm-bindgen",
 ]
 
 [[package]]

@@ -11,9 +11,27 @@ const apiSlugs = fs
 	.filter((entry) => entry.isDirectory())
 	.map((entry) => entry.name);
 
+// The interpret demo loads its wasm from jsDelivr rather than from the bundle:
+// wasm-bindgen's glue resolves the module with `new URL(..., import.meta.url)`,
+// which Turbopack rewrites to a root-relative `/_next/static/media/...`, and
+// the analysis worker runs from a blob: URL where that has nothing to resolve
+// against. Reading the version from the workspace manifest keeps the CDN URL
+// pinned to whatever this checkout ships, with no second place to update.
+const interpretWasmVersion = JSON.parse(
+	fs.readFileSync(
+		fileURLToPath(
+			new URL("../../packages/interpret-wasm/package.json", import.meta.url),
+		),
+		"utf8",
+	),
+).version;
+
 export default withNextra({
 	reactStrictMode: true,
 	devIndicators: false,
+	env: {
+		NEXT_PUBLIC_INTERPRET_WASM_VERSION: interpretWasmVersion,
+	},
 	async redirects() {
 		// Two route renames: the friendly docs (formerly /examples) now live at
 		// /docs, and the API reference (formerly /docs) moved to /apis. Keep

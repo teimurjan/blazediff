@@ -17,6 +17,13 @@
 //   interpret  interpret .node            blazediff-interpret, blazediff, blazediff-ssim,
 //                                         blazediff-shared, blazediff-png
 //   wasm       core wasm module           blazediff, blazediff-shared (built without codecs)
+//   wasm_interpret
+//              interpret wasm module      blazediff-interpret, blazediff, blazediff-ssim,
+//                                         blazediff-shared (built without codecs)
+//
+// Family keys are shell identifiers: this script's output is `eval`'d in
+// release-artifacts-check.yml and `tee`'d into $GITHUB_OUTPUT, so a hyphen
+// would break the eval silently. Underscores only.
 //
 // Wheels are deliberately not families of their own: each of the three sets
 // (blazediff / blazediff-ssim / blazediff-interpret) is built from the crate a
@@ -43,7 +50,7 @@ const path = require("node:path");
 
 const ROOT = path.resolve(__dirname, "..", "..");
 
-const FAMILIES = ["core", "ssim", "interpret", "wasm"];
+const FAMILIES = ["core", "ssim", "interpret", "wasm", "wasm_interpret"];
 
 /** The crate sources compiled into each family's artifacts. */
 const FAMILY_CRATES = {
@@ -59,6 +66,12 @@ const FAMILY_CRATES = {
 	// blazediff-shared's `codecs` feature (and blazediff-png with it) is off
 	// in the wasm build.
 	wasm: ["blazediff", "blazediff-shared"],
+	wasm_interpret: [
+		"blazediff-interpret",
+		"blazediff",
+		"blazediff-ssim",
+		"blazediff-shared",
+	],
 };
 
 /** The npm package whose changesets tag anchors each family's last release. */
@@ -67,6 +80,7 @@ const FAMILY_NPM = {
 	ssim: "@blazediff/ssim-native",
 	interpret: "@blazediff/interpret-native",
 	wasm: "@blazediff/core-wasm",
+	wasm_interpret: "@blazediff/interpret-wasm",
 };
 
 const FAMILY_PACKAGE = {
@@ -74,6 +88,7 @@ const FAMILY_PACKAGE = {
 	ssim: "packages/ssim-native/ssim-native/package.json",
 	interpret: "packages/interpret-native/interpret-native/package.json",
 	wasm: "packages/core-wasm/package.json",
+	wasm_interpret: "packages/interpret-wasm/package.json",
 };
 
 const ALL_CRATES = [...new Set(Object.values(FAMILY_CRATES).flat())];

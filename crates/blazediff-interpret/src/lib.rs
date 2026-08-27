@@ -32,6 +32,8 @@ mod shape;
 mod shifts;
 mod spatial;
 mod summary;
+#[cfg(all(feature = "wasm", target_arch = "wasm32"))]
+mod wasm;
 // Small image constructors shared by this crate's tests and by `blazediff`'s
 // end-to-end interpret tests, which live there because they need `diff`.
 #[cfg(any(test, feature = "testing"))]

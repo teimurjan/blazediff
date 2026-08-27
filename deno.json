@@ -10,6 +10,7 @@
 		"./packages/core-native/core-native",
 		"./packages/core-wasm",
 		"./packages/interpret-native/interpret-native",
+		"./packages/interpret-wasm",
 		"./packages/ssim-native/ssim-native",
 		"./packages/matcher",
 		"./packages/cli"
