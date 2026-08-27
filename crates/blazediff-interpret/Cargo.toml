@@ -15,18 +15,31 @@ include = ["src/**/*", "build.rs", "Cargo.toml", "README.md"]
 [features]
 # Exposes `test_helpers` to downstream test suites.
 testing = []
+# Decoding for the front-ends that take file paths. The classifier itself never
+# touches a codec — it is handed `Image`s — so this stays off the default build
+# and, crucially, off `wasm`: `blazediff-shared/codecs` is what drags in the
+# vendored C (libjpeg-turbo, libspng, miniz) that wasm32 cannot link.
+io = ["blazediff/io", "blazediff-shared/codecs"]
 # N-API bindings for `@blazediff/interpret-native`.
 napi = [
     "dep:napi",
     "dep:napi-derive",
     "dep:napi-build",
     "dep:serde_json",
-    "blazediff-shared/codecs",
+    "io",
 ]
 # PyO3 bindings for the `blazediff-interpret` PyPI wheel.
-python = ["dep:pyo3", "dep:pythonize", "blazediff-shared/codecs"]
+python = ["dep:pyo3", "dep:pythonize", "io"]
 # The `blazediff-interpret` CLI.
-cli = ["dep:clap", "dep:serde_json", "blazediff-shared/codecs"]
+cli = ["dep:clap", "dep:serde_json", "io"]
+# wasm-bindgen bindings for `@blazediff/interpret-wasm`. Buffers-only, so no
+# codecs: the caller pre-decodes to RGBA8 in the host.
+wasm = [
+    "dep:wasm-bindgen",
+    "dep:js-sys",
+    "dep:serde-wasm-bindgen",
+    "dep:console_error_panic_hook",
+]
 
 [lib]
 name = "blazediff_interpret"
@@ -44,7 +57,7 @@ required-features = ["cli"]
 # than either of them depending on it. `version` is required to publish to
 # crates.io; kept in lockstep by scripts/release/sync-cargo-version.js.
 blazediff-shared = { path = "../blazediff-shared", version = "6.0.0", default-features = false }
-blazediff = { path = "../blazediff", version = "6.0.1", default-features = false, features = ["io"] }
+blazediff = { path = "../blazediff", version = "6.0.1", default-features = false }
 blazediff-ssim = { path = "../blazediff-ssim", version = "6.1.0" }
 serde = { version = "1", features = ["derive"] }
 napi = { version = "2", features = ["napi4", "serde-json"], optional = true }
@@ -58,6 +71,14 @@ clap = { version = "4", features = ["derive"], optional = true }
 # `InterpretResult` already derives Serialize, so the front-ends hand it across
 # as a plain object rather than restating ten `#[napi(object)]` structs.
 serde_json = { version = "1", optional = true }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+# wasm-bindgen pinned to match the wasm-bindgen-cli version used in
+# crates/scripts/build-wasm.sh. Bumping requires bumping both in lockstep.
+wasm-bindgen = { version = "=0.2.100", optional = true }
+js-sys = { version = "0.3", optional = true }
+serde-wasm-bindgen = { version = "0.6", optional = true }
+console_error_panic_hook = { version = "0.1", optional = true }
 
 [build-dependencies]
 napi-build = { version = "2", optional = true }

@@ -1,0 +1,19 @@
+{
+	"name": "@blazediff/interpret-wasm",
+	"version": "6.3.0",
+	"exports": "./src/index.ts",
+	"publish": {
+		"include": [
+			"src/**/*.ts",
+			"wasm/blazediff_interpret.js",
+			"wasm/blazediff_interpret.d.ts",
+			"wasm/blazediff_interpret_bg.wasm",
+			"wasm/blazediff_interpret_bg.wasm.d.ts",
+			"README.md"
+		],
+		"exclude": ["src/**/*.test.ts", "src/**/*.spec.ts", "src/**/*.deno.test.ts"]
+	},
+	"test": {
+		"include": ["src/**/*.deno.test.ts"]
+	}
+}

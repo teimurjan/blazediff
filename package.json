@@ -10,6 +10,7 @@
 		"build:rust:ssim": "cd crates/blazediff-ssim && ./scripts/build-napi.sh --all",
 		"build:rust:interpret": "cd crates/blazediff-interpret && ./scripts/build-napi.sh --all",
 		"build:wasm": "cd crates/blazediff && ./scripts/build-wasm.sh",
+		"build:wasm:interpret": "cd crates/blazediff-interpret && ./scripts/build-wasm.sh",
 		"build:python": "cd crates/blazediff && ./scripts/build-maturin.sh",
 		"build:python:all": "cd crates/blazediff && ./scripts/build-maturin.sh --all",
 		"build:python:ssim": "cd crates/blazediff-ssim && ./scripts/build-maturin.sh",

@@ -11,8 +11,9 @@ name: release-artifacts-check
 #   2. This check goes red — artifacts are stale or missing.
 #   3. Maintainer comments `/build` on the PR; build-artifacts.yml rebuilds
 #      every platform on GitHub runners and pushes the artifacts to the branch.
-#      (Locally that is: pnpm build:rust, build:rust:ssim, build:wasm and the
-#      build:python:*:all scripts with -- --version <NEW>, committed and pushed.)
+#      (Locally that is: pnpm build:rust, build:rust:ssim, build:wasm,
+#      build:wasm:interpret and the build:python:*:all scripts with
+#      -- --version <NEW>, committed and pushed.)
 #   4. Check turns green; PR is mergeable; merge fires release.yml.
 
 on:
@@ -73,7 +74,7 @@ jobs:
           # build-artifacts.yml, keeping what /build produces aligned with
           # what this check requires.
           eval "$(node scripts/release/changed-artifacts.js "$BASE_SHA")"
-          echo "families needing fresh artifacts: core=$core ssim=$ssim interpret=$interpret wasm=$wasm"
+          echo "families needing fresh artifacts: core=$core ssim=$ssim interpret=$interpret wasm=$wasm wasm_interpret=$wasm_interpret"
 
           # With per-family version groups there is no all-bump safety net:
           # crate sources changed without a changeset would ship stale
@@ -145,6 +146,13 @@ jobs:
             require_file "packages/core-wasm/wasm/blazediff.js"
           fi
 
+          if [[ "$wasm_interpret" == "true" ]]; then
+            # --- INTERPRET WASM --------------------------------------------
+            # Same module-is-the-proof reasoning as the core wasm block above.
+            require_fresh_file "packages/interpret-wasm/wasm/blazediff_interpret_bg.wasm"
+            require_file "packages/interpret-wasm/wasm/blazediff_interpret.js"
+          fi
+
           if [[ "$ssim" == "true" ]]; then
             # --- SSIM NAPI .node -------------------------------------------
             for plat in darwin-arm64 darwin-x64 linux-arm64 linux-x64 win32-arm64 win32-x64; do
@@ -179,6 +187,7 @@ jobs:
             if [[ "$ssim" == "true" ]]; then echo "  pnpm build:rust:ssim"; fi
             if [[ "$interpret" == "true" ]]; then echo "  pnpm build:rust:interpret"; fi
             if [[ "$wasm" == "true" ]]; then echo "  pnpm build:wasm"; fi
+            if [[ "$wasm_interpret" == "true" ]]; then echo "  pnpm build:wasm:interpret"; fi
             echo "  pnpm build:python:all -- --version ${CORE_VER}"
             echo "  pnpm build:python:ssim:all -- --version ${SSIM_VER}"
             echo "  pnpm build:python:interpret:all -- --version ${INTERPRET_VER}"

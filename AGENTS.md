@@ -32,7 +32,7 @@ Monorepo for image and object diffing. pnpm workspaces. Rust core in `crates/bla
 - Benchmark scripts and fixture names: `package.json` and `apps/*-benchmark/`.
 - Agent design + roadmap: `packages/agent/ROADMAP.md`.
 - Agent on-disk shape, mask semantics, judge handoff: `skill/blazediff/SKILL.md`.
-- Rust build orchestration: `crates/scripts/` (`_targets.sh`, `build-napi.sh`, `build-maturin.sh`) with per-crate shims in `crates/<crate>/scripts/`; `build-all.sh` and `build-wasm.sh` stay in `crates/blazediff/scripts/`.
+- Rust build orchestration: `crates/scripts/` (`_targets.sh`, `build-napi.sh`, `build-maturin.sh`, `build-wasm.sh`) with per-crate shims in `crates/<crate>/scripts/`; only `build-all.sh` stays in `crates/blazediff/scripts/`.
 - Python release: `scripts/release/publish-pypi.js` (three wheel sets committed to `crates/{blazediff,blazediff-ssim,blazediff-interpret}/wheels/`, CI uploads via OIDC). `pnpm test:python` builds and imports them.
 - JSR release: `scripts/release/publish-jsr.ts` (chained after `changeset publish` in `pnpm run release`).
 - Pre-commit: `.pre-commit-config.yaml` (prek). Run `npx @j178/prek install` after clone.

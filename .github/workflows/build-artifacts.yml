@@ -61,6 +61,7 @@ jobs:
       ssim: ${{ steps.families.outputs.ssim }}
       interpret: ${{ steps.families.outputs.interpret }}
       wasm: ${{ steps.families.outputs.wasm }}
+      wasm_interpret: ${{ steps.families.outputs.wasm_interpret }}
       core_version: ${{ steps.version.outputs.core_version }}
       ssim_version: ${{ steps.version.outputs.ssim_version }}
       interpret_version: ${{ steps.version.outputs.interpret_version }}
@@ -179,6 +180,9 @@ jobs:
           fi
           if [[ "${{ steps.families.outputs.wasm }}" == "true" ]]; then
             parts+=("wasm v$(pkg_version packages/core-wasm)")
+          fi
+          if [[ "${{ steps.families.outputs.wasm_interpret }}" == "true" ]]; then
+            parts+=("interpret-wasm v$(pkg_version packages/interpret-wasm)")
           fi
           if [[ "$WHEELS_CORE" == "true" ]]; then
             parts+=("blazediff wheels v$CORE_VER")
@@ -403,14 +407,31 @@ jobs:
             crates/blazediff-ssim/wheels/*.whl
             crates/blazediff-interpret/wheels/*.whl
 
+  # Both wasm packages build the same way — same target, same toolchain, same
+  # post-processing — so they share one job definition and differ only in which
+  # crate shim runs. Each leg is gated on its own family, so an interpret-only
+  # change doesn't rebuild the core module.
   wasm:
-    name: wasm32-unknown-unknown
+    name: wasm32-unknown-unknown (${{ matrix.artifact }})
     needs: resolve
-    if: needs.resolve.outputs.wasm == 'true'
+    if: needs.resolve.outputs.wasm == 'true' || needs.resolve.outputs.wasm_interpret == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - artifact: wasm
+            family: wasm
+            crate: blazediff
+            pkg: core-wasm
+          - artifact: interpret-wasm
+            family: wasm_interpret
+            crate: blazediff-interpret
+            pkg: interpret-wasm
     steps:
       - uses: actions/checkout@v5
+        if: needs.resolve.outputs[matrix.family] == 'true'
         with:
           ref: ${{ needs.resolve.outputs.sha }}
           # No submodules: the wasm build runs --no-default-features --features
@@ -419,19 +440,24 @@ jobs:
           lfs: false
 
       - uses: dtolnay/rust-toolchain@stable
+        if: needs.resolve.outputs[matrix.family] == 'true'
         with:
           targets: wasm32-unknown-unknown
 
       - uses: cargo-bins/cargo-binstall@main
+        if: needs.resolve.outputs[matrix.family] == 'true'
 
-      # Must match the wasm-bindgen pin in crates/blazediff/Cargo.toml and the
-      # default in build-wasm.sh; the CLI errors out on a mismatch.
+      # Must match the wasm-bindgen pin in the crate's Cargo.toml and the
+      # default in crates/scripts/build-wasm.sh; the CLI errors out on a
+      # mismatch.
       - name: Install wasm-bindgen-cli
+        if: needs.resolve.outputs[matrix.family] == 'true'
         run: cargo binstall -y wasm-bindgen-cli@0.2.100
 
       # build-wasm.sh silently skips wasm-opt when it is absent, which would
       # commit an unoptimized module.
       - name: Install binaryen (wasm-opt)
+        if: needs.resolve.outputs[matrix.family] == 'true'
         run: |
           set -euo pipefail
           sudo apt-get update
@@ -439,17 +465,19 @@ jobs:
           wasm-opt --version
 
       - name: Build wasm
-        run: crates/blazediff/scripts/build-wasm.sh
+        if: needs.resolve.outputs[matrix.family] == 'true'
+        run: crates/${{ matrix.crate }}/scripts/build-wasm.sh
 
       # Single directory, so the archive root is that directory — the commit job
-      # downloads it straight back into packages/core-wasm/wasm/.
+      # downloads it straight back into packages/<pkg>/wasm/.
       - uses: actions/upload-artifact@v4
+        if: needs.resolve.outputs[matrix.family] == 'true'
         with:
-          name: wasm
+          name: ${{ matrix.artifact }}
           if-no-files-found: error
           # Matches the target uploads; restore needs the whole set or none.
           retention-days: 14
-          path: packages/core-wasm/wasm/
+          path: packages/${{ matrix.pkg }}/wasm/
 
   commit:
     name: Commit to PR
@@ -501,6 +529,12 @@ jobs:
         with:
           name: wasm
           path: packages/core-wasm/wasm
+
+      - uses: actions/download-artifact@v4
+        if: needs.resolve.outputs.wasm_interpret == 'true'
+        with:
+          name: interpret-wasm
+          path: packages/interpret-wasm/wasm
 
       - name: Stage artifacts
         run: |

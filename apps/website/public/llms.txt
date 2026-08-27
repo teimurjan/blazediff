@@ -10,7 +10,8 @@
 - **Native (Rust)**: 4.4-4.9x faster than odiff on 4K images (5.7-6.7x from encoded buffers)
 - **WASM**: ~51% faster than pixelmatch, up to ~10x on 4K (browser, edge, any wasm host)
 - **Image Pixel-by-Pixel (JS)**: ~50% faster than pixelmatch (up to 88% on identical images)
-- **SSIM**: ~25% faster than ssim.js, ~70% faster with Hitchhiker's SSIM
+- **SSIM (JS)**: ~30% faster than ssim.js, ~75% faster with Hitchhiker's SSIM
+- **SSIM (Rust)**: ~15x faster again than the JS port (~4x for Hitchhiker's SSIM), from the same decoded buffers
 - **Object Diff**: ~55% faster than microdiff (up to 96% on identical arrays)
 
 ---
@@ -3314,18 +3315,18 @@ with human-readable summaries. It is not part of this crate: it lives in
 [`blazediff-interpret`](/apis/blazediff-interpret), which consumes what `diff`
 returns and ships its own `blazediff-interpret` binary.
 
-**Pipeline:** change mask -> morph close -> connected components -> per-region evidence extraction -> classify -> describe
+**Pipeline:** change mask -> morph close -> connected components -> noise census + fragment merge -> per-region evidence extraction -> classify -> shift pairing -> describe
 
-**Six-label decision tree:**
+**Six-label rule cascade:**
 
-| Type             | Signal                                                                  |
-| ---------------- | ----------------------------------------------------------------------- |
-| `RenderingNoise` | Tiny (&lt;=25px) or sparse + low color delta                             |
-| `Addition`       | Blends with background in img1, distinct in img2                        |
-| `Deletion`       | Distinct in img1, blends with background in img2                        |
-| `ColorChange`    | Edge structure preserved across both images + uniform color shift       |
-| `ContentChange`  | Fallback - structural change                                            |
-| `Shift`          | Post-hoc: matched Addition+Deletion pair with similar luminance         |
+| Type             | Signal                                                                     |
+| ---------------- | -------------------------------------------------------------------------- |
+| `RenderingNoise` | Tiny (&lt;=25px) or sparse + low color delta, without an add/delete signature |
+| `Addition`       | Blends with background in img1, distinct in img2                           |
+| `Deletion`       | Distinct in img1, blends with background in img2                           |
+| `ColorChange`    | Luminance structure preserved under a color shift, or a coherent chroma move (hue rotation, smooth delta field) over regenerated texture |
+| `ContentChange`  | Fallback - structure replaced, chroma scattered                            |
+| `Shift`          | Post-hoc: region pair whose before-crop and after-crop hold the same content, matched by patch correlation |
 
 ```sh
 blazediff-interpret a.png b.png
@@ -4872,9 +4873,12 @@ that were measured deterministically is answering a much easier question. See
 4. Fragments are assembled into regions: a **noise census** counts speck-sized
    fragments to measure how noisy the pair is, nearby bounding boxes are merged
    (an inpainted object shattered into patches, the words of one recolored text
-   run), and a noise floor that scales with the census drops the rest — so a
-   clean UI render keeps its smallest real regions while a recompressed photo
-   sheds hundreds of ringing fragments.
+   run) — but only when the box that would enclose them is mostly _touched_
+   below the diff threshold, so two distinct edits with untouched background
+   between them stay separate instead of collapsing into one region — and a
+   noise floor that scales with the census drops the rest, so a clean UI render
+   keeps its smallest real regions while a recompressed photo sheds hundreds of
+   ringing fragments.
 5. Evidence is extracted per region:
    - **Dual-image gradients and luminance correlation.** Edges in both images
      plus spatial correlation, to detect whether structure was preserved.
@@ -4892,7 +4896,8 @@ that were measured deterministically is answering a much easier question. See
    the content that appeared at another — by directly correlating the two image
    crops, scored best-first — and relabels both halves as a Shift.
 
-## Demo
+Pick a fixture pair. The analysis runs in your browser, in a Web Worker, on the
+same Rust classifier compiled to wasm — nothing here is precomputed.
 
 ## Usage
 

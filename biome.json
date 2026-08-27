@@ -9,7 +9,8 @@
 		"includes": [
 			"**/*.{js,ts,jsx,tsx,json}",
 			"!crates",
-			"!packages/core-wasm/wasm"
+			"!packages/core-wasm/wasm",
+			"!packages/interpret-wasm/wasm"
 		],
 		"ignoreUnknown": false
 	},

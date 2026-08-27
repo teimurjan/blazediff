@@ -1,18 +1,26 @@
 use super::super::types::BoundingBox;
 /// Extract labeled regions from a watershed label map into ComponentInfo structs.
 use super::ComponentInfo;
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 /// Convert a label map + original mask into ComponentInfo bounding boxes and pixel counts.
 /// Only counts pixels where `original_mask[i]` is true (not morphologically added pixels).
 /// Results sorted by pixel count descending.
+///
+/// Keyed by a `BTreeMap`, not a `HashMap`, because this map is *iterated* and
+/// the order reaches the caller. `HashMap`'s `RandomState` is seeded per
+/// process, so two components with equal `pixel_count` — which the stable sort
+/// below leaves in insertion order — came out in a different order on every
+/// run, and with them the region list and the summary's position list. Labels
+/// are assigned in raster-scan order, so ordering by label makes ties resolve
+/// top-left-first and keeps the whole pipeline deterministic, as documented.
 pub fn extract_labeled_regions(
     labels: &[i32],
     original_mask: &[bool],
     width: u32,
 ) -> Vec<ComponentInfo> {
     let w = width as usize;
-    let mut regions: HashMap<i32, ComponentInfo> = HashMap::new();
+    let mut regions: BTreeMap<i32, ComponentInfo> = BTreeMap::new();
 
     for (i, (&label, &in_mask)) in labels.iter().zip(original_mask.iter()).enumerate() {
         if label <= 0 || !in_mask {
@@ -108,6 +116,24 @@ mod tests {
         assert_eq!(regions[0].pixel_count, 3);
         assert_eq!(regions[1].pixel_count, 2);
         assert_eq!(regions[2].pixel_count, 1);
+    }
+
+    #[test]
+    fn equal_pixel_counts_keep_raster_order() {
+        // Two components of exactly the same size. Under a HashMap the pair
+        // came back in a per-process random order, which leaked all the way
+        // out to `InterpretResult::regions` and the summary text.
+        // 5x1: label=[1, 1, 0, 2, 2]
+        let labels = vec![1, 1, 0, 2, 2];
+        let mask = vec![true, true, false, true, true];
+
+        let regions = extract_labeled_regions(&labels, &mask, 5);
+
+        assert_eq!(regions.len(), 2);
+        assert_eq!(regions[0].pixel_count, regions[1].pixel_count);
+        // The tie must resolve to the component encountered first.
+        assert_eq!(regions[0].bbox.x, 0);
+        assert_eq!(regions[1].bbox.x, 3);
     }
 
     #[test]
