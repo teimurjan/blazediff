@@ -249,8 +249,35 @@ function changedPathsSince(ref) {
 }
 
 /**
- * Did the sources of any crate in `crates` change between `ref` and the
+ * Files under crates/ that are never compiled into an artifact.
+ *
+ * Worth naming as a group, because every false positive this script has had
+ * was the same mistake: reading one of the pipeline's own *outputs* as an
+ * input, so the release asked to rebuild what it had just built.
+ */
+function isNotABuildInput(parts, basename) {
+	return (
+		// Docs and licences ship in no binary.
+		/\.md$/i.test(basename) ||
+		/^LICENSE/i.test(basename) ||
+		// Crates that never ship, and fuzz harnesses.
+		UNSHIPPED_CRATES.has(parts[1]) ||
+		parts.includes("fuzz") ||
+		// Committed wheels. /build regenerates them, maturin's zip is not
+		// byte-reproducible, and the new bytes would read as a source change
+		// demanding another bump — which rebuilds them again. Their freshness
+		// is require_wheels()' job in release-artifacts-check.yml, by filename
+		// version.
+		parts[2] === "wheels"
+	);
+}
+
+/**
+ * Did anything compiled into `family`'s artifacts change between `ref` and the
  * working tree? Returns a reason string, or null.
+ *
+ * Only build *inputs* count. Version bumps and the binaries, wheels and wasm
+ * modules this pipeline produces are outputs, and must never feed back in.
  */
 function sourcesChangedSince(ref, crates, family) {
 	const relevant = new Set(crates);
@@ -259,22 +286,16 @@ function sourcesChangedSince(ref, crates, family) {
 		const crate = parts[1];
 		const basename = parts[parts.length - 1];
 
-		// build-wasm.sh — the shared body and the per-crate shims that drive
-		// it — emits the wasm packages and nothing else, so it cannot change a
-		// .node, a CLI binary or a wheel. Without this it reads as generic
-		// build infrastructure and flags every family at once.
+		if (isNotABuildInput(parts, basename)) continue;
+
+		// build-wasm.sh produces a wasm module and nothing else, so it cannot
+		// change a .node, a CLI binary or a wheel. Without this it reads as a
+		// generic file of its crate and flags that crate's native families too.
 		if (basename === "build-wasm.sh") {
 			if (!WASM_FAMILIES.has(family)) continue;
-			// A per-crate shim only drives its own crate's module; the shared
-			// body under crates/scripts/ drives both.
 			if (ALL_CRATES.includes(crate) && !relevant.has(crate)) continue;
 			return `${file} changed`;
 		}
-
-		// Docs and licenses ship in no binary.
-		if (/\.md$/i.test(basename) || /^LICENSE/i.test(basename)) continue;
-		if (UNSHIPPED_CRATES.has(crate)) continue;
-		if (parts.includes("fuzz")) continue;
 
 		if (ALL_CRATES.includes(crate)) {
 			if (!relevant.has(crate)) continue;
