@@ -93,6 +93,9 @@ const FAMILY_PACKAGE = {
 
 const ALL_CRATES = [...new Set(Object.values(FAMILY_CRATES).flat())];
 
+/** Families whose artifact is a wasm module rather than a native binary. */
+const WASM_FAMILIES = new Set(["wasm", "wasm_interpret"]);
+
 /** Crates under crates/ that never ship in an artifact. */
 const UNSHIPPED_CRATES = new Set([
 	"blazediff-interpret-verify",
@@ -134,6 +137,73 @@ function maskLockVersions(src) {
 		"g",
 	);
 	return src.replace(re, "$1*$2");
+}
+
+/**
+ * Cargo.lock as `name -> { block, deps }`.
+ *
+ * The lockfile is one flat list of `[[package]]` stanzas, each naming the
+ * packages it pulls in, which is exactly the graph needed to answer "does this
+ * lockfile edit reach that family's crates?".
+ */
+function parseLockPackages(src) {
+	const packages = new Map();
+	for (const block of src.split("\n[[package]]\n").slice(1)) {
+		const name = /^name = "([^"]+)"/m.exec(block)?.[1];
+		if (!name) continue;
+		const deps = /\ndependencies = \[\n([\s\S]*?)\n\]/.exec(block);
+		packages.set(name, {
+			block,
+			// Entries are `"foo"` or `"foo 1.2.3 (registry+...)"`; the leading
+			// token is the name either way.
+			deps: deps ? [...deps[1].matchAll(/"([^"\s]+)/g)].map((m) => m[1]) : [],
+		});
+	}
+	return packages;
+}
+
+/** Everything `roots` pull in, transitively, across both lockfile revisions. */
+function dependencyClosure(graphs, roots) {
+	const seen = new Set();
+	const stack = [...roots];
+	while (stack.length > 0) {
+		const name = stack.pop();
+		if (seen.has(name)) continue;
+		seen.add(name);
+		for (const graph of graphs) {
+			for (const dep of graph.get(name)?.deps ?? []) stack.push(dep);
+		}
+	}
+	return seen;
+}
+
+/**
+ * Which of `crates`' dependencies a Cargo.lock edit actually touched.
+ *
+ * Without this the lockfile is attributed to every family at once, because it
+ * is listed in all of their source sets: adding a wasm dep under
+ * `blazediff-interpret` flagged core, ssim and core-wasm too, and
+ * `--check-bumps` then demanded changesets for three packages whose binaries
+ * could not have changed. Comparing per `[[package]]` stanza and walking the
+ * dependency graph keeps a lockfile edit with the family it belongs to.
+ */
+function lockPackagesAffecting(before, after, crates) {
+	const previous = parseLockPackages(maskLockVersions(before));
+	const current = parseLockPackages(maskLockVersions(after));
+
+	const changed = new Set();
+	for (const [name, entry] of current) {
+		if (previous.get(name)?.block !== entry.block) changed.add(name);
+	}
+	for (const name of previous.keys()) {
+		if (!current.has(name)) changed.add(name);
+	}
+	if (changed.size === 0) return [];
+
+	// Closure over both revisions so a dependency that was *removed* still
+	// counts against the family that used to pull it in.
+	const reachable = dependencyClosure([previous, current], crates);
+	return [...changed].filter((name) => reachable.has(name));
 }
 
 function contentAt(ref, file) {
@@ -182,12 +252,24 @@ function changedPathsSince(ref) {
  * Did the sources of any crate in `crates` change between `ref` and the
  * working tree? Returns a reason string, or null.
  */
-function sourcesChangedSince(ref, crates) {
+function sourcesChangedSince(ref, crates, family) {
 	const relevant = new Set(crates);
 	for (const file of changedPathsSince(ref)) {
 		const parts = file.split("/");
 		const crate = parts[1];
 		const basename = parts[parts.length - 1];
+
+		// build-wasm.sh — the shared body and the per-crate shims that drive
+		// it — emits the wasm packages and nothing else, so it cannot change a
+		// .node, a CLI binary or a wheel. Without this it reads as generic
+		// build infrastructure and flags every family at once.
+		if (basename === "build-wasm.sh") {
+			if (!WASM_FAMILIES.has(family)) continue;
+			// A per-crate shim only drives its own crate's module; the shared
+			// body under crates/scripts/ drives both.
+			if (ALL_CRATES.includes(crate) && !relevant.has(crate)) continue;
+			return `${file} changed`;
+		}
 
 		// Docs and licenses ship in no binary.
 		if (/\.md$/i.test(basename) || /^LICENSE/i.test(basename)) continue;
@@ -210,8 +292,15 @@ function sourcesChangedSince(ref, crates) {
 		}
 
 		if (file === "crates/Cargo.lock") {
-			if (meaningfullyChanged(ref, file, maskLockVersions)) {
-				return `${file} changed beyond workspace crate versions`;
+			const before = contentAt(ref, file);
+			const after = currentContent(file);
+			// Unreadable on either side: can't attribute it, so assume the worst.
+			if (before === null || after === null) return `${file} changed`;
+			const hits = lockPackagesAffecting(before, after, crates);
+			if (hits.length > 0) {
+				const named = hits.slice(0, 3).join(", ");
+				const rest = hits.length > 3 ? `, +${hits.length - 3} more` : "";
+				return `${file} changed for ${named}${rest}`;
 			}
 			continue;
 		}
@@ -280,7 +369,7 @@ function changedFamilies(baseRef) {
 			);
 			continue;
 		}
-		const reason = sourcesChangedSince(ref, FAMILY_CRATES[family]);
+		const reason = sourcesChangedSince(ref, FAMILY_CRATES[family], family);
 		families[family] = reason !== null;
 		reasons.push(
 			reason === null
@@ -304,7 +393,7 @@ function missingBumps(baseRef) {
 	for (const family of FAMILIES) {
 		const { ref, tag } = lastReleaseRef(family, mergeBase);
 		if (ref === null) continue; // nothing released yet to be stale against
-		const reason = sourcesChangedSince(ref, FAMILY_CRATES[family]);
+		const reason = sourcesChangedSince(ref, FAMILY_CRATES[family], family);
 		if (reason === null) continue;
 		const before = versionAt(mergeBase, FAMILY_PACKAGE[family]);
 		const after = versionNow(FAMILY_PACKAGE[family]);
