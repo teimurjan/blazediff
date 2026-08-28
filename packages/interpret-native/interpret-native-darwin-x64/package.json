@@ -1,6 +1,6 @@
 {
 	"name": "@blazediff/interpret-native-darwin-x64",
-	"version": "6.3.0",
+	"version": "6.4.0",
 	"description": "blazediff-interpret N-API binary for macOS x64 (Intel)",
 	"main": "blazediff_interpret.node",
 	"os": [

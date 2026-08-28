@@ -1,6 +1,6 @@
 {
 	"name": "@blazediff/interpret-wasm",
-	"version": "6.3.0",
+	"version": "6.4.0",
 	"description": "WebAssembly build of blazediff-interpret for browsers, edge runtimes, and any wasm host. Same classifier as @blazediff/interpret-native.",
 	"private": false,
 	"publishConfig": {
