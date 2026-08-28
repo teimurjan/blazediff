@@ -1,6 +1,6 @@
 {
 	"name": "@blazediff/interpret-native-darwin-arm64",
-	"version": "6.3.0",
+	"version": "6.4.0",
 	"description": "blazediff-interpret N-API binary for macOS ARM64 (Apple Silicon)",
 	"main": "blazediff_interpret.node",
 	"os": [
