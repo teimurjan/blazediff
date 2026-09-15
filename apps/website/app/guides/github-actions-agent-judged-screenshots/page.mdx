@@ -19,7 +19,7 @@ service and there is no API key.
 | --------------- | ---------------------- | ------------------------------------------------------ |
 | `--judge none`  | Nowhere                | Default CI gate. Ambiguous entries fail; a human looks  |
 | `--judge local` | Inside the CI job      | You want a verdict without a human, no keys, no network |
-| `--judge host`  | Developer's machine    | The coding agent reviews the diff during the PR         |
+| `--judge agent`  | Developer's machine    | The coding agent reviews the diff during the PR         |
 
 Most teams run `none` in CI and `host` locally. `local` is the option when the job
 itself has to decide.

@@ -1,6 +1,6 @@
 import { Annotation } from "@langchain/langgraph";
 import type { DiffOutcome } from "../diff";
-import type { JudgeBackend } from "../judge";
+import type { JudgeBackend, LocalModel } from "../judge";
 import type {
 	CheckReport,
 	CheckResult,
@@ -15,6 +15,8 @@ export interface GraphOptions {
 	concurrency: number;
 	emitDiffPng: boolean;
 	judge: JudgeBackend;
+	/** Vision model for `judge: "local"`; ignored by the other backends. */
+	model: LocalModel;
 	baselinesDir: string;
 }
 

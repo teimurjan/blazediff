@@ -46,7 +46,7 @@ export const STACKS: Record<Stack, StackInfo> = {
 		id: "claude",
 		label: "Claude Code",
 		kind: "skill-install",
-		judge: "host",
+		judge: "agent",
 		detect: (cwd) =>
 			someExists([
 				join(cwd, ".claude"),
@@ -61,7 +61,7 @@ export const STACKS: Record<Stack, StackInfo> = {
 		id: "codex",
 		label: "Codex",
 		kind: "skill-install",
-		judge: "host",
+		judge: "agent",
 		detect: (cwd) =>
 			someExists([
 				join(cwd, "AGENTS.md"),
@@ -77,7 +77,7 @@ export const STACKS: Record<Stack, StackInfo> = {
 		id: "cursor",
 		label: "Cursor",
 		kind: "skill-install",
-		judge: "host",
+		judge: "agent",
 		detect: (cwd) =>
 			someExists([join(cwd, ".cursor"), join(cwd, ".cursorrules")]),
 		target: (cwd, skill) => join(cwd, ".cursor", "rules", `${skill}.mdc`),

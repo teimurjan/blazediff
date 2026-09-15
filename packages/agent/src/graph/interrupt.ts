@@ -3,6 +3,10 @@ import type { Verdict } from "../diff/verdict";
 import type { CheckResult } from "../types";
 
 export interface JudgmentInterrupt {
+	/**
+	 * Wire value predates the `host` → `agent` rename and is persisted in
+	 * checkpoints, so renaming it would strand runs suspended by older versions.
+	 */
 	kind: "host-judgment-required";
 	entryId: string;
 	url: string;

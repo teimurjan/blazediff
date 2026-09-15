@@ -192,9 +192,9 @@ const FEATURES = [
 	},
 	{
 		num: "03",
-		title: "AGENT-READY",
-		body: "When the heuristic can't decide, the agent hands a small region tile to Claude Code, Cursor, or Codex for judgment. Resume from a checkpoint.",
-		illustration: "/home-agent.png",
+		title: "RUST, JS, OR PYTHON",
+		body: "One engine, three ecosystems. cargo add blazediff, npm install @blazediff/core, pip install blazediff. Same algorithm, same numbers, whether you call it from a Rust crate, a Node script, or a pytest run.",
+		illustration: "/home-languages.png",
 	},
 ];
 
@@ -242,14 +242,16 @@ export default function Home() {
 							<br />
 							PIXEL DIFF.
 							<br />
-							<HeroAccent>AGENT-IN-THE-LOOP</HeroAccent>
+							<HeroAccent>PLAIN-ENGLISH</HeroAccent>
 							<br />
 							<HeroAccent>VERDICTS.</HeroAccent>
 						</HeroHeading>
 						<HeroSubhead>
 							Rust, WASM, and JS diff cores. SSIM and GMSD metrics. Jest,
-							Vitest, and Bun matchers. An agent that hands ambiguous diffs to
-							Claude Code, Cursor, or Codex. No SaaS. No API key. MIT.
+							Vitest, and Bun matchers. And{" "}
+							<span className="font-mono text-fg">--interpret</span>, which
+							turns a wall of changed pixels into regions, change types, and a
+							verdict you can read. No SaaS. No API key. MIT.
 						</HeroSubhead>
 						<InstallSnippet commands="npm install @blazediff/core" />
 					</>
@@ -260,6 +262,8 @@ export default function Home() {
 						fixtureCurrent={FIXTURE_B}
 						imageWidth={interpretData.width}
 						imageHeight={interpretData.height}
+						diffPercentage={interpretData.diffPercentage}
+						severity={interpretData.severity}
 						regions={interpretData.regions}
 					/>
 				}

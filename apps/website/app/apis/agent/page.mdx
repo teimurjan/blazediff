@@ -104,7 +104,7 @@ Commit `.blazediff/` (config + manifest + baselines).
 ### Check (CI verb)
 
 ```bash
-blazediff-agent check --judge host --json
+blazediff-agent check --judge agent --json
 ```
 
 The CLI starts the dev server automatically when `config.devServer` is set, runs every manifest entry through Playwright, diffs each capture against its baseline, and emits a `CheckReport`:
@@ -174,7 +174,7 @@ Deletes the entire `.blazediff/` directory (config, manifest, baselines, actual,
 | `onboard` | Interactive setup: write `.blazediff/config.json` + `.gitignore`, install Chromium, install the playbook into the detected coding-agent stack (Claude Code, Codex, Cursor, or `--stack local`), and optionally capture baselines |
 | `discover` | BFS-crawl routes from `baseUrl` (depth 2, ≤50 routes) as a fallback when source-walking fails |
 | `capture --stdin` | Read a JSON array of routes from stdin, screenshot each, write baselines/actuals + manifest |
-| `check` | Re-capture every manifest entry, diff against baseline, emit `CheckReport`. Uses LangGraph for per-entry parallelism; suspends on ambiguous entries when `--judge host` and resumes via `--apply-judgments` |
+| `check` | Re-capture every manifest entry, diff against baseline, emit `CheckReport`. Uses LangGraph for per-entry parallelism; suspends on ambiguous entries when `--judge agent` and resumes via `--apply-judgments` |
 | `rewrite <id...>` | Re-baseline existing manifest entries (mask/viewport/waitFor preserved) |
 | `diff <id>` | Re-diff one entry against its actual capture without re-screenshotting |
 | `manifest` | Inspect / list manifest entries (`add --harness <name>` to attach a harness) |
@@ -196,7 +196,7 @@ The heuristic verdict pipeline emits one of four labels per failing entry:
 | `noise-likely` | Confident non-deterministic source | Ask user; prefer masking over rewriting |
 | `ambiguous` | Heuristic couldn't classify | Defer to host judge |
 
-For `ambiguous`, the `--judge host` backend writes a `JudgmentRequest` to `.blazediff/judgments/<id>/request.json` containing:
+For `ambiguous`, the `--judge agent` backend writes a `JudgmentRequest` to `.blazediff/judgments/<id>/request.json` containing:
 
 - `regions[]` - bounding boxes, pixel counts, and change types per detected region
 - `paths.locator` (`locator.png`) - a ~400 px overview thumbnail with every region outlined in red

@@ -1,6 +1,6 @@
 # blazediff — judging ambiguous diffs
 
-Triggered when `check --judge host` reports `pendingJudgments > 0`. The heuristic returned `ambiguous` for those entries and is deferring to you.
+Triggered when `check --judge agent` reports `pendingJudgments > 0`. The heuristic returned `ambiguous` for those entries and is deferring to you.
 
 ## Look for a mass-mask first
 

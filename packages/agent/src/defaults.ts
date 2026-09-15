@@ -1,4 +1,5 @@
 import { availableParallelism, cpus } from "node:os";
+import type { LocalModel } from "./judge/types";
 import type { Viewport, WaitFor } from "./types";
 
 export const DEFAULT_VIEWPORT: Viewport = { width: 1280, height: 800 };
@@ -8,6 +9,8 @@ export const DEFAULT_THRESHOLD = 0.1;
 export const DEFAULT_PORT = 3000;
 export const DEFAULT_REVIEW_PORT = 4321;
 export const DEFAULT_READY_TIMEOUT_MS = 60_000;
+/** In-process and portable; the MLX model is opt-in because it needs Apple Silicon. */
+export const DEFAULT_LOCAL_MODEL: LocalModel = "moondream-2-2b-onnx";
 
 const MIN_AUTO_CONCURRENCY = 2;
 const MAX_AUTO_CONCURRENCY = 8;

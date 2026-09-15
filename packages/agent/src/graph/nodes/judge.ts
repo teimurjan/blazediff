@@ -61,7 +61,7 @@ export async function judgeNode(
 	// pipeline across tests; host has no queue. `onJudgingStart` fires from
 	// inside the backend at the real start moment, so "judging X" prints when
 	// X actually begins, not when its branch dispatched.
-	const judge = resolveJudge(options.judge);
+	const judge = resolveJudge(options.judge, options.model);
 	const output = await judge.judge(
 		{
 			entry,

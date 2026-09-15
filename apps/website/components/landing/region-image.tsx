@@ -2,6 +2,7 @@ import type { CyclingRegion } from "./use-report-cycling";
 
 interface RegionImageProps {
 	label?: string;
+	labelPosition?: "top" | "bottom";
 	src: string;
 	alt: string;
 	imageWidth: number;
@@ -12,6 +13,7 @@ interface RegionImageProps {
 
 export default function RegionImage({
 	label,
+	labelPosition = "top",
 	src,
 	alt,
 	imageWidth,
@@ -25,7 +27,9 @@ export default function RegionImage({
 			style={{ aspectRatio: `${imageWidth} / ${imageHeight}` }}
 		>
 			{label && (
-				<div className="absolute top-2 left-2 bg-surface/80 px-2 py-0.5 font-mono text-[10px] tracking-widest text-muted z-30">
+				<div
+					className={`absolute ${labelPosition === "bottom" ? "bottom-2" : "top-2"} left-2 bg-surface/80 px-2 py-0.5 font-mono text-[10px] tracking-widest text-muted z-30`}
+				>
 					{label}
 				</div>
 			)}

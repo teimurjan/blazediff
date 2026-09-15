@@ -40,13 +40,7 @@ const PRINCIPLES = [
 		num: "03",
 		title: "ONE PLAYBOOK, THREE HARNESSES",
 		body: "One onboard command installs the same skill into Claude Code, Cursor, and Codex. Switch tools without rewriting your testing setup.",
-		illustration: "/home-agent.png",
-	},
-	{
-		num: "04",
-		title: "MASK, DON'T REBASELINE",
-		body: "Carousels, iframes, clocks, randomized avatars. Tag them with a CSS selector once. The agent paints them out in both baseline and actual, so flakiness stops at the source.",
-		illustration: "/agent-mask.png",
+		illustration: "/agent-harnesses.png",
 	},
 ];
 

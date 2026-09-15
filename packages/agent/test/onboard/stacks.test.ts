@@ -43,7 +43,7 @@ describe("parseStackList", () => {
 describe("STACKS metadata", () => {
 	it("maps coding-agent stacks to the host judge and a skill install", () => {
 		for (const id of CODING_AGENT_STACKS) {
-			expect(STACKS[id].judge).toBe("host");
+			expect(STACKS[id].judge).toBe("agent");
 			expect(STACKS[id].kind).toBe("skill-install");
 			expect(STACKS[id].target).toBeTypeOf("function");
 		}

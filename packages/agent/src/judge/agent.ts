@@ -28,11 +28,11 @@ async function tryPrepareTiles(
 	}
 }
 
-export const codingAgentHostJudge: Judge = {
-	name: "host",
+export const agentJudge: Judge = {
+	name: "agent",
 	async judge(input: JudgeInput, cwd: string): Promise<JudgeOutput> {
-		// Host has no internal queue (just file IO + an interrupt), so "start" is
-		// immediate. Local's onJudgingStart fires later, gated by its vision sem.
+		// The agent backend has no internal queue (just file IO + an interrupt), so
+		// "start" is immediate. Local's fires later, gated by its vision semaphore.
 		input.onJudgingStart?.();
 		const p = paths(cwd);
 		const entryDir = path.join(p.judgments, input.entry.id);

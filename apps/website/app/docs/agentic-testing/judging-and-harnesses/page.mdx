@@ -27,7 +27,7 @@ Only `ambiguous` reaches an agent. That is the point: asking a model to rule on
 every diff, including the obvious ones, is how you get verdicts that contradict
 each other between runs.
 
-For `ambiguous`, `--judge host` writes a `JudgmentRequest` to
+For `ambiguous`, `--judge agent` writes a `JudgmentRequest` to
 `.blazediff/judgments/<id>/request.json` containing:
 
 - `regions[]`, with bounding boxes, pixel counts and change types per region

@@ -3,9 +3,14 @@ import path from "node:path";
 import { Command, END, Send, START, StateGraph } from "@langchain/langgraph";
 import { closeBrowser } from "../browser/launch";
 import { ensureGitignore } from "../cli/gitignore";
-import { cpuCores, defaultConcurrency } from "../defaults";
+import { cpuCores, DEFAULT_LOCAL_MODEL, defaultConcurrency } from "../defaults";
 import type { Verdict } from "../diff/verdict";
-import { type JudgeBackend, resolveJudge, writeJudgments } from "../judge";
+import {
+	type JudgeBackend,
+	type LocalModel,
+	resolveJudge,
+	writeJudgments,
+} from "../judge";
 import { isDerived, loadManifest } from "../manifest";
 import { paths } from "../paths";
 import { writeReport } from "../report/json";
@@ -46,6 +51,8 @@ export interface RunOptions {
 	emitDiffPng?: boolean;
 	junitPath?: string;
 	judge?: JudgeBackend;
+	/** Vision model for `judge: "local"`; ignored by the other backends. */
+	model?: LocalModel;
 	threadId?: string;
 	onEvent?: (event: RunEvent) => void;
 	resume?: ResumeMap;
@@ -99,7 +106,8 @@ async function dispatchNode(
 		(item) => item.output.captureOutputPath,
 	).length;
 	emitEvent({ type: "capture-complete", captured, total });
-	if (state.options) await resolveJudge(state.options.judge).warmup?.();
+	if (state.options)
+		await resolveJudge(state.options.judge, state.options.model).warmup?.();
 	return {};
 }
 
@@ -263,6 +271,7 @@ export async function runGraph(opts: RunOptions): Promise<CheckReport> {
 					concurrency,
 					emitDiffPng: opts.emitDiffPng ?? true,
 					judge: opts.judge ?? "none",
+					model: opts.model ?? DEFAULT_LOCAL_MODEL,
 					baselinesDir,
 				},
 			};

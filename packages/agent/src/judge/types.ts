@@ -57,7 +57,14 @@ export interface Judge {
 	warmup?(): Promise<void>;
 }
 
-export type JudgeBackend = "none" | "host" | "local";
+export type JudgeBackend = "none" | "agent" | "local";
+
+/**
+ * Which model the `local` judge reads regions with. The ONNX model runs
+ * in-process anywhere; the MLX one is served by a managed Moondream Station and
+ * needs Apple Silicon, and is ~5x faster there.
+ */
+export type LocalModel = "moondream-2-2b-onnx" | "moondream-3-9b-mlx";
 
 export interface VerdictFile {
 	id: string;

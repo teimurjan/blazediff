@@ -14,7 +14,7 @@ Visual regression testing your coding agent can judge. Discovers routes, screens
 - Source-walking route discovery for Next.js / Vite / Remix (BFS fallback)
 - Heuristic verdict: `regression-likely | intentional-likely | noise-likely | ambiguous`
 - LangGraph pipeline with per-entry subgraphs, suspendable via `interrupt()` and resumable from an on-disk checkpoint
-- Region-tile handoff to host agents (10 to 100x smaller than full PNGs)
+- Region-tile handoff to coding agents (10 to 100x smaller than full PNGs)
 - Auto-masking via `data-blazediff-agent-mask` attribute
 - Auth-protected route capture via a codegen-recorded login harness; credentials live in env vars, never in LLM context
 
@@ -28,7 +28,7 @@ npm install --save-dev @blazediff/agent
 
 ```bash
 blazediff-agent onboard                    # interactive: config + chromium + playbook + baselines
-blazediff-agent check --judge host         # CI: re-capture, diff, judge
+blazediff-agent check --judge agent         # CI: re-capture, diff, judge
 blazediff-agent rewrite home               # accept an intentional change
 ```
 
@@ -46,7 +46,7 @@ no capture) — a scriptable config + chromium step.
   <tr><td><code>onboard</code></td><td>Interactive setup: write <code>.blazediff/config.json</code>, install Chromium, install the playbook for your stack (Claude Code / Codex / Cursor, or <code>local</code> for a Moondream + Qwen judge), and optionally capture baselines</td></tr>
   <tr><td><code>discover</code></td><td>BFS-crawl routes from <code>baseUrl</code></td></tr>
   <tr><td><code>capture --stdin</code></td><td>Screenshot routes from stdin JSON, write baselines/actuals</td></tr>
-  <tr><td><code>check</code></td><td>Re-capture, diff against baseline, emit <code>CheckReport</code>. Judge backend defaults to <code>config.judge</code> (set by <code>onboard</code>), overridable with <code>--judge host|none|local</code>. <code>--judge host</code> suspends on the first ambiguous entry (<code>--apply-judgments</code> resumes once verdicts are written); <code>--judge local</code> judges inline with local models (Moondream describes, Qwen classifies) — no host round-trip.</td></tr>
+  <tr><td><code>check</code></td><td>Re-capture, diff against baseline, emit <code>CheckReport</code>. Judge backend defaults to <code>config.judge</code> (set by <code>onboard</code>), overridable with <code>--judge agent|none|local</code>. <code>--judge agent</code> suspends on the first ambiguous entry (<code>--apply-judgments</code> resumes once verdicts are written); <code>--judge local</code> judges inline with local models (Moondream describes, Qwen classifies) — no agent round-trip; <code>--model</code> picks which Moondream.</td></tr>
   <tr><td><code>rewrite &lt;id...&gt;</code></td><td>Re-baseline existing entries (also <code>--failed</code> / <code>--all</code>). Cleans stale <code>actual/</code>, <code>judgments/</code>, <code>report.json</code>, <code>checkpoints/</code> for the rewritten ids.</td></tr>
   <tr><td><code>diff &lt;id&gt;</code></td><td>Re-diff one entry without re-screenshotting</td></tr>
   <tr><td><code>manifest</code></td><td>Inspect / list manifest entries</td></tr>
@@ -65,7 +65,7 @@ Pass `--cwd <abs-path>` to target a sub-package in a monorepo.
 ```bash
 blazediff-agent onboard --stack codex      # explicit
 blazediff-agent onboard --stack all        # claude + codex + cursor
-blazediff-agent onboard --stack local      # local judge, no host agent (Moondream + Qwen)
+blazediff-agent onboard --stack local      # local judge, no coding agent (Moondream + Qwen)
 blazediff-agent onboard --no-browsers --no-capture   # config + playbook only
 ```
 
@@ -73,7 +73,7 @@ Other flags: `--url <baseUrl>` (external/running server), `--dev-command <cmd>` 
 `--port <n>` / `--dev-script <name>` (override detection), `--yes` (accept prompts),
 `--force` (rewrite config + playbook).
 
-For coding-agent stacks, writes the playbook and sets `config.judge: "host"`:
+For coding-agent stacks, writes the playbook and sets `config.judge: "agent"`:
 - Claude Code → `<project>/.claude/skills/blazediff/SKILL.md`
 - Codex → `~/.codex/skills/blazediff/SKILL.md`
 - Cursor → `<project>/.cursor/rules/blazediff.mdc`
@@ -84,6 +84,20 @@ Qwen3.5-0.8B classifies it using that description plus the deterministic
 `interpret` summary (both via the optional peer dependency
 `@huggingface/transformers`; install it with `npm i @huggingface/transformers`).
 Each model loads once on the first judgment and is reused for the rest of the run.
+
+`--model` picks the model the local judge reads regions with. It applies only to
+`--judge local`; passing it to another backend is an error.
+
+| `--model` | Reader | Notes |
+| --- | --- | --- |
+| `moondream-2-2b-onnx` (default) | in-process ONNX | Runs anywhere, no setup. ~11s per region read. |
+| `moondream-3-9b-mlx` | [Moondream Station](https://docs.moondream.ai/station/) | Apple Silicon only, ~2s per read, needs ~16GB RAM. |
+
+The MLX model needs no setup either: the judge installs Station if missing (via
+`uv`), launches it, selects the model, warms it, and stops it on exit — or
+attaches to a Station you already have running and leaves that one alone.
+Station reaches the GPU, which onnxruntime-node cannot for this model. Qwen still
+classifies in-process, and the prompts and region diffing are shared.
 `local` cannot be combined with the coding-agent stacks.
 
 ## Masking
@@ -99,7 +113,7 @@ For third-party embeds you can't annotate, use a per-entry `manifest.entries[].m
 
 ## Judging
 
-Every non-match routes through the configured judge. With `--judge host` the judge node `interrupt()`s the LangGraph pipeline, writes a `JudgmentRequest` (region tiles + locator thumbnail) to `.blazediff/judgments/<id>/`, and the suspended graph is checkpointed to `.blazediff/checkpoints/`. The host agent reads the tiles, writes `verdict.json`, and `check --apply-judgments` resumes the same graph with the verdicts. No re-capture, no re-diff.
+Every non-match routes through the configured judge. With `--judge agent` the judge node `interrupt()`s the LangGraph pipeline, writes a `JudgmentRequest` (region tiles + locator thumbnail) to `.blazediff/judgments/<id>/`, and the suspended graph is checkpointed to `.blazediff/checkpoints/`. The coding agent reads the tiles, writes `verdict.json`, and `check --apply-judgments` resumes the same graph with the verdicts. No re-capture, no re-diff.
 
 ## Configuration
 

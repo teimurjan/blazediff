@@ -39,7 +39,7 @@ export interface JudgmentRequest {
 	createdAt: string;
 }
 
-const HOST_INSTRUCTIONS = [
+const AGENT_INSTRUCTIONS = [
 	"The visual-regression heuristic could not classify this diff confidently.",
 	"Read `locator.png` AND `regions.png` in parallel - issue both Read calls in a single tool batch. locator.png is a small thumbnail of the diff with every change region outlined in red; regions.png is a vertical stack of [baseline | actual] pairs, one row per change region at native resolution. Row order matches the `regions[]` array (top = largest by pixelCount).",
 	"Decide from the tile pairs. Only open the full diff / baseline / actual PNGs if the composite is itself ambiguous (e.g., a change clearly continues outside the cropped region).",
@@ -106,7 +106,7 @@ function buildRequest(
 		},
 		signature: signatureOf(result),
 		message: result.message,
-		instructions: isAmbiguous ? HOST_INSTRUCTIONS : undefined,
+		instructions: isAmbiguous ? AGENT_INSTRUCTIONS : undefined,
 		createdAt: new Date().toISOString(),
 	};
 }

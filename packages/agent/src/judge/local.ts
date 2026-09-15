@@ -15,7 +15,7 @@ import type {
 	JudgeInput,
 	JudgeOutput,
 } from "./types";
-import { createVisionRunnerHolder, type VisionRunnerHolder } from "./vision";
+import type { VisionRunnerHolder } from "./vision";
 
 /**
  * Step 1, region path: Moondream *reads* each side of a changed region on its
@@ -166,16 +166,18 @@ function classifyFailure(err: Error): JudgeFailureReason {
 }
 
 export interface LocalJudgeDeps {
-	/** Pre-built vision holder. Default: a fresh singleton over the real model. */
-	vision?: VisionRunnerHolder;
+	/** The model that reads regions; see the `local-*` modules. */
+	vision: VisionRunnerHolder;
 	/** Pre-built classifier holder. Default: a fresh singleton over the real model. */
 	classifier?: ClassifierRunnerHolder;
+	/** Name this judge reports, model included. Default: `local`. */
+	name?: string;
 }
 
 /**
  * Build a local judge. Each instance owns its own vision/classifier holders and
  * stage semaphores, so unit tests can construct fresh judges per case without
- * leaking state between them. The CLI uses the default `localJudge` singleton.
+ * leaking state between them. The CLI builds one per model module.
  *
  * Vision and classifier are two separate ONNX sessions, so each serializes its
  * own calls but they can run in parallel with each other. With a single
@@ -185,8 +187,8 @@ export interface LocalJudgeDeps {
  * parallel with A's classifier step. ~30–50% throughput win on local judge runs
  * with no extra memory cost (still one session per model).
  */
-export function createLocalJudge(deps: LocalJudgeDeps = {}): Judge {
-	const vision = deps.vision ?? createVisionRunnerHolder();
+export function createLocalJudge(deps: LocalJudgeDeps): Judge {
+	const vision = deps.vision;
 	const classifier = deps.classifier ?? createClassifierRunnerHolder();
 	const visionSemaphore = createSemaphore(1);
 	const classifierSemaphore = createSemaphore(1);
@@ -236,7 +238,7 @@ export function createLocalJudge(deps: LocalJudgeDeps = {}): Judge {
 	}
 
 	return {
-		name: "local",
+		name: deps.name ?? "local",
 		// Stream both models' weights up front (concurrently) so the multi-second
 		// load is a single visible phase before judging, not a silent stall on the
 		// first test. Both are cached promises, so the judge reuses them after.
@@ -302,6 +304,3 @@ export function createLocalJudge(deps: LocalJudgeDeps = {}): Judge {
 		},
 	};
 }
-
-/** Default singleton used by the CLI. Tests build their own via `createLocalJudge`. */
-export const localJudge: Judge = createLocalJudge();

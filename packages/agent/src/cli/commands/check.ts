@@ -11,7 +11,7 @@ import {
 	stopServer,
 } from "../../server/lifecycle";
 import type { AgentConfig, CheckReport } from "../../types";
-import { parseJudge, slimReport } from "../check-output";
+import { parseJudge, parseLocalModel, slimReport } from "../check-output";
 import type { Output } from "../output";
 import { parsePositiveInteger, parseThreshold } from "../parsers";
 import { checkSummary } from "../render/check";
@@ -26,6 +26,7 @@ interface Opts {
 	diffPng: boolean;
 	junit?: string;
 	judge?: string;
+	model?: string;
 	applyJudgments?: boolean;
 }
 
@@ -138,7 +139,11 @@ export function registerCheck(program: Command, out: Output): void {
 		.option("--junit <path>", "write JUnit XML to this path (default: skipped)")
 		.option(
 			"--judge <backend>",
-			"judge backend for ambiguous diffs (host | none | local). default: config.judge, else none",
+			"judge backend for ambiguous diffs (agent | none | local). default: config.judge, else none",
+		)
+		.option(
+			"--model <name>",
+			"vision model for --judge local (moondream-2-2b-onnx | moondream-3-9b-mlx). default: moondream-2-2b-onnx",
 		)
 		.option(
 			"--apply-judgments",
@@ -167,6 +172,8 @@ export function registerCheck(program: Command, out: Output): void {
 			}
 
 			const config = await loadConfig();
+			const judge = parseJudge(opts.judge ?? config?.judge ?? "none");
+			const model = parseLocalModel(judge, opts.model);
 			const baseUrl = resolveBaseUrl(config, opts.baseUrl);
 			const server = opts.baseUrl ? null : await ensureDevServer(config, out);
 			try {
@@ -178,7 +185,8 @@ export function registerCheck(program: Command, out: Output): void {
 						: undefined,
 					emitDiffPng: opts.diffPng,
 					junitPath: opts.junit,
-					judge: parseJudge(opts.judge ?? config?.judge ?? "none"),
+					judge,
+					model,
 					onEvent: makeProgressReporter(out),
 				});
 

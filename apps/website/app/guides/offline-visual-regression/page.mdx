@@ -24,10 +24,10 @@ exact network inventory, so a security review can check it rather than trust it.
 | `blazediff-agent review`          | Binds `127.0.0.1`                    | Local only      |
 | `check --judge none`              | **None**                             | Never           |
 | `check --judge local`             | Model download on first use, then none | First run only |
-| `check --judge host`              | **Your coding agent's provider**     | Per ambiguous diff |
+| `check --judge agent`              | **Your coding agent's provider**     | Per ambiguous diff |
 
 <Callout type="warning">
-  **Read this before choosing a judge backend.** `--judge host` hands cropped diff
+  **Read this before choosing a judge backend.** `--judge agent` hands cropped diff
   regions to Claude Code, Cursor, or Codex, which sends them to whatever model
   provider that tool uses. BlazeDiff does not upload anything, but your agent
   does. For an air-gapped or restricted environment, use `--judge none` or
@@ -106,7 +106,7 @@ afterwards. On an air-gapped machine, warm that cache on a connected machine fir
 and copy it across, the same way as the browser. After that, `--judge local` is
 fully offline.
 
-### `--judge host`
+### `--judge agent`
 
 Your coding agent reviews. Fastest and most accurate, and the one option where
 image crops leave the machine. Use it where policy allows.

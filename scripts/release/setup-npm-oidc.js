@@ -19,15 +19,15 @@
 // Everything is idempotent: seeded names are skipped on the next run, and so are
 // packages that already carry a trusted publisher.
 //
-// A note on 2FA. An account set to "auth-and-writes" (`npm profile get`) needs
-// interactive authentication for every publish *and* every trust registration —
-// that is the browser prompt that appears mid-run. `npm publish` takes `--otp`,
-// but `npm trust` has no such flag, and a 30-second code would expire partway
-// through a run of this size anyway. Relax the setting for the duration:
-//
-//   npm profile enable-2fa auth-only
-//   pnpm setup:npm-oidc
-//   npm profile enable-2fa auth-and-writes
+// A note on 2FA. `npm trust` (and, for a brand-new name, `npm publish`) is an
+// account-security write that npm gates behind its browser-based one-time-password
+// flow — and that flow only starts on a TTY. Because every npm call here is run
+// with its output captured (to classify "already published" / "already trusted"),
+// npm sees no terminal and fails outright with EOTP. So a call that comes back
+// EOTP is retried once with the terminal attached (`npmWithAuth`): npm then prints
+// the URL to open, you authenticate in the browser, and npm caches it for the rest
+// of the run — no need to disable 2FA. Leaving it on "auth-and-writes" just means
+// more of the writes hit that prompt; "auth-only" spares the publishes.
 //
 // Usage:
 //   node scripts/release/setup-npm-oidc.js [--dry-run] [--filter <substr>]
@@ -51,6 +51,11 @@ const args = process.argv.slice(2);
 const DRY_RUN = args.includes("--dry-run");
 const FILTER = args[args.indexOf("--filter") + 1];
 const filterActive = args.includes("--filter") && Boolean(FILTER);
+
+/** True when npm's failure was a missing/expired one-time password. */
+function isAuthError(output) {
+	return /EOTP|one-time password|two-factor/i.test(output);
+}
 
 function run(file, argv, opts = {}) {
 	return execFileSync(file, argv, {
@@ -189,6 +194,21 @@ function npmQuiet(argv, opts = {}) {
 	}
 }
 
+/**
+ * Same as npmQuiet, but a captured EOTP is retried once with the terminal
+ * attached so npm's browser-based OTP flow can actually run. The retry's output
+ * is no longer classifiable (it went to the terminal), so only its exit code is
+ * reported back — that is all a post-auth call needs.
+ */
+function npmWithAuth(argv, opts = {}) {
+	const captured = npmQuiet(argv, opts);
+	if (captured.ok || !isAuthError(captured.output)) return captured;
+
+	console.log("  npm wants a one-time password — reopening the prompt…");
+	const { status } = spawnSync("npm", argv, { stdio: "inherit", ...opts });
+	return { ok: status === 0, output: "" };
+}
+
 /** The `npm error ...` lines, which is the part worth showing on a failure. */
 function npmErrorSummary(output) {
 	const lines = output
@@ -228,7 +248,7 @@ function seed({ dir, manifest }) {
 			manifestPath,
 			`${JSON.stringify({ ...manifest, version: SEED_VERSION }, null, "\t")}\n`,
 		);
-		const { ok, output } = npmQuiet(
+		const { ok, output } = npmWithAuth(
 			["publish", "--access", "public", "--tag", SEED_TAG],
 			{ cwd: dir },
 		);
@@ -278,7 +298,7 @@ function trust(name, slug) {
 		return "created";
 	}
 
-	const { ok, output } = npmQuiet(argv);
+	const { ok, output } = npmWithAuth(argv);
 	if (ok) return "created";
 	if (/\bE?409\b|Conflict/.test(output)) return "exists";
 	throw new Error(npmErrorSummary(output));

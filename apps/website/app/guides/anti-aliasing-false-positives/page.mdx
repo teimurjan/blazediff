@@ -96,7 +96,7 @@ Work through it in this order:
    intentional change across the whole suite, not 300 reviews:
 
    ```bash
-   blazediff-agent check --judge host --json   # confirm what changed
+   blazediff-agent check --judge agent --json   # confirm what changed
    blazediff-agent rewrite --failed --json     # accept all of it
    ```
 
@@ -132,7 +132,7 @@ breaks a button's alignment are the same number of pixels and completely
 different problems. That distinction needs judgment, not a threshold:
 
 ```bash
-blazediff-agent check --judge host --json
+blazediff-agent check --judge agent --json
 ```
 
 The heuristic pass classifies each failure as `regression-likely`,

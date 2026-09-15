@@ -33,7 +33,7 @@ Sibling files in this skill directory — read on demand:
 - Else → **authoring**.
 
 ## check
-1. `blazediff-agent --cwd "$TARGET" check --judge host --json` (the CLI starts the dev server if `devServer` is configured; otherwise hits the configured baseUrl directly). Capture, diff, verdict, and judge run through a LangGraph state graph so per-entry stages overlap.
+1. `blazediff-agent --cwd "$TARGET" check --judge agent --json` (the CLI starts the dev server if `devServer` is configured; otherwise hits the configured baseUrl directly). Capture, diff, verdict, and judge run through a LangGraph state graph so per-entry stages overlap.
    - **Cold Next.js / Vite servers** can take 5–30s to compile a route on first hit; under default 30s `page.goto` timeout the first route in a fresh dev session sometimes times out (`page.goto: Timeout 30000ms exceeded`). If that happens, **rerun the same `check` command** — the dev server is now warm and the next pass usually completes. Don't change `waitFor` or restart the dev server; the issue is one-time compilation, not a routing or wait-condition bug.
    - **Codex sandbox / restricted-bash environments** may block Playwright's chromium launch (`browserType.launch: Target page, context or browser has been closed`). Rerun with the sandbox/escape escalation the host agent provides (in Codex: approve the command for "always run outside sandbox"). Not a blazediff bug.
 2. Pass: report `P/T passed`. Stop.

@@ -38,7 +38,7 @@ still get committed.
 Every step is a command, and every command takes `--json`:
 
 ```bash
-blazediff-agent check --judge host --json      # suspends on the first ambiguous diff
+blazediff-agent check --judge agent --json      # suspends on the first ambiguous diff
 # ... agent writes .blazediff/judgments/<id>/verdict.json ...
 blazediff-agent check --apply-judgments --json # resume, no re-screenshot
 blazediff-agent rewrite <id> --json            # accept an intentional change
@@ -83,7 +83,7 @@ runs after the base screenshot.
 ### 2. Judge backend - who decides ambiguous diffs
 
 ```bash
-blazediff-agent check --judge host    # your coding agent decides
+blazediff-agent check --judge agent    # your coding agent decides
 blazediff-agent check --judge local   # local models decide, no host round-trip
 blazediff-agent check --judge none    # no judgment, ambiguous entries just fail
 ```

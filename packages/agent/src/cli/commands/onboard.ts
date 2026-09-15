@@ -284,13 +284,13 @@ export function registerOnboard(program: Command, out: Output): void {
 			for (const t of targets) {
 				installed.push(...(await installStack(t, cwd, { force: opts.force })));
 			}
-			let judge: JudgeBackend = config?.judge ?? "host";
+			let judge: JudgeBackend = config?.judge ?? "agent";
 			if (targets.length === 0) {
 				lines.push(
 					"playbook: no coding-agent stack detected (pass --stack <claude|codex|cursor|all|local> to install)",
 				);
 			} else {
-				judge = targets.includes("local") ? "local" : "host";
+				judge = targets.includes("local") ? "local" : "agent";
 				await persistJudge(judge, cwd);
 				lines.push("playbook:");
 				lines.push(...humanizeInstall(installed));
