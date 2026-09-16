@@ -67,8 +67,23 @@ body {
 	animation: marquee 45s linear infinite;
 }
 
+@keyframes typing {
+	from {
+		clip-path: inset(0 100% 0 0);
+	}
+	to {
+		clip-path: inset(0 0 0 0);
+	}
+}
+
+/* Pair with an inline `animation-timing-function: steps(<char count>, end)`. */
+.typing {
+	animation: typing 800ms both;
+}
+
 @media (prefers-reduced-motion: reduce) {
-	.marquee-track {
+	.marquee-track,
+	.typing {
 		animation: none;
 	}
 }

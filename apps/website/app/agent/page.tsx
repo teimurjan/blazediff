@@ -23,6 +23,41 @@ const FIXTURE_A =
 const FIXTURE_B =
 	"https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3b.png";
 
+const DEMO_ENTRY_ID = "examples-interpret";
+
+// Route ids from a real `blazediff-agent check` on this website, plus the
+// fixture entry the hero and report sections both flag.
+const DEMO_ROUTES = [
+	"home",
+	"agent",
+	"apis-agent",
+	"apis-core",
+	"apis-core-native",
+	"apis-core-wasm",
+	"apis-cli",
+	"apis-bun",
+	"apis-jest",
+	"apis-vitest",
+	"apis-matcher",
+	"apis-gmsd",
+	"apis-ssim",
+	"apis-object",
+	DEMO_ENTRY_ID,
+	"apis-python",
+	"apis-rust",
+	"apis-react",
+	"apis-ui",
+	"docs-agentic-testing-setting-up",
+	"docs-agentic-testing-running-in-ci",
+	"docs-pixel-comparison-rust-napi",
+	"docs-ui-components-react",
+];
+
+// Trader Joe's -> Kwik Serv, then the Kaiser Permanente pin removed.
+const DEMO_REGIONS = [interpretData.regions[2], interpretData.regions[0]];
+const DEMO_JUDGMENT =
+	"Trader Joe's is now Kwik Serv and the Kaiser Permanente pin is gone. Map data refresh, not a layout regression.";
+
 const PRINCIPLES = [
 	{
 		num: "01",
@@ -94,7 +129,16 @@ export default function AgentPage() {
 				}
 				right={
 					<TerminalFrame title="~/Projects/blazediff - claude">
-						<AgentTerminalDemo />
+						<AgentTerminalDemo
+							routes={DEMO_ROUTES}
+							entryId={DEMO_ENTRY_ID}
+							fixtureBaseline={FIXTURE_A}
+							fixtureActual={FIXTURE_B}
+							imageWidth={interpretData.width}
+							imageHeight={interpretData.height}
+							regions={DEMO_REGIONS}
+							judgment={DEMO_JUDGMENT}
+						/>
 					</TerminalFrame>
 				}
 			/>
@@ -139,9 +183,8 @@ export default function AgentPage() {
 							</span>
 						</div>
 
-						{/** biome-ignore lint/correctness/useUniqueElementIds: ID is not for HTML, it's a prop */}
 						<ReportCycling
-							id="examples-interpret"
+							id={DEMO_ENTRY_ID}
 							fixtureBaseline={FIXTURE_A}
 							fixtureCurrent={FIXTURE_B}
 							imageWidth={interpretData.width}
