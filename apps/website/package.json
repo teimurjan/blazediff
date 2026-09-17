@@ -4,9 +4,9 @@
 	"private": true,
 	"scripts": {
 		"typecheck": "tsc --noEmit",
-		"predev": "node scripts/generate-benchmarks.mjs",
+		"predev": "node scripts/generate-images.mjs && node scripts/generate-benchmarks.mjs",
 		"dev": "next dev --turbopack --port 4000",
-		"prebuild": "node scripts/generate-interpret-data.mjs && node scripts/generate-llms-txt.mjs && node scripts/generate-benchmarks.mjs",
+		"prebuild": "node scripts/generate-interpret-data.mjs && node scripts/generate-llms-txt.mjs && node scripts/generate-benchmarks.mjs && node scripts/generate-images.mjs",
 		"generate:launch-hero": "node scripts/generate-launch-hero.mjs",
 		"generate:launch-problem": "node scripts/generate-launch-problem.mjs",
 		"generate:launch-verdict": "node scripts/generate-launch-verdict.mjs",
@@ -40,6 +40,7 @@
 		"@types/react-dom": "^19",
 		"pagefind": "^1.4.0",
 		"postcss": "^8.5.6",
+		"sharp": "^0.34.5",
 		"tailwindcss": "^4.1.13",
 		"typescript": "^5.9.2"
 	}

@@ -48,3 +48,5 @@ data/
 # Generated benchmark pages (see scripts/generate-benchmarks.mjs)
 app/benchmarks/
 public/benchmark-charts/
+# Generated image variants (see scripts/generate-images.mjs)
+public/images/

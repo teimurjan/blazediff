@@ -4,7 +4,9 @@ import Hero from "../../components/landing/hero";
 import HeroHeading, { HeroAccent } from "../../components/landing/hero-heading";
 import HeroSubhead from "../../components/landing/hero-subhead";
 import InstallSnippet from "../../components/landing/install-snippet";
-import NumberedCard from "../../components/landing/numbered-card";
+import NumberedCard, {
+	type NumberedCardProps,
+} from "../../components/landing/numbered-card";
 import ReportCycling from "../../components/landing/report-cycling";
 import Section from "../../components/landing/section";
 import LandingShell from "../../components/landing/shell";
@@ -77,7 +79,7 @@ const PRINCIPLES = [
 		body: "One onboard command installs the same skill into Claude Code, Cursor, and Codex. Switch tools without rewriting your testing setup.",
 		illustration: "/agent-harnesses.png",
 	},
-];
+] satisfies NumberedCardProps[];
 
 const PROTOCOL = [
 	{

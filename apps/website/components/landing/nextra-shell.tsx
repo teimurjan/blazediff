@@ -1,9 +1,9 @@
 import { IconBrandGithub } from "@tabler/icons-react";
-import Image from "next/image";
 import Link from "next/link";
 import { Banner } from "nextra/components";
 import { getPageMap } from "nextra/page-map";
 import { Footer, Layout, Navbar } from "nextra-theme-docs";
+import Picture, { sizesForHeight } from "./picture";
 
 const banner = (
 	<Banner storageKey="ssim-interpret-native-launch">
@@ -24,7 +24,15 @@ const banner = (
 
 const navbar = (
 	<Navbar
-		logo={<Image src="/logo.png" alt="BlazeDiff" width={48} height={48} />}
+		logo={
+			<Picture
+				src="/logo.png"
+				alt="BlazeDiff"
+				sizes={sizesForHeight("/logo.png", 48)}
+				loading="eager"
+				className="h-12 w-12"
+			/>
+		}
 		projectIcon={<IconBrandGithub />}
 		projectLink="https://github.com/teimurjan/blazediff"
 	/>

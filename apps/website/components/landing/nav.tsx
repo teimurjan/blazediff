@@ -1,7 +1,7 @@
 import { IconBrandGithub } from "@tabler/icons-react";
-import Image from "next/image";
 import Link from "next/link";
 import MobileMenu from "./mobile-menu";
+import Picture, { sizesForHeight } from "./picture";
 
 type Tab = "home" | "agent" | "docs";
 
@@ -36,13 +36,12 @@ export default function LandingNav({
 					href="/"
 					className="flex items-center gap-2 md:gap-4 shrink min-w-0"
 				>
-					<Image
+					<Picture
 						src="/logo.png"
 						alt="BlazeDiff"
-						width={32}
-						height={32}
-						className="w-7 h-7 md:w-8 md:h-8 shrink-0"
-						style={{ imageRendering: "pixelated" }}
+						sizes={sizesForHeight("/logo.png", 32)}
+						loading="eager"
+						className="w-7 h-7 md:w-8 md:h-8 shrink-0 [image-rendering:pixelated]"
 					/>
 					<span className="font-display text-[18px] md:text-[24px] font-black text-fg tracking-tighter truncate">
 						BLAZEDIFF

@@ -1,14 +1,14 @@
-import Image from "next/image";
 import type { ComponentType } from "react";
 import Card from "./card";
+import Picture, { type ImageSrc } from "./picture";
 import Reveal from "./reveal";
 
-interface NumberedCardProps {
+export interface NumberedCardProps {
 	num: string;
 	title: string;
 	body: string;
 	icon?: ComponentType<{ size?: number; className?: string }>;
-	illustration?: string;
+	illustration?: ImageSrc;
 	reverse?: boolean;
 }
 
@@ -29,12 +29,11 @@ export default function NumberedCard({
 			>
 				<Reveal className="md:w-[33%] shrink-0">
 					<div className="relative aspect-[16/9] bg-surface border border-line overflow-hidden">
-						<Image
+						<Picture
 							src={illustration}
 							alt=""
-							fill
 							sizes="(max-width: 768px) 100vw, 35vw"
-							className="object-contain"
+							className="absolute inset-0 h-full w-full object-contain"
 						/>
 					</div>
 				</Reveal>

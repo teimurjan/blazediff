@@ -7,7 +7,13 @@ import HeroHeading, { HeroAccent } from "../components/landing/hero-heading";
 import HeroInterpret from "../components/landing/hero-interpret";
 import HeroSubhead from "../components/landing/hero-subhead";
 import InstallSnippet from "../components/landing/install-snippet";
-import NumberedCard from "../components/landing/numbered-card";
+import NumberedCard, {
+	type NumberedCardProps,
+} from "../components/landing/numbered-card";
+import Picture, {
+	type ImageSrc,
+	sizesForHeight,
+} from "../components/landing/picture";
 import Reveal from "../components/landing/reveal";
 import Section from "../components/landing/section";
 import LandingShell from "../components/landing/shell";
@@ -129,7 +135,7 @@ const PACKAGES: {
 
 const TIER_ORDER: Tier[] = ["surfaces", "harness", "metrics", "foundation"];
 
-const USED_BY = [
+const USED_BY: { name: string; logo: ImageSrc; href: string }[] = [
 	{
 		name: "Vitest",
 		logo: "/vitest-logo.png",
@@ -196,7 +202,7 @@ const FEATURES = [
 		body: "One engine, three ecosystems. cargo add blazediff, npm install @blazediff/core, pip install blazediff. Same algorithm, same numbers, whether you call it from a Rust crate, a Node script, or a pytest run.",
 		illustration: "/home-languages.png",
 	},
-];
+] satisfies NumberedCardProps[];
 
 const BENCHMARK_GROUPS = [
 	{
@@ -305,8 +311,12 @@ export default function Home() {
 										tabIndex={copy === 1 ? -1 : undefined}
 										className="flex shrink-0 flex-col items-center gap-2 px-8 grayscale hover:grayscale-0 opacity-70 hover:opacity-100 transition-all"
 									>
-										{/* biome-ignore lint/performance/noImgElement: simple logo asset */}
-										<img src={p.logo} alt={p.name} className="h-12" />
+										<Picture
+											src={p.logo}
+											alt={p.name}
+											sizes={sizesForHeight(p.logo, 48)}
+											className="h-12 w-auto"
+										/>
 										<span className="font-mono text-[11px] text-muted uppercase tracking-wider">
 											{p.name}
 										</span>
