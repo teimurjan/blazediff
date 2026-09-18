@@ -8,4 +8,7 @@ export default {
 	gmsd: {
 		title: "How GMSD Works",
 	},
+	milo: {
+		title: "What Is MILO",
+	},
 };

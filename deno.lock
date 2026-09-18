@@ -10013,6 +10013,7 @@
             "npm:postcss@^8.5.6",
             "npm:react-dom@^19.1.1",
             "npm:react@^19.1.1",
+            "npm:sharp@~0.34.5",
             "npm:tailwindcss@^4.1.13",
             "npm:typescript@^5.9.2"
           ]
@@ -10222,6 +10223,18 @@
           ]
         }
       },
+      "packages/interpret-wasm": {
+        "packageJson": {
+          "dependencies": [
+            "npm:@types/node@^24.3.0",
+            "npm:@types/pngjs@^6.0.5",
+            "npm:pngjs@7",
+            "npm:tsup@8.5.0",
+            "npm:typescript@5.9.2",
+            "npm:vitest@^3.2.4"
+          ]
+        }
+      },
       "packages/jest": {
         "packageJson": {
           "dependencies": [
@@ -10249,6 +10262,38 @@
             "npm:@types/pngjs@^6.0.5",
             "npm:@vitest/coverage-v8@^3.2.4",
             "npm:picocolors@^1.1.1",
+            "npm:tsup@8.5.0",
+            "npm:typescript@5.9.2",
+            "npm:vitest@^3.2.4"
+          ]
+        }
+      },
+      "packages/milo-native/milo-native": {
+        "dependencies": [
+          "npm:@blazediff/milo-native-darwin-arm64@0.0.0",
+          "npm:@blazediff/milo-native-darwin-x64@0.0.0",
+          "npm:@blazediff/milo-native-linux-arm64@0.0.0",
+          "npm:@blazediff/milo-native-linux-x64@0.0.0",
+          "npm:@blazediff/milo-native-win32-arm64@0.0.0",
+          "npm:@blazediff/milo-native-win32-x64@0.0.0"
+        ],
+        "packageJson": {
+          "dependencies": [
+            "npm:@types/node@^24.3.0",
+            "npm:@types/pngjs@^6.0.5",
+            "npm:pngjs@7",
+            "npm:tsup@8.5.0",
+            "npm:typescript@5.9.2",
+            "npm:vitest@^3.2.4"
+          ]
+        }
+      },
+      "packages/milo-wasm": {
+        "packageJson": {
+          "dependencies": [
+            "npm:@types/node@^24.3.0",
+            "npm:@types/pngjs@^6.0.5",
+            "npm:pngjs@7",
             "npm:tsup@8.5.0",
             "npm:typescript@5.9.2",
             "npm:vitest@^3.2.4"

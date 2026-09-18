@@ -145,6 +145,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "blazediff-milo"
+version = "0.0.0"
+dependencies = [
+ "blazediff-shared",
+ "console_error_panic_hook",
+ "napi",
+ "napi-build",
+ "napi-derive",
+ "png",
+ "pyo3",
+ "serde_json",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "blazediff-png"
 version = "6.0.0"
 dependencies = [

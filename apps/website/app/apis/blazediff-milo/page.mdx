@@ -1,0 +1,110 @@
+# blazediff-milo
+
+import { Callout } from "nextra/components";
+
+MILO, the learned perceptual image quality metric of Çoğalan, Bemana, Myszkowski, Seidel and Groth (ACM TOG 2025), **as a std-only Rust crate: the authors' trained network embedded, run through lane-generic SIMD kernels on every core, and held to the PyTorch implementation's outputs by test.** No PyTorch, no ONNX runtime, no download at first use. It powers [`@blazediff/milo-native`](/apis/milo-native) and [`@blazediff/milo-wasm`](/apis/milo-wasm).
+
+## Installation
+
+```toml
+# Cargo.toml
+[dependencies]
+blazediff-milo = "0.1"
+```
+
+The crate name is `blazediff-milo`; the library imports as `blazediff_milo`. Crate sources are available on [crates.io](https://crates.io/crates/blazediff-milo).
+
+## Why a separate crate
+
+[`blazediff-ssim`](/apis/blazediff-ssim) holds formulas from 2004: they know about luminance, contrast and structure, and nothing about *where the eye looks*. MILO models that, learned. A small convolutional network looks at both images at four scales and predicts, per pixel, how visible an error there would be; the absolute error is weighted by that mask and pooled. The paper reports it ahead of LPIPS and DISTS on the standard FR-IQA benchmarks with a fraction of their cost, and its authors published the weights under Apache-2.0.
+
+It is also three orders of magnitude more expensive per pixel than SSIM, which is the other reason it is its own crate rather than another `--metric`.
+
+## What it does
+
+`milo` takes a reference and a distorted RGBA8 image of the same size and returns:
+
+- **`raw_error`**: the metric proper, `mean(mask * |reference - distorted|)` over pixels and channels. Exactly zero for identical images; fixture pairs in the repository land between 0.0002 and 0.01. Threshold on this.
+- **`mos`**: `raw_error` on KADID-10k's five-point mean-opinion-score scale through the learned calibration. It tops out around 4.35 rather than 5 for identical input; read it, don't gate on it.
+- **`mask`**: the visibility mask, one value per pixel.
+- **`error_map`**: per-pixel perceived error in `0..1`, the reference's `MILO_map`. `render_map` paints it to grayscale.
+
+Inputs must be at least 16px on each side, the smallest the reference accepts. Alpha is ignored, as the reference converts to RGB.
+
+## Library Usage
+
+```rust
+use blazediff_milo::{milo, MiloOptions, Rgba8};
+
+let outcome = milo(
+    Rgba8::new(&reference_rgba, width, height),
+    Rgba8::new(&distorted_rgba, width, height),
+    &MiloOptions::default(),
+)?;
+println!("raw error {:.6}, MOS {:.2}", outcome.raw_error, outcome.mos);
+```
+
+`MiloOptions { threads: Some(1) }` runs inline; the default uses every core. The answer is bit-identical either way.
+
+### Types
+
+```rust
+pub struct Rgba8<'a> {
+    pub data: &'a [u8],   // RGBA8, 4 bytes per pixel, row-major
+    pub width: usize,
+    pub height: usize,
+}
+
+pub struct MiloOptions {
+    pub threads: Option<usize>, // None = every core; ignored on wasm32
+}
+
+pub struct MiloOutcome {
+    pub raw_error: f64,      // the metric, 0 = identical
+    pub mos: f64,            // 1..5 scale, ~4.35 for identical
+    pub mask: Vec<f32>,      // per pixel, row-major
+    pub error_map: Vec<f32>, // per pixel in 0..1, row-major
+    pub width: usize,
+    pub height: usize,
+}
+```
+
+<Callout type="info">
+  `milo` returns `Err(MiloError)` rather than panicking on a mismatched, truncated or too-small pair. The messages match `blazediff-ssim`'s, so front-ends that already classify those ("Image sizes do not match" is a layout difference) forward these unchanged.
+</Callout>
+
+## How it runs
+
+The network is 44,930 parameters: five 3x3 convolutions (7-32-64-32-16-1) plus a three-layer scaler, applied at four pyramid levels with the mask carried up through bilinear upsampling. About 116k floating-point operations per pixel of the finest level.
+
+- **A line-buffer pipeline.** The reference materialises every layer over the whole image; layer two alone is half a gigabyte at 1080p. Here each stage keeps three rows and the five stages advance together, so memory is a few megabytes per thread whatever the image size.
+- **Lane-generic SIMD.** One 3x3 kernel written against a four-op trait, with NEON, SSE2, AVX2+FMA (when the build enables them, as every shipped binary does) and wasm simd128 backends picked at compile time. Register-blocked over pixels and output channels, it reaches ~75% of the f32 FMA peak on an M1.
+- **Row bands over threads.** Bands are independent, so they spread over `std::thread::scope` with no shared state; per-row partial sums are reduced in a fixed order, which is why the thread count never changes the answer.
+
+| Pair | One core | All cores (M1 Max) |
+| --- | --- | --- |
+| 1328x1228 | 2.5 s | 0.38 s |
+| 1320x2868 | 5.7 s | 0.83 s |
+
+## Verified
+
+| Layer | Result |
+| --- | --- |
+| PyTorch reference, seven fixture pairs | `raw_error` within **2e-6** relative, `mos` within **1.2e-6** absolute |
+| PyTorch reference, four synthetic pairs | every mask value within **1.4e-5**, every error-map value within **4e-6** |
+| Thread count | bit-identical output for any number of bands |
+| x86 backends (AVX2+FMA and baseline SSE2) | same parity bounds, run under Rosetta |
+| Unit + integration tests | 25 + 3 |
+
+The reference outputs come from the authors' `MILO_runner.py` on a CPU; `scripts/export-reference.py` regenerates them together with the embedded weight blob from the upstream checkpoint and records its hash. The residual is summation order inside the convolutions (PyTorch's is oneDNN's), so bit-exactness against the reference is not on offer and the bounds sit well above the measured noise on every backend.
+
+## Weights and licensing
+
+The crate embeds the authors' `MILO.pth` checkpoint at `src/weights/milo.bin`, every tensor in state_dict order as little-endian f32, so anyone can diff it against upstream. No fine-tuning, pruning or quantisation. The weights are Apache-2.0, attributed in the repository's `licenses/MILO.md`; the crate's code is MIT.
+
+## Links
+
+- [Crates.io](https://crates.io/crates/blazediff-milo)
+- [Crate README](https://github.com/teimurjan/blazediff/blob/main/crates/blazediff-milo/README.md)
+- [The paper](https://doi.org/10.1145/3763340) and [reference implementation](https://github.com/ugurcogalan06/MILO)
+- [GitHub Repository](https://github.com/teimurjan/blazediff)

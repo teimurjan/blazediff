@@ -17,6 +17,7 @@ const FAMILIES = [
 	{ pkg: "core-native", prefix: "core-native" },
 	{ pkg: "ssim-native", prefix: "ssim-native" },
 	{ pkg: "interpret-native", prefix: "interpret-native" },
+	{ pkg: "milo-native", prefix: "milo-native" },
 ];
 
 const PLATFORM_SUFFIXES = [

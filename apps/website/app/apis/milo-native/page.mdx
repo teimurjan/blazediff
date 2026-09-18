@@ -1,0 +1,118 @@
+# @blazediff/milo-native
+
+import { Callout } from "nextra/components";
+
+Native Rust **MILO** for Node.js: a learned perceptual image quality metric that models visual masking, through N-API. Decodes PNG, JPEG and QOI. It is the [`blazediff-milo`](/apis/blazediff-milo) crate with the authors' trained weights inside, so there is no PyTorch, no ONNX runtime and no model download.
+
+## Installation
+
+```sh npm2yarn
+npm install @blazediff/milo-native
+```
+
+The platform binary installs as an optional dependency; there is no compile step.
+
+## Why a separate package
+
+[`@blazediff/ssim-native`](/apis/ssim-native) scores how alike two images look with a formula: brightness, contrast and structure inside a window. It knows nothing about *where the eye looks*, so a one-unit shift across a busy texture and the same shift across a flat panel score the same, though only one is visible.
+
+MILO (Çoğalan et al., ACM TOG 2025) learned that distinction. A small convolutional network looks at both images at four scales and predicts, per pixel, how visible an error there would be; the absolute error is weighted by that mask and pooled. The paper reports it ahead of LPIPS and DISTS on the standard benchmarks at a fraction of their cost. It is a different question answered a different way, so it is a different package. See [What Is MILO](/docs/metrics/milo) for the metric itself.
+
+## Usage
+
+```ts
+import { compare } from "@blazediff/milo-native";
+
+const result = await compare("expected.png", "actual.png", "map.png", {
+  maxError: 0.001,
+});
+
+if (result.match) {
+  console.log(`not visibly different: ${result.rawError}`);
+} else if (result.reason === "error-above-threshold") {
+  console.log(`raw error ${result.rawError}, MOS ${result.mos.toFixed(2)}`);
+}
+```
+
+`compare` takes two file paths or two encoded buffers (Node `Buffer` works directly). A third argument renders the per-pixel error map to that path as grayscale, bright where the perceived error is high.
+
+### Result
+
+`MiloResult` is a discriminated union:
+
+| `match` | `reason` | Carries |
+| --- | --- | --- |
+| `true` | | `rawError`, `mos`, `width`, `height` |
+| `false` | `"error-above-threshold"` | the same |
+| `false` | `"layout-diff"` | nothing: the images are different sizes |
+| `false` | `"file-not-exists"` | `file` |
+
+### The two numbers
+
+- **`rawError`** is the metric: the mean over pixels and channels of `mask * |expected - actual|`. Exactly `0` for identical images and growing with visible damage; typical screenshot regressions land between `0.0002` and `0.01`. `maxError` thresholds on this and defaults to `0`.
+- **`mos`** is `rawError` on KADID-10k's 1 to 5 mean-opinion-score scale, through the metric's learned calibration. It is for reading, not thresholding.
+
+<Callout type="warning">
+  The MOS calibration tops out around **4.35**, not 5, for identical images. That is a property of the published model, reproduced faithfully here. Gate on `rawError`.
+</Callout>
+
+## Raw RGBA
+
+If you already have decoded pixels, skip the codec. This one is synchronous:
+
+```ts
+import { milo, renderMap } from "@blazediff/milo-native";
+
+const result = milo(rgba1, rgba2, width, height, { returnMaps: true });
+if ("errorMap" in result && result.errorMap) {
+  const grayscale = renderMap(result.errorMap, width, height);
+}
+```
+
+Both buffers are read at the same dimensions, so there is no layout-difference case here; a buffer too short for `width * height` throws.
+
+## Options
+
+```ts
+interface CompareOptions {
+  maxError?: number;    // identical at or below this raw error. Default: 0
+  threads?: number;     // Default: every core. The answer never depends on it
+  returnMaps?: boolean; // include `mask` and `errorMap` Float32Arrays. Default: false
+  compression?: number; // PNG level for a rendered map. Default: 0
+  quality?: number;     // JPEG quality for a rendered map. Default: 90
+}
+```
+
+<Callout type="info">
+  The maps are withheld unless `returnMaps` is set; each is one float per pixel and costs a copy across the binding. `mask` is the visibility mask (one sigmoid per pyramid level, so values in `(0, 4)`), `errorMap` the per-pixel perceived error in `0..1`.
+</Callout>
+
+## Cost
+
+This is a CNN, not a formula: about 116k floating-point operations per pixel, three orders of magnitude more than SSIM. The crate keeps it practical with a line-buffer pipeline (a few megabytes of memory whatever the image size), SIMD kernels at roughly 75% of the CPU's f32 peak, and row bands across every core.
+
+| Pair | One core | All cores (M1 Max) |
+| --- | --- | --- |
+| 1328x1228 | 2.5 s | 0.38 s |
+| 1320x2868 | 5.7 s | 0.83 s |
+
+Budget about half a second for a 1080p pair on a laptop. Images must be at least 16px on each side, the floor of the reference implementation. Alpha is ignored, as the reference converts to RGB.
+
+## Accuracy
+
+The embedded weights are the authors' published checkpoint, unchanged. The crate is tested against the outputs of their PyTorch code on this repository's fixtures: within 2e-6 relative on `rawError` and 1.2e-6 on `mos`, with the mask and error map checked pixel by pixel on synthetic pairs. The residual is floating-point summation order inside the convolutions. Details and the export script are in the [crate](/apis/blazediff-milo).
+
+## Faster PNG decoding
+
+Decoding is shared with [`@blazediff/core-native`](/apis/core-native) through the [`blazediff-shared`](/apis/blazediff-shared) crate, so the same opt-in applies: `BLAZEDIFF_PNG_ENABLED=1` routes PNG decode through [`blazediff-png`](/apis/blazediff-png). Decode is a small share of a MILO call, so the gain is proportionally smaller than for a pixel diff.
+
+## Platforms
+
+macOS (arm64, x64), Linux (arm64, x64), Windows (arm64, x64). There is no CLI to fall back to, so an unsupported platform throws. For browsers and edge runtimes, [`@blazediff/milo-wasm`](/apis/milo-wasm) is the same crate compiled to WebAssembly.
+
+## Links
+
+- [npm](https://www.npmjs.com/package/@blazediff/milo-native)
+- [The Rust crate behind it](/apis/blazediff-milo)
+- [What Is MILO](/docs/metrics/milo)
+- [GitHub Repository](https://github.com/teimurjan/blazediff)

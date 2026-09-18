@@ -1,0 +1,86 @@
+# @blazediff/milo-wasm
+
+import { Callout } from "nextra/components";
+
+WebAssembly build of **MILO**, a learned perceptual image quality metric, for browsers, edge runtimes, and any wasm host. Same crate as [`@blazediff/milo-native`](/apis/milo-native), compiled to `wasm32` with `v128` SIMD (`+simd128`), weights included: the 45k-parameter network ships inside the ~220 KB module, so there is no model download and no network call.
+
+## Installation
+
+```sh npm2yarn
+npm install @blazediff/milo-wasm
+```
+
+Ships ~220 KB of optimized wasm + ~12 KB of JS glue. No native binaries, no postinstall, no platform packages.
+
+## Features
+
+- **Same metric as `@blazediff/milo-native`**: the scores agree to floating-point noise, because it is the same Rust
+- **wasm32 v128 SIMD** (`+simd128`): the convolution kernels vectorize four lanes wide
+- **Buffers-only API**: caller decodes images, hands in `Uint8Array`. No PNG/JPEG codecs bundled
+- **Runs anywhere wasm runs**: browsers, Node 18+, Cloudflare Workers, Deno, Bun
+
+## API Reference
+
+### `initMilo(input?)`
+
+Initializes the wasm module. Safe to call multiple times; subsequent calls return the cached promise. Accepts a `URL`, `Response`, `ArrayBuffer`, `Uint8Array`, or compiled `WebAssembly.Module`. Without `input`, the default `--target web` glue fetches the sibling `blazediff_milo_bg.wasm` via `import.meta.url`, which works in browsers but not in runtimes whose `fetch()` cannot resolve the resulting URL.
+
+```typescript
+// Browser: the default resolves the sibling .wasm
+import { initMilo } from '@blazediff/milo-wasm';
+await initMilo();
+
+// Bundlers (Vite, Webpack 5+, esbuild) rewrite this at build time:
+await initMilo(new URL('@blazediff/milo-wasm/wasm/blazediff_milo_bg.wasm', import.meta.url));
+
+// Node from the local filesystem:
+import { readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
+await initMilo(
+  readFileSync(createRequire(import.meta.url).resolve('@blazediff/milo-wasm/wasm/blazediff_milo_bg.wasm')),
+);
+```
+
+### `milo(reference, distorted, width, height, options?)`
+
+Both buffers must be `width * height * 4` bytes in RGBA8 order, at least 16px on each side. Returns a promise of:
+
+```typescript
+interface MiloResult {
+  rawError: number;     // masked mean absolute error. 0 means identical. Threshold on this
+  mos: number;          // rawError on KADID-10k's 1-5 scale; tops out near 4.35 for identical input
+  mask?: Float32Array;  // visibility mask, one value per pixel, only with returnMaps
+  errorMap?: Float32Array; // perceived error in 0..1 per pixel, only with returnMaps
+  width: number;
+  height: number;
+}
+```
+
+```typescript
+import { initMilo, milo } from '@blazediff/milo-wasm';
+
+await initMilo();
+const result = await milo(expectedRgba, actualRgba, width, height);
+console.log(`raw error ${result.rawError}, MOS ${result.mos.toFixed(2)}`);
+```
+
+Pass `{ returnMaps: true }` to get the mask and error map back; each is one float per pixel copied out of wasm memory.
+
+## Decoding images in the browser
+
+This package bundles no codecs, so decode first. `ImageDecoder` (WebCodecs) has no canvas size cap and is the better path for large images; the [`@blazediff/core-wasm`](/apis/core-wasm) page carries a full `toRgba` recipe that applies unchanged here.
+
+## Cost
+
+MILO is a convolutional network, about 116k floating-point operations per pixel, and wasm runs it on one thread without fused multiply-add. Expect roughly 4 seconds for a 1468x294 pair and proportionally more for larger images, so run it in a Web Worker and, where you can, use the [native package](/apis/milo-native). Memory stays flat (a few megabytes plus the two images) whatever the size, thanks to the crate's line-buffer pipeline.
+
+<Callout type="info">
+  wasm linear memory never shrinks. For very large pairs, run the comparison in a Worker and terminate it afterwards to give the memory back.
+</Callout>
+
+## Links
+
+- [npm](https://www.npmjs.com/package/@blazediff/milo-wasm)
+- [The Rust crate behind it](/apis/blazediff-milo)
+- [What Is MILO](/docs/metrics/milo)
+- [GitHub Repository](https://github.com/teimurjan/blazediff)

@@ -27,7 +27,7 @@ PYTHON="$VENV/bin/python"
 # that is clang 18 or newer.
 export BLAZEDIFF_SKIP_EVEX512="${BLAZEDIFF_SKIP_EVEX512:-1}"
 
-CRATES=(blazediff blazediff-ssim blazediff-interpret)
+CRATES=(blazediff blazediff-ssim blazediff-interpret blazediff-milo)
 
 for tool in uv maturin; do
     if ! command -v "$tool" &> /dev/null; then

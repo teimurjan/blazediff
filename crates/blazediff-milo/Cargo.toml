@@ -1,0 +1,62 @@
+[package]
+name = "blazediff-milo"
+version = "0.0.0"
+edition = "2021"
+authors = ["Teimur Gasanov"]
+description = "MILO perceptual image quality metric (Çoğalan et al. 2025) as a std-only SIMD CNN with PyTorch parity"
+license = "MIT"
+repository = "https://github.com/teimurjan/blazediff"
+keywords = ["milo", "image-quality", "perceptual", "fr-iqa", "simd"]
+categories = ["multimedia::images", "algorithms"]
+readme = "README.md"
+build = "build.rs"
+include = ["src/**/*", "build.rs", "Cargo.toml", "README.md"]
+
+[lib]
+name = "blazediff_milo"
+path = "src/lib.rs"
+# cdylib is what the `napi` and `wasm` features turn into a `.node` / `.wasm`;
+# the rlib is what everyone else links.
+crate-type = ["lib", "cdylib"]
+
+[features]
+# N-API bindings for `@blazediff/milo-native`. Everything it needs is optional,
+# so a default build of this crate still resolves to zero dependencies.
+napi = [
+    "dep:napi",
+    "dep:napi-derive",
+    "dep:napi-build",
+    "dep:blazediff-shared",
+]
+# PyO3 bindings for the `blazediff-milo` PyPI wheel. Same shape as `napi`.
+python = ["dep:pyo3", "dep:blazediff-shared"]
+# wasm-bindgen bindings for `@blazediff/milo-wasm`. Buffers-only, so no
+# codecs: the caller pre-decodes to RGBA8 in the host.
+wasm = ["dep:wasm-bindgen", "dep:console_error_panic_hook"]
+
+[dependencies]
+# All optional, all binding-only. The metric itself is std-only, so the crate
+# compiles for every target blazediff does, wasm32 included.
+napi = { version = "2", features = ["napi4"], optional = true }
+napi-derive = { version = "2", optional = true }
+pyo3 = { version = "0.22", features = ["extension-module", "abi3-py38", "generate-import-lib"], optional = true }
+# Decoding for the path/buffer entry points. `version` is required to publish
+# to crates.io; kept in lockstep by scripts/release/sync-cargo-version.js.
+blazediff-shared = { path = "../blazediff-shared", version = "6.0.0", optional = true }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+# Pinned to the wasm-bindgen-cli version in scripts/build-wasm.sh. Bumping
+# requires bumping both in lockstep.
+wasm-bindgen = { version = "=0.2.100", optional = true }
+console_error_panic_hook = { version = "0.1", optional = true }
+
+[build-dependencies]
+napi-build = { version = "2", optional = true }
+
+[dev-dependencies]
+# Decodes the fixture PNGs for tests/parity.rs. Deliberately not blazediff-png:
+# the parity test's job is to catch metric drift, and an in-repo decoder would
+# let a decoder regression masquerade as one.
+png = "0.18.1"
+# Reads tests/fixtures/reference.json, the PyTorch outputs the port is held to.
+serde_json = "1"

@@ -31,6 +31,7 @@ const CRATES = [
 			path.join(ROOT, "crates", "blazediff", "Cargo.toml"),
 			path.join(ROOT, "crates", "blazediff-interpret", "Cargo.toml"),
 			path.join(ROOT, "crates", "blazediff-ssim", "Cargo.toml"),
+			path.join(ROOT, "crates", "blazediff-milo", "Cargo.toml"),
 		],
 	},
 	{
@@ -48,6 +49,13 @@ const CRATES = [
 			"blazediff-interpret",
 			"Cargo.toml",
 		),
+		dependents: [],
+	},
+	{
+		// Versioned via the private @blazediff/rust-milo changesets shadow package.
+		name: "blazediff-milo",
+		npmPkgPath: path.join(ROOT, "crates", "blazediff-milo", "package.json"),
+		cargoTomlPath: path.join(ROOT, "crates", "blazediff-milo", "Cargo.toml"),
 		dependents: [],
 	},
 	{

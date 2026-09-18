@@ -1,0 +1,162 @@
+---
+title: What Is MILO? A Learned Perceptual Metric With Visual Masking
+description: MILO scores how visibly two images differ by predicting, per pixel, how much an error would be noticed, then weighting the error by that mask. What it measures, its two outputs, how it compares to SSIM, and when to use it in visual regression tests.
+---
+
+# What Is MILO?
+
+import { Callout } from "nextra/components";
+
+**MILO scores how visibly two images differ, by first predicting where a
+difference would be noticed.** SSIM and GMSD are formulas: they compare
+brightness, contrast, structure or edges inside a window, and every window
+counts the same. MILO is a small neural network trained against human opinion
+scores. It looks at both images and produces a *visibility mask*, a per-pixel
+estimate of how much an error there would stand out, and the score is the
+absolute error weighted by that mask.
+
+The effect is called visual masking, and it is the thing the classical metrics
+miss. A one-unit shift inside a busy photograph is invisible; the same shift
+across a flat button is not. SSIM scores them the same. MILO does not.
+
+MILO is from Çoğalan, Bemana, Myszkowski, Seidel and Groth, *MILO: A
+Lightweight Perceptual Quality Metric for Image and Latent-Space Optimization*,
+ACM Transactions on Graphics 2025. The paper reports it ahead of LPIPS and
+DISTS on the standard full-reference quality benchmarks at a fraction of their
+cost. BlazeDiff ships the authors' published weights inside the
+[`blazediff-milo`](/apis/blazediff-milo) crate, so nothing is downloaded and
+nothing needs PyTorch.
+
+## MILO vs SSIM
+
+|                              | SSIM                                     | MILO                                              |
+| ---------------------------- | ---------------------------------------- | ------------------------------------------------- |
+| What it is                   | A formula over local statistics          | A 45k-parameter convolutional network             |
+| What it knows about the eye  | Nothing beyond the window size           | Learned visual masking: texture hides error        |
+| Color                        | Luminance only                           | Works on RGB, so a hue change counts               |
+| Output                       | Score `0` to `1`, higher is better       | Raw error, `0` is identical, lower is better       |
+| Identical images             | Exactly `1`                              | Exactly `0`                                        |
+| Cost per pixel               | ~100 operations                          | ~116,000 operations                                |
+| Shows you where              | An SSIM map                              | The visibility mask and a per-pixel error map      |
+
+## The two outputs
+
+MILO returns two numbers for a pair of images.
+
+**`rawError`** is the metric. It is the mean, over every pixel and channel, of
+`mask * |expected - actual|`. It is exactly `0` for identical images and grows
+with visible damage. On this repository's screenshot fixtures it runs from
+`0.0002` for a subtle change to `0.01` for a heavy one. This is the number to
+gate on.
+
+**`mos`** is `rawError` mapped onto the 1 to 5 mean-opinion-score scale of the
+KADID-10k dataset the model was calibrated against. It reads like a grade, and
+that is what it is for.
+
+<Callout type="warning">
+  The MOS calibration tops out around **4.35** for identical images, not 5. That
+  is how the published model behaves and BlazeDiff reproduces it faithfully.
+  Use `rawError` for thresholds and `mos` for reports.
+</Callout>
+
+## How the score is computed
+
+1. Both images are downsampled three times by 2x2 averaging, giving four
+   pyramid levels from coarse to full resolution.
+2. At the coarsest level, the network sees the two images side by side (six
+   channels) plus an empty mask, and emits a mask in `0..1`.
+3. That mask is upsampled to the next level and fed in as the seventh channel.
+   The network's output at each level is *added* to the incoming mask, so the
+   mask accumulates across scales, and every level can refine what the coarser
+   one decided.
+4. At full resolution, `rawError = mean(mask * |expected - actual|)`.
+5. A small calibration network maps `rawError` to `mos`.
+
+The network at each level is five 3x3 convolutions, 7-32-64-32-16-1 channels,
+ReLU between them and a sigmoid at the end. The same weights are used at every
+level.
+
+## What it costs
+
+MILO is a network, not a formula, and it runs at full resolution. That is about
+116k floating-point operations per pixel, three orders of magnitude more than
+SSIM. The Rust implementation keeps it usable on a CPU: SIMD kernels at roughly
+75% of the machine's f32 peak, every core busy, and memory that stays at a few
+megabytes whatever the image size.
+
+| Pair | One core | All cores (M1 Max) |
+| --- | --- | --- |
+| 1328x1228 | 2.5 s | 0.38 s |
+| 1320x2868 | 5.7 s | 0.83 s |
+
+Budget about half a second for a 1080p screenshot on a laptop. That is fine for
+a report or a second opinion on a failed pixel diff, and too slow to run on
+every screenshot of a large suite. In the browser
+([`@blazediff/milo-wasm`](/apis/milo-wasm)) it runs on one thread without fused
+multiply-add, about six times slower than one native core.
+
+## When to use it
+
+Use MILO when the question is "would a person notice this" and the answer
+matters more than the cost:
+
+- A failed pixel diff on a photograph, a gradient or a textured background,
+  where SSIM still flags noise that nobody can see.
+- A quality grade for a report: "this render is a 3.8 out of 5 against the
+  baseline".
+- Color changes that SSIM and GMSD are blind to. MILO works on RGB.
+
+Keep a pixel diff as the first gate. Most runs stop there, and MILO's cost only
+matters on the ones that do not.
+
+```ts
+import { compare as pixelDiff } from "@blazediff/core-native";
+import { compare as milo } from "@blazediff/milo-native";
+
+// 1. Cheap exact gate. Most runs stop here.
+const exact = await pixelDiff("baseline.png", "current.png", "diff.png", {
+  threshold: 0.1,
+  antialiasing: true,
+});
+if (exact.match) return "pass";
+
+// 2. Something changed. Would anyone see it?
+const perceived = await milo("baseline.png", "current.png", "map.png", {
+  maxError: 0.0005,
+});
+return perceived.match ? "pass-with-noise" : "fail";
+```
+
+## Setting a threshold
+
+As with every metric: run your own baselines twice with no code change, look at
+the `rawError` the noise alone produces, and set `maxError` above it. For
+scale: the subtlest change among this repository's screenshot fixtures scores
+`0.0002`, the heaviest `0.01`, and identical images exactly `0`.
+
+## Accuracy
+
+The crate is tested against the authors' PyTorch implementation on the
+repository's fixtures: `rawError` agrees within 2e-6 relative, `mos` within
+1.2e-6, and on small synthetic pairs every pixel of the mask and error map is
+checked. The residual is floating-point summation order inside the
+convolutions. See the [crate page](/apis/blazediff-milo) for the numbers and
+the export script that reproduces the reference outputs.
+
+## Limitations
+
+- **Cost.** About a second and a half per megapixel on one core. Not a
+  per-screenshot gate for large suites.
+- **Size floor.** Images must be at least 16px on each side, because three
+  halvings must leave the network something to look at.
+- **Alpha is ignored.** The reference converts to RGB; so does this.
+- **It is a model.** It was trained on natural images with synthetic
+  distortions (KADID-10k's 25 distortion types), not on screenshots of user
+  interfaces. It has opinions a formula does not, and no threshold table will
+  replace measuring your own noise floor.
+- **Not in the matcher or CLI yet.** Call `@blazediff/milo-native` directly;
+  `toMatchImageSnapshot` and `blazediff-cli` do not take a `milo` method.
+
+Next: [Choosing a Metric →](/docs/metrics/choosing-a-metric) ·
+[`@blazediff/milo-native` →](/apis/milo-native) ·
+[`blazediff-milo` crate →](/apis/blazediff-milo)

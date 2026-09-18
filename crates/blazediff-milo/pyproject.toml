@@ -1,0 +1,33 @@
+[build-system]
+requires = ["maturin>=1.7,<2"]
+build-backend = "maturin"
+
+[project]
+name = "blazediff-milo"
+# Synced from the @blazediff/rust-milo changesets shadow by scripts/release/sync-pyproject-version.js.
+version = "0.0.0"
+description = "MILO perceptual image quality metric (Çoğalan et al. 2025) as a std-only SIMD CNN with PyTorch parity"
+license = { text = "MIT" }
+authors = [{ name = "Teimur Gasanov" }]
+readme = "README.md"
+keywords = ["milo", "image-quality", "perceptual", "fr-iqa", "simd"]
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Rust",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Topic :: Multimedia :: Graphics",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS",
+    "Operating System :: Microsoft :: Windows",
+]
+requires-python = ">=3.8"
+
+[project.urls]
+Repository = "https://github.com/teimurjan/blazediff"
+Homepage = "https://blazediff.dev"
+
+[tool.maturin]
+module-name = "blazediff_milo"
+features = ["pyo3/extension-module", "python"]
+bindings = "pyo3"
+strip = true

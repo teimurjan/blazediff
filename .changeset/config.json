@@ -34,6 +34,17 @@
 			"@blazediff/interpret-native-win32-x64",
 			"@blazediff/interpret-wasm",
 			"@blazediff/rust-interpret"
+		],
+		[
+			"@blazediff/milo-native",
+			"@blazediff/milo-native-darwin-arm64",
+			"@blazediff/milo-native-darwin-x64",
+			"@blazediff/milo-native-linux-arm64",
+			"@blazediff/milo-native-linux-x64",
+			"@blazediff/milo-native-win32-arm64",
+			"@blazediff/milo-native-win32-x64",
+			"@blazediff/milo-wasm",
+			"@blazediff/rust-milo"
 		]
 	],
 	"linked": [],

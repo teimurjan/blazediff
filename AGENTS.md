@@ -14,10 +14,10 @@ Monorepo for image and object diffing. pnpm workspaces. Rust core in `crates/bla
   - `packages/agent/README.md`
 - Don't add watershed or distance-transform to the interpret pipeline. Morph close + connected components is sufficient.
 - Don't restructure interpret into atomic-regions / semantic-groups / score-labels. Improve evidence extraction, not topology.
-- Don't add `deno.json` to `@blazediff/core-native-*`, `@blazediff/bun`, `@blazediff/vitest`, `@blazediff/jest`, `@blazediff/ui`, `@blazediff/react`. They stay NPM-only.
+- Don't add `deno.json` to `@blazediff/core-native-*`, `@blazediff/milo-native-*`, `@blazediff/bun`, `@blazediff/vitest`, `@blazediff/jest`, `@blazediff/ui`, `@blazediff/react`. They stay NPM-only.
 - Verify JSR slow-types per package (`cd packages/<pkg> && npx jsr publish --dry-run`). Never from the workspace root.
 - When iterating on diff algorithms, use `--fixtures=<small-subset>` and `--iterations=2`. Run the full suite only before merging.
-- After Rust changes, verify both binding feature builds for the crate you touched: `cargo check -p <crate> --features napi` and `--features python` (blazediff, blazediff-ssim and blazediff-interpret each ship both).
+- After Rust changes, verify both binding feature builds for the crate you touched: `cargo check -p <crate> --features napi` and `--features python` (blazediff, blazediff-ssim, blazediff-interpret and blazediff-milo each ship both).
 - JSR-only Node imports (e.g. `node:buffer` in `@blazediff/core`) live in `packages/<pkg>/jsr.patch`. Don't commit source with the patch applied; `scripts/checks/check-jsr-patches-clean.sh` enforces this in pre-commit.
 
 ## Quick commands
@@ -32,7 +32,8 @@ Monorepo for image and object diffing. pnpm workspaces. Rust core in `crates/bla
 - Benchmark scripts and fixture names: `package.json` and `apps/*-benchmark/`.
 - Agent design + roadmap: `packages/agent/ROADMAP.md`.
 - Agent on-disk shape, mask semantics, judge handoff: `skill/blazediff/SKILL.md`.
-- Rust build orchestration: `crates/scripts/` (`_targets.sh`, `build-napi.sh`, `build-maturin.sh`) with per-crate shims in `crates/<crate>/scripts/`; `build-all.sh` stays in `crates/blazediff/scripts/`. `build-wasm.sh` is deliberately *not* shared — `blazediff` and `blazediff-interpret` each keep a standalone copy, because that script is a source input to its own wasm package and refactoring the shared one would mark every family as changed. Keep the `WASM_BINDGEN_VERSION` pin in both in step with each crate's `wasm-bindgen` dep and with `build-artifacts.yml`.
-- Python release: `scripts/release/publish-pypi.js` (three wheel sets committed to `crates/{blazediff,blazediff-ssim,blazediff-interpret}/wheels/`, CI uploads via OIDC). `pnpm test:python` builds and imports them.
+- Rust build orchestration: `crates/scripts/` (`_targets.sh`, `build-napi.sh`, `build-maturin.sh`) with per-crate shims in `crates/<crate>/scripts/`; `build-all.sh` stays in `crates/blazediff/scripts/`. `build-wasm.sh` is deliberately *not* shared — `blazediff`, `blazediff-interpret` and `blazediff-milo` each keep a standalone copy, because that script is a source input to its own wasm package and refactoring the shared one would mark every family as changed. Keep the `WASM_BINDGEN_VERSION` pin in all three in step with each crate's `wasm-bindgen` dep and with `build-artifacts.yml`.
+- Python release: `scripts/release/publish-pypi.js` (three wheel sets committed to `crates/{blazediff,blazediff-ssim,blazediff-interpret}/wheels/`, CI uploads via OIDC). `pnpm test:python` builds and imports them, plus `blazediff-milo`, whose wheel is built and tested but not yet released: add it to `publish-pypi.js`, `build-artifacts.yml` and `release-artifacts-check.yml` once its pending trusted publisher exists on pypi.org.
+- MILO weights and parity fixtures: `crates/blazediff-milo/scripts/export-reference.py` regenerates `src/weights/milo.bin` and `tests/fixtures/reference.json` from the upstream checkpoint; never edit either by hand. Attribution lives in `licenses/MILO.md`.
 - JSR release: `scripts/release/publish-jsr.ts` (chained after `changeset publish` in `pnpm run release`).
 - Pre-commit: `.pre-commit-config.yaml` (prek). Run `npx @j178/prek install` after clone.

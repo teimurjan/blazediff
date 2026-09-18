@@ -3,6 +3,7 @@ members = [
     "blazediff",
     "blazediff-interpret",
     "blazediff-interpret-verify",
+    "blazediff-milo",
     "blazediff-shared",
     "blazediff-png",
     "blazediff-png-benchmark",

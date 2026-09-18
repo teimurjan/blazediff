@@ -1,6 +1,6 @@
 ---
-title: Choosing a Metric - Pixel Diff vs SSIM vs GMSD
-description: Which image comparison metric to use for visual regression - exact pixel diffing, SSIM, MS-SSIM, Hitchhiker's SSIM, or GMSD. Side-by-side comparison, thresholds, and how to score rendering changes without raw RGB thresholds.
+title: Choosing a Metric - Pixel Diff vs SSIM vs GMSD vs MILO
+description: Which image comparison metric to use for visual regression - exact pixel diffing, SSIM, MS-SSIM, Hitchhiker's SSIM, GMSD, or the learned MILO metric. Side-by-side comparison, thresholds, and how to score rendering changes without raw RGB thresholds.
 ---
 
 # Choosing a Metric
@@ -11,9 +11,10 @@ import { Callout } from "nextra/components";
 is too strict.** Pixel diffing is the fastest and the only one that tells you
 exactly what changed. SSIM and GMSD trade that detail for tolerance: they score
 how different two images *look*, so they shrug off compression artifacts and
-rendering noise that pixel counting flags as failures.
+rendering noise that pixel counting flags as failures. MILO goes one step
+further and predicts where a person would *notice*, at a much higher cost.
 
-## The five options
+## The six options
 
 | Metric                | Answers                        | Output              | Direction         | Relative cost | Best for                                    |
 | --------------------- | ------------------------------ | ------------------- | ----------------- | ------------- | ------------------------------------------- |
@@ -22,9 +23,11 @@ rendering noise that pixel counting flags as failures.
 | **SSIM**              | Does it look different         | Score, `0` to `1`   | Higher is better  | Medium        | Perceived quality, matching published results |
 | **MS-SSIM**           | Does it look different at any size | Score, `0` to `1` | Higher is better | High          | Images viewed at several resolutions         |
 | **Hitchhiker's SSIM** | Same as SSIM, faster           | Score, `0` to `1`   | Higher is better  | Low           | Large batches where SSIM is the bottleneck   |
+| **MILO**              | Would a person notice          | Raw error, `0` = identical | Lower is better | Very high  | A second opinion on a failed diff, quality grades for reports |
 
 Read the details: [what SSIM measures](/docs/metrics/ssim) ·
-[how GMSD works](/docs/metrics/gmsd).
+[how GMSD works](/docs/metrics/gmsd) ·
+[what MILO adds](/docs/metrics/milo).
 
 ## Pick by problem
 
@@ -36,13 +39,15 @@ Read the details: [what SSIM measures](/docs/metrics/ssim) ·
 | Same page rendered on macOS locally and Linux in CI          | Pixel diff with a percentage threshold, then GMSD |
 | A "did the design get worse" score for a report              | SSIM or MS-SSIM                                   |
 | Thousands of images per run and SSIM is too slow             | Hitchhiker's SSIM                                 |
-| A brand color changed                                        | Pixel diff. SSIM and GMSD are near-blind to it    |
+| A brand color changed                                        | Pixel diff. SSIM and GMSD are near-blind to it; MILO sees it |
+| A failed diff on a photo or texture that nobody can see      | MILO, gate on `rawError`                          |
 | You need to know *what* changed, not just how much           | [Interpret mode](/docs/difference-analysis)       |
 
 <Callout type="warning">
   **Both structural metrics are weak on color.** SSIM and GMSD work on luminance.
   Two colors with the same brightness can swap and barely move either score. If
-  color correctness matters, keep a pixel diff in the pipeline.
+  color correctness matters, keep a pixel diff in the pipeline. MILO works on
+  RGB and does count a hue change.
 </Callout>
 
 ## Structural metrics instead of RGB thresholds
@@ -90,6 +95,7 @@ change and see what score the noise alone produces, then set the gate above it.
 | Pixel diff           | `failureThreshold` + `failureThresholdType`      | `0.1` with `'percent'`      |
 | GMSD                 | Gate on the returned score                       | `0.05`, or `0.15` if compressed |
 | SSIM / MS-SSIM       | Gate on the returned score                       | `0.98` for full-page shots  |
+| MILO                 | `maxError` on `rawError`                         | `0.0005`; `0` for identical only |
 
 Percentage thresholds travel better than pixel counts, because a pixel budget
 tuned on a 1280px viewport becomes far too strict at 4K.
@@ -107,6 +113,9 @@ await expect(screenshot).toMatchImageSnapshot({ method: "gmsd" });
 await expect(screenshot).toMatchImageSnapshot({ method: "ssim" });
 await expect(screenshot).toMatchImageSnapshot({ method: "hitchhikers-ssim" });
 ```
+
+MILO is not wired into the matcher or the CLI yet; call
+[`@blazediff/milo-native`](/apis/milo-native) directly.
 
 And from the CLI:
 
@@ -127,7 +136,10 @@ Numbers from the [pixel benchmarks](/benchmarks/pixel-by-pixel) and
 - Pixel diff, pure JS, IO excluded: **97-136ms**
 - Hitchhiker's SSIM: **2x to 5x faster** than standard SSIM, depending on the image
 - GMSD: a single pass with two 3x3 convolutions, cheaper than SSIM
+- MILO: a convolutional network at full resolution, **~0.4s for 1.6 MP on all cores**,
+  2.5s on one. Not a per-screenshot gate for large suites
 
 Next: [What is SSIM →](/docs/metrics/ssim) ·
 [How GMSD works →](/docs/metrics/gmsd) ·
+[What is MILO →](/docs/metrics/milo) ·
 [Structural comparison examples →](/docs/structural-comparison)

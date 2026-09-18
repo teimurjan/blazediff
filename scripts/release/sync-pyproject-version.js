@@ -26,6 +26,10 @@ const PACKAGES = [
 	crate("blazediff-ssim"),
 	// blazediff-interpret ← @blazediff/rust-interpret
 	crate("blazediff-interpret"),
+	// blazediff-milo   ← @blazediff/rust-milo
+	// Versioned here so the wheel is ready; not yet in publish-pypi.js until
+	// its pending trusted publisher exists on pypi.org.
+	crate("blazediff-milo"),
 ];
 
 // Bump the static `version = "X"` under [project] in pyproject.toml.

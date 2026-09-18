@@ -923,7 +923,7 @@ Commit `.blazediff/` (config + manifest + baselines).
 ### Check (CI verb)
 
 ```bash
-blazediff-agent check --judge host --json
+blazediff-agent check --judge agent --json
 ```
 
 The CLI starts the dev server automatically when `config.devServer` is set, runs every manifest entry through Playwright, diffs each capture against its baseline, and emits a `CheckReport`:
@@ -982,7 +982,7 @@ Deletes the entire `.blazediff/` directory (config, manifest, baselines, actual,
 | `onboard` | Interactive setup: write `.blazediff/config.json` + `.gitignore`, install Chromium, install the playbook into the detected coding-agent stack (Claude Code, Codex, Cursor, or `--stack local`), and optionally capture baselines |
 | `discover` | BFS-crawl routes from `baseUrl` (depth 2, ≤50 routes) as a fallback when source-walking fails |
 | `capture --stdin` | Read a JSON array of routes from stdin, screenshot each, write baselines/actuals + manifest |
-| `check` | Re-capture every manifest entry, diff against baseline, emit `CheckReport`. Uses LangGraph for per-entry parallelism; suspends on ambiguous entries when `--judge host` and resumes via `--apply-judgments` |
+| `check` | Re-capture every manifest entry, diff against baseline, emit `CheckReport`. Uses LangGraph for per-entry parallelism; suspends on ambiguous entries when `--judge agent` and resumes via `--apply-judgments` |
 | `rewrite <id...>` | Re-baseline existing manifest entries (mask/viewport/waitFor preserved) |
 | `diff <id>` | Re-diff one entry against its actual capture without re-screenshotting |
 | `manifest` | Inspect / list manifest entries (`add --harness <name>` to attach a harness) |
@@ -1004,7 +1004,7 @@ The heuristic verdict pipeline emits one of four labels per failing entry:
 | `noise-likely` | Confident non-deterministic source | Ask user; prefer masking over rewriting |
 | `ambiguous` | Heuristic couldn't classify | Defer to host judge |
 
-For `ambiguous`, the `--judge host` backend writes a `JudgmentRequest` to `.blazediff/judgments/<id>/request.json` containing:
+For `ambiguous`, the `--judge agent` backend writes a `JudgmentRequest` to `.blazediff/judgments/<id>/request.json` containing:
 
 - `regions[]` - bounding boxes, pixel counts, and change types per detected region
 - `paths.locator` (`locator.png`) - a ~400 px overview thumbnail with every region outlined in red
@@ -1970,6 +1970,206 @@ macOS (arm64, x64), Linux (arm64, x64), Windows (arm64, x64).
 
 - [npm](https://www.npmjs.com/package/@blazediff/ssim-native)
 - [The Rust crate behind it](/apis/blazediff-ssim)
+- [GitHub Repository](https://github.com/teimurjan/blazediff)
+
+---
+
+# @blazediff/milo-native
+
+Native Rust **MILO** for Node.js: a learned perceptual image quality metric that models visual masking, through N-API. Decodes PNG, JPEG and QOI. It is the [`blazediff-milo`](/apis/blazediff-milo) crate with the authors' trained weights inside, so there is no PyTorch, no ONNX runtime and no model download.
+
+## Installation
+
+```sh
+npm install @blazediff/milo-native
+```
+
+The platform binary installs as an optional dependency; there is no compile step.
+
+## Why a separate package
+
+[`@blazediff/ssim-native`](/apis/ssim-native) scores how alike two images look with a formula: brightness, contrast and structure inside a window. It knows nothing about *where the eye looks*, so a one-unit shift across a busy texture and the same shift across a flat panel score the same, though only one is visible.
+
+MILO (Çoğalan et al., ACM TOG 2025) learned that distinction. A small convolutional network looks at both images at four scales and predicts, per pixel, how visible an error there would be; the absolute error is weighted by that mask and pooled. The paper reports it ahead of LPIPS and DISTS on the standard benchmarks at a fraction of their cost. It is a different question answered a different way, so it is a different package. See [What Is MILO](/docs/metrics/milo) for the metric itself.
+
+## Usage
+
+```ts
+import { compare } from "@blazediff/milo-native";
+
+const result = await compare("expected.png", "actual.png", "map.png", {
+  maxError: 0.001,
+});
+
+if (result.match) {
+  console.log(`not visibly different: ${result.rawError}`);
+} else if (result.reason === "error-above-threshold") {
+  console.log(`raw error ${result.rawError}, MOS ${result.mos.toFixed(2)}`);
+}
+```
+
+`compare` takes two file paths or two encoded buffers (Node `Buffer` works directly). A third argument renders the per-pixel error map to that path as grayscale, bright where the perceived error is high.
+
+### Result
+
+`MiloResult` is a discriminated union:
+
+| `match` | `reason` | Carries |
+| --- | --- | --- |
+| `true` | | `rawError`, `mos`, `width`, `height` |
+| `false` | `"error-above-threshold"` | the same |
+| `false` | `"layout-diff"` | nothing: the images are different sizes |
+| `false` | `"file-not-exists"` | `file` |
+
+### The two numbers
+
+- **`rawError`** is the metric: the mean over pixels and channels of `mask * |expected - actual|`. Exactly `0` for identical images and growing with visible damage; typical screenshot regressions land between `0.0002` and `0.01`. `maxError` thresholds on this and defaults to `0`.
+- **`mos`** is `rawError` on KADID-10k's 1 to 5 mean-opinion-score scale, through the metric's learned calibration. It is for reading, not thresholding.
+
+> **Warning:** The MOS calibration tops out around **4.35**, not 5, for identical images. That is a property of the published model, reproduced faithfully here. Gate on `rawError`.
+
+## Raw RGBA
+
+If you already have decoded pixels, skip the codec. This one is synchronous:
+
+```ts
+import { milo, renderMap } from "@blazediff/milo-native";
+
+const result = milo(rgba1, rgba2, width, height, { returnMaps: true });
+if ("errorMap" in result && result.errorMap) {
+  const grayscale = renderMap(result.errorMap, width, height);
+}
+```
+
+Both buffers are read at the same dimensions, so there is no layout-difference case here; a buffer too short for `width * height` throws.
+
+## Options
+
+```ts
+interface CompareOptions {
+  maxError?: number;    // identical at or below this raw error. Default: 0
+  threads?: number;     // Default: every core. The answer never depends on it
+  returnMaps?: boolean; // include `mask` and `errorMap` Float32Arrays. Default: false
+  compression?: number; // PNG level for a rendered map. Default: 0
+  quality?: number;     // JPEG quality for a rendered map. Default: 90
+}
+```
+
+> **Info:** The maps are withheld unless `returnMaps` is set; each is one float per pixel and costs a copy across the binding. `mask` is the visibility mask (one sigmoid per pyramid level, so values in `(0, 4)`), `errorMap` the per-pixel perceived error in `0..1`.
+
+## Cost
+
+This is a CNN, not a formula: about 116k floating-point operations per pixel, three orders of magnitude more than SSIM. The crate keeps it practical with a line-buffer pipeline (a few megabytes of memory whatever the image size), SIMD kernels at roughly 75% of the CPU's f32 peak, and row bands across every core.
+
+| Pair | One core | All cores (M1 Max) |
+| --- | --- | --- |
+| 1328x1228 | 2.5 s | 0.38 s |
+| 1320x2868 | 5.7 s | 0.83 s |
+
+Budget about half a second for a 1080p pair on a laptop. Images must be at least 16px on each side, the floor of the reference implementation. Alpha is ignored, as the reference converts to RGB.
+
+## Accuracy
+
+The embedded weights are the authors' published checkpoint, unchanged. The crate is tested against the outputs of their PyTorch code on this repository's fixtures: within 2e-6 relative on `rawError` and 1.2e-6 on `mos`, with the mask and error map checked pixel by pixel on synthetic pairs. The residual is floating-point summation order inside the convolutions. Details and the export script are in the [crate](/apis/blazediff-milo).
+
+## Faster PNG decoding
+
+Decoding is shared with [`@blazediff/core-native`](/apis/core-native) through the [`blazediff-shared`](/apis/blazediff-shared) crate, so the same opt-in applies: `BLAZEDIFF_PNG_ENABLED=1` routes PNG decode through [`blazediff-png`](/apis/blazediff-png). Decode is a small share of a MILO call, so the gain is proportionally smaller than for a pixel diff.
+
+## Platforms
+
+macOS (arm64, x64), Linux (arm64, x64), Windows (arm64, x64). There is no CLI to fall back to, so an unsupported platform throws. For browsers and edge runtimes, [`@blazediff/milo-wasm`](/apis/milo-wasm) is the same crate compiled to WebAssembly.
+
+## Links
+
+- [npm](https://www.npmjs.com/package/@blazediff/milo-native)
+- [The Rust crate behind it](/apis/blazediff-milo)
+- [What Is MILO](/docs/metrics/milo)
+- [GitHub Repository](https://github.com/teimurjan/blazediff)
+
+---
+
+# @blazediff/milo-wasm
+
+WebAssembly build of **MILO**, a learned perceptual image quality metric, for browsers, edge runtimes, and any wasm host. Same crate as [`@blazediff/milo-native`](/apis/milo-native), compiled to `wasm32` with `v128` SIMD (`+simd128`), weights included: the 45k-parameter network ships inside the ~220 KB module, so there is no model download and no network call.
+
+## Installation
+
+```sh
+npm install @blazediff/milo-wasm
+```
+
+Ships ~220 KB of optimized wasm + ~12 KB of JS glue. No native binaries, no postinstall, no platform packages.
+
+## Features
+
+- **Same metric as `@blazediff/milo-native`**: the scores agree to floating-point noise, because it is the same Rust
+- **wasm32 v128 SIMD** (`+simd128`): the convolution kernels vectorize four lanes wide
+- **Buffers-only API**: caller decodes images, hands in `Uint8Array`. No PNG/JPEG codecs bundled
+- **Runs anywhere wasm runs**: browsers, Node 18+, Cloudflare Workers, Deno, Bun
+
+## API Reference
+
+### `initMilo(input?)`
+
+Initializes the wasm module. Safe to call multiple times; subsequent calls return the cached promise. Accepts a `URL`, `Response`, `ArrayBuffer`, `Uint8Array`, or compiled `WebAssembly.Module`. Without `input`, the default `--target web` glue fetches the sibling `blazediff_milo_bg.wasm` via `import.meta.url`, which works in browsers but not in runtimes whose `fetch()` cannot resolve the resulting URL.
+
+```typescript
+// Browser: the default resolves the sibling .wasm
+import { initMilo } from '@blazediff/milo-wasm';
+await initMilo();
+
+// Bundlers (Vite, Webpack 5+, esbuild) rewrite this at build time:
+await initMilo(new URL('@blazediff/milo-wasm/wasm/blazediff_milo_bg.wasm', import.meta.url));
+
+// Node from the local filesystem:
+import { readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
+await initMilo(
+  readFileSync(createRequire(import.meta.url).resolve('@blazediff/milo-wasm/wasm/blazediff_milo_bg.wasm')),
+);
+```
+
+### `milo(reference, distorted, width, height, options?)`
+
+Both buffers must be `width * height * 4` bytes in RGBA8 order, at least 16px on each side. Returns a promise of:
+
+```typescript
+interface MiloResult {
+  rawError: number;     // masked mean absolute error. 0 means identical. Threshold on this
+  mos: number;          // rawError on KADID-10k's 1-5 scale; tops out near 4.35 for identical input
+  mask?: Float32Array;  // visibility mask, one value per pixel, only with returnMaps
+  errorMap?: Float32Array; // perceived error in 0..1 per pixel, only with returnMaps
+  width: number;
+  height: number;
+}
+```
+
+```typescript
+import { initMilo, milo } from '@blazediff/milo-wasm';
+
+await initMilo();
+const result = await milo(expectedRgba, actualRgba, width, height);
+console.log(`raw error ${result.rawError}, MOS ${result.mos.toFixed(2)}`);
+```
+
+Pass `{ returnMaps: true }` to get the mask and error map back; each is one float per pixel copied out of wasm memory.
+
+## Decoding images in the browser
+
+This package bundles no codecs, so decode first. `ImageDecoder` (WebCodecs) has no canvas size cap and is the better path for large images; the [`@blazediff/core-wasm`](/apis/core-wasm) page carries a full `toRgba` recipe that applies unchanged here.
+
+## Cost
+
+MILO is a convolutional network, about 116k floating-point operations per pixel, and wasm runs it on one thread without fused multiply-add. Expect roughly 4 seconds for a 1468x294 pair and proportionally more for larger images, so run it in a Web Worker and, where you can, use the [native package](/apis/milo-native). Memory stays flat (a few megabytes plus the two images) whatever the size, thanks to the crate's line-buffer pipeline.
+
+> **Info:** wasm linear memory never shrinks. For very large pairs, run the comparison in a Worker and terminate it afterwards to give the memory back.
+
+## Links
+
+- [npm](https://www.npmjs.com/package/@blazediff/milo-wasm)
+- [The Rust crate behind it](/apis/blazediff-milo)
+- [What Is MILO](/docs/metrics/milo)
 - [GitHub Repository](https://github.com/teimurjan/blazediff)
 
 ---
@@ -3823,6 +4023,115 @@ Scores are pooled over a local map, so these metrics say *how much* two images d
 
 ---
 
+# blazediff-milo
+
+MILO, the learned perceptual image quality metric of Çoğalan, Bemana, Myszkowski, Seidel and Groth (ACM TOG 2025), **as a std-only Rust crate: the authors' trained network embedded, run through lane-generic SIMD kernels on every core, and held to the PyTorch implementation's outputs by test.** No PyTorch, no ONNX runtime, no download at first use. It powers [`@blazediff/milo-native`](/apis/milo-native) and [`@blazediff/milo-wasm`](/apis/milo-wasm).
+
+## Installation
+
+```toml
+# Cargo.toml
+[dependencies]
+blazediff-milo = "0.1"
+```
+
+The crate name is `blazediff-milo`; the library imports as `blazediff_milo`. Crate sources are available on [crates.io](https://crates.io/crates/blazediff-milo).
+
+## Why a separate crate
+
+[`blazediff-ssim`](/apis/blazediff-ssim) holds formulas from 2004: they know about luminance, contrast and structure, and nothing about *where the eye looks*. MILO models that, learned. A small convolutional network looks at both images at four scales and predicts, per pixel, how visible an error there would be; the absolute error is weighted by that mask and pooled. The paper reports it ahead of LPIPS and DISTS on the standard FR-IQA benchmarks with a fraction of their cost, and its authors published the weights under Apache-2.0.
+
+It is also three orders of magnitude more expensive per pixel than SSIM, which is the other reason it is its own crate rather than another `--metric`.
+
+## What it does
+
+`milo` takes a reference and a distorted RGBA8 image of the same size and returns:
+
+- **`raw_error`**: the metric proper, `mean(mask * |reference - distorted|)` over pixels and channels. Exactly zero for identical images; fixture pairs in the repository land between 0.0002 and 0.01. Threshold on this.
+- **`mos`**: `raw_error` on KADID-10k's five-point mean-opinion-score scale through the learned calibration. It tops out around 4.35 rather than 5 for identical input; read it, don't gate on it.
+- **`mask`**: the visibility mask, one value per pixel.
+- **`error_map`**: per-pixel perceived error in `0..1`, the reference's `MILO_map`. `render_map` paints it to grayscale.
+
+Inputs must be at least 16px on each side, the smallest the reference accepts. Alpha is ignored, as the reference converts to RGB.
+
+## Library Usage
+
+```rust
+use blazediff_milo::{milo, MiloOptions, Rgba8};
+
+let outcome = milo(
+    Rgba8::new(&reference_rgba, width, height),
+    Rgba8::new(&distorted_rgba, width, height),
+    &MiloOptions::default(),
+)?;
+println!("raw error {:.6}, MOS {:.2}", outcome.raw_error, outcome.mos);
+```
+
+`MiloOptions { threads: Some(1) }` runs inline; the default uses every core. The answer is bit-identical either way.
+
+### Types
+
+```rust
+pub struct Rgba8<'a> {
+    pub data: &'a [u8],   // RGBA8, 4 bytes per pixel, row-major
+    pub width: usize,
+    pub height: usize,
+}
+
+pub struct MiloOptions {
+    pub threads: Option<usize>, // None = every core; ignored on wasm32
+}
+
+pub struct MiloOutcome {
+    pub raw_error: f64,      // the metric, 0 = identical
+    pub mos: f64,            // 1..5 scale, ~4.35 for identical
+    pub mask: Vec<f32>,      // per pixel, row-major
+    pub error_map: Vec<f32>, // per pixel in 0..1, row-major
+    pub width: usize,
+    pub height: usize,
+}
+```
+
+> **Info:** `milo` returns `Err(MiloError)` rather than panicking on a mismatched, truncated or too-small pair. The messages match `blazediff-ssim`'s, so front-ends that already classify those ("Image sizes do not match" is a layout difference) forward these unchanged.
+
+## How it runs
+
+The network is 44,930 parameters: five 3x3 convolutions (7-32-64-32-16-1) plus a three-layer scaler, applied at four pyramid levels with the mask carried up through bilinear upsampling. About 116k floating-point operations per pixel of the finest level.
+
+- **A line-buffer pipeline.** The reference materialises every layer over the whole image; layer two alone is half a gigabyte at 1080p. Here each stage keeps three rows and the five stages advance together, so memory is a few megabytes per thread whatever the image size.
+- **Lane-generic SIMD.** One 3x3 kernel written against a four-op trait, with NEON, SSE2, AVX2+FMA (when the build enables them, as every shipped binary does) and wasm simd128 backends picked at compile time. Register-blocked over pixels and output channels, it reaches ~75% of the f32 FMA peak on an M1.
+- **Row bands over threads.** Bands are independent, so they spread over `std::thread::scope` with no shared state; per-row partial sums are reduced in a fixed order, which is why the thread count never changes the answer.
+
+| Pair | One core | All cores (M1 Max) |
+| --- | --- | --- |
+| 1328x1228 | 2.5 s | 0.38 s |
+| 1320x2868 | 5.7 s | 0.83 s |
+
+## Verified
+
+| Layer | Result |
+| --- | --- |
+| PyTorch reference, seven fixture pairs | `raw_error` within **2e-6** relative, `mos` within **1.2e-6** absolute |
+| PyTorch reference, four synthetic pairs | every mask value within **1.4e-5**, every error-map value within **4e-6** |
+| Thread count | bit-identical output for any number of bands |
+| x86 backends (AVX2+FMA and baseline SSE2) | same parity bounds, run under Rosetta |
+| Unit + integration tests | 25 + 3 |
+
+The reference outputs come from the authors' `MILO_runner.py` on a CPU; `scripts/export-reference.py` regenerates them together with the embedded weight blob from the upstream checkpoint and records its hash. The residual is summation order inside the convolutions (PyTorch's is oneDNN's), so bit-exactness against the reference is not on offer and the bounds sit well above the measured noise on every backend.
+
+## Weights and licensing
+
+The crate embeds the authors' `MILO.pth` checkpoint at `src/weights/milo.bin`, every tensor in state_dict order as little-endian f32, so anyone can diff it against upstream. No fine-tuning, pruning or quantisation. The weights are Apache-2.0, attributed in the repository's `licenses/MILO.md`; the crate's code is MIT.
+
+## Links
+
+- [Crates.io](https://crates.io/crates/blazediff-milo)
+- [Crate README](https://github.com/teimurjan/blazediff/blob/main/crates/blazediff-milo/README.md)
+- [The paper](https://doi.org/10.1145/3763340) and [reference implementation](https://github.com/ugurcogalan06/MILO)
+- [GitHub Repository](https://github.com/teimurjan/blazediff)
+
+---
+
 # Docs
 
 # Introduction
@@ -3846,7 +4155,7 @@ Four layers. Each one is useful on its own, and each one feeds the next.
 | Layer         | Question it answers                | Packages                                       |
 | ------------- | ---------------------------------- | ---------------------------------------------- |
 | **Compare**   | Which pixels differ?               | `core`, `core-wasm`, `core-native`              |
-| **Score**     | How different does it look?        | `ssim`, `gmsd`, `ssim-native`                   |
+| **Score**     | How different does it look?        | `ssim`, `gmsd`, `ssim-native`, `milo-native`, `milo-wasm` |
 | **Interpret** | What changed, where, and how badly?| `interpret-native`                              |
 | **Judge**     | Regression or intentional?         | `agent`                                         |
 
@@ -3865,6 +4174,7 @@ name and the performance work, not the pipeline. It lives in
 | Count changed pixels in a browser or edge runtime | `@blazediff/core-wasm`                    | Browsers, Workers, Deno, Bun, edge |
 | Avoid native binaries and wasm entirely           | `@blazediff/core`                         | Anywhere JS runs                   |
 | Score perceived similarity instead of pixels      | `@blazediff/ssim`, `@blazediff/gmsd`      | Anywhere JS runs                   |
+| Score what a person would notice, with a learned model | `@blazediff/milo-native`, `@blazediff/milo-wasm` | Node; browsers, Workers, Deno, Bun, edge |
 | Know what changed and where, not just how much    | `@blazediff/interpret-native`             | Node                               |
 | Assert a screenshot inside a test                 | `@blazediff/jest`, `/vitest`, `/bun`      | Your test runner                   |
 | Run visual regression over your routes            | `@blazediff/agent`                        | Node plus bundled Chromium         |
@@ -4422,9 +4732,10 @@ shots.
 is too strict.** Pixel diffing is the fastest and the only one that tells you
 exactly what changed. SSIM and GMSD trade that detail for tolerance: they score
 how different two images *look*, so they shrug off compression artifacts and
-rendering noise that pixel counting flags as failures.
+rendering noise that pixel counting flags as failures. MILO goes one step
+further and predicts where a person would *notice*, at a much higher cost.
 
-## The five options
+## The six options
 
 | Metric                | Answers                        | Output              | Direction         | Relative cost | Best for                                    |
 | --------------------- | ------------------------------ | ------------------- | ----------------- | ------------- | ------------------------------------------- |
@@ -4433,9 +4744,11 @@ rendering noise that pixel counting flags as failures.
 | **SSIM**              | Does it look different         | Score, `0` to `1`   | Higher is better  | Medium        | Perceived quality, matching published results |
 | **MS-SSIM**           | Does it look different at any size | Score, `0` to `1` | Higher is better | High          | Images viewed at several resolutions         |
 | **Hitchhiker's SSIM** | Same as SSIM, faster           | Score, `0` to `1`   | Higher is better  | Low           | Large batches where SSIM is the bottleneck   |
+| **MILO**              | Would a person notice          | Raw error, `0` = identical | Lower is better | Very high  | A second opinion on a failed diff, quality grades for reports |
 
 Read the details: [what SSIM measures](/docs/metrics/ssim) ·
-[how GMSD works](/docs/metrics/gmsd).
+[how GMSD works](/docs/metrics/gmsd) ·
+[what MILO adds](/docs/metrics/milo).
 
 ## Pick by problem
 
@@ -4447,10 +4760,11 @@ Read the details: [what SSIM measures](/docs/metrics/ssim) ·
 | Same page rendered on macOS locally and Linux in CI          | Pixel diff with a percentage threshold, then GMSD |
 | A "did the design get worse" score for a report              | SSIM or MS-SSIM                                   |
 | Thousands of images per run and SSIM is too slow             | Hitchhiker's SSIM                                 |
-| A brand color changed                                        | Pixel diff. SSIM and GMSD are near-blind to it    |
+| A brand color changed                                        | Pixel diff. SSIM and GMSD are near-blind to it; MILO sees it |
+| A failed diff on a photo or texture that nobody can see      | MILO, gate on `rawError`                          |
 | You need to know *what* changed, not just how much           | [Interpret mode](/docs/difference-analysis)       |
 
-> **Warning:** **Both structural metrics are weak on color.** SSIM and GMSD work on luminance. Two colors with the same brightness can swap and barely move either score. If color correctness matters, keep a pixel diff in the pipeline.
+> **Warning:** **Both structural metrics are weak on color.** SSIM and GMSD work on luminance. Two colors with the same brightness can swap and barely move either score. If color correctness matters, keep a pixel diff in the pipeline. MILO works on RGB and does count a hue change.
 
 ## Structural metrics instead of RGB thresholds
 
@@ -4497,6 +4811,7 @@ change and see what score the noise alone produces, then set the gate above it.
 | Pixel diff           | `failureThreshold` + `failureThresholdType`      | `0.1` with `'percent'`      |
 | GMSD                 | Gate on the returned score                       | `0.05`, or `0.15` if compressed |
 | SSIM / MS-SSIM       | Gate on the returned score                       | `0.98` for full-page shots  |
+| MILO                 | `maxError` on `rawError`                         | `0.0005`; `0` for identical only |
 
 Percentage thresholds travel better than pixel counts, because a pixel budget
 tuned on a 1280px viewport becomes far too strict at 4K.
@@ -4514,6 +4829,9 @@ await expect(screenshot).toMatchImageSnapshot({ method: "gmsd" });
 await expect(screenshot).toMatchImageSnapshot({ method: "ssim" });
 await expect(screenshot).toMatchImageSnapshot({ method: "hitchhikers-ssim" });
 ```
+
+MILO is not wired into the matcher or the CLI yet; call
+[`@blazediff/milo-native`](/apis/milo-native) directly.
 
 And from the CLI:
 
@@ -4534,9 +4852,12 @@ Numbers from the [pixel benchmarks](/benchmarks/pixel-by-pixel) and
 - Pixel diff, pure JS, IO excluded: **97-136ms**
 - Hitchhiker's SSIM: **2x to 5x faster** than standard SSIM, depending on the image
 - GMSD: a single pass with two 3x3 convolutions, cheaper than SSIM
+- MILO: a convolutional network at full resolution, **~0.4s for 1.6 MP on all cores**,
+  2.5s on one. Not a per-screenshot gate for large suites
 
 Next: [What is SSIM →](/docs/metrics/ssim) ·
 [How GMSD works →](/docs/metrics/gmsd) ·
+[What is MILO →](/docs/metrics/milo) ·
 [Structural comparison examples →](/docs/structural-comparison)
 
 ---
@@ -4849,6 +5170,160 @@ Next: [What is SSIM →](/docs/metrics/ssim) ·
 
 ---
 
+# What Is MILO?
+
+**MILO scores how visibly two images differ, by first predicting where a
+difference would be noticed.** SSIM and GMSD are formulas: they compare
+brightness, contrast, structure or edges inside a window, and every window
+counts the same. MILO is a small neural network trained against human opinion
+scores. It looks at both images and produces a *visibility mask*, a per-pixel
+estimate of how much an error there would stand out, and the score is the
+absolute error weighted by that mask.
+
+The effect is called visual masking, and it is the thing the classical metrics
+miss. A one-unit shift inside a busy photograph is invisible; the same shift
+across a flat button is not. SSIM scores them the same. MILO does not.
+
+MILO is from Çoğalan, Bemana, Myszkowski, Seidel and Groth, *MILO: A
+Lightweight Perceptual Quality Metric for Image and Latent-Space Optimization*,
+ACM Transactions on Graphics 2025. The paper reports it ahead of LPIPS and
+DISTS on the standard full-reference quality benchmarks at a fraction of their
+cost. BlazeDiff ships the authors' published weights inside the
+[`blazediff-milo`](/apis/blazediff-milo) crate, so nothing is downloaded and
+nothing needs PyTorch.
+
+## MILO vs SSIM
+
+|                              | SSIM                                     | MILO                                              |
+| ---------------------------- | ---------------------------------------- | ------------------------------------------------- |
+| What it is                   | A formula over local statistics          | A 45k-parameter convolutional network             |
+| What it knows about the eye  | Nothing beyond the window size           | Learned visual masking: texture hides error        |
+| Color                        | Luminance only                           | Works on RGB, so a hue change counts               |
+| Output                       | Score `0` to `1`, higher is better       | Raw error, `0` is identical, lower is better       |
+| Identical images             | Exactly `1`                              | Exactly `0`                                        |
+| Cost per pixel               | ~100 operations                          | ~116,000 operations                                |
+| Shows you where              | An SSIM map                              | The visibility mask and a per-pixel error map      |
+
+## The two outputs
+
+MILO returns two numbers for a pair of images.
+
+**`rawError`** is the metric. It is the mean, over every pixel and channel, of
+`mask * |expected - actual|`. It is exactly `0` for identical images and grows
+with visible damage. On this repository's screenshot fixtures it runs from
+`0.0002` for a subtle change to `0.01` for a heavy one. This is the number to
+gate on.
+
+**`mos`** is `rawError` mapped onto the 1 to 5 mean-opinion-score scale of the
+KADID-10k dataset the model was calibrated against. It reads like a grade, and
+that is what it is for.
+
+> **Warning:** The MOS calibration tops out around **4.35** for identical images, not 5. That is how the published model behaves and BlazeDiff reproduces it faithfully. Use `rawError` for thresholds and `mos` for reports.
+
+## How the score is computed
+
+1. Both images are downsampled three times by 2x2 averaging, giving four
+   pyramid levels from coarse to full resolution.
+2. At the coarsest level, the network sees the two images side by side (six
+   channels) plus an empty mask, and emits a mask in `0..1`.
+3. That mask is upsampled to the next level and fed in as the seventh channel.
+   The network's output at each level is *added* to the incoming mask, so the
+   mask accumulates across scales, and every level can refine what the coarser
+   one decided.
+4. At full resolution, `rawError = mean(mask * |expected - actual|)`.
+5. A small calibration network maps `rawError` to `mos`.
+
+The network at each level is five 3x3 convolutions, 7-32-64-32-16-1 channels,
+ReLU between them and a sigmoid at the end. The same weights are used at every
+level.
+
+## What it costs
+
+MILO is a network, not a formula, and it runs at full resolution. That is about
+116k floating-point operations per pixel, three orders of magnitude more than
+SSIM. The Rust implementation keeps it usable on a CPU: SIMD kernels at roughly
+75% of the machine's f32 peak, every core busy, and memory that stays at a few
+megabytes whatever the image size.
+
+| Pair | One core | All cores (M1 Max) |
+| --- | --- | --- |
+| 1328x1228 | 2.5 s | 0.38 s |
+| 1320x2868 | 5.7 s | 0.83 s |
+
+Budget about half a second for a 1080p screenshot on a laptop. That is fine for
+a report or a second opinion on a failed pixel diff, and too slow to run on
+every screenshot of a large suite. In the browser
+([`@blazediff/milo-wasm`](/apis/milo-wasm)) it runs on one thread without fused
+multiply-add, about six times slower than one native core.
+
+## When to use it
+
+Use MILO when the question is "would a person notice this" and the answer
+matters more than the cost:
+
+- A failed pixel diff on a photograph, a gradient or a textured background,
+  where SSIM still flags noise that nobody can see.
+- A quality grade for a report: "this render is a 3.8 out of 5 against the
+  baseline".
+- Color changes that SSIM and GMSD are blind to. MILO works on RGB.
+
+Keep a pixel diff as the first gate. Most runs stop there, and MILO's cost only
+matters on the ones that do not.
+
+```ts
+import { compare as pixelDiff } from "@blazediff/core-native";
+import { compare as milo } from "@blazediff/milo-native";
+
+// 1. Cheap exact gate. Most runs stop here.
+const exact = await pixelDiff("baseline.png", "current.png", "diff.png", {
+  threshold: 0.1,
+  antialiasing: true,
+});
+if (exact.match) return "pass";
+
+// 2. Something changed. Would anyone see it?
+const perceived = await milo("baseline.png", "current.png", "map.png", {
+  maxError: 0.0005,
+});
+return perceived.match ? "pass-with-noise" : "fail";
+```
+
+## Setting a threshold
+
+As with every metric: run your own baselines twice with no code change, look at
+the `rawError` the noise alone produces, and set `maxError` above it. For
+scale: the subtlest change among this repository's screenshot fixtures scores
+`0.0002`, the heaviest `0.01`, and identical images exactly `0`.
+
+## Accuracy
+
+The crate is tested against the authors' PyTorch implementation on the
+repository's fixtures: `rawError` agrees within 2e-6 relative, `mos` within
+1.2e-6, and on small synthetic pairs every pixel of the mask and error map is
+checked. The residual is floating-point summation order inside the
+convolutions. See the [crate page](/apis/blazediff-milo) for the numbers and
+the export script that reproduces the reference outputs.
+
+## Limitations
+
+- **Cost.** About a second and a half per megapixel on one core. Not a
+  per-screenshot gate for large suites.
+- **Size floor.** Images must be at least 16px on each side, because three
+  halvings must leave the network something to look at.
+- **Alpha is ignored.** The reference converts to RGB; so does this.
+- **It is a model.** It was trained on natural images with synthetic
+  distortions (KADID-10k's 25 distortion types), not on screenshots of user
+  interfaces. It has opinions a formula does not, and no threshold table will
+  replace measuring your own noise floor.
+- **Not in the matcher or CLI yet.** Call `@blazediff/milo-native` directly;
+  `toMatchImageSnapshot` and `blazediff-cli` do not take a `milo` method.
+
+Next: [Choosing a Metric →](/docs/metrics/choosing-a-metric) ·
+[`@blazediff/milo-native` →](/apis/milo-native) ·
+[`blazediff-milo` crate →](/apis/blazediff-milo)
+
+---
+
 # Image Difference Analysis
 
 **Interpret mode takes a raw pixel diff and tells you what changed, where, and how
@@ -5115,7 +5590,7 @@ If you have not captured baselines yet, start with
 ## The check command
 
 ```bash
-blazediff-agent check --judge host --json
+blazediff-agent check --judge agent --json
 ```
 
 It starts the dev server when `config.devServer` is set, runs every entry through
@@ -5213,7 +5688,7 @@ Only `ambiguous` reaches an agent. That is the point: asking a model to rule on
 every diff, including the obvious ones, is how you get verdicts that contradict
 each other between runs.
 
-For `ambiguous`, `--judge host` writes a `JudgmentRequest` to
+For `ambiguous`, `--judge agent` writes a `JudgmentRequest` to
 `.blazediff/judgments/<id>/request.json` containing:
 
 - `regions[]`, with bounding boxes, pixel counts and change types per region
@@ -5699,7 +6174,7 @@ there means checking: re-capture, diff, and report.
 Under the hood it is running the same CLI you would run by hand:
 
 ```bash
-blazediff-agent check --judge host --json
+blazediff-agent check --judge agent --json
 ```
 
 ## What Claude Code actually sees
@@ -5840,7 +6315,7 @@ screenshot.
 
 ## The loop
 
-1. `blazediff-agent check --judge host --json` runs and suspends on the first
+1. `blazediff-agent check --judge agent --json` runs and suspends on the first
    ambiguous entry.
 2. Cursor reads the request, looks at the tiles, and writes
    `.blazediff/judgments/<id>/verdict.json`.
@@ -5907,7 +6382,7 @@ still get committed.
 Every step is a command, and every command takes `--json`:
 
 ```bash
-blazediff-agent check --judge host --json      # suspends on the first ambiguous diff
+blazediff-agent check --judge agent --json      # suspends on the first ambiguous diff
 # ... agent writes .blazediff/judgments/<id>/verdict.json ...
 blazediff-agent check --apply-judgments --json # resume, no re-screenshot
 blazediff-agent rewrite <id> --json            # accept an intentional change
@@ -5952,7 +6427,7 @@ runs after the base screenshot.
 ### 2. Judge backend - who decides ambiguous diffs
 
 ```bash
-blazediff-agent check --judge host    # your coding agent decides
+blazediff-agent check --judge agent    # your coding agent decides
 blazediff-agent check --judge local   # local models decide, no host round-trip
 blazediff-agent check --judge none    # no judgment, ambiguous entries just fail
 ```
@@ -6005,7 +6480,7 @@ service and there is no API key.
 | --------------- | ---------------------- | ------------------------------------------------------ |
 | `--judge none`  | Nowhere                | Default CI gate. Ambiguous entries fail; a human looks  |
 | `--judge local` | Inside the CI job      | You want a verdict without a human, no keys, no network |
-| `--judge host`  | Developer's machine    | The coding agent reviews the diff during the PR         |
+| `--judge agent`  | Developer's machine    | The coding agent reviews the diff during the PR         |
 
 Most teams run `none` in CI and `host` locally. `local` is the option when the job
 itself has to decide.
@@ -6272,7 +6747,7 @@ After all of the above, a handful of diffs per run will still be genuinely
 ambiguous. Those are the ones worth a judgment rather than a threshold:
 
 ```bash
-blazediff-agent check --judge host --json
+blazediff-agent check --judge agent --json
 ```
 
 The agent gets cropped `[baseline | actual]` region tiles and answers regression
@@ -6388,7 +6863,7 @@ Work through it in this order:
    intentional change across the whole suite, not 300 reviews:
 
    ```bash
-   blazediff-agent check --judge host --json   # confirm what changed
+   blazediff-agent check --judge agent --json   # confirm what changed
    blazediff-agent rewrite --failed --json     # accept all of it
    ```
 
@@ -6424,7 +6899,7 @@ breaks a button's alignment are the same number of pixels and completely
 different problems. That distinction needs judgment, not a threshold:
 
 ```bash
-blazediff-agent check --judge host --json
+blazediff-agent check --judge agent --json
 ```
 
 The heuristic pass classifies each failure as `regression-likely`,
@@ -6557,7 +7032,7 @@ a review workflow. BlazeDiff's answer is a heuristic pass plus your own coding
 agent:
 
 ```bash
-blazediff-agent check --judge host --json
+blazediff-agent check --judge agent --json
 ```
 
 Confident cases are labelled automatically. Genuinely ambiguous ones get handed to
@@ -6619,9 +7094,9 @@ exact network inventory, so a security review can check it rather than trust it.
 | `blazediff-agent review`          | Binds `127.0.0.1`                    | Local only      |
 | `check --judge none`              | **None**                             | Never           |
 | `check --judge local`             | Model download on first use, then none | First run only |
-| `check --judge host`              | **Your coding agent's provider**     | Per ambiguous diff |
+| `check --judge agent`              | **Your coding agent's provider**     | Per ambiguous diff |
 
-> **Warning:** **Read this before choosing a judge backend.** `--judge host` hands cropped diff regions to Claude Code, Cursor, or Codex, which sends them to whatever model provider that tool uses. BlazeDiff does not upload anything, but your agent does. For an air-gapped or restricted environment, use `--judge none` or `--judge local`.
+> **Warning:** **Read this before choosing a judge backend.** `--judge agent` hands cropped diff regions to Claude Code, Cursor, or Codex, which sends them to whatever model provider that tool uses. BlazeDiff does not upload anything, but your agent does. For an air-gapped or restricted environment, use `--judge none` or `--judge local`.
 
 ## The diff libraries are fully offline
 
@@ -6695,7 +7170,7 @@ afterwards. On an air-gapped machine, warm that cache on a connected machine fir
 and copy it across, the same way as the browser. After that, `--judge local` is
 fully offline.
 
-### `--judge host`
+### `--judge agent`
 
 Your coding agent reviews. Fastest and most accurate, and the one option where
 image crops leave the machine. Use it where policy allows.

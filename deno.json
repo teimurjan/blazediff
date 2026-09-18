@@ -12,6 +12,8 @@
 		"./packages/interpret-native/interpret-native",
 		"./packages/interpret-wasm",
 		"./packages/ssim-native/ssim-native",
+		"./packages/milo-native/milo-native",
+		"./packages/milo-wasm",
 		"./packages/matcher",
 		"./packages/cli"
 	],

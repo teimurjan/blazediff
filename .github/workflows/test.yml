@@ -37,7 +37,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Cargo Test
-        run: cargo test --manifest-path crates/Cargo.toml -p blazediff -p blazediff-shared -p blazediff-ssim -p blazediff-interpret
+        run: cargo test --manifest-path crates/Cargo.toml -p blazediff -p blazediff-shared -p blazediff-ssim -p blazediff-interpret -p blazediff-milo
 
       # The PyO3 bindings are behind a feature the line above doesn't enable.
       # `check` rather than `test` because it doesn't link: pyo3's
@@ -45,7 +45,7 @@ jobs:
       # interpreter, which only the maturin-built wheel below provides.
       - name: Cargo Check (python bindings)
         run: |
-          for crate in blazediff blazediff-ssim blazediff-interpret; do
+          for crate in blazediff blazediff-ssim blazediff-interpret blazediff-milo; do
             cargo check --manifest-path crates/Cargo.toml -p "$crate" --features python
           done
 

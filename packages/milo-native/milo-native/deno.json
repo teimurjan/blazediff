@@ -1,0 +1,20 @@
+{
+	"name": "@blazediff/milo-native",
+	"version": "0.0.0",
+	"exports": "./src/index.ts",
+	"imports": {
+		"@blazediff/milo-native-darwin-arm64": "npm:@blazediff/milo-native-darwin-arm64@0.0.0",
+		"@blazediff/milo-native-darwin-x64": "npm:@blazediff/milo-native-darwin-x64@0.0.0",
+		"@blazediff/milo-native-linux-arm64": "npm:@blazediff/milo-native-linux-arm64@0.0.0",
+		"@blazediff/milo-native-linux-x64": "npm:@blazediff/milo-native-linux-x64@0.0.0",
+		"@blazediff/milo-native-win32-arm64": "npm:@blazediff/milo-native-win32-arm64@0.0.0",
+		"@blazediff/milo-native-win32-x64": "npm:@blazediff/milo-native-win32-x64@0.0.0"
+	},
+	"publish": {
+		"include": ["src/**/*.ts", "README.md"],
+		"exclude": ["src/**/*.test.ts", "src/**/*.spec.ts", "src/**/*.deno.test.ts"]
+	},
+	"test": {
+		"include": ["src/**/*.deno.test.ts"]
+	}
+}

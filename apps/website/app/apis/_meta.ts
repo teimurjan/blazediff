@@ -36,6 +36,12 @@ export default {
 	"ssim-native": {
 		title: "@blazediff/ssim-native",
 	},
+	"milo-native": {
+		title: "@blazediff/milo-native",
+	},
+	"milo-wasm": {
+		title: "@blazediff/milo-wasm",
+	},
 	matcher: {
 		title: "@blazediff/matcher",
 	},
@@ -79,5 +85,8 @@ export default {
 	},
 	"blazediff-ssim": {
 		title: "blazediff-ssim",
+	},
+	"blazediff-milo": {
+		title: "blazediff-milo",
 	},
 };

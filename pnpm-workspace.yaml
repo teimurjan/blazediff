@@ -5,6 +5,7 @@ packages:
   - packages/core-native/*
   - packages/ssim-native/*
   - packages/interpret-native/*
+  - packages/milo-native/*
   - apps/*
   - examples/*
   # Version-only shadows for the Rust crates + Python wheel (private; crates.io/PyPI, not npm).
@@ -15,8 +16,10 @@ packages:
   # @blazediff/rust-interpret → blazediff-interpret crate (crates.io)
   # @blazediff/rust-png → blazediff-png crate (crates.io)
   # @blazediff/rust-ssim → blazediff-ssim crate (crates.io)
+  # @blazediff/rust-milo → blazediff-milo crate (crates.io)
   - crates/blazediff
   - crates/blazediff-interpret
+  - crates/blazediff-milo
   - crates/blazediff-shared
   - crates/blazediff-png
   - crates/blazediff-ssim

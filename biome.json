@@ -10,7 +10,8 @@
 			"**/*.{js,ts,jsx,tsx,json}",
 			"!crates",
 			"!packages/core-wasm/wasm",
-			"!packages/interpret-wasm/wasm"
+			"!packages/interpret-wasm/wasm",
+			"!packages/milo-wasm/wasm"
 		],
 		"ignoreUnknown": false
 	},

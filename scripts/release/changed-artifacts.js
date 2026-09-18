@@ -20,6 +20,8 @@
 //   wasm_interpret
 //              interpret wasm module      blazediff-interpret, blazediff, blazediff-ssim,
 //                                         blazediff-shared (built without codecs)
+//   milo       milo .node                 blazediff-milo, blazediff-shared, blazediff-png
+//   wasm_milo  milo wasm module           blazediff-milo (built without codecs)
 //
 // Family keys are shell identifiers: this script's output is `eval`'d in
 // release-artifacts-check.yml and `tee`'d into $GITHUB_OUTPUT, so a hyphen
@@ -29,7 +31,8 @@
 // (blazediff / blazediff-ssim / blazediff-interpret) is built from the crate a
 // family is already named after, and its filenames encode that crate's version.
 // So build-artifacts.yml derives each set's gating from its family flag plus a
-// wheels-for-this-version-exist check.
+// wheels-for-this-version-exist check. blazediff-milo has no wheel set yet: its
+// PyPI trusted publisher is still to be created.
 //
 // Used by release-artifacts-check.yml (which families must be fresh, and the
 // `--check-bumps` guard for sources changed without a version bump),
@@ -50,7 +53,15 @@ const path = require("node:path");
 
 const ROOT = path.resolve(__dirname, "..", "..");
 
-const FAMILIES = ["core", "ssim", "interpret", "wasm", "wasm_interpret"];
+const FAMILIES = [
+	"core",
+	"ssim",
+	"interpret",
+	"wasm",
+	"wasm_interpret",
+	"milo",
+	"wasm_milo",
+];
 
 /** The crate sources compiled into each family's artifacts. */
 const FAMILY_CRATES = {
@@ -72,6 +83,10 @@ const FAMILY_CRATES = {
 		"blazediff-ssim",
 		"blazediff-shared",
 	],
+	milo: ["blazediff-milo", "blazediff-shared", "blazediff-png"],
+	// The wasm build's only dependency is std; blazediff-shared is a
+	// binding-only optional dependency it never enables.
+	wasm_milo: ["blazediff-milo"],
 };
 
 /** The npm package whose changesets tag anchors each family's last release. */
@@ -81,6 +96,8 @@ const FAMILY_NPM = {
 	interpret: "@blazediff/interpret-native",
 	wasm: "@blazediff/core-wasm",
 	wasm_interpret: "@blazediff/interpret-wasm",
+	milo: "@blazediff/milo-native",
+	wasm_milo: "@blazediff/milo-wasm",
 };
 
 const FAMILY_PACKAGE = {
@@ -89,12 +106,14 @@ const FAMILY_PACKAGE = {
 	interpret: "packages/interpret-native/interpret-native/package.json",
 	wasm: "packages/core-wasm/package.json",
 	wasm_interpret: "packages/interpret-wasm/package.json",
+	milo: "packages/milo-native/milo-native/package.json",
+	wasm_milo: "packages/milo-wasm/package.json",
 };
 
 const ALL_CRATES = [...new Set(Object.values(FAMILY_CRATES).flat())];
 
 /** Families whose artifact is a wasm module rather than a native binary. */
-const WASM_FAMILIES = new Set(["wasm", "wasm_interpret"]);
+const WASM_FAMILIES = new Set(["wasm", "wasm_interpret", "wasm_milo"]);
 
 /** Crates under crates/ that never ship in an artifact. */
 const UNSHIPPED_CRATES = new Set([
@@ -374,7 +393,7 @@ function resolveMergeBase(baseRef) {
 /**
  * Families whose compiled sources changed since their last published
  * release. `baseRef` anchors which versions count as published. Returns
- * `{ families: {core, ssim, interpret, wasm}, reasons: [..] }`.
+ * `{ families: {core, ssim, interpret, wasm, ...}, reasons: [..] }`.
  */
 function changedFamilies(baseRef) {
 	const mergeBase = resolveMergeBase(baseRef);

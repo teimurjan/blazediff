@@ -6,7 +6,7 @@ name: build-artifacts
 # release-artifacts-check.yml otherwise asks the maintainer to do by hand.
 #
 # Selective: scripts/release/changed-artifacts.js decides which artifact
-# families (core / ssim / interpret / wasm) changed since each family's last
+# families (core / ssim / interpret / milo / wasm) changed since each family's last
 # published release tag — version-only churn doesn't count — and only those
 # get compiled. Each of the three wheel sets is rebuilt when its family's
 # sources changed or its version bumped without a matching wheel set. The same
@@ -62,6 +62,8 @@ jobs:
       interpret: ${{ steps.families.outputs.interpret }}
       wasm: ${{ steps.families.outputs.wasm }}
       wasm_interpret: ${{ steps.families.outputs.wasm_interpret }}
+      milo: ${{ steps.families.outputs.milo }}
+      wasm_milo: ${{ steps.families.outputs.wasm_milo }}
       core_version: ${{ steps.version.outputs.core_version }}
       ssim_version: ${{ steps.version.outputs.ssim_version }}
       interpret_version: ${{ steps.version.outputs.interpret_version }}
@@ -184,6 +186,12 @@ jobs:
           if [[ "${{ steps.families.outputs.wasm_interpret }}" == "true" ]]; then
             parts+=("interpret-wasm v$(pkg_version packages/interpret-wasm)")
           fi
+          if [[ "${{ steps.families.outputs.milo }}" == "true" ]]; then
+            parts+=("milo v$(pkg_version packages/milo-native/milo-native)")
+          fi
+          if [[ "${{ steps.families.outputs.wasm_milo }}" == "true" ]]; then
+            parts+=("milo-wasm v$(pkg_version packages/milo-wasm)")
+          fi
           if [[ "$WHEELS_CORE" == "true" ]]; then
             parts+=("blazediff wheels v$CORE_VER")
           fi
@@ -265,7 +273,8 @@ jobs:
           matrix.kind == 'linux' &&
           (needs.resolve.outputs.core == 'true' ||
            needs.resolve.outputs.ssim == 'true' ||
-           needs.resolve.outputs.interpret == 'true')
+           needs.resolve.outputs.interpret == 'true' ||
+           needs.resolve.outputs.milo == 'true')
         run: cargo binstall -y --disable-strategies compile cross@0.2.5
 
       # maturin cross-links the Linux wheels with zig (build-maturin.sh), which
@@ -297,6 +306,10 @@ jobs:
       - name: Build interpret .node
         if: needs.resolve.outputs.interpret == 'true'
         run: crates/blazediff-interpret/scripts/build-napi.sh --target ${{ matrix.target }}
+
+      - name: Build milo .node
+        if: needs.resolve.outputs.milo == 'true'
+        run: crates/blazediff-milo/scripts/build-napi.sh --target ${{ matrix.target }}
 
       # zig links against a bare glibc sysroot with no zlib, and picking up the
       # runner's libz would undo the manylinux tag. The vendored miniz is what
@@ -354,6 +367,9 @@ jobs:
           if [[ "${{ needs.resolve.outputs.interpret }}" == "true" ]]; then
             files+=("packages/interpret-native/interpret-native-${{ matrix.pkg }}/blazediff_interpret.node")
           fi
+          if [[ "${{ needs.resolve.outputs.milo }}" == "true" ]]; then
+            files+=("packages/milo-native/milo-native-${{ matrix.pkg }}/blazediff_milo.node")
+          fi
           for f in "${files[@]}"; do
             if [[ ! -s "$f" ]]; then
               echo "::error::$f missing or empty after build"
@@ -383,6 +399,9 @@ jobs:
           if [[ "${{ needs.resolve.outputs.interpret }}" != "true" ]]; then
             rm -f "packages/interpret-native/interpret-native-${{ matrix.pkg }}/blazediff_interpret.node"
           fi
+          if [[ "${{ needs.resolve.outputs.milo }}" != "true" ]]; then
+            rm -f "packages/milo-native/milo-native-${{ matrix.pkg }}/blazediff_milo.node"
+          fi
 
       - uses: actions/upload-artifact@v4
         with:
@@ -403,18 +422,22 @@ jobs:
             packages/core-native/core-native-${{ matrix.pkg }}/blazediff.node
             packages/ssim-native/ssim-native-${{ matrix.pkg }}/blazediff_ssim.node
             packages/interpret-native/interpret-native-${{ matrix.pkg }}/blazediff_interpret.node
+            packages/milo-native/milo-native-${{ matrix.pkg }}/blazediff_milo.node
             crates/blazediff/wheels/*.whl
             crates/blazediff-ssim/wheels/*.whl
             crates/blazediff-interpret/wheels/*.whl
 
-  # Both wasm packages build the same way — same target, same toolchain, same
+  # The wasm packages build the same way — same target, same toolchain, same
   # post-processing — so they share one job definition and differ only in which
   # crate shim runs. Each leg is gated on its own family, so an interpret-only
   # change doesn't rebuild the core module.
   wasm:
     name: wasm32-unknown-unknown (${{ matrix.artifact }})
     needs: resolve
-    if: needs.resolve.outputs.wasm == 'true' || needs.resolve.outputs.wasm_interpret == 'true'
+    if: >-
+      needs.resolve.outputs.wasm == 'true' ||
+      needs.resolve.outputs.wasm_interpret == 'true' ||
+      needs.resolve.outputs.wasm_milo == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
@@ -429,6 +452,10 @@ jobs:
             family: wasm_interpret
             crate: blazediff-interpret
             pkg: interpret-wasm
+          - artifact: milo-wasm
+            family: wasm_milo
+            crate: blazediff-milo
+            pkg: milo-wasm
     steps:
       - uses: actions/checkout@v5
         if: needs.resolve.outputs[matrix.family] == 'true'
@@ -535,6 +562,12 @@ jobs:
         with:
           name: interpret-wasm
           path: packages/interpret-wasm/wasm
+
+      - uses: actions/download-artifact@v4
+        if: needs.resolve.outputs.wasm_milo == 'true'
+        with:
+          name: milo-wasm
+          path: packages/milo-wasm/wasm
 
       - name: Stage artifacts
         run: |

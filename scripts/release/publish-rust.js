@@ -8,7 +8,7 @@ const ROOT = path.resolve(__dirname, "..", "..");
 const CRATES_DIR = path.join(ROOT, "crates");
 
 // Order matters, and follows the dependency edges:
-//   blazediff-png -> blazediff-shared -> {blazediff, blazediff-ssim}
+//   blazediff-png -> blazediff-shared -> {blazediff, blazediff-ssim, blazediff-milo}
 //     -> blazediff-interpret
 // Interpret is last: it sits above both producers and consumes what they
 // return, rather than either of them depending on it.
@@ -34,6 +34,13 @@ const CRATES = [
 		cargoTomlPath: path.join(ROOT, "crates", "blazediff-ssim", "Cargo.toml"),
 		dockerfile: "blazediff-ssim/Dockerfile.publish",
 		dockerTag: "blazediff-ssim-publish",
+	},
+	{
+		name: "blazediff-milo",
+		npmPkgPath: path.join(ROOT, "crates", "blazediff-milo", "package.json"),
+		cargoTomlPath: path.join(ROOT, "crates", "blazediff-milo", "Cargo.toml"),
+		dockerfile: "blazediff-milo/Dockerfile.publish",
+		dockerTag: "blazediff-milo-publish",
 	},
 	{
 		name: "blazediff",
