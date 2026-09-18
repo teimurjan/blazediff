@@ -33,3 +33,4 @@ ignoredOptionalDependencies:
   - "@blazediff/core-native-*"
   - "@blazediff/ssim-native-*"
   - "@blazediff/interpret-native-*"
+  - "@blazediff/milo-native-*"
