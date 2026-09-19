@@ -1,6 +1,6 @@
 {
 	"name": "@blazediff/milo-native",
-	"version": "0.0.0",
+	"version": "0.1.0",
 	"description": "Native Rust MILO perceptual image quality metric for visual testing: learned visual masking, PyTorch parity, no PyTorch",
 	"private": false,
 	"publishConfig": {
@@ -27,12 +27,12 @@
 		"test:watch": "vitest"
 	},
 	"optionalDependencies": {
-		"@blazediff/milo-native-darwin-arm64": "0.0.0",
-		"@blazediff/milo-native-darwin-x64": "0.0.0",
-		"@blazediff/milo-native-linux-arm64": "0.0.0",
-		"@blazediff/milo-native-linux-x64": "0.0.0",
-		"@blazediff/milo-native-win32-arm64": "0.0.0",
-		"@blazediff/milo-native-win32-x64": "0.0.0"
+		"@blazediff/milo-native-darwin-arm64": "0.1.0",
+		"@blazediff/milo-native-darwin-x64": "0.1.0",
+		"@blazediff/milo-native-linux-arm64": "0.1.0",
+		"@blazediff/milo-native-linux-x64": "0.1.0",
+		"@blazediff/milo-native-win32-arm64": "0.1.0",
+		"@blazediff/milo-native-win32-x64": "0.1.0"
 	},
 	"keywords": [
 		"milo",
