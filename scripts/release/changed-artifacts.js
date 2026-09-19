@@ -145,6 +145,15 @@ function maskManifestVersions(src) {
 }
 
 /**
+ * Mask the workspace `members` list: adding or removing a crate changes
+ * nothing about what is compiled into the others. Profiles and
+ * `[workspace.dependencies]` still count.
+ */
+function maskWorkspaceMembers(src) {
+	return src.replace(/members\s*=\s*\[[^\]]*\]/, "members = [*]");
+}
+
+/**
  * Mask the version lines of the workspace's own crates in Cargo.lock, and
  * nothing else — an external dependency bump (`cargo update`) must still
  * read as a source change.
@@ -282,6 +291,9 @@ function isNotABuildInput(parts, basename) {
 		// Crates that never ship, and fuzz harnesses.
 		UNSHIPPED_CRATES.has(parts[1]) ||
 		parts.includes("fuzz") ||
+		// crates.io publish recipe (publish-rust.js); runs `cargo publish`,
+		// never produces a .node, wasm module or wheel.
+		basename === "Dockerfile.publish" ||
 		// Committed wheels. /build regenerates them, maturin's zip is not
 		// byte-reproducible, and the new bytes would read as a source change
 		// demanding another bump — which rebuilds them again. Their freshness
@@ -329,6 +341,13 @@ function sourcesChangedSince(ref, crates, family) {
 				continue;
 			}
 			return `${file} changed`;
+		}
+
+		if (file === "crates/Cargo.toml") {
+			if (meaningfullyChanged(ref, file, maskWorkspaceMembers)) {
+				return `${file} changed beyond members`;
+			}
+			continue;
 		}
 
 		if (file === "crates/Cargo.lock") {
