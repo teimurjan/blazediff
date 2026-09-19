@@ -5,7 +5,7 @@ build-backend = "maturin"
 [project]
 name = "blazediff-milo"
 # Synced from the @blazediff/rust-milo changesets shadow by scripts/release/sync-pyproject-version.js.
-version = "0.0.0"
+version = "0.1.0"
 description = "MILO perceptual image quality metric (Çoğalan et al. 2025) as a std-only SIMD CNN with PyTorch parity"
 license = { text = "MIT" }
 authors = [{ name = "Teimur Gasanov" }]

@@ -1,6 +1,6 @@
 {
 	"name": "@blazediff/milo-native-darwin-arm64",
-	"version": "0.0.0",
+	"version": "0.1.0",
 	"description": "blazediff-milo N-API binary for macOS ARM64 (Apple Silicon)",
 	"main": "blazediff_milo.node",
 	"os": [

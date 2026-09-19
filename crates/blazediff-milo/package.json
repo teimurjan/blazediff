@@ -1,6 +1,6 @@
 {
 	"name": "@blazediff/rust-milo",
-	"version": "0.0.0",
+	"version": "0.1.0",
 	"private": true,
 	"description": "Version shadow for the blazediff-milo Rust crate. Changesets versions this package; the version is synced into Cargo.toml and published to crates.io (never to npm). Fixed to @blazediff/milo-native."
 }
