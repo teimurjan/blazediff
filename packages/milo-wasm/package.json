@@ -1,6 +1,6 @@
 {
 	"name": "@blazediff/milo-wasm",
-	"version": "0.0.0",
+	"version": "0.1.0",
 	"description": "WebAssembly build of blazediff-milo for browsers, edge runtimes, and any wasm host. Same metric as @blazediff/milo-native.",
 	"private": false,
 	"publishConfig": {

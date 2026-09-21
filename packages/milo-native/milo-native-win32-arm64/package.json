@@ -1,6 +1,6 @@
 {
 	"name": "@blazediff/milo-native-win32-arm64",
-	"version": "0.0.0",
+	"version": "0.1.0",
 	"description": "blazediff-milo N-API binary for Windows ARM64",
 	"main": "blazediff_milo.node",
 	"os": [
