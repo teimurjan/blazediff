@@ -1,9 +1,9 @@
 import type { ReactNode } from "react";
 import LandingFooter from "./footer";
-import LandingNav from "./nav";
+import LandingNav, { type LandingTab } from "./nav";
 
 interface LandingShellProps {
-	activeTab: "home" | "agent" | "docs";
+	activeTab: LandingTab;
 	ctaLabel: string;
 	ctaHref: string;
 	children: ReactNode;

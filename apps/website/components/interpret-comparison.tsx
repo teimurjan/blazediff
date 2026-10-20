@@ -1,8 +1,9 @@
 "use client";
 
-import type { InterpretResult } from "@blazediff/interpret-wasm";
+import type { BoundingBox, InterpretResult } from "@blazediff/interpret-wasm";
 import { IconChevronDown } from "@tabler/icons-react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { INTERPRET_WASM_URL } from "../utils/wasm";
 import type {
 	InterpretPhase,
 	InterpretRequest,
@@ -17,14 +18,8 @@ import {
 	isHeavy,
 	megapixels,
 } from "./interpret-fixtures";
+import { RegionHighlight, RegionList } from "./interpret-regions";
 import InterpretSummary from "./interpret-summary";
-
-interface BoundingBox {
-	x: number;
-	y: number;
-	width: number;
-	height: number;
-}
 
 interface InterpretComparisonProps {
 	/** Which fixtures to offer. One id renders no select. */
@@ -33,48 +28,11 @@ interface InterpretComparisonProps {
 	defaultId?: string;
 }
 
-/**
- * The published wasm module, pinned to the version this checkout ships (see
- * the note in next.config.mjs for why it comes off a CDN rather than the
- * bundle). jsDelivr serves it as `application/wasm` with `access-control-
- * allow-origin: *`, which is what lets the worker stream it cross-origin.
- */
-const WASM_URL = `https://cdn.jsdelivr.net/npm/@blazediff/interpret-wasm@${process.env.NEXT_PUBLIC_INTERPRET_WASM_VERSION}/wasm/blazediff_interpret_bg.wasm`;
-
 const PHASE_LABEL: Record<InterpretPhase, string> = {
 	fetching: "Fetching images",
 	decoding: "Decoding",
 	analyzing: "Analyzing",
 };
-
-/** `content-change` -> `Content change`. */
-function humanize(value: string): string {
-	const spaced = value.replace(/-/g, " ");
-	return spaced.charAt(0).toUpperCase() + spaced.slice(1);
-}
-
-function RegionHighlight({
-	bbox,
-	imageWidth,
-	imageHeight,
-}: {
-	bbox: BoundingBox;
-	imageWidth: number;
-	imageHeight: number;
-}) {
-	return (
-		<div
-			className="absolute pointer-events-none border-2 border-white/80 rounded-sm transition-all duration-150"
-			style={{
-				left: `${(bbox.x / imageWidth) * 100}%`,
-				top: `${(bbox.y / imageHeight) * 100}%`,
-				width: `${(bbox.width / imageWidth) * 100}%`,
-				height: `${(bbox.height / imageHeight) * 100}%`,
-				boxShadow: "0 0 0 9999px rgba(0, 0, 0, 0.5)",
-			}}
-		/>
-	);
-}
 
 function Pane({
 	pair,
@@ -187,7 +145,7 @@ export default function InterpretComparison({
 				b: target.b,
 				width: target.width,
 				height: target.height,
-				wasmUrl: WASM_URL,
+				wasmUrl: INTERPRET_WASM_URL,
 			} satisfies InterpretRequest);
 		},
 		[stopWorker],
@@ -305,40 +263,11 @@ export default function InterpretComparison({
 						</InterpretSummary>
 
 						{result.regions.length > 0 && (
-							<div className="space-y-2 max-h-96 overflow-y-auto">
-								<p className="text-sm font-medium flex items-center gap-2 justify-between">
-									<span>Regions ({result.regions.length})</span>
-									<span className="text-gray-500">
-										Hover a region to highlight
-									</span>
-								</p>
-								{result.regions.map((region, i) => (
-									// biome-ignore lint/a11y/noStaticElementInteractions: hover highlight
-									<div
-										key={`${region.position}-${i}`}
-										className={`p-3 rounded-lg border text-sm cursor-pointer transition-colors ${hoveredIndex === i ? "border-blue-400 bg-blue-50 dark:bg-blue-950/30" : "border-gray-200 dark:border-gray-700"}`}
-										onMouseEnter={() => setHoveredIndex(i)}
-										onMouseLeave={() => setHoveredIndex(null)}
-									>
-										<div className="flex items-center gap-2 flex-wrap">
-											<span className="font-medium">
-												{humanize(region.position)}
-											</span>
-											<span className="text-gray-500">·</span>
-											<span>{humanize(region.changeType)}</span>
-											<span className="text-gray-500">·</span>
-											<span className="text-gray-500">
-												{humanize(region.shape)}
-											</span>
-											<span className="text-gray-500">·</span>
-											<span className="text-xs text-gray-400">
-												({region.bbox.x}, {region.bbox.y}, {region.bbox.width}×
-												{region.bbox.height}) · {region.percentage.toFixed(2)}%
-											</span>
-										</div>
-									</div>
-								))}
-							</div>
+							<RegionList
+								regions={result.regions}
+								hoveredIndex={hoveredIndex}
+								onHover={setHoveredIndex}
+							/>
 						)}
 
 						<div>

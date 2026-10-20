@@ -9,7 +9,8 @@
 		"build": "vite build",
 		"preview": "vite preview --port 5273",
 		"typecheck": "tsc --noEmit",
-		"check": "blazediff-agent check"
+		"check": "blazediff-agent check",
+		"review": "blazediff-agent review"
 	},
 	"dependencies": {
 		"react": "^19.1.1",

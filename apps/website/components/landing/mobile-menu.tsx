@@ -3,18 +3,17 @@
 import { IconMenu2, IconX } from "@tabler/icons-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-
-export type MobileMenuTab = "home" | "agent" | "docs";
+import type { LandingTab } from "./nav";
 
 interface MobileMenuLink {
-	id: MobileMenuTab | "github";
+	id: LandingTab | "github";
 	label: string;
 	href: string;
 	external?: boolean;
 }
 
 interface MobileMenuProps {
-	activeTab: MobileMenuTab;
+	activeTab: LandingTab;
 	links: MobileMenuLink[];
 }
 

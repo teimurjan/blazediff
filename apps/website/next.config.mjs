@@ -11,26 +11,29 @@ const apiSlugs = fs
 	.filter((entry) => entry.isDirectory())
 	.map((entry) => entry.name);
 
-// The interpret demo loads its wasm from jsDelivr rather than from the bundle:
+// The wasm demos load their modules from jsDelivr rather than from the bundle:
 // wasm-bindgen's glue resolves the module with `new URL(..., import.meta.url)`,
 // which Turbopack rewrites to a root-relative `/_next/static/media/...`, and
-// the analysis worker runs from a blob: URL where that has nothing to resolve
-// against. Reading the version from the workspace manifest keeps the CDN URL
+// the analysis workers run from a blob: URL where that has nothing to resolve
+// against. Reading the versions from the workspace manifests keeps the CDN URLs
 // pinned to whatever this checkout ships, with no second place to update.
-const interpretWasmVersion = JSON.parse(
-	fs.readFileSync(
-		fileURLToPath(
-			new URL("../../packages/interpret-wasm/package.json", import.meta.url),
+const workspaceVersion = (pkg) =>
+	JSON.parse(
+		fs.readFileSync(
+			fileURLToPath(
+				new URL(`../../packages/${pkg}/package.json`, import.meta.url),
+			),
+			"utf8",
 		),
-		"utf8",
-	),
-).version;
+	).version;
 
 export default withNextra({
 	reactStrictMode: true,
 	devIndicators: false,
 	env: {
-		NEXT_PUBLIC_INTERPRET_WASM_VERSION: interpretWasmVersion,
+		NEXT_PUBLIC_INTERPRET_WASM_VERSION: workspaceVersion("interpret-wasm"),
+		NEXT_PUBLIC_CORE_WASM_VERSION: workspaceVersion("core-wasm"),
+		NEXT_PUBLIC_MILO_WASM_VERSION: workspaceVersion("milo-wasm"),
 	},
 	async redirects() {
 		// Two route renames: the friendly docs (formerly /examples) now live at

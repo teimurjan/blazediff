@@ -2,9 +2,9 @@
 actual/
 judgments/
 checkpoints/
-summary.md
+report.json
 dev-server.log
 dev-server.pid
-*.tmp
 .env
 .env.local
+*.tmp

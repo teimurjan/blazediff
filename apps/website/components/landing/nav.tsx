@@ -3,17 +3,18 @@ import Link from "next/link";
 import MobileMenu from "./mobile-menu";
 import Picture, { sizesForHeight } from "./picture";
 
-type Tab = "home" | "agent" | "docs";
+export type LandingTab = "home" | "agent" | "playground" | "docs";
 
 interface LandingNavProps {
-	activeTab: Tab;
+	activeTab: LandingTab;
 	ctaLabel: string;
 	ctaHref: string;
 }
 
-const TABS: { id: Tab; label: string; href: string }[] = [
+const TABS: { id: LandingTab; label: string; href: string }[] = [
 	{ id: "home", label: "HOME", href: "/" },
 	{ id: "agent", label: "AGENT", href: "/agent" },
+	{ id: "playground", label: "PLAYGROUND", href: "/playground" },
 	{ id: "docs", label: "DOCS", href: "/docs" },
 ];
 

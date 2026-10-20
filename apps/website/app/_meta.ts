@@ -19,6 +19,16 @@ export default {
 			layout: "full",
 		},
 	},
+	playground: {
+		title: "Playground",
+		type: "page",
+		display: "hidden",
+		theme: {
+			toc: false,
+			copyPage: false,
+			layout: "full",
+		},
+	},
 	docs: {
 		title: "Docs",
 		type: "page",
