@@ -20,12 +20,12 @@ export function imgUrl(
 	id: string,
 	kind: "baseline" | "actual" | "diff",
 ): string {
-	return `data/${kind}/${encodeURIComponent(id)}.png`;
+	return `run/${kind}/${encodeURIComponent(id)}.png`;
 }
 
 export async function fetchReport(): Promise<Result<ReviewPayload>> {
 	try {
-		const res = await fetch("data/report.json");
+		const res = await fetch("run/report.json");
 		if (!res.ok) return { ok: false, error: "demo report is missing" };
 		payload = toReviewPayload((await res.json()) as CheckReport, META);
 		return { ok: true, value: payload };

@@ -1,0 +1,337 @@
+{
+	"createdAt": "2026-10-20T07:45:50.628Z",
+	"totalEntries": 10,
+	"passed": 7,
+	"failed": 3,
+	"pendingJudgments": 0,
+	"results": [
+		{
+			"id": "about",
+			"url": "/about",
+			"status": "pass",
+			"baselinePath": ".blazediff/baselines/about.png",
+			"actualPath": ".blazediff/actual/about.png"
+		},
+		{
+			"id": "analytics",
+			"url": "/analytics",
+			"status": "pass",
+			"baselinePath": ".blazediff/baselines/analytics.png",
+			"actualPath": ".blazediff/actual/analytics.png"
+		},
+		{
+			"id": "profile",
+			"url": "/profile",
+			"status": "pass",
+			"baselinePath": ".blazediff/baselines/profile.png",
+			"actualPath": ".blazediff/actual/profile.png"
+		},
+		{
+			"id": "projects",
+			"url": "/projects",
+			"status": "pass",
+			"baselinePath": ".blazediff/baselines/projects.png",
+			"actualPath": ".blazediff/actual/projects.png"
+		},
+		{
+			"id": "reports",
+			"url": "/reports",
+			"status": "pass",
+			"baselinePath": ".blazediff/baselines/reports.png",
+			"actualPath": ".blazediff/actual/reports.png"
+		},
+		{
+			"id": "settings",
+			"url": "/settings",
+			"status": "pass",
+			"baselinePath": ".blazediff/baselines/settings.png",
+			"actualPath": ".blazediff/actual/settings.png"
+		},
+		{
+			"id": "team",
+			"url": "/team",
+			"status": "pass",
+			"baselinePath": ".blazediff/baselines/team.png",
+			"actualPath": ".blazediff/actual/team.png"
+		},
+		{
+			"id": "billing",
+			"url": "/billing",
+			"status": "fail",
+			"diffCount": 789,
+			"diffPercentage": 0.07705078125,
+			"severity": "low",
+			"regions": [
+				{
+					"bbox": {
+						"height": 26,
+						"width": 240,
+						"x": 271,
+						"y": 84
+					},
+					"pixelCount": 1398,
+					"percentage": 0.1365234375,
+					"changeType": "content-change",
+					"confidence": 0.5
+				}
+			],
+			"width": 1280,
+			"height": 800,
+			"verdict": {
+				"label": "regression-likely",
+				"headline": "the plan price reads $2,400/month, it was $240",
+				"rationale": [
+					"Only the price in the subtitle changed. The invoices on the same page still bill $240.00 a month, so the page now disagrees with itself.",
+					"A tenfold jump with no other copy change looks like a unit or formatting slip."
+				],
+				"action": "investigate"
+			},
+			"diffPath": ".blazediff/actual/billing.diff.png",
+			"baselinePath": ".blazediff/baselines/billing.png",
+			"actualPath": ".blazediff/actual/billing.png",
+			"message": "789 pixels differ (0.077%)"
+		},
+		{
+			"id": "home",
+			"url": "/",
+			"status": "fail",
+			"diffCount": 108,
+			"diffPercentage": 0.010546875,
+			"severity": "low",
+			"regions": [
+				{
+					"bbox": {
+						"height": 12,
+						"width": 12,
+						"x": 408,
+						"y": 173
+					},
+					"pixelCount": 60,
+					"percentage": 0.005859375,
+					"changeType": "addition",
+					"confidence": 1
+				},
+				{
+					"bbox": {
+						"height": 12,
+						"width": 12,
+						"x": 727,
+						"y": 173
+					},
+					"pixelCount": 60,
+					"percentage": 0.005859375,
+					"changeType": "addition",
+					"confidence": 1
+				},
+				{
+					"bbox": {
+						"height": 12,
+						"width": 12,
+						"x": 1027,
+						"y": 173
+					},
+					"pixelCount": 60,
+					"percentage": 0.005859375,
+					"changeType": "addition",
+					"confidence": 1
+				}
+			],
+			"width": 1280,
+			"height": 800,
+			"verdict": {
+				"label": "intentional-likely",
+				"headline": "a small dot now follows each card title",
+				"rationale": [
+					"Three identical indigo dots, one after each card title, same color and same offset from the text.",
+					"Repeated, aligned additions like this are almost always a deliberate design change, and nothing else on the page moved."
+				],
+				"action": "rewrite-if-intended"
+			},
+			"diffPath": ".blazediff/actual/home.diff.png",
+			"baselinePath": ".blazediff/baselines/home.png",
+			"actualPath": ".blazediff/actual/home.png",
+			"message": "108 pixels differ (0.011%)"
+		},
+		{
+			"id": "dashboard",
+			"url": "/dashboard",
+			"status": "fail",
+			"diffCount": 6194,
+			"diffPercentage": 0.6048828125,
+			"severity": "low",
+			"regions": [
+				{
+					"bbox": {
+						"height": 30,
+						"width": 250,
+						"x": 269,
+						"y": 398
+					},
+					"pixelCount": 1670,
+					"percentage": 0.1630859375,
+					"changeType": "content-change",
+					"confidence": 0.5
+				},
+				{
+					"bbox": {
+						"height": 30,
+						"width": 241,
+						"x": 270,
+						"y": 488
+					},
+					"pixelCount": 1624,
+					"percentage": 0.15859375,
+					"changeType": "content-change",
+					"confidence": 0.5
+				},
+				{
+					"bbox": {
+						"height": 70,
+						"width": 117,
+						"x": 521,
+						"y": 183
+					},
+					"pixelCount": 1297,
+					"percentage": 0.12666015625,
+					"changeType": "content-change",
+					"confidence": 0.5
+				},
+				{
+					"bbox": {
+						"height": 30,
+						"width": 187,
+						"x": 269,
+						"y": 443
+					},
+					"pixelCount": 1167,
+					"percentage": 0.11396484375,
+					"changeType": "content-change",
+					"confidence": 0.5
+				},
+				{
+					"bbox": {
+						"height": 30,
+						"width": 180,
+						"x": 269,
+						"y": 353
+					},
+					"pixelCount": 1155,
+					"percentage": 0.11279296875,
+					"changeType": "content-change",
+					"confidence": 0.5
+				},
+				{
+					"bbox": {
+						"height": 36,
+						"width": 148,
+						"x": 253,
+						"y": 301
+					},
+					"pixelCount": 1116,
+					"percentage": 0.108984375,
+					"changeType": "content-change",
+					"confidence": 0.5
+				},
+				{
+					"bbox": {
+						"height": 69,
+						"width": 99,
+						"x": 1017,
+						"y": 184
+					},
+					"pixelCount": 1007,
+					"percentage": 0.09833984375,
+					"changeType": "content-change",
+					"confidence": 0.5
+				},
+				{
+					"bbox": {
+						"height": 69,
+						"width": 86,
+						"x": 273,
+						"y": 184
+					},
+					"pixelCount": 939,
+					"percentage": 0.09169921875,
+					"changeType": "content-change",
+					"confidence": 0.5
+				},
+				{
+					"bbox": {
+						"height": 69,
+						"width": 64,
+						"x": 769,
+						"y": 184
+					},
+					"pixelCount": 612,
+					"percentage": 0.059765625,
+					"changeType": "content-change",
+					"confidence": 0.5
+				},
+				{
+					"bbox": {
+						"height": 22,
+						"width": 62,
+						"x": 1173,
+						"y": 491
+					},
+					"pixelCount": 249,
+					"percentage": 0.02431640625,
+					"changeType": "content-change",
+					"confidence": 0.5
+				},
+				{
+					"bbox": {
+						"height": 22,
+						"width": 60,
+						"x": 1175,
+						"y": 356
+					},
+					"pixelCount": 221,
+					"percentage": 0.02158203125,
+					"changeType": "content-change",
+					"confidence": 0.5
+				},
+				{
+					"bbox": {
+						"height": 22,
+						"width": 52,
+						"x": 1180,
+						"y": 401
+					},
+					"pixelCount": 192,
+					"percentage": 0.01875,
+					"changeType": "content-change",
+					"confidence": 0.5
+				},
+				{
+					"bbox": {
+						"height": 22,
+						"width": 56,
+						"x": 1178,
+						"y": 446
+					},
+					"pixelCount": 191,
+					"percentage": 0.01865234375,
+					"changeType": "content-change",
+					"confidence": 0.5
+				}
+			],
+			"width": 1280,
+			"height": 800,
+			"verdict": {
+				"label": "ambiguous",
+				"headline": "stat values and everything below sit about 4px lower",
+				"rationale": [
+					"Every stat value, its delta and the whole activity list moved down by the same few pixels, while the stat labels above them stayed put.",
+					"That points to a spacing change inside the stat cards, not new content. It still reads fine, but nothing in the run says whether the extra space was meant."
+				],
+				"action": "investigate"
+			},
+			"diffPath": ".blazediff/actual/dashboard.diff.png",
+			"baselinePath": ".blazediff/baselines/dashboard.png",
+			"actualPath": ".blazediff/actual/dashboard.png",
+			"message": "6194 pixels differ (0.605%)"
+		}
+	]
+}
