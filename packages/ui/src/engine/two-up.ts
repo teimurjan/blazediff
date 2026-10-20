@@ -75,7 +75,25 @@ export function createTwoUpEngine(config: TwoUpConfig): TwoUpEngine {
 			current = { ...current, ...next };
 			if (changed) run();
 		},
-		actions: {},
+		actions: {
+			hover({ image, ratioX, ratioY, clientX, clientY }) {
+				const state = store.get();
+				const dims = image === 1 ? state.dims1 : state.dims2;
+				if (destroyed || state.status !== "ready" || !dims) return;
+				store.set({
+					...state,
+					zoom: {
+						point: { x: ratioX * dims.width, y: ratioY * dims.height },
+						anchor: { x: clientX, y: clientY },
+					},
+				});
+			},
+			leave() {
+				const state = store.get();
+				if (destroyed || !state.zoom) return;
+				store.set({ ...state, zoom: undefined });
+			},
+		},
 		destroy() {
 			destroyed = true;
 			generation++;

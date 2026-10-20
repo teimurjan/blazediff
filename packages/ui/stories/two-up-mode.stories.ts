@@ -29,3 +29,21 @@ export const DifferentSizes: Story = {
 		src2: FIXTURE_2_A,
 	},
 };
+
+export const Zoom: Story = {
+	args: {
+		src1: FIXTURE_1_A,
+		src2: FIXTURE_1_B,
+	},
+	render: (args) => {
+		const element = document.createElement("div");
+		mountTwoUp(element, {
+			src1: args.src1,
+			src2: args.src2,
+			zoom: 3,
+			zoomClassName: "gap-1 rounded-lg bg-white p-1 shadow-lg",
+			zoomPanelClassName: "rounded border border-gray-200",
+		});
+		return element;
+	},
+};

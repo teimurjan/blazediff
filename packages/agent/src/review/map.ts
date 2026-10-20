@@ -85,5 +85,8 @@ export function toReviewPayload(
 			passed: report.passed,
 		},
 		entries,
+		unchanged: report.results
+			.filter((r) => r.status === "pass" && !r.review)
+			.map((r) => r.id),
 	};
 }

@@ -168,6 +168,28 @@ export default function AgentPage() {
 			</Section>
 
 			<Section
+				title="REVIEW"
+				intro="Run blazediff-agent review and your diffs open as a page that reads like a note. Below is a real run: three changes planted in our auth example, judged by the agent. Approve, flag bugs, switch views. Nothing you click is saved."
+			>
+				<TerminalFrame title="127.0.0.1:4321 · blazediff-agent review">
+					<iframe
+						src="/review-demo/index.html"
+						title="blazediff-agent review demo"
+						loading="lazy"
+						className="block h-[760px] w-full border-0 bg-white"
+					/>
+				</TerminalFrame>
+				<a
+					href="/review-demo/index.html"
+					target="_blank"
+					rel="noopener noreferrer"
+					className="mt-4 inline-block font-mono text-[13px] uppercase text-muted transition-colors hover:text-accent"
+				>
+					Open full screen
+				</a>
+			</Section>
+
+			<Section
 				title="REPORT OUTPUT"
 				intro="Every check writes a 5-column Markdown report with baseline, actual, and diff thumbnails per route. The sample below is from a real run on this website."
 			>

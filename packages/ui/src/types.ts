@@ -55,6 +55,12 @@ export interface TwoUpMountOptions {
 	panelClassName?: string;
 	imageClassName?: string;
 	dimensionInfoClassName?: string;
+	/** Magnification for the hover zoom popup; the popup is off when unset. */
+	zoom?: number;
+	/** Side of each square zoom pane in CSS px. Defaults to 160. */
+	zoomSize?: number;
+	zoomClassName?: string;
+	zoomPanelClassName?: string;
 	onImagesLoaded?: (detail: ImagesLoadedDetail) => void;
 	onLoadError?: (error: unknown) => void;
 }

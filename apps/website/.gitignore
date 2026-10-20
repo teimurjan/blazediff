@@ -50,3 +50,5 @@ app/benchmarks/
 public/benchmark-charts/
 # Generated image variants (see scripts/generate-images.mjs)
 public/images/
+# Built review demo (see packages/agent/vite.demo.config.mts)
+public/review-demo/

@@ -59,7 +59,7 @@ Interactive swipe component for comparing two images with a draggable divider.
 
 ### `<TwoUpMode />`
 
-Side-by-side comparison component with dimension information.
+Side-by-side comparison component with dimension information. When `zoom` is set, hovering either image shows a popup with both images magnified at the same pixel.
 
 #### Props
 
@@ -73,6 +73,10 @@ Side-by-side comparison component with dimension information.
 | `panelClassName`          | `string`                                                    | -       | CSS class for each panel          |
 | `imageClassName`          | `string`                                                    | -       | CSS class for images              |
 | `dimensionInfoClassName`  | `string`                                                    | -       | CSS class for dimension info text |
+| `zoom`                    | `number`                                                    | -       | Magnification of the hover zoom popup. The popup is off when unset. |
+| `zoomSize`                | `number`                                                    | `160`   | Side of each square zoom pane in px |
+| `zoomClassName`           | `string`                                                    | -       | CSS class for the zoom popup      |
+| `zoomPanelClassName`      | `string`                                                    | -       | CSS class for each zoom pane      |
 | `onImagesLoaded`          | `(detail: {image1: {width, height}, image2: {width, height}}) => void` | - | Callback when images load |
 | `onLoadError`             | `(error: unknown) => void`                                 | -       | Callback when loading fails       |
 

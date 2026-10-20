@@ -72,7 +72,7 @@ Compare two images with a draggable divider.
 
 ### `mountTwoUp(target, options)`
 
-Two images side by side, with dimension-change detection.
+Two images side by side, with dimension-change detection. When `zoom` is set, hovering either image shows a popup with both images magnified at the same pixel.
 
 | Option                    | Type                                              | Default | Description                       |
 | ------------------------- | ------------------------------------------------- | ------- | --------------------------------- |
@@ -85,6 +85,10 @@ Two images side by side, with dimension-change detection.
 | `panelClassName`          | `string`                                          | -       | Class for each panel              |
 | `imageClassName`          | `string`                                          | -       | Class for images                  |
 | `dimensionInfoClassName`  | `string`                                          | -       | Class for the dimension info text |
+| `zoom`                    | `number`                                          | -       | Magnification of the hover zoom popup. The popup is off when unset. |
+| `zoomSize`                | `number`                                          | `160`   | Side of each square zoom pane in px |
+| `zoomClassName`           | `string`                                          | -       | Class for the zoom popup          |
+| `zoomPanelClassName`      | `string`                                          | -       | Class for each zoom pane          |
 | `onImagesLoaded`          | `(detail) => void`                                | -       | `{ image1, image2 }` dimensions   |
 | `onLoadError`             | `(error: unknown) => void`                        | -       | Called when loading fails         |
 
@@ -155,10 +159,10 @@ engine.destroy();
 | --------------------------------------------- | --------------------------------------------------------------------- | -------------------------------- |
 | `createDifferenceEngine(config)`              | `{ status, diff?: { output, width, height, diffCount, totalPixels, percentage }, error? }` | –        |
 | `createSwipeEngine(initialPosition = 50)`     | `{ position, isDragging }`                                            | `start`, `move`, `end`, `setPosition` |
-| `createTwoUpEngine(config)`                   | `{ status, dims1, dims2, dimensionLabel, changed, error }`            | –                                |
+| `createTwoUpEngine(config)`                   | `{ status, dims1, dims2, dimensionLabel, changed, error, zoom? }`     | `hover`, `leave`                 |
 | `createOnionSkinEngine(config, opacity = 50)` | `{ status, opacity, dims1, dims2, error }`                            | `setOpacity`                     |
 
-Also exported: `formatDimensionLabel`, `normalizedOpacity`, `loadImageElement`, `getImageData`, `createStore`.
+Also exported: `formatDimensionLabel`, `normalizedOpacity`, `loadImageElement`, `getImageData`, `createStore`, and for the two-up zoom `toTwoUpHover`, `zoomPaneStyle` and `placeZoomPopup`. `zoom` holds the hovered `point` in natural image pixels and the pointer `anchor` in client pixels.
 
 The engine uses browser APIs (`Image`, a throwaway `<canvas>` for pixel extraction) but never touches the surface you render to — that boundary is what keeps it framework-agnostic.
 

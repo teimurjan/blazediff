@@ -1,6 +1,6 @@
 import { defineConfig } from "vitest/config";
 
-// Dedicated config so vitest doesn't inherit vite.config.ts (which sets `root`
+// Dedicated config so vitest doesn't inherit vite.config.mts (which sets `root`
 // to the review client for the SPA build).
 //
 // NO_COLOR pins picocolors off in the test process. `pnpm -r test` runs with

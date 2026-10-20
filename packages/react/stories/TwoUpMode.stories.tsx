@@ -45,3 +45,13 @@ export const WithEventHandlers: Story = {
 		},
 	},
 };
+
+export const Zoom: Story = {
+	args: {
+		src1: FIXTURE_1_A,
+		src2: FIXTURE_1_B,
+		zoom: 3,
+		zoomClassName: "gap-1 rounded-lg bg-white p-1 shadow-lg",
+		zoomPanelClassName: "rounded border border-gray-200",
+	},
+};

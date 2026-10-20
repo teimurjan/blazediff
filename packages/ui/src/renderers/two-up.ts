@@ -1,6 +1,12 @@
 import { bindImageSource } from "../engine/image";
 import { createTwoUpEngine } from "../engine/two-up";
-import type { Status } from "../engine/types";
+import type { Status, TwoUpState } from "../engine/types";
+import {
+	DEFAULT_ZOOM_SIZE,
+	placeZoomPopup,
+	toTwoUpHover,
+	zoomPaneStyle,
+} from "../engine/zoom";
 import type { MountHandle, TwoUpMountOptions } from "../types";
 import { applyClassName, createElement } from "./dom";
 
@@ -51,10 +57,70 @@ export function mountTwoUp(
 		crossOrigin: opts.crossOrigin,
 	});
 
+	// Structural: a fixed, click-through overlay so it never steals the hover.
+	const zoomPopup = createElement("div", {
+		className: opts.zoomClassName,
+		style: {
+			position: "fixed",
+			pointerEvents: "none",
+			zIndex: "1000",
+			display: "none",
+		},
+	});
+	const zoomPane1 = createElement("div", {
+		className: opts.zoomPanelClassName,
+	});
+	const zoomPane2 = createElement("div", {
+		className: opts.zoomPanelClassName,
+	});
+	zoomPopup.append(zoomPane1, zoomPane2);
+	document.body.appendChild(zoomPopup);
+
+	const hoverListener = (image: 1 | 2, element: HTMLImageElement) => {
+		return (event: PointerEvent) => {
+			if (!opts.zoom) return;
+			const hover = toTwoUpHover(image, event, element.getBoundingClientRect());
+			if (hover) engine.actions.hover(hover);
+		};
+	};
+	const onHover1 = hoverListener(1, img1);
+	const onHover2 = hoverListener(2, img2);
+	const onLeave = () => engine.actions.leave();
+	img1.addEventListener("pointermove", onHover1);
+	img2.addEventListener("pointermove", onHover2);
+	img1.addEventListener("pointerleave", onLeave);
+	img2.addEventListener("pointerleave", onLeave);
+
+	function renderZoom(state: TwoUpState) {
+		const { zoom, dims1, dims2 } = state;
+		if (!opts.zoom || !zoom || !dims1 || !dims2) {
+			zoomPopup.style.display = "none";
+			return;
+		}
+		const size = opts.zoomSize ?? DEFAULT_ZOOM_SIZE;
+		Object.assign(
+			zoomPane1.style,
+			zoomPaneStyle(img1.currentSrc, dims1, zoom.point, opts.zoom, size),
+		);
+		Object.assign(
+			zoomPane2.style,
+			zoomPaneStyle(img2.currentSrc, dims2, zoom.point, opts.zoom, size),
+		);
+		zoomPopup.style.display = "flex";
+		const position = placeZoomPopup(
+			zoom.anchor,
+			{ width: zoomPopup.offsetWidth, height: zoomPopup.offsetHeight },
+			{ width: window.innerWidth, height: window.innerHeight },
+		);
+		zoomPopup.style.left = `${position.x}px`;
+		zoomPopup.style.top = `${position.y}px`;
+	}
+
 	let lastStatus: Status | null = null;
 
 	const unsubscribe = engine.subscribe(() => {
 		const state = engine.getState();
+		renderZoom(state);
 
 		if (state.status === "ready" && state.dimensionLabel !== undefined) {
 			dimensionInfo.textContent = state.dimensionLabel;
@@ -81,6 +147,9 @@ export function mountTwoUp(
 			applyClassName(img1, opts.imageClassName);
 			applyClassName(img2, opts.imageClassName);
 			applyClassName(dimensionInfo, opts.dimensionInfoClassName);
+			applyClassName(zoomPopup, opts.zoomClassName);
+			applyClassName(zoomPane1, opts.zoomPanelClassName);
+			applyClassName(zoomPane2, opts.zoomPanelClassName);
 			image1Source.update(opts.src1);
 			image2Source.update(opts.src2);
 			engine.setConfig({
@@ -88,9 +157,15 @@ export function mountTwoUp(
 				src2: opts.src2,
 				crossOrigin: opts.crossOrigin,
 			});
+			renderZoom(engine.getState());
 		},
 		destroy() {
 			unsubscribe();
+			img1.removeEventListener("pointermove", onHover1);
+			img2.removeEventListener("pointermove", onHover2);
+			img1.removeEventListener("pointerleave", onLeave);
+			img2.removeEventListener("pointerleave", onLeave);
+			zoomPopup.remove();
 			engine.destroy();
 			image1Source.destroy();
 			image2Source.destroy();

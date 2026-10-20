@@ -45,6 +45,7 @@ import { DifferenceMode, SwipeMode, TwoUpMode, OnionSkinMode } from '@blazediff/
 <TwoUpMode
   src1="image1.png"
   src2="image2.png"
+  zoom={3}
   onImagesLoaded={(detail) => console.log('Loaded:', detail)}
 />
 
@@ -86,11 +87,14 @@ Interactive slider to compare two images.
 
 ### TwoUpMode
 
-Side-by-side image comparison with dimension change detection.
+Side-by-side image comparison with dimension change detection and an optional hover zoom.
 
 **Props:**
 - `src1` (`string | Uint8Array`): URL or encoded bytes for the first image
 - `src2` (`string | Uint8Array`): URL or encoded bytes for the second image
+- `zoom` (number): Magnification of the hover zoom popup. When you hover either image, the popup shows both images magnified at the same pixel. The popup is off when `zoom` is unset.
+- `zoomSize` (number): Side of each square zoom pane in px (default: 160)
+- `zoomClassName` / `zoomPanelClassName` (string): Classes for the popup and its two panes
 - `onImagesLoaded` (function): Callback when images are loaded
 - `onLoadError` (function): Callback when loading fails
 

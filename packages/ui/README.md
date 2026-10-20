@@ -92,7 +92,9 @@ mountTwoUp(document.getElementById("app")!, {
 });
 ```
 
-**Options:** `src1`, `src2`, `crossOrigin` (`"anonymous"`), `className`, `containerClassName`, `containerInnerClassName`, `panelClassName`, `imageClassName`, `dimensionInfoClassName`, `onImagesLoaded({ image1, image2 })`, `onLoadError(error)`.
+**Options:** `src1`, `src2`, `crossOrigin` (`"anonymous"`), `className`, `containerClassName`, `containerInnerClassName`, `panelClassName`, `imageClassName`, `dimensionInfoClassName`, `zoom`, `zoomSize` (`160`), `zoomClassName`, `zoomPanelClassName`, `onImagesLoaded({ image1, image2 })`, `onLoadError(error)`.
+
+Set `zoom` to a magnification (for example `3`) to turn on the hover zoom. When you hover either image, a popup shows both images magnified at the same pixel, side by side. Each pane is a `zoomSize` px square. The popup follows the pointer and flips at the viewport edges.
 
 ### Onion Skin Mode
 
@@ -161,9 +163,9 @@ Factories and helpers:
 
 - `createDifferenceEngine(config)` — state `{ status, diff?: { output, width, height, diffCount, totalPixels, percentage }, error? }`. Computes the diff buffer; you paint it.
 - `createSwipeEngine(initialPosition = 50)` — state `{ position, isDragging }`; actions `start`/`move`/`end`/`setPosition` (positions are 0–100 percentages).
-- `createTwoUpEngine(config)` — state `{ status, dims1, dims2, dimensionLabel, changed, error }`.
+- `createTwoUpEngine(config)` — state `{ status, dims1, dims2, dimensionLabel, changed, error, zoom? }`; actions `hover({ image, ratioX, ratioY, clientX, clientY })`/`leave`. `zoom` holds the hovered `point` in natural image pixels and the pointer `anchor` in client pixels.
 - `createOnionSkinEngine(config, initialOpacity = 50)` — state `{ status, opacity, dims1, dims2, error }`; action `setOpacity`.
-- Helpers: `formatDimensionLabel`, `normalizedOpacity`, `loadImageElement`, `getImageData`, `createStore`.
+- Helpers: `formatDimensionLabel`, `normalizedOpacity`, `loadImageElement`, `getImageData`, `createStore`, and for the two-up zoom `toTwoUpHover` (pointer to hover input), `zoomPaneStyle` (pane background style) and `placeZoomPopup` (viewport-aware popup position).
 
 The engine uses browser APIs (`Image`, a throwaway `<canvas>` for pixel extraction) but never touches the surface you render to — that boundary is what keeps it framework-agnostic.
 

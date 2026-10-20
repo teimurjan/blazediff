@@ -52,9 +52,11 @@ npm install @blazediff/react
     import { TwoUpMode } from "@blazediff/react";
 
     // Side by side, with a label when the two images differ in size.
+    // zoom={3} shows both images magnified under the pointer.
     <TwoUpMode
       src1="before.png"
       src2="after.png"
+      zoom={3}
       onImagesLoaded={({ image1, image2 }) => console.log(image1, image2)}
     />
     ```

@@ -53,6 +53,8 @@ export interface ReviewRunMeta {
 export interface ReviewPayload {
 	meta: ReviewRunMeta;
 	entries: ReviewEntry[];
+	/** Ids of entries that passed with no change. */
+	unchanged: string[];
 }
 
 /** Response from approve/reject endpoints. */

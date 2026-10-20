@@ -7,6 +7,11 @@ export interface Dimensions {
 	height: number;
 }
 
+export interface Point {
+	x: number;
+	y: number;
+}
+
 /**
  * Shared shape every mode controller implements. The engine owns all state,
  * calculations, and async work; it never touches the display surface.
@@ -78,6 +83,13 @@ export type SwipeEngine = Engine<
 
 // --- TwoUp ---
 
+export interface TwoUpZoom {
+	/** Hovered point in natural image pixels, shared by both images (top-left aligned). */
+	point: Point;
+	/** Pointer position in client pixels, for placing the popup. */
+	anchor: Point;
+}
+
 export interface TwoUpState {
 	status: Status;
 	dims1?: Dimensions;
@@ -85,6 +97,7 @@ export interface TwoUpState {
 	dimensionLabel?: string;
 	changed?: boolean;
 	error?: unknown;
+	zoom?: TwoUpZoom;
 }
 
 export interface TwoUpConfig {
@@ -93,11 +106,22 @@ export interface TwoUpConfig {
 	crossOrigin?: string | null;
 }
 
-export type TwoUpEngine = Engine<
-	TwoUpState,
-	TwoUpConfig,
-	Record<string, never>
->;
+export interface TwoUpHover {
+	image: 1 | 2;
+	/** Pointer position within the hovered image, 0–1 on each axis. */
+	ratioX: number;
+	ratioY: number;
+	clientX: number;
+	clientY: number;
+}
+
+export interface TwoUpActions {
+	/** No-op until both images are loaded. */
+	hover(input: TwoUpHover): void;
+	leave(): void;
+}
+
+export type TwoUpEngine = Engine<TwoUpState, TwoUpConfig, TwoUpActions>;
 
 // --- OnionSkin ---
 

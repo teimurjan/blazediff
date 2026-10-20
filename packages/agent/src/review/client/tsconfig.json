@@ -11,5 +11,5 @@
 		"esModuleInterop": true,
 		"types": ["vite/client"]
 	},
-	"include": ["."]
+	"include": [".", "../demo"]
 }

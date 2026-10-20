@@ -4,9 +4,9 @@
 	"private": true,
 	"scripts": {
 		"typecheck": "tsc --noEmit",
-		"predev": "node scripts/generate-images.mjs && node scripts/generate-benchmarks.mjs",
+		"predev": "node scripts/generate-images.mjs && node scripts/generate-benchmarks.mjs && pnpm --filter @blazediff/agent build:review-demo",
 		"dev": "next dev --turbopack --port 4000",
-		"prebuild": "node scripts/generate-interpret-data.mjs && node scripts/generate-llms-txt.mjs && node scripts/generate-benchmarks.mjs && node scripts/generate-images.mjs",
+		"prebuild": "node scripts/generate-interpret-data.mjs && node scripts/generate-llms-txt.mjs && node scripts/generate-benchmarks.mjs && node scripts/generate-images.mjs && pnpm --filter @blazediff/agent build:review-demo",
 		"generate:launch-hero": "node scripts/generate-launch-hero.mjs",
 		"generate:launch-problem": "node scripts/generate-launch-problem.mjs",
 		"generate:launch-verdict": "node scripts/generate-launch-verdict.mjs",

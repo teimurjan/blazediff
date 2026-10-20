@@ -27,11 +27,21 @@ export type {
 	OnionSkinConfig,
 	OnionSkinEngine,
 	OnionSkinState,
+	Point,
 	Status,
 	SwipeActions,
 	SwipeEngine,
 	SwipeState,
+	TwoUpActions,
 	TwoUpConfig,
 	TwoUpEngine,
+	TwoUpHover,
 	TwoUpState,
+	TwoUpZoom,
 } from "./types";
+export {
+	DEFAULT_ZOOM_SIZE,
+	placeZoomPopup,
+	toTwoUpHover,
+	zoomPaneStyle,
+} from "./zoom";
