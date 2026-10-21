@@ -68,10 +68,11 @@ describe("Performance", () => {
 			const pngBuffer = readFileSync(join(FIXTURES_PATH, "pixelmatch/1a.png"));
 			const testContext = createTestContext("perf-comparison-small");
 
-			// First run to create baseline
+			// First run creates the baseline, second spawns the worker outside the timed window
+			await getOrCreateSnapshot(pngBuffer, { method: "core" }, testContext);
 			await getOrCreateSnapshot(pngBuffer, { method: "core" }, testContext);
 
-			// Second run measures comparison
+			// Third run measures comparison
 			const start = performance.now();
 			const result = await getOrCreateSnapshot(
 				pngBuffer,
