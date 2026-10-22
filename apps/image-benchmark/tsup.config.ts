@@ -14,5 +14,6 @@ export default defineConfig({
 		"@blazediff/core-native",
 		"@blazediff/core-wasm",
 		"@blazediff/ssim-native",
+		"@vizzly-testing/honeydiff",
 	],
 });

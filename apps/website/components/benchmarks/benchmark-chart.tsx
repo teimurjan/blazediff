@@ -1,33 +1,31 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useInView } from "../../hooks/use-in-view";
+import { type BenchmarkUnit, formatValue } from "./format";
 
 interface BenchmarkBar {
 	label: string;
-	ms: number;
+	value: number;
 	highlight?: boolean;
 }
 
-interface BenchmarkGroup {
+export interface BenchmarkGroup {
+	id: string;
 	title: string;
 	subtitle: string;
+	unit: BenchmarkUnit;
 	bars: BenchmarkBar[];
 }
 
 interface BenchmarkChartProps {
 	groups: BenchmarkGroup[];
-	footnote?: string;
-}
-
-function formatMs(ms: number) {
-	if (ms >= 1000) return `${(ms / 1000).toFixed(2)}s`;
-	if (ms >= 100) return `${Math.round(ms)}ms`;
-	return `${ms.toFixed(2)}ms`;
+	footnote?: ReactNode;
 }
 
 function BenchmarkGroupCard({ group }: { group: BenchmarkGroup }) {
 	const [ref, isInView] = useInView(0.25);
-	const max = Math.max(...group.bars.map((b) => b.ms));
+	const max = Math.max(...group.bars.map((b) => b.value));
 
 	return (
 		<div
@@ -44,7 +42,7 @@ function BenchmarkGroupCard({ group }: { group: BenchmarkGroup }) {
 			</div>
 			<div className="flex flex-col gap-3">
 				{group.bars.map((bar, i) => {
-					const widthPct = Math.max(2, (bar.ms / max) * 100);
+					const widthPct = Math.max(2, (bar.value / max) * 100);
 					return (
 						<div key={bar.label} className="flex flex-col gap-1">
 							<div className="flex items-baseline justify-between font-mono text-[12px] uppercase">
@@ -52,7 +50,7 @@ function BenchmarkGroupCard({ group }: { group: BenchmarkGroup }) {
 									{bar.label}
 								</span>
 								<span className={bar.highlight ? "text-accent" : "text-muted"}>
-									{formatMs(bar.ms)}
+									{formatValue(bar.value, group.unit)}
 								</span>
 							</div>
 							<div className="h-3 w-full bg-canvas border border-line relative overflow-hidden">
@@ -81,12 +79,12 @@ export default function BenchmarkChart({
 	return (
 		<div className="flex flex-col gap-10">
 			{groups.map((group) => (
-				<BenchmarkGroupCard key={group.title} group={group} />
+				<BenchmarkGroupCard key={group.id} group={group} />
 			))}
 			{footnote && (
-				<p className="font-sans text-[13px] text-muted leading-relaxed">
+				<div className="font-sans text-[13px] text-muted leading-relaxed">
 					{footnote}
-				</p>
+				</div>
 			)}
 		</div>
 	);

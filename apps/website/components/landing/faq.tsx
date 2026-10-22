@@ -1,3 +1,4 @@
+import { claim, prose, SPEED_CLAIMS } from "../benchmarks/teaser";
 import Section from "./section";
 
 export interface FaqItem {
@@ -18,8 +19,19 @@ export const FAQ_ITEMS: FaqItem[] = [
 	},
 	{
 		question: "How is BlazeDiff different from pixelmatch and odiff?",
-		answer:
-			"BlazeDiff is faster at identical accuracy. On a 4K pair with IO excluded (M1 Max, 50 runs), pixelmatch takes 302.29ms and @blazediff/core takes 211.92ms; the WebAssembly core runs the same pair in 34.42ms. With IO included, odiff takes 1265.82ms against 275.42ms for the native Rust binary. BlazeDiff also adds SSIM and GMSD metrics plus agent-based judgment of ambiguous diffs, which neither library provides.",
+		answer: prose(
+			"BlazeDiff matches their accuracy and is built for speed.",
+			claim(
+				"Across the repo's benchmark fixtures with image IO excluded, @blazediff/core is",
+				SPEED_CLAIMS.core,
+			),
+			claim("The WebAssembly core is", SPEED_CLAIMS.wasm),
+			claim(
+				"With image IO included, the native Rust binary is",
+				SPEED_CLAIMS.native,
+			),
+			"BlazeDiff also adds SSIM and GMSD metrics plus agent-based judgment of ambiguous diffs, which neither library provides.",
+		),
 	},
 	{
 		question: "Do I need an API key or a paid plan?",
@@ -38,8 +50,11 @@ export const FAQ_ITEMS: FaqItem[] = [
 	},
 	{
 		question: "Can BlazeDiff run in the browser?",
-		answer:
-			"Yes. @blazediff/core-wasm is a roughly 32 KB WebAssembly build using v128 SIMD that runs the same Rust algorithm as the native binary, up to about 9x faster than pixelmatch on 4K images. It works in browsers, edge runtimes, and any WebAssembly host.",
+		answer: prose(
+			"Yes. @blazediff/core-wasm is a roughly 32 KB WebAssembly build using v128 SIMD that runs the same Rust algorithm as the native binary.",
+			claim("Across the benchmark fixtures it runs", SPEED_CLAIMS.wasm),
+			"It works in browsers, edge runtimes, and any WebAssembly host.",
+		),
 	},
 	{
 		question: "Is BlazeDiff free to use commercially?",

@@ -4,11 +4,12 @@ Performance benchmarks comparing BlazeDiff against popular alternatives across i
 
 ## Benchmark Targets
 
-- **[Pixel By Pixel](./benchmarks/pixel-by-pixel.md)** - `@blazediff/core` (JS), `@blazediff/core-wasm`, `@blazediff/core-native`, and the `blazediff` PyPI bindings, compared against `pixelmatch`, `odiff`, and `opencv-python`.
-- **[Structural Similarity](./benchmarks/structural.md)** - `@blazediff/ssim` (fast/original + hitchhikers) and `@blazediff/ssim-native` compared against `ssim.js` (fast + weber).
+- **[Pixel By Pixel](./benchmarks/pixel-by-pixel.md)** - `@blazediff/core` (JS), `@blazediff/core-wasm`, `@blazediff/core-native`, and the `blazediff` PyPI bindings, compared against `pixelmatch`, `odiff`, `honeydiff`, and `opencv-python`.
+- **[Structural Similarity](./benchmarks/structural.md)** - `@blazediff/ssim` (fast/original + hitchhikers) and `@blazediff/ssim-native` compared against `ssim.js` (fast + weber). The Rust SSIM family is also timed against `dssim` (website only).
 - **[Object Diffing](./benchmarks/object.md)** - `@blazediff/object` compared against `microdiff`.
+- **[PNG Codec](./benchmarks/png-codec.md)** - `blazediff-png` compared against `spng`, image-rs `png`, and `zune-png`.
 
-Each target file embeds a summary chart of % improvement over the competitor (orange = BlazeDiff faster, magenta = regression).
+The raw results, with machine, toolchain and commit, are committed as JSON in [`benchmarks/results/`](./benchmarks/results). The [website benchmarks page](https://blazediff.dev/benchmarks) renders them as charts. To regenerate a result, see [`scripts/bench/README.md`](./scripts/bench/README.md).
 
 ## Test Fixtures
 

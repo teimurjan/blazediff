@@ -32,12 +32,24 @@ jobs:
       - name: Build
         run: pnpm build
 
-      - name: Run Benchmark (@blazediff/ssim)
-        run: pnpm benchmark:hitchhikers-ssim -- --format=json --output=ssim.json
+      # The checkout holds the committed results; drop them so a failed run
+      # cannot upload a stale copy.
+      - name: Remove committed benchmark results
+        run: rm -f benchmarks/results/ssim.json benchmarks/results/hitchhikers-ssim.json
 
-      - name: Run Benchmark (ssim.js)
-        run: pnpm benchmark:weber-ssim.js -- --format=json --output=ssim-js.json
+      - name: Run Benchmark (ssim vs ssim.js fast)
+        run: pnpm benchmark ssim --skip-md
 
-      - name: Compare and Print Combined Markdown Table (algorithm)
+      - name: Run Benchmark (hitchhikers-ssim vs ssim.js weber)
         if: always()
-        run: node .github/workflows/scripts/compare-and-print-ssim.js
+        run: pnpm benchmark hitchhikers-ssim --skip-md
+
+      - name: Upload benchmark artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results-ssim
+          path: |
+            benchmarks/results/ssim.json
+            benchmarks/results/hitchhikers-ssim.json
+          if-no-files-found: warn

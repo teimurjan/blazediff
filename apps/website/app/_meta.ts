@@ -44,6 +44,12 @@ export default {
 	benchmarks: {
 		title: "Benchmarks",
 		type: "page",
+		display: "hidden",
+		theme: {
+			toc: false,
+			copyPage: false,
+			layout: "full",
+		},
 	},
 	llms: {
 		title: "LLMs",

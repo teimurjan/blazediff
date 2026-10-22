@@ -6,7 +6,7 @@ import { SITE_URL } from "../utils/site";
 const APP_DIR = path.join(process.cwd(), "app");
 
 /** Index routes that only call `redirect()`; a sitemap must list destinations. */
-const REDIRECT_ONLY = new Set(["/apis", "/benchmarks", "/guides"]);
+const REDIRECT_ONLY = new Set(["/apis", "/guides"]);
 
 function hasPage(dir: string) {
 	return (
@@ -29,8 +29,7 @@ function collectRoutes(dir: string, base = ""): string[] {
 		});
 }
 
-// Read from disk rather than a hardcoded list so generated pages (app/benchmarks
-// is written by scripts/generate-benchmarks.mjs on prebuild) stay covered.
+// Read from disk rather than a hardcoded list so new pages stay covered.
 export const dynamic = "force-static";
 
 export default function sitemap(): MetadataRoute.Sitemap {

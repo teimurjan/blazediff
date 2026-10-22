@@ -126,22 +126,18 @@ jobs:
             console.log("wasm module OK");
           '
 
-      - name: Run Benchmark (@blazediff/core-wasm)
-        run: pnpm benchmark:core-wasm -- --format=json --output=blazediff-wasm.json
+      # The checkout holds the committed results; drop them so a failed run
+      # cannot upload a stale copy.
+      - name: Remove committed benchmark results
+        run: rm -f benchmarks/results/core-wasm.json
 
-      - name: Run Benchmark (pixelmatch)
-        run: pnpm benchmark:pixelmatch -- --format=json --output=pixelmatch.json
+      - name: Run Benchmark (@blazediff/core-wasm vs pixelmatch)
+        run: pnpm benchmark core-wasm --skip-md
 
-      - name: Compare and Print Combined Markdown Table
+      - name: Upload benchmark artifacts
         if: always()
-        shell: bash
-        run: |
-          # See the binary benchmark: skip rather than ENOENT when an earlier
-          # step failed, so the real error stays the visible one.
-          for f in blazediff-wasm.json pixelmatch.json; do
-            if [ ! -s "apps/image-benchmark/$f" ]; then
-              echo "::warning::apps/image-benchmark/$f missing - skipping comparison (an earlier step failed)"
-              exit 0
-            fi
-          done
-          node .github/workflows/scripts/compare-and-print-core-wasm.js
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results-wasm-${{ github.event.inputs.platform }}
+          path: benchmarks/results/core-wasm.json
+          if-no-files-found: warn

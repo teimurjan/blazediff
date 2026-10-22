@@ -1,5 +1,12 @@
 import Link from "next/link";
-import BenchmarkChart from "../components/landing/benchmark-chart";
+import BenchmarkChart from "../components/benchmarks/benchmark-chart";
+import {
+	claim,
+	prose,
+	SPEED_CLAIMS,
+	teaserGroups,
+	teaserMachine,
+} from "../components/benchmarks/teaser";
 import CtaLink from "../components/landing/cta-link";
 import LandingFaq from "../components/landing/faq";
 import Hero from "../components/landing/hero";
@@ -43,29 +50,39 @@ const PACKAGES: {
 	{
 		name: "@blazediff/core",
 		href: "/apis/core",
-		blurb:
-			"Pure-JS pixel diff with two-pass block optimization. ~1.5x faster than pixelmatch with identical accuracy.",
+		blurb: prose(
+			"Pure-JS pixel diff with two-pass block optimization.",
+			claim("Identical accuracy,", SPEED_CLAIMS.core),
+		),
 		tier: "foundation",
 	},
 	{
 		name: "@blazediff/core-native",
 		href: "/apis/core-native",
-		blurb:
-			"SIMD-accelerated Rust binary. ~4.6x faster than odiff on 4K, up to 8x faster than pixelmatch.",
+		blurb: prose(
+			"SIMD-accelerated Rust binary.",
+			claim("With image IO included,", SPEED_CLAIMS.native),
+		),
 		tier: "foundation",
 	},
 	{
 		name: "@blazediff/core-wasm",
 		href: "/apis/core-wasm",
-		blurb:
-			"Same Rust algorithm, wasm32 v128 SIMD. Up to ~9x faster than pixelmatch on 4K. Browser, edge, any wasm host.",
+		blurb: prose(
+			"Same Rust algorithm, wasm32 v128 SIMD.",
+			claim("Runs", SPEED_CLAIMS.wasm),
+			"Browser, edge, any wasm host.",
+		),
 		tier: "foundation",
 	},
 	{
 		name: "@blazediff/ssim",
 		href: "/apis/ssim",
-		blurb:
-			"SSIM (Structural Similarity Index) for CI visual testing. ~25% faster than ssim.js; Hitchhiker variant ~70% faster.",
+		blurb: prose(
+			"SSIM (Structural Similarity Index) for CI visual testing.",
+			claim("Runs", SPEED_CLAIMS.ssim),
+			claim("Hitchhiker variant", SPEED_CLAIMS.hitchhikers),
+		),
 		tier: "metrics",
 	},
 	{
@@ -78,8 +95,10 @@ const PACKAGES: {
 	{
 		name: "@blazediff/object",
 		href: "/apis/object",
-		blurb:
-			"Object comparison with path tracking, cycle detection, and CREATE/REMOVE/CHANGE types. ~55% faster than microdiff.",
+		blurb: prose(
+			"Object comparison with path tracking, cycle detection, and CREATE/REMOVE/CHANGE types.",
+			claim("Runs", SPEED_CLAIMS.object),
+		),
 		tier: "metrics",
 	},
 	{
@@ -187,7 +206,13 @@ const FEATURES = [
 	{
 		num: "01",
 		title: "FAST, DETERMINISTIC PIXEL DIFF",
-		body: "Pure-JS core ~1.5x faster than pixelmatch. Rust binary ~4.6x faster than odiff on 4K, up to 8x vs pixelmatch. Wasm build (~32 KB, v128 SIMD) up to ~9x faster than pixelmatch on 4K in the browser. Reproducible on any machine.",
+		body: prose(
+			"Pure-JS, Rust and WebAssembly cores share one algorithm.",
+			claim("Pure-JS core", SPEED_CLAIMS.core),
+			claim("Rust binary", SPEED_CLAIMS.native),
+			claim("Wasm build (~32 KB, v128 SIMD)", SPEED_CLAIMS.wasm),
+			"Reproducible on any machine.",
+		),
 		illustration: "/home-fast.png",
 	},
 	{
@@ -204,37 +229,7 @@ const FEATURES = [
 	},
 ] satisfies NumberedCardProps[];
 
-const BENCHMARK_GROUPS = [
-	{
-		title: "JS CORE VS PIXELMATCH VS WASM CORE",
-		subtitle: "4K · IO EXCLUDED · 50 RUNS",
-		bars: [
-			{ label: "pixelmatch", ms: 302.29 },
-			{
-				label: "@blazediff/core",
-				ms: 211.92,
-				highlight: true,
-			},
-			{
-				label: "@blazediff/core-wasm",
-				ms: 34.42,
-				highlight: true,
-			},
-		],
-	},
-	{
-		title: "NATIVE BINARY VS ODIFF",
-		subtitle: "4K · IO INCLUDED · 25 RUNS",
-		bars: [
-			{ label: "odiff", ms: 1265.82 },
-			{
-				label: "@blazediff/core-native",
-				ms: 275.42,
-				highlight: true,
-			},
-		],
-	},
-];
+const TEASER_GROUPS = teaserGroups();
 
 export default function Home() {
 	return (
@@ -283,15 +278,17 @@ export default function Home() {
 				</div>
 			</Section>
 
-			<Section
-				title="BENCHMARKS"
-				intro="Reproducible from the repo. Same fixtures, same hardware (M1 Max), hyperfine-measured."
-			>
-				<BenchmarkChart
-					groups={BENCHMARK_GROUPS}
-					footnote="Full table in BENCHMARKS.md at the repo root. Every row has a fixture and a methodology note."
-				/>
-			</Section>
+			{TEASER_GROUPS.length > 0 && (
+				<Section
+					title="BENCHMARKS"
+					intro={`Total time across the repo fixtures, measured on ${teaserMachine()} with pnpm benchmarkmark. Lower is better.`}
+				>
+					<BenchmarkChart
+						groups={TEASER_GROUPS}
+						footnote={<CtaLink href="/benchmarks">ALL BENCHMARKS</CtaLink>}
+					/>
+				</Section>
+			)}
 
 			<Section title="USED BY">
 				<Reveal className="marquee-mask overflow-hidden">

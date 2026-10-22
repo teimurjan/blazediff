@@ -1,0 +1,564 @@
+{
+	"schemaVersion": 1,
+	"key": "python-pixelmatch",
+	"category": "pixel-by-pixel",
+	"generatedAt": "2026-10-22T11:15:51.169Z",
+	"commit": {
+		"sha": "234b30088649cc7ad8a00d9ef70271c14de3bc94",
+		"dirty": true
+	},
+	"env": {
+		"platform": "darwin",
+		"arch": "arm64",
+		"osRelease": "25.6.0",
+		"cpu": "Apple M1 Max",
+		"cores": 10,
+		"memoryGb": 32,
+		"node": "v22.14.0",
+		"rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+		"python": "Python 3.11.14"
+	},
+	"config": {
+		"iterations": 25,
+		"warmup": 5,
+		"ioIncluded": true
+	},
+	"sections": [
+		{
+			"id": "python-pixelmatch",
+			"title": "vs `pixelmatch` (pypi)",
+			"unit": "ms",
+			"stat": "mean",
+			"series": [
+				{
+					"id": "pixelmatch-pypi",
+					"name": "pixelmatch (pypi)",
+					"version": "0.4.0",
+					"iterations": 10,
+					"baseline": true,
+					"ours": false
+				},
+				{
+					"id": "blazediff",
+					"name": "BlazeDiff",
+					"version": "3.1.1",
+					"iterations": 25,
+					"baseline": false,
+					"ours": true
+				}
+			],
+			"rows": [
+				{
+					"fixture": "4k/1",
+					"values": {
+						"pixelmatch-pypi": {
+							"value": 20204.383649999996,
+							"min": 19185.930458,
+							"max": 23166.210084
+						},
+						"blazediff": {
+							"value": 216.27750179999998,
+							"min": 210.752708,
+							"max": 240.028209
+						}
+					}
+				},
+				{
+					"fixture": "4k/1 (identical)",
+					"values": {
+						"pixelmatch-pypi": {
+							"value": 595.8546999,
+							"min": 584.287292,
+							"max": 613.342416
+						},
+						"blazediff": {
+							"value": 192.39989339999997,
+							"min": 188.154709,
+							"max": 210.918625
+						}
+					}
+				},
+				{
+					"fixture": "4k/2",
+					"values": {
+						"pixelmatch-pypi": {
+							"value": 23276.6569542,
+							"min": 22877.581416,
+							"max": 24292.2375
+						},
+						"blazediff": {
+							"value": 265.235585,
+							"min": 254.92875,
+							"max": 318.232791
+						}
+					}
+				},
+				{
+					"fixture": "4k/2 (identical)",
+					"values": {
+						"pixelmatch-pypi": {
+							"value": 734.4206875,
+							"min": 706.605917,
+							"max": 909.6965
+						},
+						"blazediff": {
+							"value": 232.10141156000006,
+							"min": 228.159834,
+							"max": 240.796333
+						}
+					}
+				},
+				{
+					"fixture": "4k/3",
+					"values": {
+						"pixelmatch-pypi": {
+							"value": 26298.684945700003,
+							"min": 25618.047292,
+							"max": 27429.678542
+						},
+						"blazediff": {
+							"value": 272.75566663999996,
+							"min": 265.917333,
+							"max": 298.512542
+						}
+					}
+				},
+				{
+					"fixture": "4k/3 (identical)",
+					"values": {
+						"pixelmatch-pypi": {
+							"value": 792.1299541000001,
+							"min": 764.845541,
+							"max": 824.437042
+						},
+						"blazediff": {
+							"value": 240.51053831999997,
+							"min": 234.735167,
+							"max": 284.371583
+						}
+					}
+				},
+				{
+					"fixture": "blazediff/1",
+					"values": {
+						"pixelmatch-pypi": {
+							"value": 261.4306501,
+							"min": 254.970625,
+							"max": 295.087875
+						},
+						"blazediff": {
+							"value": 0.8550566000000004,
+							"min": 0.822333,
+							"max": 1.1595
+						}
+					}
+				},
+				{
+					"fixture": "blazediff/1 (identical)",
+					"values": {
+						"pixelmatch-pypi": {
+							"value": 4.1803289999999995,
+							"min": 4.16175,
+							"max": 4.20175
+						},
+						"blazediff": {
+							"value": 0.9916699600000001,
+							"min": 0.959084,
+							"max": 1.056583
+						}
+					}
+				},
+				{
+					"fixture": "blazediff/2",
+					"values": {
+						"pixelmatch-pypi": {
+							"value": 271.1809165,
+							"min": 265.990584,
+							"max": 291.686958
+						},
+						"blazediff": {
+							"value": 1.0048332400000004,
+							"min": 0.99725,
+							"max": 1.01375
+						}
+					}
+				},
+				{
+					"fixture": "blazediff/2 (identical)",
+					"values": {
+						"pixelmatch-pypi": {
+							"value": 3.8127834999999997,
+							"min": 3.756167,
+							"max": 3.926917
+						},
+						"blazediff": {
+							"value": 0.9498883599999999,
+							"min": 0.913291,
+							"max": 1.096417
+						}
+					}
+				},
+				{
+					"fixture": "blazediff/3",
+					"values": {
+						"pixelmatch-pypi": {
+							"value": 1503.2763458000002,
+							"min": 1463.11725,
+							"max": 1596.685167
+						},
+						"blazediff": {
+							"value": 14.68056504,
+							"min": 14.538541,
+							"max": 15.170042
+						}
+					}
+				},
+				{
+					"fixture": "blazediff/3 (identical)",
+					"values": {
+						"pixelmatch-pypi": {
+							"value": 46.324095799999995,
+							"min": 45.761041,
+							"max": 48.113041
+						},
+						"blazediff": {
+							"value": 14.380446599999997,
+							"min": 14.024667,
+							"max": 14.630833
+						}
+					}
+				},
+				{
+					"fixture": "blazediff/4",
+					"values": {
+						"pixelmatch-pypi": {
+							"value": 2477.6664999,
+							"min": 2431.979959,
+							"max": 2553.208833
+						},
+						"blazediff": {
+							"value": 5.174535079999999,
+							"min": 5.035042,
+							"max": 5.419375
+						}
+					}
+				},
+				{
+					"fixture": "blazediff/4 (identical)",
+					"values": {
+						"pixelmatch-pypi": {
+							"value": 28.761324899999998,
+							"min": 26.941458,
+							"max": 33.198208
+						},
+						"blazediff": {
+							"value": 4.94329836,
+							"min": 4.588875,
+							"max": 5.24575
+						}
+					}
+				},
+				{
+					"fixture": "page/1",
+					"values": {
+						"pixelmatch-pypi": {
+							"value": 40254.8970542,
+							"min": 38148.398375,
+							"max": 42386.515375
+						},
+						"blazediff": {
+							"value": 268.13886019999995,
+							"min": 263.300041,
+							"max": 279.139584
+						}
+					}
+				},
+				{
+					"fixture": "page/1 (identical)",
+					"values": {
+						"pixelmatch-pypi": {
+							"value": 871.7902540000001,
+							"min": 855.805042,
+							"max": 923.829333
+						},
+						"blazediff": {
+							"value": 267.87790844000006,
+							"min": 262.635958,
+							"max": 280.536709
+						}
+					}
+				},
+				{
+					"fixture": "page/2",
+					"values": {
+						"pixelmatch-pypi": {
+							"value": 42516.839237399996,
+							"min": 41419.56425,
+							"max": 43608.136125
+						},
+						"blazediff": {
+							"value": 97.96194008,
+							"min": 96.792917,
+							"max": 99.911542
+						}
+					}
+				},
+				{
+					"fixture": "page/2 (identical)",
+					"values": {
+						"pixelmatch-pypi": {
+							"value": 178.7405792,
+							"min": 168.985417,
+							"max": 210.855709
+						},
+						"blazediff": {
+							"value": 55.827039879999994,
+							"min": 53.1425,
+							"max": 66.000083
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/1",
+					"values": {
+						"pixelmatch-pypi": {
+							"value": 88.6649874,
+							"min": 88.034916,
+							"max": 88.966667
+						},
+						"blazediff": {
+							"value": 1.14932672,
+							"min": 1.072542,
+							"max": 1.275542
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/1 (identical)",
+					"values": {
+						"pixelmatch-pypi": {
+							"value": 2.8595873999999997,
+							"min": 2.821041,
+							"max": 2.976292
+						},
+						"blazediff": {
+							"value": 1.0914432800000002,
+							"min": 1.012125,
+							"max": 1.223292
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/2",
+					"values": {
+						"pixelmatch-pypi": {
+							"value": 179.13446249999998,
+							"min": 176.863584,
+							"max": 182.401584
+						},
+						"blazediff": {
+							"value": 0.6940932399999998,
+							"min": 0.680041,
+							"max": 0.783542
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/2 (identical)",
+					"values": {
+						"pixelmatch-pypi": {
+							"value": 0.8915499,
+							"min": 0.873041,
+							"max": 0.903875
+						},
+						"blazediff": {
+							"value": 0.44812508000000006,
+							"min": 0.419,
+							"max": 0.4835
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/3",
+					"values": {
+						"pixelmatch-pypi": {
+							"value": 86.5741708,
+							"min": 85.493542,
+							"max": 88.418958
+						},
+						"blazediff": {
+							"value": 0.9424317600000001,
+							"min": 0.848166,
+							"max": 1.030042
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/3 (identical)",
+					"values": {
+						"pixelmatch-pypi": {
+							"value": 2.2472166000000002,
+							"min": 2.197667,
+							"max": 2.395625
+						},
+						"blazediff": {
+							"value": 0.8286633200000001,
+							"min": 0.794875,
+							"max": 0.924958
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/4",
+					"values": {
+						"pixelmatch-pypi": {
+							"value": 376.9773418,
+							"min": 362.666584,
+							"max": 414.6385
+						},
+						"blazediff": {
+							"value": 2.6632849199999993,
+							"min": 2.608167,
+							"max": 2.864958
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/4 (identical)",
+					"values": {
+						"pixelmatch-pypi": {
+							"value": 5.6856374,
+							"min": 5.666625,
+							"max": 5.699875
+						},
+						"blazediff": {
+							"value": 1.9844467600000002,
+							"min": 1.955041,
+							"max": 2.123708
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/5",
+					"values": {
+						"pixelmatch-pypi": {
+							"value": 44.2369539,
+							"min": 43.927583,
+							"max": 44.463333
+						},
+						"blazediff": {
+							"value": 0.55832164,
+							"min": 0.499916,
+							"max": 0.663291
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/5 (identical)",
+					"values": {
+						"pixelmatch-pypi": {
+							"value": 1.1282124999999998,
+							"min": 1.121917,
+							"max": 1.138916
+						},
+						"blazediff": {
+							"value": 0.59686828,
+							"min": 0.527625,
+							"max": 0.708792
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/6",
+					"values": {
+						"pixelmatch-pypi": {
+							"value": 108.5967915,
+							"min": 99.29475,
+							"max": 147.864125
+						},
+						"blazediff": {
+							"value": 1.2738516799999997,
+							"min": 1.16425,
+							"max": 1.896375
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/6 (identical)",
+					"values": {
+						"pixelmatch-pypi": {
+							"value": 1.5852165,
+							"min": 1.569208,
+							"max": 1.607041
+						},
+						"blazediff": {
+							"value": 0.7930484400000001,
+							"min": 0.731666,
+							"max": 1.095
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/7",
+					"values": {
+						"pixelmatch-pypi": {
+							"value": 192.89111280000003,
+							"min": 190.085542,
+							"max": 206.272459
+						},
+						"blazediff": {
+							"value": 0.7214849999999999,
+							"min": 0.635209,
+							"max": 0.810417
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/7 (identical)",
+					"values": {
+						"pixelmatch-pypi": {
+							"value": 1.5313708000000001,
+							"min": 1.500666,
+							"max": 1.626709
+						},
+						"blazediff": {
+							"value": 0.6277333600000001,
+							"min": 0.57175,
+							"max": 0.698417
+						}
+					}
+				},
+				{
+					"fixture": "same/1",
+					"values": {
+						"pixelmatch-pypi": {
+							"value": 23.4248626,
+							"min": 22.528083,
+							"max": 24.785208
+						},
+						"blazediff": {
+							"value": 3.5238234,
+							"min": 3.298542,
+							"max": 3.738833
+						}
+					}
+				},
+				{
+					"fixture": "same/1 (identical)",
+					"values": {
+						"pixelmatch-pypi": {
+							"value": 25.5354541,
+							"min": 24.320166,
+							"max": 28.231
+						},
+						"blazediff": {
+							"value": 3.1398633600000005,
+							"min": 3.062584,
+							"max": 3.543583
+						}
+					}
+				}
+			]
+		}
+	]
+}

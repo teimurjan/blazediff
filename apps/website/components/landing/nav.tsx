@@ -3,7 +3,12 @@ import Link from "next/link";
 import MobileMenu from "./mobile-menu";
 import Picture, { sizesForHeight } from "./picture";
 
-export type LandingTab = "home" | "agent" | "playground" | "docs";
+export type LandingTab =
+	| "home"
+	| "agent"
+	| "playground"
+	| "benchmarks"
+	| "docs";
 
 interface LandingNavProps {
 	activeTab: LandingTab;
@@ -15,6 +20,7 @@ const TABS: { id: LandingTab; label: string; href: string }[] = [
 	{ id: "home", label: "HOME", href: "/" },
 	{ id: "agent", label: "AGENT", href: "/agent" },
 	{ id: "playground", label: "PLAYGROUND", href: "/playground" },
+	{ id: "benchmarks", label: "BENCHMARKS", href: "/benchmarks" },
 	{ id: "docs", label: "DOCS", href: "/docs" },
 ];
 

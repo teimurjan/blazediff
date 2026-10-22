@@ -48,6 +48,16 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y cmake zlib1g-dev
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version-file: ".node-version"
+
+      # The checkout holds the committed results; drop them so a failed run
+      # cannot upload a stale copy.
+      - name: Remove committed benchmark results
+        run: rm -f benchmarks/results/png.json
+
       - name: Run PNG codec benchmark (blazediff vs spng / image-rs / zune)
         shell: bash
         run: |
@@ -63,7 +73,16 @@ jobs:
             aarch64) export RUSTFLAGS="-C target-cpu=cortex-a72" ;;
           esac
           echo "RUSTFLAGS=$RUSTFLAGS"
-          cargo run --release --manifest-path crates/Cargo.toml -p blazediff-png-benchmark
+          # Runs the Rust benchmark and writes benchmarks/results/png.json.
+          node scripts/bench/run.js png --skip-md
+
+      - name: Upload benchmark artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results-png-${{ github.event.inputs.platform || 'ubuntu-latest' }}
+          path: benchmarks/results/png.json
+          if-no-files-found: warn
 
   corpus-parity:
     name: spng Byte-Identical Corpus Parity (${{ github.event.inputs.platform || 'ubuntu-latest' }})

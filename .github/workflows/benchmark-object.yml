@@ -32,12 +32,18 @@ jobs:
       - name: Build
         run: pnpm build
 
-      - name: Run Benchmark (@blazediff/object)
-        run: pnpm benchmark:object -- --format=json --output=blazediff.json
+      # The checkout holds the committed results; drop them so a failed run
+      # cannot upload a stale copy.
+      - name: Remove committed benchmark results
+        run: rm -f benchmarks/results/object.json
 
-      - name: Run Benchmark (microdiff)
-        run: pnpm benchmark:microdiff -- --format=json --output=microdiff.json
+      - name: Run Benchmark (@blazediff/object vs microdiff)
+        run: pnpm benchmark object --skip-md
 
-      - name: Compare and Print Combined Markdown Table (object)
+      - name: Upload benchmark artifacts
         if: always()
-        run: node .github/workflows/scripts/compare-and-print-object.js
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results-object
+          path: benchmarks/results/object.json
+          if-no-files-found: warn

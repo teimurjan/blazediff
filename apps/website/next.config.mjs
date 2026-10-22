@@ -72,6 +72,12 @@ export default withNextra({
 				destination: "/docs/:path*",
 				permanent: true,
 			},
+			// The per-category benchmark pages merged into one /benchmarks page.
+			{
+				source: "/benchmarks/:category",
+				destination: "/benchmarks#:category",
+				permanent: true,
+			},
 			// The API reference moved from /docs/<pkg> to /apis/<pkg>.
 			...apiSlugs.map((slug) => ({
 				source: `/docs/${slug}`,

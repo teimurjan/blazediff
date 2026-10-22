@@ -1,0 +1,173 @@
+{
+	"schemaVersion": 1,
+	"key": "object",
+	"category": "object",
+	"generatedAt": "2026-10-22T10:34:20.471Z",
+	"commit": {
+		"sha": "234b30088649cc7ad8a00d9ef70271c14de3bc94",
+		"dirty": true
+	},
+	"env": {
+		"platform": "darwin",
+		"arch": "arm64",
+		"osRelease": "25.6.0",
+		"cpu": "Apple M1 Max",
+		"cores": 10,
+		"memoryGb": 32,
+		"node": "v22.14.0",
+		"rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)"
+	},
+	"config": {
+		"iterations": 10000,
+		"warmup": 50,
+		"ioIncluded": false
+	},
+	"sections": [
+		{
+			"id": "object",
+			"title": "Object (`@blazediff/object` vs `microdiff`)",
+			"unit": "ms",
+			"stat": "mean",
+			"series": [
+				{
+					"id": "microdiff",
+					"name": "Microdiff",
+					"version": "1.5.0",
+					"iterations": 10000,
+					"baseline": true,
+					"ours": false
+				},
+				{
+					"id": "blazediff",
+					"name": "BlazeDiff",
+					"version": "1.8.0",
+					"iterations": 10000,
+					"baseline": false,
+					"ours": true
+				}
+			],
+			"rows": [
+				{
+					"fixture": "complex object - tag addition",
+					"values": {
+						"microdiff": {
+							"value": 0.001908989794896894,
+							"min": 0.0017080307006835938,
+							"max": 0.3937087059020996
+						},
+						"blazediff": {
+							"value": 0.001457316375478966,
+							"min": 0.0012907981872558594,
+							"max": 7.8992919921875
+						}
+					}
+				},
+				{
+					"fixture": "deep nested - timeout change",
+					"values": {
+						"microdiff": {
+							"value": 0.0008841971482035473,
+							"min": 0.0007495880126953125,
+							"max": 1.2065000534057617
+						},
+						"blazediff": {
+							"value": 0.000946965938419303,
+							"min": 0.0007910728454589844,
+							"max": 6.397833347320557
+						}
+					}
+				},
+				{
+					"fixture": "large array - single item change",
+					"values": {
+						"microdiff": {
+							"value": 0.2727559000968933,
+							"min": 0.26541614532470703,
+							"max": 2.005584239959717
+						},
+						"blazediff": {
+							"value": 0.23588883833885194,
+							"min": 0.2243328094482422,
+							"max": 5.269459247589111
+						}
+					}
+				},
+				{
+					"fixture": "large identical arrays",
+					"values": {
+						"microdiff": {
+							"value": 0.05610311474046308,
+							"min": 0.05408287048339844,
+							"max": 3.705458164215088
+						},
+						"blazediff": {
+							"value": 0.003574877663505553,
+							"min": 0.003249645233154297,
+							"max": 2.3732919692993164
+						}
+					}
+				},
+				{
+					"fixture": "large nested object - multiple small changes",
+					"values": {
+						"microdiff": {
+							"value": 1.5875773787498475,
+							"min": 1.5152921676635742,
+							"max": 6.552707672119141
+						},
+						"blazediff": {
+							"value": 1.5005067589759826,
+							"min": 1.435166835784912,
+							"max": 5.658124923706055
+						}
+					}
+				},
+				{
+					"fixture": "nested object - theme change",
+					"values": {
+						"microdiff": {
+							"value": 0.0014305898327095655,
+							"min": 0.0012497901916503906,
+							"max": 10.089582920074463
+						},
+						"blazediff": {
+							"value": 0.0012329326454794951,
+							"min": 0.0010828971862792969,
+							"max": 5.192834377288818
+						}
+					}
+				},
+				{
+					"fixture": "simple object - age change",
+					"values": {
+						"microdiff": {
+							"value": 0.00013867190666965354,
+							"min": 0.00004100799560546875,
+							"max": 6.714040756225586
+						},
+						"blazediff": {
+							"value": 0.00023841221837915476,
+							"min": 0.00012493133544921875,
+							"max": 0.361417293548584
+						}
+					}
+				},
+				{
+					"fixture": "simple object - identical",
+					"values": {
+						"microdiff": {
+							"value": 0.00013343281232959466,
+							"min": 0.00004100799560546875,
+							"max": 2.9680004119873047
+						},
+						"blazediff": {
+							"value": 0.0001572070701892807,
+							"min": 0.00004100799560546875,
+							"max": 4.301624774932861
+						}
+					}
+				}
+			]
+		}
+	]
+}

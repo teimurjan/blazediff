@@ -115,26 +115,26 @@ jobs:
             console.log("native binding OK");
           '
 
-      - name: Run Benchmark (@blazediff/core-native)
-        run: pnpm benchmark:core-native -- --format=json --output=blazediff.json
+      # The checkout holds the committed results; drop them so a failed run
+      # cannot upload a stale copy.
+      - name: Remove committed benchmark results
+        run: rm -f benchmarks/results/core-native.json benchmarks/results/honeydiff.json
 
-      - name: Run Benchmark (@blazediff/core-native, blazediff_png)
-        run: pnpm benchmark:core-native-next -- --format=json --output=blazediff-next.json
+      # Runs core-native, core-native-next and odiff, then writes
+      # benchmarks/results/core-native.json.
+      - name: Run Benchmark (@blazediff/core-native vs odiff)
+        run: pnpm benchmark core-native --skip-md
 
-      - name: Run Benchmark (odiff)
-        run: pnpm benchmark:odiff -- --format=json --output=odiff.json
-
-      - name: Compare and Print Combined Markdown Table
+      - name: Run Benchmark (@blazediff/core-native vs honeydiff)
         if: always()
-        shell: bash
-        run: |
-          # Runs on failure too, so an earlier crash still reports whatever
-          # completed. Bail out quietly when a series is missing rather than
-          # dying on ENOENT, which would bury the real error under a stack trace.
-          for f in blazediff.json blazediff-next.json odiff.json; do
-            if [ ! -s "apps/image-benchmark/$f" ]; then
-              echo "::warning::apps/image-benchmark/$f missing - skipping comparison (an earlier step failed)"
-              exit 0
-            fi
-          done
-          node .github/workflows/scripts/compare-and-print-core-native.js
+        run: pnpm benchmark honeydiff --skip-md
+
+      - name: Upload benchmark artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results-binary-${{ github.event.inputs.platform }}
+          path: |
+            benchmarks/results/core-native.json
+            benchmarks/results/honeydiff.json
+          if-no-files-found: warn

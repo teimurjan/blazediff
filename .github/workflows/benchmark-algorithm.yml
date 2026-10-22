@@ -32,12 +32,20 @@ jobs:
       - name: Build
         run: pnpm build
 
-      - name: Run Benchmark (@blazediff/core)
-        run: pnpm benchmark:core -- --format=json --output=blazediff.json
+      # The checkout holds the committed results; drop them so a failed run
+      # cannot upload a stale copy.
+      - name: Remove committed benchmark results
+        run: rm -f benchmarks/results/core.json
 
-      - name: Run Benchmark (pixelmatch)
-        run: pnpm benchmark:pixelmatch -- --format=json --output=pixelmatch.json
+      # Runs both sides, prints the comparison table and writes
+      # benchmarks/results/core.json.
+      - name: Run Benchmark (@blazediff/core vs pixelmatch)
+        run: pnpm benchmark core --skip-md
 
-      - name: Compare and Print Combined Markdown Table
+      - name: Upload benchmark artifacts
         if: always()
-        run: node .github/workflows/scripts/compare-and-print-core.js
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results-algorithm
+          path: benchmarks/results/core.json
+          if-no-files-found: warn

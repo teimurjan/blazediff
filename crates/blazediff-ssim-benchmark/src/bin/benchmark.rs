@@ -15,7 +15,8 @@
 //! Optional arg: a fixtures directory (defaults to the repo `fixtures/`).
 //! Flags: `--max-mpx N` caps the corpus by image size (default 30);
 //! `--ablate` times the tunable perceptual configurations instead of the
-//! shipped metrics, matching the quality harness's `--ablate`.
+//! shipped metrics, matching the quality harness's `--ablate`;
+//! `--json <path>` also writes the time table for `scripts/bench/ssim-dssim.js`.
 
 use blazediff::{load_pngs, Image};
 use blazediff_ssim_benchmark::bench::{collect_pairs, iters, timed, Pair};
@@ -43,9 +44,15 @@ fn main() {
     let mut max_mpx = DEFAULT_MAX_MPX;
     let mut ablate = false;
     let mut only: Vec<String> = Vec::new();
+    let mut json_path: Option<PathBuf> = None;
     while let Some(arg) = args.next() {
         match arg.as_str() {
             "--ablate" => ablate = true,
+            "--json" => {
+                json_path = Some(PathBuf::from(
+                    args.next().unwrap_or_else(|| panic!("--json needs a path")),
+                ));
+            }
             "--only" => {
                 only = args
                     .next()
@@ -119,6 +126,11 @@ fn main() {
     print_time_table(&contenders, &rows);
     print_score_table(&contenders, &rows);
     print_rank_agreement(&contenders, &rows);
+
+    if let Some(path) = json_path {
+        write_json(&path, &contenders, &rows);
+        println!("\nJSON written to {}", path.display());
+    }
 
     if !skipped.is_empty() {
         println!("\nSkipped {} pair(s):", skipped.len());
@@ -282,6 +294,36 @@ fn print_rank_agreement(contenders: &[Contender], rows: &[Row]) {
             ours.len()
         );
     }
+}
+
+/// Hand-rolled JSON (no serde dep): `{ contenders, dssimThreaded, rows: [{name,
+/// mpx, times}] }`, with `null` where a metric could not run.
+fn write_json(path: &Path, contenders: &[Contender], rows: &[Row]) {
+    let names = contenders
+        .iter()
+        .map(|c| format!("{:?}", c.name))
+        .collect::<Vec<_>>()
+        .join(",");
+    let mut out = format!(
+        "{{\n  \"contenders\": [{names}],\n  \"dssimThreaded\": {},\n  \"rows\": [\n",
+        metrics::DSSIM_THREADED
+    );
+    for (i, row) in rows.iter().enumerate() {
+        let times = row
+            .times
+            .iter()
+            .map(|t| t.map_or("null".to_string(), |ms| format!("{ms:.4}")))
+            .collect::<Vec<_>>()
+            .join(",");
+        out.push_str(&format!(
+            "    {{\"name\": {:?}, \"mpx\": {:.4}, \"times\": [{times}]}}{}\n",
+            row.name,
+            row.mpx,
+            if i + 1 < rows.len() { "," } else { "" }
+        ));
+    }
+    out.push_str("  ]\n}\n");
+    std::fs::write(path, out).expect("write json");
 }
 
 fn trunc(s: &str, max: usize) -> String {

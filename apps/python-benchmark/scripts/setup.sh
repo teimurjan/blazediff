@@ -31,6 +31,5 @@ uv pip install --reinstall "$WHEEL"
 
 echo ""
 echo "Setup complete. Run benchmarks:"
-echo "  pnpm benchmark:python-blazediff"
-echo "  pnpm benchmark:python-pixelmatch"
-echo "  pnpm benchmark:python-opencv"
+echo "  pnpm benchmark python-pixelmatch"
+echo "  pnpm benchmark python-opencv"

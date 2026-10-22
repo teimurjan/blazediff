@@ -1,0 +1,564 @@
+{
+	"schemaVersion": 1,
+	"key": "python-opencv",
+	"category": "pixel-by-pixel",
+	"generatedAt": "2026-10-22T11:20:50.584Z",
+	"commit": {
+		"sha": "234b30088649cc7ad8a00d9ef70271c14de3bc94",
+		"dirty": true
+	},
+	"env": {
+		"platform": "darwin",
+		"arch": "arm64",
+		"osRelease": "25.6.0",
+		"cpu": "Apple M1 Max",
+		"cores": 10,
+		"memoryGb": 32,
+		"node": "v22.14.0",
+		"rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+		"python": "Python 3.11.14"
+	},
+	"config": {
+		"iterations": 25,
+		"warmup": 5,
+		"ioIncluded": true
+	},
+	"sections": [
+		{
+			"id": "python-opencv",
+			"title": "vs `opencv-python` (`cv2.absdiff`)",
+			"unit": "ms",
+			"stat": "mean",
+			"series": [
+				{
+					"id": "opencv-absdiff",
+					"name": "OpenCV absdiff",
+					"version": "4.13.0.92",
+					"iterations": 25,
+					"baseline": true,
+					"ours": false
+				},
+				{
+					"id": "blazediff",
+					"name": "BlazeDiff",
+					"version": "3.1.1",
+					"iterations": 25,
+					"baseline": false,
+					"ours": true
+				}
+			],
+			"rows": [
+				{
+					"fixture": "4k/1",
+					"values": {
+						"opencv-absdiff": {
+							"value": 616.54276832,
+							"min": 544.301125,
+							"max": 826.62475
+						},
+						"blazediff": {
+							"value": 222.47249,
+							"min": 211.269041,
+							"max": 303.479875
+						}
+					}
+				},
+				{
+					"fixture": "4k/1 (identical)",
+					"values": {
+						"opencv-absdiff": {
+							"value": 781.7147467200001,
+							"min": 565.573792,
+							"max": 2346.804542
+						},
+						"blazediff": {
+							"value": 197.12131664000003,
+							"min": 188.377459,
+							"max": 265.91575
+						}
+					}
+				},
+				{
+					"fixture": "4k/2",
+					"values": {
+						"opencv-absdiff": {
+							"value": 709.7338866000001,
+							"min": 684.561583,
+							"max": 825.990417
+						},
+						"blazediff": {
+							"value": 263.40029992,
+							"min": 253.938084,
+							"max": 336.249958
+						}
+					}
+				},
+				{
+					"fixture": "4k/2 (identical)",
+					"values": {
+						"opencv-absdiff": {
+							"value": 694.5946316400001,
+							"min": 680.275208,
+							"max": 733.106375
+						},
+						"blazediff": {
+							"value": 233.19031996,
+							"min": 228.364875,
+							"max": 252.176833
+						}
+					}
+				},
+				{
+					"fixture": "4k/3",
+					"values": {
+						"opencv-absdiff": {
+							"value": 820.4658732400001,
+							"min": 765.246458,
+							"max": 1011.341459
+						},
+						"blazediff": {
+							"value": 274.9546733600001,
+							"min": 267.067917,
+							"max": 325.845166
+						}
+					}
+				},
+				{
+					"fixture": "4k/3 (identical)",
+					"values": {
+						"opencv-absdiff": {
+							"value": 789.6148634799999,
+							"min": 759.693583,
+							"max": 958.593042
+						},
+						"blazediff": {
+							"value": 264.15586676,
+							"min": 240.465459,
+							"max": 550.789042
+						}
+					}
+				},
+				{
+					"fixture": "blazediff/1",
+					"values": {
+						"opencv-absdiff": {
+							"value": 4.9409849600000015,
+							"min": 4.653125,
+							"max": 5.792958
+						},
+						"blazediff": {
+							"value": 1.093655,
+							"min": 0.914,
+							"max": 1.2315
+						}
+					}
+				},
+				{
+					"fixture": "blazediff/1 (identical)",
+					"values": {
+						"opencv-absdiff": {
+							"value": 4.4985649599999995,
+							"min": 4.479208,
+							"max": 4.524666
+						},
+						"blazediff": {
+							"value": 0.8336850000000002,
+							"min": 0.820917,
+							"max": 0.857666
+						}
+					}
+				},
+				{
+					"fixture": "blazediff/2",
+					"values": {
+						"opencv-absdiff": {
+							"value": 4.13924848,
+							"min": 3.916584,
+							"max": 4.396584
+						},
+						"blazediff": {
+							"value": 1.1290782799999999,
+							"min": 0.999583,
+							"max": 1.255291
+						}
+					}
+				},
+				{
+					"fixture": "blazediff/2 (identical)",
+					"values": {
+						"opencv-absdiff": {
+							"value": 4.012636639999999,
+							"min": 3.842125,
+							"max": 4.204666
+						},
+						"blazediff": {
+							"value": 1.05512516,
+							"min": 0.927917,
+							"max": 1.244542
+						}
+					}
+				},
+				{
+					"fixture": "blazediff/3",
+					"values": {
+						"opencv-absdiff": {
+							"value": 44.59119164,
+							"min": 44.089667,
+							"max": 45.359542
+						},
+						"blazediff": {
+							"value": 15.841623200000004,
+							"min": 15.264708,
+							"max": 19.335166
+						}
+					}
+				},
+				{
+					"fixture": "blazediff/3 (identical)",
+					"values": {
+						"opencv-absdiff": {
+							"value": 44.485256559999996,
+							"min": 44.128917,
+							"max": 45.277458
+						},
+						"blazediff": {
+							"value": 15.853589920000001,
+							"min": 14.374792,
+							"max": 35.9915
+						}
+					}
+				},
+				{
+					"fixture": "blazediff/4",
+					"values": {
+						"opencv-absdiff": {
+							"value": 30.530355039999996,
+							"min": 30.014458,
+							"max": 31.715209
+						},
+						"blazediff": {
+							"value": 5.13405668,
+							"min": 4.866291,
+							"max": 5.559417
+						}
+					}
+				},
+				{
+					"fixture": "blazediff/4 (identical)",
+					"values": {
+						"opencv-absdiff": {
+							"value": 30.231995000000005,
+							"min": 30.027833,
+							"max": 31.252584
+						},
+						"blazediff": {
+							"value": 5.02618492,
+							"min": 4.760625,
+							"max": 5.291042
+						}
+					}
+				},
+				{
+					"fixture": "page/1",
+					"values": {
+						"opencv-absdiff": {
+							"value": 1063.19393496,
+							"min": 1048.335584,
+							"max": 1116.010416
+						},
+						"blazediff": {
+							"value": 309.76573492000006,
+							"min": 264.584875,
+							"max": 752.37225
+						}
+					}
+				},
+				{
+					"fixture": "page/1 (identical)",
+					"values": {
+						"opencv-absdiff": {
+							"value": 1205.7468484800002,
+							"min": 1065.748917,
+							"max": 2305.467208
+						},
+						"blazediff": {
+							"value": 269.14635827999996,
+							"min": 262.718875,
+							"max": 294.469958
+						}
+					}
+				},
+				{
+					"fixture": "page/2",
+					"values": {
+						"opencv-absdiff": {
+							"value": 305.50517840000003,
+							"min": 286.148667,
+							"max": 404.421459
+						},
+						"blazediff": {
+							"value": 108.89531836,
+							"min": 97.45075,
+							"max": 153.501333
+						}
+					}
+				},
+				{
+					"fixture": "page/2 (identical)",
+					"values": {
+						"opencv-absdiff": {
+							"value": 288.34894324,
+							"min": 283.384167,
+							"max": 295.768792
+						},
+						"blazediff": {
+							"value": 54.88423824,
+							"min": 54.059125,
+							"max": 57.657625
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/1",
+					"values": {
+						"opencv-absdiff": {
+							"value": 3.46468172,
+							"min": 3.441041,
+							"max": 3.566292
+						},
+						"blazediff": {
+							"value": 1.2913382799999997,
+							"min": 1.08375,
+							"max": 3.726708
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/1 (identical)",
+					"values": {
+						"opencv-absdiff": {
+							"value": 4.4008717200000005,
+							"min": 3.749208,
+							"max": 5.995542
+						},
+						"blazediff": {
+							"value": 1.0837650799999998,
+							"min": 1.021167,
+							"max": 1.186542
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/2",
+					"values": {
+						"opencv-absdiff": {
+							"value": 1.1586967599999998,
+							"min": 1.116167,
+							"max": 1.293375
+						},
+						"blazediff": {
+							"value": 0.7483216399999999,
+							"min": 0.704041,
+							"max": 0.793333
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/2 (identical)",
+					"values": {
+						"opencv-absdiff": {
+							"value": 1.0704599200000005,
+							"min": 1.055375,
+							"max": 1.093958
+						},
+						"blazediff": {
+							"value": 0.4954448800000001,
+							"min": 0.432833,
+							"max": 0.590166
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/3",
+					"values": {
+						"opencv-absdiff": {
+							"value": 3.4038266399999997,
+							"min": 3.265291,
+							"max": 3.61075
+						},
+						"blazediff": {
+							"value": 1.0346300400000004,
+							"min": 0.865625,
+							"max": 2.935083
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/3 (identical)",
+					"values": {
+						"opencv-absdiff": {
+							"value": 3.963740039999999,
+							"min": 3.450333,
+							"max": 5.315708
+						},
+						"blazediff": {
+							"value": 0.9233033600000001,
+							"min": 0.866833,
+							"max": 1.053917
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/4",
+					"values": {
+						"opencv-absdiff": {
+							"value": 7.757159880000001,
+							"min": 6.173375,
+							"max": 17.959125
+						},
+						"blazediff": {
+							"value": 2.8789950799999997,
+							"min": 2.729875,
+							"max": 3.047583
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/4 (identical)",
+					"values": {
+						"opencv-absdiff": {
+							"value": 5.997044840000001,
+							"min": 5.785125,
+							"max": 6.243833
+						},
+						"blazediff": {
+							"value": 2.1699550399999996,
+							"min": 2.024667,
+							"max": 2.428959
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/5",
+					"values": {
+						"opencv-absdiff": {
+							"value": 1.8399832799999998,
+							"min": 1.766541,
+							"max": 2.073334
+						},
+						"blazediff": {
+							"value": 0.57220508,
+							"min": 0.530375,
+							"max": 0.632167
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/5 (identical)",
+					"values": {
+						"opencv-absdiff": {
+							"value": 1.8860899599999998,
+							"min": 1.706542,
+							"max": 3.2325
+						},
+						"blazediff": {
+							"value": 0.5732784,
+							"min": 0.517667,
+							"max": 0.63175
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/6",
+					"values": {
+						"opencv-absdiff": {
+							"value": 2.64194164,
+							"min": 2.569125,
+							"max": 2.775167
+						},
+						"blazediff": {
+							"value": 1.19673832,
+							"min": 1.120292,
+							"max": 1.294167
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/6 (identical)",
+					"values": {
+						"opencv-absdiff": {
+							"value": 4.479691679999999,
+							"min": 2.462208,
+							"max": 8.866
+						},
+						"blazediff": {
+							"value": 0.8788633999999999,
+							"min": 0.770583,
+							"max": 1.172334
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/7",
+					"values": {
+						"opencv-absdiff": {
+							"value": 1.8857050399999997,
+							"min": 1.835,
+							"max": 2.304458
+						},
+						"blazediff": {
+							"value": 0.7472448799999999,
+							"min": 0.674917,
+							"max": 0.870291
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/7 (identical)",
+					"values": {
+						"opencv-absdiff": {
+							"value": 2.06264516,
+							"min": 1.87325,
+							"max": 2.398584
+						},
+						"blazediff": {
+							"value": 0.6195866,
+							"min": 0.567334,
+							"max": 0.741958
+						}
+					}
+				},
+				{
+					"fixture": "same/1",
+					"values": {
+						"opencv-absdiff": {
+							"value": 18.28729828,
+							"min": 17.838209,
+							"max": 19.023042
+						},
+						"blazediff": {
+							"value": 3.6005332000000005,
+							"min": 3.232958,
+							"max": 4.929959
+						}
+					}
+				},
+				{
+					"fixture": "same/1 (identical)",
+					"values": {
+						"opencv-absdiff": {
+							"value": 19.381448319999997,
+							"min": 18.206,
+							"max": 22.600417
+						},
+						"blazediff": {
+							"value": 3.14778996,
+							"min": 3.052959,
+							"max": 3.690625
+						}
+					}
+				}
+			]
+		}
+	]
+}

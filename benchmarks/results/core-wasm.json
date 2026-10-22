@@ -1,0 +1,563 @@
+{
+	"schemaVersion": 1,
+	"key": "core-wasm",
+	"category": "pixel-by-pixel",
+	"generatedAt": "2026-10-22T10:16:21.673Z",
+	"commit": {
+		"sha": "234b30088649cc7ad8a00d9ef70271c14de3bc94",
+		"dirty": true
+	},
+	"env": {
+		"platform": "darwin",
+		"arch": "arm64",
+		"osRelease": "25.6.0",
+		"cpu": "Apple M1 Max",
+		"cores": 10,
+		"memoryGb": 32,
+		"node": "v22.14.0",
+		"rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)"
+	},
+	"config": {
+		"iterations": 25,
+		"warmup": 5,
+		"ioIncluded": false
+	},
+	"sections": [
+		{
+			"id": "core-wasm",
+			"title": "WebAssembly (`@blazediff/core-wasm` vs `pixelmatch`) (image IO excluded)",
+			"unit": "ms",
+			"stat": "mean",
+			"series": [
+				{
+					"id": "pixelmatch",
+					"name": "Pixelmatch",
+					"version": "7.2.0",
+					"iterations": 25,
+					"baseline": true,
+					"ours": false
+				},
+				{
+					"id": "blazediff-core-wasm",
+					"name": "BlazeDiff (core-wasm)",
+					"version": "6.0.1",
+					"iterations": 25,
+					"baseline": false,
+					"ours": true
+				}
+			],
+			"rows": [
+				{
+					"fixture": "4k/1",
+					"values": {
+						"pixelmatch": {
+							"value": 325.0818350791931,
+							"min": 320.30487537384033,
+							"max": 350.9685411453247
+						},
+						"blazediff-core-wasm": {
+							"value": 35.94653812408447,
+							"min": 33.18145799636841,
+							"max": 61.64683389663696
+						}
+					}
+				},
+				{
+					"fixture": "4k/1 (identical)",
+					"values": {
+						"pixelmatch": {
+							"value": 20.788410148620606,
+							"min": 19.743292331695557,
+							"max": 43.64616680145264
+						},
+						"blazediff-core-wasm": {
+							"value": 16.164276733398438,
+							"min": 16.032750129699707,
+							"max": 16.579583168029785
+						}
+					}
+				},
+				{
+					"fixture": "4k/2",
+					"values": {
+						"pixelmatch": {
+							"value": 320.8949065208435,
+							"min": 315.33370876312256,
+							"max": 351.71495819091797
+						},
+						"blazediff-core-wasm": {
+							"value": 66.39019170761108,
+							"min": 64.98495864868164,
+							"max": 94.2044997215271
+						}
+					}
+				},
+				{
+					"fixture": "4k/2 (identical)",
+					"values": {
+						"pixelmatch": {
+							"value": 23.468055152893065,
+							"min": 22.087250232696533,
+							"max": 55.0928750038147
+						},
+						"blazediff-core-wasm": {
+							"value": 24.785618133544922,
+							"min": 19.850125312805176,
+							"max": 79.6862907409668
+						}
+					}
+				},
+				{
+					"fixture": "4k/3",
+					"values": {
+						"pixelmatch": {
+							"value": 405.81387660980226,
+							"min": 396.7719168663025,
+							"max": 454.31112480163574
+						},
+						"blazediff-core-wasm": {
+							"value": 44.620535163879396,
+							"min": 44.27974987030029,
+							"max": 45.553916931152344
+						}
+					}
+				},
+				{
+					"fixture": "4k/3 (identical)",
+					"values": {
+						"pixelmatch": {
+							"value": 28.537576599121095,
+							"min": 26.46995782852173,
+							"max": 70.38500022888184
+						},
+						"blazediff-core-wasm": {
+							"value": 20.688976764678955,
+							"min": 20.533541679382324,
+							"max": 21.07020902633667
+						}
+					}
+				},
+				{
+					"fixture": "blazediff/1",
+					"values": {
+						"pixelmatch": {
+							"value": 1.2569016075134278,
+							"min": 1.222458839416504,
+							"max": 1.6836252212524414
+						},
+						"blazediff-core-wasm": {
+							"value": 0.2650800323486328,
+							"min": 0.23379135131835938,
+							"max": 0.8489580154418945
+						}
+					}
+				},
+				{
+					"fixture": "blazediff/1 (identical)",
+					"values": {
+						"pixelmatch": {
+							"value": 0.49524173736572263,
+							"min": 0.47579193115234375,
+							"max": 0.9204998016357422
+						},
+						"blazediff-core-wasm": {
+							"value": 0.22137653350830078,
+							"min": 0.2133326530456543,
+							"max": 0.33333301544189453
+						}
+					}
+				},
+				{
+					"fixture": "blazediff/2",
+					"values": {
+						"pixelmatch": {
+							"value": 1.6639898109436035,
+							"min": 1.6374998092651367,
+							"max": 2.0489583015441895
+						},
+						"blazediff-core-wasm": {
+							"value": 0.4969983673095703,
+							"min": 0.48287534713745117,
+							"max": 0.5787920951843262
+						}
+					}
+				},
+				{
+					"fixture": "blazediff/2 (identical)",
+					"values": {
+						"pixelmatch": {
+							"value": 0.416646842956543,
+							"min": 0.38358402252197266,
+							"max": 0.929084300994873
+						},
+						"blazediff-core-wasm": {
+							"value": 0.17428163528442384,
+							"min": 0.16804122924804688,
+							"max": 0.18420791625976562
+						}
+					}
+				},
+				{
+					"fixture": "blazediff/3",
+					"values": {
+						"pixelmatch": {
+							"value": 10.440736827850342,
+							"min": 10.23183298110962,
+							"max": 12.44937515258789
+						},
+						"blazediff-core-wasm": {
+							"value": 6.2459915733337406,
+							"min": 5.72016716003418,
+							"max": 11.770915985107422
+						}
+					}
+				},
+				{
+					"fixture": "blazediff/3 (identical)",
+					"values": {
+						"pixelmatch": {
+							"value": 1.9078083610534669,
+							"min": 1.8138747215270996,
+							"max": 3.8415842056274414
+						},
+						"blazediff-core-wasm": {
+							"value": 0.9350031661987305,
+							"min": 0.9000420570373535,
+							"max": 1.032249927520752
+						}
+					}
+				},
+				{
+					"fixture": "blazediff/4",
+					"values": {
+						"pixelmatch": {
+							"value": 12.316771564483643,
+							"min": 11.724792003631592,
+							"max": 22.34066677093506
+						},
+						"blazediff-core-wasm": {
+							"value": 4.377233276367187,
+							"min": 3.723750114440918,
+							"max": 12.950665950775146
+						}
+					}
+				},
+				{
+					"fixture": "blazediff/4 (identical)",
+					"values": {
+						"pixelmatch": {
+							"value": 4.529553413391113,
+							"min": 4.111792087554932,
+							"max": 12.791791915893555
+						},
+						"blazediff-core-wasm": {
+							"value": 2.4265999603271484,
+							"min": 2.392624855041504,
+							"max": 2.5152502059936523
+						}
+					}
+				},
+				{
+					"fixture": "page/1",
+					"values": {
+						"pixelmatch": {
+							"value": 150.76862674713135,
+							"min": 143.35141706466675,
+							"max": 240.06558275222778
+						},
+						"blazediff-core-wasm": {
+							"value": 50.482619972229,
+							"min": 49.64300012588501,
+							"max": 58.16170787811279
+						}
+					}
+				},
+				{
+					"fixture": "page/1 (identical)",
+					"values": {
+						"pixelmatch": {
+							"value": 67.52327671051026,
+							"min": 64.30883264541626,
+							"max": 114.62554121017456
+						},
+						"blazediff-core-wasm": {
+							"value": 63.81930675506592,
+							"min": 46.616416931152344,
+							"max": 429.1668748855591
+						}
+					}
+				},
+				{
+					"fixture": "page/2",
+					"values": {
+						"pixelmatch": {
+							"value": 519.0918434906006,
+							"min": 495.42516708374023,
+							"max": 630.3567500114441
+						},
+						"blazediff-core-wasm": {
+							"value": 75.10447158813477,
+							"min": 70.53674983978271,
+							"max": 121.25587511062622
+						}
+					}
+				},
+				{
+					"fixture": "page/2 (identical)",
+					"values": {
+						"pixelmatch": {
+							"value": 49.45823015213013,
+							"min": 46.070499897003174,
+							"max": 125.34383392333984
+						},
+						"blazediff-core-wasm": {
+							"value": 37.86386825561524,
+							"min": 34.17116689682007,
+							"max": 111.10337495803833
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/1",
+					"values": {
+						"pixelmatch": {
+							"value": 0.5840001106262207,
+							"min": 0.5701665878295898,
+							"max": 0.8042497634887695
+						},
+						"blazediff-core-wasm": {
+							"value": 0.11464160919189453,
+							"min": 0.10337495803833008,
+							"max": 0.27929162979125977
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/1 (identical)",
+					"values": {
+						"pixelmatch": {
+							"value": 0.1514866256713867,
+							"min": 0.13904142379760742,
+							"max": 0.30204200744628906
+						},
+						"blazediff-core-wasm": {
+							"value": 0.07092000961303711,
+							"min": 0.0626668930053711,
+							"max": 0.24854183197021484
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/2",
+					"values": {
+						"pixelmatch": {
+							"value": 2.2784131813049315,
+							"min": 2.095417022705078,
+							"max": 2.930291175842285
+						},
+						"blazediff-core-wasm": {
+							"value": 1.466791591644287,
+							"min": 1.341707706451416,
+							"max": 2.740208148956299
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/2 (identical)",
+					"values": {
+						"pixelmatch": {
+							"value": 0.07728490829467774,
+							"min": 0.0649576187133789,
+							"max": 0.20475006103515625
+						},
+						"blazediff-core-wasm": {
+							"value": 0.03177831649780274,
+							"min": 0.030666351318359375,
+							"max": 0.05091714859008789
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/3",
+					"values": {
+						"pixelmatch": {
+							"value": 0.38490997314453124,
+							"min": 0.3729591369628906,
+							"max": 0.5811252593994141
+						},
+						"blazediff-core-wasm": {
+							"value": 0.11845172882080078,
+							"min": 0.11395835876464844,
+							"max": 0.17616701126098633
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/3 (identical)",
+					"values": {
+						"pixelmatch": {
+							"value": 0.15335500717163086,
+							"min": 0.14041614532470703,
+							"max": 0.32045936584472656
+						},
+						"blazediff-core-wasm": {
+							"value": 0.07127328872680665,
+							"min": 0.060832977294921875,
+							"max": 0.2914581298828125
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/4",
+					"values": {
+						"pixelmatch": {
+							"value": 4.07259506225586,
+							"min": 4.021042346954346,
+							"max": 4.423959255218506
+						},
+						"blazediff-core-wasm": {
+							"value": 2.955804901123047,
+							"min": 2.8381662368774414,
+							"max": 3.2980408668518066
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/4 (identical)",
+					"values": {
+						"pixelmatch": {
+							"value": 0.20854658126831055,
+							"min": 0.17804193496704102,
+							"max": 0.5148749351501465
+						},
+						"blazediff-core-wasm": {
+							"value": 0.10161165237426757,
+							"min": 0.08629179000854492,
+							"max": 0.428041934967041
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/5",
+					"values": {
+						"pixelmatch": {
+							"value": 0.18806499481201172,
+							"min": 0.18112468719482422,
+							"max": 0.2964158058166504
+						},
+						"blazediff-core-wasm": {
+							"value": 0.061211776733398435,
+							"min": 0.05533409118652344,
+							"max": 0.17112493515014648
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/5 (identical)",
+					"values": {
+						"pixelmatch": {
+							"value": 0.07664485931396485,
+							"min": 0.06562519073486328,
+							"max": 0.18900012969970703
+						},
+						"blazediff-core-wasm": {
+							"value": 0.032560081481933595,
+							"min": 0.030749797821044922,
+							"max": 0.05179166793823242
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/6",
+					"values": {
+						"pixelmatch": {
+							"value": 0.7462233543395996,
+							"min": 0.7308340072631836,
+							"max": 0.9261660575866699
+						},
+						"blazediff-core-wasm": {
+							"value": 0.6520566749572754,
+							"min": 0.6323747634887695,
+							"max": 0.8236250877380371
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/6 (identical)",
+					"values": {
+						"pixelmatch": {
+							"value": 0.07522665023803711,
+							"min": 0.06291627883911133,
+							"max": 0.17287540435791016
+						},
+						"blazediff-core-wasm": {
+							"value": 0.031683406829833984,
+							"min": 0.030624866485595703,
+							"max": 0.05216693878173828
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/7",
+					"values": {
+						"pixelmatch": {
+							"value": 1.2344199562072753,
+							"min": 1.1912498474121094,
+							"max": 2.0683751106262207
+						},
+						"blazediff-core-wasm": {
+							"value": 0.5965649795532226,
+							"min": 0.5882911682128906,
+							"max": 0.6711249351501465
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/7 (identical)",
+					"values": {
+						"pixelmatch": {
+							"value": 0.2908050727844238,
+							"min": 0.27454090118408203,
+							"max": 0.5734591484069824
+						},
+						"blazediff-core-wasm": {
+							"value": 0.1283632469177246,
+							"min": 0.12404108047485352,
+							"max": 0.15616703033447266
+						}
+					}
+				},
+				{
+					"fixture": "same/1",
+					"values": {
+						"pixelmatch": {
+							"value": 2.1457683181762697,
+							"min": 1.9758329391479492,
+							"max": 4.496624946594238
+						},
+						"blazediff-core-wasm": {
+							"value": 1.160898265838623,
+							"min": 0.9421253204345703,
+							"max": 3.4640002250671387
+						}
+					}
+				},
+				{
+					"fixture": "same/1 (identical)",
+					"values": {
+						"pixelmatch": {
+							"value": 1.9841102027893067,
+							"min": 1.8912920951843262,
+							"max": 3.6325831413269043
+						},
+						"blazediff-core-wasm": {
+							"value": 0.9582549667358399,
+							"min": 0.9405422210693359,
+							"max": 1.024583339691162
+						}
+					}
+				}
+			]
+		}
+	]
+}

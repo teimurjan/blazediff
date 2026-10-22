@@ -4,3 +4,4 @@ __pycache__/
 .uv-cache/
 *.egg-info/
 .pytest_cache/
+*.json

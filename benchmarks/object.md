@@ -2,13 +2,11 @@
 
 Deep-diff comparisons for plain JS objects and arrays.
 
-![Object summary](./charts/object.png)
-
 ## Object (`@blazediff/object` vs `microdiff`)
 
 _10000 iterations (50 warmup)_
 
-> **~55%** performance improvement on average.
+> **~6.7%** performance improvement on average.
 
 <table>
   <thead>
@@ -22,60 +20,60 @@ _10000 iterations (50 warmup)_
   </thead>
   <tbody>
     <tr>
-      <td>complex object</td>
-      <td>0.0040ms</td>
+      <td>complex object - tag addition</td>
+      <td>0.0019ms</td>
       <td>0.0015ms</td>
-      <td>0.0025ms</td>
-      <td>63.0%</td>
+      <td>0.0005ms</td>
+      <td>23.7%</td>
     </tr>
     <tr>
-      <td>deep nested</td>
-      <td>0.0021ms</td>
-      <td>0.0010ms</td>
-      <td>0.0011ms</td>
-      <td>52.0%</td>
+      <td>deep nested - timeout change</td>
+      <td>0.0009ms</td>
+      <td>0.0009ms</td>
+      <td>-0.0001ms</td>
+      <td>-7.1%</td>
     </tr>
     <tr>
-      <td>large array</td>
-      <td>0.5859ms</td>
-      <td>0.2391ms</td>
-      <td>0.3468ms</td>
-      <td>59.2%</td>
+      <td>large array - single item change</td>
+      <td>0.2728ms</td>
+      <td>0.2359ms</td>
+      <td>0.0369ms</td>
+      <td>13.5%</td>
     </tr>
     <tr>
       <td>large identical arrays</td>
-      <td>0.0919ms</td>
-      <td>0.0031ms</td>
-      <td>0.0888ms</td>
-      <td>96.6%</td>
+      <td>0.0561ms</td>
+      <td>0.0036ms</td>
+      <td>0.0525ms</td>
+      <td>93.6%</td>
     </tr>
     <tr>
-      <td>large nested object</td>
-      <td>3.3318ms</td>
-      <td>1.4536ms</td>
-      <td>1.8783ms</td>
-      <td>56.4%</td>
+      <td>large nested object - multiple small changes</td>
+      <td>1.5876ms</td>
+      <td>1.5005ms</td>
+      <td>0.0871ms</td>
+      <td>5.5%</td>
     </tr>
     <tr>
-      <td>nested object</td>
-      <td>0.0031ms</td>
-      <td>0.0013ms</td>
-      <td>0.0019ms</td>
-      <td>59.3%</td>
-    </tr>
-    <tr>
-      <td>simple object</td>
-      <td>0.0003ms</td>
+      <td>nested object - theme change</td>
+      <td>0.0014ms</td>
+      <td>0.0012ms</td>
       <td>0.0002ms</td>
-      <td>0.0002ms</td>
-      <td>54.2%</td>
+      <td>13.8%</td>
     </tr>
     <tr>
-      <td>simple object</td>
-      <td>0.0003ms</td>
-      <td>0.0002ms</td>
+      <td>simple object - age change</td>
       <td>0.0001ms</td>
-      <td>41.3%</td>
+      <td>0.0002ms</td>
+      <td>-0.0001ms</td>
+      <td>-71.9%</td>
+    </tr>
+    <tr>
+      <td>simple object - identical</td>
+      <td>0.0001ms</td>
+      <td>0.0002ms</td>
+      <td>-0.0000ms</td>
+      <td>-17.8%</td>
     </tr>
   </tbody>
 </table>
