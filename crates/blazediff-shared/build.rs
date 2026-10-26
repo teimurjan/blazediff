@@ -5,10 +5,11 @@ use std::env;
 use std::path::PathBuf;
 
 fn main() {
-    // Skip vendored C compilation when the `codecs` feature is off (e.g. wasm
-    // builds). Only the PNG/JPEG decoders need C; `Image`, `ImageError` and
-    // `ImageFormat` are pure Rust.
-    if env::var("CARGO_FEATURE_CODECS").is_err() {
+    // Skip vendored C compilation when neither `spng` nor `codecs` is on (e.g.
+    // wasm builds). Only the PNG/JPEG decoders need C; `Image`, `ImageError`
+    // and `ImageFormat` are pure Rust. `spng` alone (the blazediff-png test
+    // oracle) needs libspng but not libjpeg-turbo.
+    if env::var("CARGO_FEATURE_SPNG").is_err() {
         return;
     }
 
@@ -55,7 +56,9 @@ fn main() {
     );
 
     // Build libjpeg-turbo from vendored source
-    build_libjpeg_turbo(static_crt);
+    if env::var("CARGO_FEATURE_CODECS").is_ok() {
+        build_libjpeg_turbo(static_crt);
+    }
 }
 
 fn build_miniz(static_crt: bool) -> PathBuf {

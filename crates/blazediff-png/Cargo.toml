@@ -37,6 +37,10 @@ libz-rs-sys = { version = "0.6", optional = true }
 zune-inflate = { version = "0.2", default-features = false, features = ["zlib", "std"], optional = true }
 # Compress (encode): image-rs fast PNG-tuned deflate (ultra-fast mode). Pure safe Rust.
 fdeflate = { version = "0.3", optional = true }
+# Band-parallel encode (feature "parallel"). libdeflate cannot end a stream on a
+# non-final block, so bands are compressed with zlib-rs sync flushes. No
+# c-allocator: stays C-free and wasm-compatible.
+zlib-rs = { version = "0.6", optional = true, default-features = false, features = ["std"] }
 
 [features]
 default = ["zlib-backend"]
@@ -44,6 +48,8 @@ default = ["zlib-backend"]
 zlib-backend = ["dep:libz-sys", "dep:libdeflater"]
 # Pure-Rust deflate for C-free native builds.
 rust-backend = ["dep:zune-inflate", "dep:fdeflate", "dep:crc32fast", "dep:simd-adler32"]
+# Opt-in multithreaded encode: `encode_parallel`.
+parallel = ["dep:zlib-rs"]
 # Internal-only: strict-window reference inflate for the differential fuzzer.
 # Requires the zlib backend.
 fuzzing = ["dep:libz-rs-sys", "zlib-backend"]
@@ -54,10 +60,15 @@ cc = "1"
 
 [dev-dependencies]
 png = "0.18.1"
+# Builds compressed test inputs only. A plain dev-dep, so it never enables
+# `zlib-backend` on a `rust-backend` test run.
+libdeflater = "1.25.2"
 # The spng reference oracle for differential tests (decode_spng_reference).
 # Path-only, so cargo strips it when publishing and the dev-dependency cycle
 # with blazediff-shared (which depends on this crate) never reaches crates.io.
-blazediff-shared = { path = "../blazediff-shared", features = ["fuzzing"] }
+# default-features off: `codecs` would pull this crate back in with its default
+# features and silently force `zlib-backend` onto `rust-backend` test runs.
+blazediff-shared = { path = "../blazediff-shared", default-features = false, features = ["fuzzing"] }
 criterion = { version = "0.5", default-features = false }
 libc = "0.2"
 
@@ -70,3 +81,9 @@ harness = false
 name = "stored_encode"
 path = "benchmarks/stored_encode.rs"
 harness = false
+
+[[bench]]
+name = "parallel_encode"
+path = "benchmarks/parallel_encode.rs"
+harness = false
+required-features = ["parallel"]

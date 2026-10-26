@@ -72,16 +72,19 @@ detection.
   TurboJPEG API.
 - **QOI** — [`qoi-rust`](https://crates.io/crates/qoi), pure Rust.
 
-Adler-32 verification stays on for PNG decode: these entry points read arbitrary, possibly
-untrusted files, so a corrupt zlib stream must error rather than hand back wrong pixels.
+PNG decode leaves spng's Adler-32 verification on, but spng stops inflating at the last scanline
+byte and never reads the trailer. A wrong Adler-32 therefore does not cause an error.
 
 ## Features
 
 - **`codecs`** (default) — everything above. Requires a C toolchain and cmake.
 - Without it the crate is pure Rust and compiles to `wasm32`, leaving only `Image`, `ImageError`
   and `ImageFormat`. That is what the wasm build of `blazediff` links.
+- **`spng`**: vendored libspng and its decode path only, without `blazediff-png` or
+  libjpeg-turbo. `codecs` turns it on.
 - **`fuzzing`** — internal only; exposes the spng reference decoder for `blazediff-png`'s
-  differential tests.
+  differential tests. It needs only `spng`, so `blazediff-png` can test its `rust-backend`
+  without this crate turning `zlib-backend` back on.
 
 ## Error messages are contract
 

@@ -1,120 +1,11 @@
-//! Differential tests against the spng reference decoder (the parity
-//! oracle): every input must produce identical accept/reject behavior, and
-//! byte-identical RGBA8 on accept.
+//! Differential tests against the spng reference decoder, sorted by the
+//! parity contract in `common`: valid inputs (Rule A), chunk-level
+//! malformations (Rule B) and deflate-stream malformations (Rule C).
+
+mod common;
 
 use blazediff_png::decode;
-
-fn oracle(bytes: &[u8]) -> Option<(u32, u32, Vec<u8>)> {
-    blazediff_shared::decode_spng_reference(bytes)
-        .ok()
-        .map(|img| (img.width, img.height, img.data))
-}
-
-fn snapshot(bytes: &[u8]) -> Option<(u32, u32, Vec<u8>)> {
-    decode(bytes).ok().map(|i| (i.width, i.height, i.data))
-}
-
-/// True if both decoders are self-consistent across heap perturbation for
-/// this input. classic zlib (which both link) tolerates too-far-back
-/// distances at scanline gate boundaries and then copies from uninitialized
-/// window memory, so a minority of corrupted streams have no deterministic
-/// decode — their accept/reject and bytes vary with heap state. Such inputs
-/// carry no behavioral contract; the differential fuzzer skips them via the
-/// strict-window classifier, and the test suite must too or it can flake.
-fn stable_under_heap_perturbation(
-    bytes: &[u8],
-    mine: &Option<(u32, u32, Vec<u8>)>,
-    spng: &Option<(u32, u32, Vec<u8>)>,
-) -> bool {
-    for pattern in [0xAAu8, 0x55] {
-        let scrub: Vec<Vec<u8>> = (0..8)
-            .map(|i| vec![pattern; (1 << 15) + (i << 9)])
-            .collect();
-        std::hint::black_box(&scrub);
-        drop(scrub);
-        if &snapshot(bytes) != mine || &oracle(bytes) != spng {
-            return false;
-        }
-    }
-    true
-}
-
-#[track_caller]
-fn assert_parity(bytes: &[u8], label: &str) {
-    let mine = snapshot(bytes);
-    let spng = oracle(bytes);
-    if mine == spng {
-        return;
-    }
-    // Disagreement: only a real divergence if it survives heap perturbation.
-    if !stable_under_heap_perturbation(bytes, &mine, &spng) {
-        return;
-    }
-    match (&mine, &spng) {
-        (Some((w, h, data)), Some((sw, sh, sdata))) => {
-            assert_eq!((w, h), (sw, sh), "{label}: dimension mismatch");
-            assert_eq!(data, sdata, "{label}: pixel mismatch");
-        }
-        (Some(_), None) => panic!("{label}: blazediff_png accepts, spng rejects"),
-        (None, Some(_)) => {
-            let e = decode(bytes).err();
-            panic!("{label}: blazediff_png rejects ({e:?}), spng accepts");
-        }
-        (None, None) => unreachable!("equal verdicts returned early"),
-    }
-}
-
-fn lcg_bytes(n: usize, mut seed: u32) -> Vec<u8> {
-    let mut v = Vec::with_capacity(n);
-    for _ in 0..n {
-        seed = seed.wrapping_mul(1664525).wrapping_add(1013904223);
-        v.push((seed >> 24) as u8);
-    }
-    v
-}
-
-/// Pack 8-bit-per-sample values into sub-byte rows (MSB-first, row padded).
-fn pack_rows(samples: &[u8], width: usize, height: usize, depth: u8) -> Vec<u8> {
-    let row_bytes = (width * depth as usize).div_ceil(8);
-    let mut out = vec![0u8; row_bytes * height];
-    for y in 0..height {
-        for x in 0..width {
-            let s = samples[y * width + x] & ((1u16 << depth) as u8).wrapping_sub(1);
-            let bit = x * depth as usize;
-            out[y * row_bytes + bit / 8] |= s << (8 - depth as usize - bit % 8);
-        }
-    }
-    out
-}
-
-#[allow(clippy::too_many_arguments)]
-fn png_crate_encode(
-    raw: &[u8],
-    width: u32,
-    height: u32,
-    color: png::ColorType,
-    depth: png::BitDepth,
-    filter: png::Filter,
-    palette: Option<&[u8]>,
-    trns: Option<&[u8]>,
-) -> Vec<u8> {
-    let mut out = Vec::new();
-    {
-        let mut enc = png::Encoder::new(&mut out, width, height);
-        enc.set_color(color);
-        enc.set_depth(depth);
-        enc.set_filter(filter);
-        if let Some(plte) = palette {
-            enc.set_palette(plte.to_vec());
-        }
-        if let Some(t) = trns {
-            enc.set_trns(t.to_vec());
-        }
-        let mut w = enc.write_header().unwrap();
-        w.write_image_data(raw).unwrap();
-    }
-    out
-}
+use common::*;
 
 const FILTERS: [png::Filter; 6] = [
     png::Filter::NoFilter,
@@ -156,15 +47,14 @@ fn matrix_parity_with_spng() {
             };
             for filter in FILTERS {
                 let label = format!("gray{depth}/{filter:?}/{w}x{h}");
-                let bytes =
-                    png_crate_encode(&raw, w, h, ColorType::Grayscale, bd, filter, None, None);
-                assert_parity(&bytes, &label);
+                let bytes = png_encode(&raw, w, h, ColorType::Grayscale, bd, filter, None, None);
+                assert_valid(&bytes, &label);
 
                 // tRNS gray key: a value guaranteed present and one out of
                 // range for the depth (never matches).
                 let present = (samples[0] & ((1u16 << depth.min(8)) as u8).wrapping_sub(1)) as u16;
                 for key in [present, 0x0100 | present] {
-                    let bytes = png_crate_encode(
+                    let bytes = png_encode(
                         &raw,
                         w,
                         h,
@@ -174,7 +64,13 @@ fn matrix_parity_with_spng() {
                         None,
                         Some(&key.to_be_bytes()),
                     );
-                    assert_parity(&bytes, &format!("{label}/trns={key:#x}"));
+                    let label = format!("{label}/trns={key:#x}");
+                    if depth < 16 && key >> depth != 0 {
+                        // See gray_trns_key_is_masked_to_bit_depth.
+                        assert_valid_unlike_spng(&bytes, &label);
+                    } else {
+                        assert_valid(&bytes, &label);
+                    }
                 }
             }
         }
@@ -189,8 +85,8 @@ fn matrix_parity_with_spng() {
             };
             for filter in FILTERS {
                 let label = format!("rgb{depth}/{filter:?}/{w}x{h}");
-                let bytes = png_crate_encode(&raw, w, h, ColorType::Rgb, bd, filter, None, None);
-                assert_parity(&bytes, &label);
+                let bytes = png_encode(&raw, w, h, ColorType::Rgb, bd, filter, None, None);
+                assert_valid(&bytes, &label);
 
                 // Key matching the first pixel; for 8-bit also a key with
                 // nonzero high bytes (spng masks with 0xFF).
@@ -202,7 +98,7 @@ fn matrix_parity_with_spng() {
                     key[3] = raw[1];
                     key[5] = raw[2];
                 }
-                let bytes = png_crate_encode(
+                let bytes = png_encode(
                     &bytes_to_owned(&raw),
                     w,
                     h,
@@ -212,13 +108,13 @@ fn matrix_parity_with_spng() {
                     None,
                     Some(&key),
                 );
-                assert_parity(&bytes, &format!("{label}/trns-match"));
+                assert_valid(&bytes, &format!("{label}/trns-match"));
 
                 if depth == 8 {
                     key[0] = 0xAB; // high byte ignored by spng's mask
                     let bytes =
-                        png_crate_encode(&raw, w, h, ColorType::Rgb, bd, filter, None, Some(&key));
-                    assert_parity(&bytes, &format!("{label}/trns-himask"));
+                        png_encode(&raw, w, h, ColorType::Rgb, bd, filter, None, Some(&key));
+                    assert_valid(&bytes, &format!("{label}/trns-himask"));
                 }
             }
         }
@@ -233,8 +129,8 @@ fn matrix_parity_with_spng() {
             for (color, ch) in [(ColorType::GrayscaleAlpha, 2usize), (ColorType::Rgba, 4)] {
                 let raw = lcg_bytes(n * ch * depth as usize / 8, seed ^ 3);
                 for filter in FILTERS {
-                    let bytes = png_crate_encode(&raw, w, h, color, bd, filter, None, None);
-                    assert_parity(&bytes, &format!("{color:?}{depth}/{filter:?}/{w}x{h}"));
+                    let bytes = png_encode(&raw, w, h, color, bd, filter, None, None);
+                    assert_valid(&bytes, &format!("{color:?}{depth}/{filter:?}/{w}x{h}"));
                 }
             }
         }
@@ -270,8 +166,8 @@ fn matrix_parity_with_spng() {
                     (&plte_full, Some(&trns[..])),
                 ] {
                     let bytes =
-                        png_crate_encode(&raw, w, h, ColorType::Indexed, bd, filter, Some(plte), t);
-                    assert_parity(&bytes, &format!("{label}/plte={}", plte.len() / 3));
+                        png_encode(&raw, w, h, ColorType::Indexed, bd, filter, Some(plte), t);
+                    assert_valid(&bytes, &format!("{label}/plte={}", plte.len() / 3));
                 }
             }
         }
@@ -301,7 +197,7 @@ fn sixteen_bit_reduction_is_truncation() {
     .iter()
     .flat_map(|&(hi, lo)| [hi, lo])
     .collect();
-    let bytes = png_crate_encode(
+    let bytes = png_encode(
         &raw,
         w,
         h,
@@ -311,11 +207,44 @@ fn sixteen_bit_reduction_is_truncation() {
         None,
         None,
     );
-    assert_parity(&bytes, "16->8 truncation");
+    assert_valid(&bytes, "16->8 truncation");
     let img = decode(&bytes).unwrap();
     assert_eq!(&img.data[..4], &[0x12, 0x12, 0x12, 0x12]);
     assert_eq!(&img.data[4..8], &[0xFF, 0xFF, 0xFF, 0x00]);
     assert_eq!(&img.data[8..12], &[0x80, 0x80, 0x80, 0x80]);
+}
+
+/// PNG 3rd edition 11.3.1.1: decoders must mask a gray tRNS key to the bit
+/// depth. spng compares it unmasked, so a key with bits above the depth never
+/// matches there. blazediff_png follows the spec (as image-rs does), so this
+/// is the one valid-input case where it differs from spng on purpose.
+#[test]
+fn gray_trns_key_is_masked_to_bit_depth() {
+    let bytes = png_encode(
+        &[0],
+        1,
+        1,
+        png::ColorType::Grayscale,
+        png::BitDepth::One,
+        png::Filter::NoFilter,
+        None,
+        Some(&0x0100u16.to_be_bytes()),
+    );
+    assert_valid_unlike_spng(&bytes, "gray1 key 0x0100");
+    assert_eq!(mine(&bytes).unwrap().2, [0, 0, 0, 0], "key masked to 0");
+    assert_eq!(spng(&bytes).unwrap().2, [0, 0, 0, 255], "spng: unmasked");
+
+    // The output-format converter masks too.
+    let ga8 = blazediff_png::decode_with(
+        &bytes,
+        &blazediff_png::DecodeOptions {
+            format: blazediff_png::DecodeFormat::Ga8,
+            apply_trns: true,
+            ..Default::default()
+        },
+    )
+    .unwrap();
+    assert_eq!(ga8.data, [0, 0], "Ga8 key masked to 0");
 }
 
 /// Palette indices beyond the PLTE decode as opaque black, exactly like
@@ -324,7 +253,7 @@ fn sixteen_bit_reduction_is_truncation() {
 fn palette_index_out_of_range_matches_spng() {
     let plte = [10u8, 20, 30, 40, 50, 60];
     let raw = [0u8, 1, 5, 1];
-    let bytes = png_crate_encode(
+    let bytes = png_encode(
         &raw,
         2,
         2,
@@ -334,14 +263,14 @@ fn palette_index_out_of_range_matches_spng() {
         Some(&plte),
         None,
     );
-    assert_parity(&bytes, "palette index out of range");
+    assert_chunk_parity(&bytes, "palette index out of range");
 }
 
 /// spng quirks around stream framing: these MUST be accepted.
 #[test]
 fn stream_framing_quirks_match_spng() {
     let raw = lcg_bytes(8 * 8 * 3, 17);
-    let valid = png_crate_encode(
+    let valid = png_encode(
         &raw,
         8,
         8,
@@ -351,32 +280,62 @@ fn stream_framing_quirks_match_spng() {
         None,
         None,
     );
-    assert_parity(&valid, "baseline");
+    assert_valid(&valid, "baseline");
 
     // Missing IEND: spng never reads past the IDAT run.
     let iend = find_chunk(&valid, b"IEND");
-    assert_parity(&valid[..iend], "missing IEND");
+    assert_chunk_parity(&valid[..iend], "missing IEND");
 
     // Trailing garbage after IEND.
     let mut garbage = valid.clone();
     garbage.extend_from_slice(b"\xde\xad\xbe\xef trailing nonsense");
-    assert_parity(&garbage, "trailing garbage");
+    assert_chunk_parity(&garbage, "trailing garbage");
 
     // Garbage *chunk* after the IDAT run (never read).
     let mut bad_tail = valid[..iend].to_vec();
     bad_tail.extend_from_slice(&[0, 0, 0, 4]); // length 4
     bad_tail.extend_from_slice(b"ZZZZ"); // unknown critical! still ignored
     bad_tail.extend_from_slice(&[1, 2, 3, 4, 0, 0, 0, 0]);
-    assert_parity(&bad_tail, "unread critical chunk after IDAT");
+    assert_chunk_parity(&bad_tail, "unread critical chunk after IDAT");
 
     // Corrupt every CRC: both decoders run with CRC checking off.
     let mut bad_crcs = valid.clone();
     corrupt_all_crcs(&mut bad_crcs);
-    assert_parity(&bad_crcs, "corrupt CRCs");
+    assert_chunk_parity(&bad_crcs, "corrupt CRCs");
 
     // Missing adler32 trailer: spng stops at the last scanline byte.
     let stripped = strip_zlib_trailer(&valid);
-    assert_parity(&stripped, "missing adler trailer");
+    assert_stream_contract(&stripped, "missing adler trailer");
+}
+
+/// A present but wrong Adler-32 trailer. spng stops inflating at the last
+/// scanline byte, so it never reads the trailer, even with Adler checks on
+/// (the RGBA8 oracle's ctx flags 0) and not only under IGNORE_ADLER32.
+#[test]
+fn wrong_adler_trailer_is_never_read() {
+    for (w, h) in [(1u32, 1u32), (8, 8), (64, 64)] {
+        let raw = lcg_bytes((w * h * 3) as usize, 7);
+        let valid = png_encode(
+            &raw,
+            w,
+            h,
+            png::ColorType::Rgb,
+            png::BitDepth::Eight,
+            png::Filter::Paeth,
+            None,
+            None,
+        );
+        let idat = find_chunk(&valid, b"IDAT");
+        let len = u32::from_be_bytes(valid[idat..idat + 4].try_into().unwrap()) as usize;
+        let mut bad = valid.clone();
+        bad[idat + 8 + len - 1] ^= 0xFF;
+        let label = format!("wrong adler {w}x{h}");
+        assert!(
+            spng(&bad).is_some(),
+            "{label}: spng must ignore the trailer"
+        );
+        assert_stream_contract(&bad, &label);
+    }
 }
 
 /// Hand-built zlib streams: no BFINAL flag, FDICT set, bad header checksum.
@@ -392,7 +351,7 @@ fn zlib_header_and_termination_quirks() {
     z.extend_from_slice(&2u16.to_le_bytes());
     z.extend_from_slice(&(!2u16).to_le_bytes());
     z.extend_from_slice(&scanlines);
-    assert_parity(&gray1x1_png(&z), "no BFINAL, no adler");
+    assert_stream_contract(&gray1x1_png(&z), "no BFINAL, no adler");
 
     // FDICT set: zlib demands a dictionary, spng errors.
     let mut zdict = vec![0x78, 0x20 | 0x01];
@@ -403,7 +362,7 @@ fn zlib_header_and_termination_quirks() {
     zdict.extend_from_slice(&2u16.to_le_bytes());
     zdict.extend_from_slice(&(!2u16).to_le_bytes());
     zdict.extend_from_slice(&scanlines);
-    assert_parity(&gray1x1_png(&zdict), "FDICT set");
+    assert_stream_contract(&gray1x1_png(&zdict), "FDICT set");
 
     // Bad zlib header checksum (CMF/FLG % 31 != 0).
     let mut zbad = vec![0x78, 0x02];
@@ -411,7 +370,7 @@ fn zlib_header_and_termination_quirks() {
     zbad.extend_from_slice(&2u16.to_le_bytes());
     zbad.extend_from_slice(&(!2u16).to_le_bytes());
     zbad.extend_from_slice(&scanlines);
-    assert_parity(&gray1x1_png(&zbad), "bad zlib header check");
+    assert_stream_contract(&gray1x1_png(&zbad), "bad zlib header check");
 
     // Non-deflate compression method (CM != 8).
     let mut zcm = vec![0x79, 0x00];
@@ -421,7 +380,7 @@ fn zlib_header_and_termination_quirks() {
     zcm.extend_from_slice(&2u16.to_le_bytes());
     zcm.extend_from_slice(&(!2u16).to_le_bytes());
     zcm.extend_from_slice(&scanlines);
-    assert_parity(&gray1x1_png(&zcm), "CM != 8");
+    assert_stream_contract(&gray1x1_png(&zcm), "CM != 8");
 
     // Stream with data continuing past the needed output: spng ignores it.
     let mut zlong = vec![0x78, 0x01];
@@ -433,7 +392,7 @@ fn zlib_header_and_termination_quirks() {
     zlong.extend_from_slice(&5u16.to_le_bytes());
     zlong.extend_from_slice(&(!5u16).to_le_bytes());
     zlong.extend_from_slice(b"extra");
-    assert_parity(&gray1x1_png(&zlong), "stream longer than needed");
+    assert_stream_contract(&gray1x1_png(&zlong), "stream longer than needed");
 
     // Stream too short: ends (BFINAL+adler) before all scanlines.
     let mut zshort = vec![0x78, 0x01];
@@ -442,14 +401,14 @@ fn zlib_header_and_termination_quirks() {
     zshort.extend_from_slice(&(!1u16).to_le_bytes());
     zshort.push(0); // only the filter byte, no sample
     zshort.extend_from_slice(&[0, 0, 0, 1]); // adler placeholder
-    assert_parity(&gray1x1_png(&zshort), "stream too short");
+    assert_stream_contract(&gray1x1_png(&zshort), "stream too short");
 }
 
 /// Chunk layout cases ported from fast_png_io plus spng's discard behavior.
 #[test]
 fn chunk_layout_parity() {
     let raw = lcg_bytes(4 * 3 * 3, 33);
-    let valid = png_crate_encode(
+    let valid = png_encode(
         &raw,
         4,
         3,
@@ -464,24 +423,24 @@ fn chunk_layout_parity() {
     let ihdr = valid[8..33].to_vec();
     let mut dup = valid.clone();
     dup.splice(33..33, ihdr);
-    assert_parity(&dup, "duplicate IHDR");
+    assert_chunk_parity(&dup, "duplicate IHDR");
 
     // Chunk before IHDR.
     let ancillary = [0u8, 0, 0, 0, b'a', b'b', b'c', b'd', 0, 0, 0, 0];
     let mut leading = valid.clone();
     leading.splice(8..8, ancillary);
-    assert_parity(&leading, "chunk before IHDR");
+    assert_chunk_parity(&leading, "chunk before IHDR");
 
     // Unknown critical chunk pre-IDAT: fatal.
     let critical = [0u8, 0, 0, 0, b'A', b'b', b'c', b'd', 0, 0, 0, 0];
     let mut crit = valid.clone();
     crit.splice(33..33, critical);
-    assert_parity(&crit, "unknown critical pre-IDAT");
+    assert_chunk_parity(&crit, "unknown critical pre-IDAT");
 
     // Unknown ancillary chunk pre-IDAT: skipped by both.
     let mut anc = valid.clone();
     anc.splice(33..33, ancillary);
-    assert_parity(&anc, "unknown ancillary pre-IDAT");
+    assert_chunk_parity(&anc, "unknown ancillary pre-IDAT");
 
     // IEND before IDAT: fatal.
     let iend_chunk = {
@@ -490,7 +449,7 @@ fn chunk_layout_parity() {
     };
     let mut early_iend = valid.clone();
     early_iend.splice(33..33, iend_chunk);
-    assert_parity(&early_iend, "IEND before IDAT");
+    assert_chunk_parity(&early_iend, "IEND before IDAT");
 
     // Ancillary standard chunks with wrong sizes: discarded, image decodes.
     for (ty, len) in [(b"gAMA", 3usize), (b"cHRM", 31), (b"pHYs", 8), (b"tIME", 6)] {
@@ -500,7 +459,7 @@ fn chunk_layout_parity() {
         chunk.extend_from_slice(&[0; 4]);
         let mut spliced = valid.clone();
         spliced.splice(33..33, chunk);
-        assert_parity(
+        assert_chunk_parity(
             &spliced,
             &format!("undersized {}", String::from_utf8_lossy(ty)),
         );
@@ -519,7 +478,7 @@ fn chunk_layout_parity() {
         33..33,
         gama.iter().chain(gama.iter()).copied().collect::<Vec<u8>>(),
     );
-    assert_parity(&dup_gama, "duplicate gAMA");
+    assert_chunk_parity(&dup_gama, "duplicate gAMA");
 
     // tEXt with valid and invalid keywords: accepted/discarded, decodes.
     for keyword in [&b"Comment"[..], &b" lead"[..], &b""[..]] {
@@ -532,7 +491,7 @@ fn chunk_layout_parity() {
         chunk.extend_from_slice(&[0; 4]);
         let mut spliced = valid.clone();
         spliced.splice(33..33, chunk);
-        assert_parity(&spliced, &format!("tEXt keyword {:?}", keyword));
+        assert_chunk_parity(&spliced, &format!("tEXt keyword {:?}", keyword));
     }
 }
 
@@ -545,7 +504,7 @@ fn plte_trns_ordering_parity() {
     for i in &mut indices {
         *i %= 8;
     }
-    let valid = png_crate_encode(
+    let valid = png_encode(
         &indices,
         3,
         3,
@@ -555,7 +514,7 @@ fn plte_trns_ordering_parity() {
         Some(&plte),
         Some(&trns),
     );
-    assert_parity(&valid, "indexed baseline");
+    assert_valid(&valid, "indexed baseline");
 
     // tRNS after IDAT: spng never reads it (trailing chunks ignored).
     let trns_pos = find_chunk(&valid, b"tRNS");
@@ -564,14 +523,14 @@ fn plte_trns_ordering_parity() {
     moved.drain(trns_pos..trns_pos + 12 + 4);
     let iend = find_chunk(&moved, b"IEND");
     moved.splice(iend..iend, trns_chunk.clone());
-    assert_parity(&moved, "tRNS after IDAT");
+    assert_chunk_parity(&moved, "tRNS after IDAT");
 
     // tRNS before PLTE (indexed): size error vs 0-entry palette, discarded.
     let plte_pos = find_chunk(&valid, b"PLTE");
     let mut swapped = valid.clone();
     swapped.drain(trns_pos..trns_pos + 12 + 4);
     swapped.splice(plte_pos..plte_pos, trns_chunk);
-    assert_parity(&swapped, "tRNS before PLTE");
+    assert_chunk_parity(&swapped, "tRNS before PLTE");
 
     // tRNS longer than palette: discarded (alpha 255), image decodes.
     let long_trns = lcg_bytes(9, 41);
@@ -585,7 +544,7 @@ fn plte_trns_ordering_parity() {
         c.extend_from_slice(&[0; 4]);
         c
     });
-    assert_parity(&long, "tRNS longer than palette");
+    assert_chunk_parity(&long, "tRNS longer than palette");
 
     // Duplicate PLTE: spng has no dup check; last wins.
     let plte2 = lcg_bytes(8 * 3, 43);
@@ -600,7 +559,7 @@ fn plte_trns_ordering_parity() {
     // Second PLTE must come before tRNS (PLTE-after-tRNS is fatal — also
     // covered below).
     dup_plte.splice(insert_at..insert_at, chunk.clone());
-    assert_parity(&dup_plte, "duplicate PLTE, last wins");
+    assert_chunk_parity(&dup_plte, "duplicate PLTE, last wins");
 
     // PLTE after tRNS: fatal ChunkPos for both.
     let mut plte_after_trns = valid.clone();
@@ -608,14 +567,14 @@ fn plte_trns_ordering_parity() {
     let tlen = u32::from_be_bytes(plte_after_trns[tp..tp + 4].try_into().unwrap()) as usize;
     let after_trns = tp + 12 + tlen;
     plte_after_trns.splice(after_trns..after_trns, chunk);
-    assert_parity(&plte_after_trns, "PLTE after tRNS");
+    assert_chunk_parity(&plte_after_trns, "PLTE after tRNS");
 
     // Indexed without PLTE at IDAT: fatal NoPlte.
     let mut no_plte = valid.clone();
     let pp = find_chunk(&no_plte, b"PLTE");
     let plen = u32::from_be_bytes(no_plte[pp..pp + 4].try_into().unwrap()) as usize;
     no_plte.drain(pp..pp + 12 + plen);
-    assert_parity(&no_plte, "indexed without PLTE");
+    assert_chunk_parity(&no_plte, "indexed without PLTE");
 }
 
 /// IDAT run handling: split chunks, zero-length chunks, interrupted runs,
@@ -623,7 +582,7 @@ fn plte_trns_ordering_parity() {
 #[test]
 fn idat_run_parity() {
     let raw = lcg_bytes(16 * 4 * 3, 51);
-    let valid = png_crate_encode(
+    let valid = png_encode(
         &raw,
         16,
         4,
@@ -665,9 +624,9 @@ fn idat_run_parity() {
         out
     };
 
-    assert_parity(&rebuild(&[1], None), "IDAT split at 1");
-    assert_parity(&rebuild(&[1, 2, 3], None), "IDAT split tiny");
-    assert_parity(&rebuild(&[payload.len() / 2], None), "IDAT split half");
+    assert_chunk_parity(&rebuild(&[1], None), "IDAT split at 1");
+    assert_chunk_parity(&rebuild(&[1, 2, 3], None), "IDAT split tiny");
+    assert_chunk_parity(&rebuild(&[payload.len() / 2], None), "IDAT split half");
 
     // Zero-length IDAT chunks inside the run are fine.
     let with_empty = {
@@ -678,12 +637,12 @@ fn idat_run_parity() {
         out.extend_from_slice(&valid[idat..]);
         out
     };
-    assert_parity(&with_empty, "leading zero-length IDAT");
+    assert_chunk_parity(&with_empty, "leading zero-length IDAT");
 
     // Ancillary chunk interrupting the run: stream incomplete at that point
     // -> EIDAT_TOO_SHORT for both.
     let anc = [0u8, 0, 0, 0, b'a', b'b', b'c', b'd', 0, 0, 0, 0];
-    assert_parity(&rebuild(&[1], Some(&anc)), "IDAT run interrupted");
+    assert_chunk_parity(&rebuild(&[1], Some(&anc)), "IDAT run interrupted");
 
     // Extra IDAT after the complete stream, contiguous: ignored by spng
     // (never read).
@@ -692,10 +651,10 @@ fn idat_run_parity() {
     extra.extend_from_slice(b"IDAT");
     extra.extend_from_slice(&[0xFF, 0xFF, 0, 0, 0, 0]);
     extra.extend_from_slice(&tail);
-    assert_parity(&extra, "extra IDAT after stream end");
+    assert_chunk_parity(&extra, "extra IDAT after stream end");
 
     // Truncations at every offset of a small file.
-    let small = png_crate_encode(
+    let small = png_encode(
         &lcg_bytes(3 * 2 * 3, 53),
         3,
         2,
@@ -706,7 +665,7 @@ fn idat_run_parity() {
         None,
     );
     for cut in 0..small.len() {
-        assert_parity(&small[..cut], &format!("truncated at {cut}"));
+        assert_chunk_parity(&small[..cut], &format!("truncated at {cut}"));
     }
 }
 
@@ -715,7 +674,7 @@ fn idat_run_parity() {
 #[test]
 fn limits_parity() {
     let raw = lcg_bytes(2 * 2 * 3, 61);
-    let valid = png_crate_encode(
+    let valid = png_encode(
         &raw,
         2,
         2,
@@ -741,7 +700,7 @@ fn limits_parity() {
             many.extend_from_slice(&text_chunk);
         }
         many.extend_from_slice(&valid[33..]);
-        assert_parity(&many, label);
+        assert_chunk_parity(&many, label);
     }
 
     // zTXt inflating past the 64 MB cache limit: fatal.
@@ -762,7 +721,7 @@ fn limits_parity() {
     let mut bombed = valid[..33].to_vec();
     bombed.extend_from_slice(&chunk);
     bombed.extend_from_slice(&valid[33..]);
-    assert_parity(&bombed, "zTXt zip bomb");
+    assert_chunk_parity(&bombed, "zTXt zip bomb");
 }
 
 /// Deterministic single-byte corruptions across a varied file (palette +
@@ -775,7 +734,7 @@ fn corruption_sweep_parity() {
     for i in &mut indices {
         *i %= 16;
     }
-    let mut valid = png_crate_encode(
+    let mut valid = png_encode(
         &indices,
         8,
         8,
@@ -795,7 +754,7 @@ fn corruption_sweep_parity() {
         c
     };
     valid.splice(33..33, text);
-    assert_parity(&valid, "sweep baseline");
+    assert_chunk_parity(&valid, "sweep baseline");
 
     let mut seed = 0xdead_beefu32;
     for _ in 0..2000 {
@@ -803,7 +762,7 @@ fn corruption_sweep_parity() {
         let pos = (seed as usize) % valid.len();
         let mut corrupted = valid.clone();
         corrupted[pos] ^= ((seed >> 16) as u8).max(1);
-        assert_parity(
+        assert_stream_contract(
             &corrupted,
             &format!("byte {pos} ^ {:#x}", (seed >> 16) as u8),
         );
@@ -830,8 +789,10 @@ fn lookahead_error_after_complete_output_is_rejected() {
     png.extend_from_slice(b"IDAT");
     png.extend_from_slice(&idat);
     png.extend_from_slice(&[0xff; 4]); // CRC (unchecked)
-    assert_parity(&png, "lookahead error after complete output");
-    assert!(decode(&png).is_err(), "must reject like zlib's parse-ahead");
+    assert_stream_contract(&png, "lookahead error after complete output");
+    if cfg!(feature = "zlib-backend") {
+        assert!(decode(&png).is_err(), "must reject like zlib's parse-ahead");
+    }
 }
 
 /// Found by fuzz_decode_differential (round 2, opposite direction): the
@@ -860,11 +821,13 @@ fn lookahead_stops_at_write_gate_like_zlib() {
     png.extend_from_slice(b"IDAT");
     png.extend_from_slice(&idat);
     // No CRC, no IEND: spng never reads past the consumed IDAT payload.
-    assert_parity(&png, "lookahead stops at write gate");
-    assert!(
-        decode(&png).is_ok(),
-        "must accept like zlib's write-gated lookahead"
-    );
+    assert_stream_contract(&png, "lookahead stops at write gate");
+    if cfg!(feature = "zlib-backend") {
+        assert!(
+            decode(&png).is_ok(),
+            "must accept like zlib's write-gated lookahead"
+        );
+    }
 }
 
 /// Found by fuzz_decode_differential (round 3): classic zlib's "invalid
@@ -885,7 +848,7 @@ fn gated_too_far_distance_matches_spng() {
             .join("tests/fixtures/gated-too-far-distance.png"),
     )
     .unwrap();
-    assert_parity(&bytes, "gated too-far distance");
+    assert_stream_contract(&bytes, "gated too-far distance");
 }
 
 /// Found by fuzz_decode_differential (round 5, pixel mismatch): spng's
@@ -900,7 +863,7 @@ fn duplicate_plte_leftover_entries_match_spng() {
         *i %= 4; // touch entries 0..3; entries 1..3 come from PLTE #1
     }
     let raw = pack_rows(&indices, 32, 32, 2);
-    let valid = png_crate_encode(
+    let valid = png_encode(
         &raw,
         32,
         32,
@@ -920,7 +883,7 @@ fn duplicate_plte_leftover_entries_match_spng() {
     let at = plte + 12 + plen;
     let mut dup = valid.clone();
     dup.splice(at..at, chunk);
-    assert_parity(&dup, "shorter duplicate PLTE keeps leftover tail entries");
+    assert_chunk_parity(&dup, "shorter duplicate PLTE keeps leftover tail entries");
 }
 
 /// Real VRT fixtures: every checked-in screenshot must decode byte-identically
@@ -944,23 +907,12 @@ fn vrt_fixtures_parity_with_spng() {
                 stack.push(path);
             } else if path.extension().is_some_and(|e| e == "png") {
                 let bytes = std::fs::read(&path).unwrap();
-                assert_parity(&bytes, &path.display().to_string());
+                assert_valid(&bytes, &path.display().to_string());
                 checked += 1;
             }
         }
     }
     assert!(checked > 0, "expected to find fixture PNGs under {root:?}");
-}
-
-fn find_chunk(bytes: &[u8], ty: &[u8; 4]) -> usize {
-    let mut pos = 8;
-    loop {
-        let len = u32::from_be_bytes(bytes[pos..pos + 4].try_into().unwrap()) as usize;
-        if &bytes[pos + 4..pos + 8] == ty {
-            return pos;
-        }
-        pos += 12 + len;
-    }
 }
 
 fn corrupt_all_crcs(bytes: &mut [u8]) {

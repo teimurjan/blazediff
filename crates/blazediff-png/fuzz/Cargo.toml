@@ -21,6 +21,7 @@ features = ["fuzzing"]
 # The spng oracle for the differential targets.
 [dependencies.blazediff-shared]
 path = "../../blazediff-shared"
+default-features = false
 features = ["fuzzing"]
 
 [lib]

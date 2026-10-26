@@ -2,7 +2,9 @@
 
 A from-scratch PNG codec in Rust: **single-threaded, SIMD-first, and byte-exact
 decode-compatible with [libspng](https://libspng.org)** — faster than spng on
-every fixture we test, for both decode and encode.
+every fixture we test, for both decode and encode. It differs from spng in one
+place, where spng breaks the PNG spec (see
+[Where blazediff-png differs from spng](#where-blazediff-png-differs-from-spng)).
 
 ## Why it exists
 
@@ -91,14 +93,92 @@ The inflate/compress seam is pluggable; everything else is pure Rust.
 | `zlib-backend` (default) | system zlib + libdeflate (C) | byte-exact spng parity, incl. accept/reject on malformed streams |
 | `rust-backend` | `zune-inflate` + `fdeflate` (pure Rust) | C-free native builds |
 
-`rust-backend` is correct for every well-formed PNG but **not** bug-compatible
-with spng on malformed/adversarial streams.
+## Parallel encode
+
+The `parallel` feature adds `encode_parallel(&image, &options, threads)`. It
+cuts the filtered stream into 256 KiB bands and compresses them on up to
+`threads` workers. Each band starts with the previous 32 KiB as its dictionary,
+so the bands lose almost nothing in compression. Every band except the last
+ends on a sync flush, and the bands join into one standard zlib stream.
+
+The output depends only on the image and the options. Any thread count gives
+the same bytes. The bands use zlib-rs, because libdeflate cannot end a band on
+a non-final block. So the bytes differ from `encode`, but the pixels are the
+same. Level 0 gives exactly the `encode` output. Levels 10 to 12 map to 9.
+
+Measured on an Apple M1 Max with 8 threads (`benchmarks/parallel_encode.rs`):
+
+| Fixture | Level | `encode` | `encode_parallel` | Size vs `encode` |
+| --- | --- | --- | --- | --- |
+| 4K photo, 5600x3200 | 4 | 574 ms | 144 ms (4.0x) | -0.6% |
+| 4K photo | 6 | 885 ms | 234 ms (3.8x) | -0.2% |
+| page screenshot, 3598x16384 | 4 | 486 ms | 205 ms (2.4x) | +2.2% |
+| page screenshot | 6 | 749 ms | 215 ms (3.5x) | +3.5% |
+
+The size difference comes from zlib-rs against libdeflate, not from the bands:
+a single band gives the same sizes. The screenshot stops scaling at about
+200 ms. The probable limit is the work that still runs on one thread before
+compression: color-mode detection, filtering and stream assembly. This is not
+profiled yet. With one thread, `encode_parallel` is slower than `encode` on
+photos (658 ms against 574 ms at level 4). Use `encode` unless you have spare
+cores.
+
+## Parity contract
+
+The test suite holds every backend to three rules:
+
+| Rule | Input | Backends | Requirement |
+| --- | --- | --- | --- |
+| A | valid PNG | all | same pixels as spng (RGBA8 and every `SPNG_FMT_*`) and as image-rs `png` (RGBA8), except where spng breaks the spec (below) |
+| B | malformed chunks (signature, IHDR, CRC, ancillary, limits, IDAT layout) | all | same accept/reject and pixels as spng |
+| C | malformed deflate stream | `zlib-backend` | same accept/reject and pixels as spng |
+| C | malformed deflate stream | `rust-backend` | no panic; when both decoders accept, same pixels |
+
+`tests/spec.rs` adds checks with no decoder oracle: filter, Adam7, sample
+scaling and tRNS rules, with expected values taken from the PNG spec.
+
+## Where blazediff-png differs from spng
+
+Gray tRNS key. A gray tRNS key is the one gray value that decodes as
+transparent. PNG 3rd edition (11.3.1.1) says that decoders must mask the key to
+the image bit depth before they compare it. spng compares the full 16-bit
+value, so a key with bits set above the bit depth never matches, and those
+pixels stay opaque. blazediff-png masks the key, as image-rs does, so those
+pixels are transparent. Only files from encoders that do not zero the unused
+bits are affected. With `BLAZEDIFF_PNG_ENABLED` set, these files decode
+differently from the spng path. The `gray_trns_key_is_masked_to_bit_depth`
+test pins this.
+
+Adler-32 trailer. The Adler-32 trailer is the checksum at the end of the zlib
+stream. Neither decoder reads it. Both stop inflating at the last scanline
+byte, so a wrong or missing trailer is not an error. spng behaves this way even
+with Adler-32 checks enabled. blazediff-png keeps this behavior because a check
+makes every decode read past the image data, and it rejects files that spng
+accepts. The `wrong_adler_trailer_is_never_read` test pins this.
+
+`rust-backend` on malformed deflate streams. `rust-backend` inflates with
+`zune-inflate`, not the zlib that spng links. On some malformed streams it
+rejects a file that spng accepts, for example a stream with no final-block bit
+or with invalid data after the last needed byte. Every valid PNG decodes the
+same on both backends (Rule A). This matters for the wasm build, which can use
+only `rust-backend`: a browser can reject a damaged file that the native build
+accepts. Rule C records what the suite allows.
+
+Run the suite on each backend:
+
+```sh
+cargo test -p blazediff-png --release
+cargo test -p blazediff-png --release --no-default-features --features rust-backend
+```
+
+Use `-p blazediff-png`. A workspace-wide `cargo test` unifies features across
+members, so it turns `zlib-backend` back on.
 
 ## Verified
 
 | Layer | Result |
 | --- | --- |
-| Exhaustive matrix | every {depth × color × interlace × filter × tRNS} at edge sizes, byte-parity with spng |
+| Exhaustive matrix | every {depth × color × interlace × filter × tRNS} at edge sizes, byte-parity with spng (except spec-masked gray tRNS keys) |
 | PngSuite conformance | 176/176 — 164 decode at parity, 12 corrupt files reject in lockstep |
 | Real-image corpus | Urban100 · BSD100 · Set14 · Set5 + PngSuite (~395 files) decode byte-identically to spng at RGBA8 and every `SPNG_FMT_*`; every accepted image encode-round-trips |
 | Differential fuzzing | 40M+ execs vs spng, **0 unresolved divergences** |
@@ -111,11 +191,12 @@ public-dataset download and an env var:
 ```sh
 crates/blazediff-png/scripts/fetch-corpus.sh
 BLAZEDIFF_PNG_CORPUS=crates/blazediff-png/.corpus \
-  cargo test -p blazediff-png --release --test corpus_differential -- --nocapture
+  cargo test -p blazediff-png --release --test corpus_differential -- --ignored --nocapture
 ```
 
-It's a no-op when `BLAZEDIFF_PNG_CORPUS` is unset, so the default `cargo test`
-needs no network. CI runs it via the `Benchmark PNG` workflow.
+The corpus tests are `#[ignore]`d, so the default `cargo test` needs no
+network. With `--ignored` they fail if `BLAZEDIFF_PNG_CORPUS` is unset. CI runs
+them through the `Benchmark PNG` workflow.
 
 ## Status
 
