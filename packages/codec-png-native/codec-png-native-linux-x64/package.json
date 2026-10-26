@@ -1,6 +1,6 @@
 {
 	"name": "@blazediff/codec-png-native-linux-x64",
-	"version": "0.0.0",
+	"version": "6.1.0",
 	"description": "blazediff-png N-API binary for Linux x64",
 	"main": "blazediff_png.node",
 	"os": [

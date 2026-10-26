@@ -1,6 +1,6 @@
 {
 	"name": "@blazediff/codec-png-native",
-	"version": "0.0.0",
+	"version": "6.1.0",
 	"description": "Native Rust PNG codec for the blazediff library: SIMD decode and libdeflate encode through N-API",
 	"private": false,
 	"publishConfig": {
@@ -27,12 +27,12 @@
 		"test:watch": "vitest"
 	},
 	"optionalDependencies": {
-		"@blazediff/codec-png-native-darwin-arm64": "0.0.0",
-		"@blazediff/codec-png-native-darwin-x64": "0.0.0",
-		"@blazediff/codec-png-native-linux-arm64": "0.0.0",
-		"@blazediff/codec-png-native-linux-x64": "0.0.0",
-		"@blazediff/codec-png-native-win32-arm64": "0.0.0",
-		"@blazediff/codec-png-native-win32-x64": "0.0.0"
+		"@blazediff/codec-png-native-darwin-arm64": "6.1.0",
+		"@blazediff/codec-png-native-darwin-x64": "6.1.0",
+		"@blazediff/codec-png-native-linux-arm64": "6.1.0",
+		"@blazediff/codec-png-native-linux-x64": "6.1.0",
+		"@blazediff/codec-png-native-win32-arm64": "6.1.0",
+		"@blazediff/codec-png-native-win32-x64": "6.1.0"
 	},
 	"keywords": [
 		"png",

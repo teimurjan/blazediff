@@ -1,6 +1,6 @@
 {
 	"name": "@blazediff/codec-png-native-darwin-x64",
-	"version": "0.0.0",
+	"version": "6.1.0",
 	"description": "blazediff-png N-API binary for macOS x64 (Intel)",
 	"main": "blazediff_png.node",
 	"os": [

@@ -1,6 +1,6 @@
 {
 	"name": "@blazediff/codec-png-wasm",
-	"version": "0.0.0",
+	"version": "6.1.0",
 	"description": "WebAssembly PNG codec for the blazediff library, for browsers, edge runtimes and Node.js. Same codec as @blazediff/codec-png-native.",
 	"private": false,
 	"publishConfig": {
