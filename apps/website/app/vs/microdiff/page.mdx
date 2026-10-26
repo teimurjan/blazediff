@@ -1,0 +1,66 @@
+---
+title: BlazeDiff vs microdiff - Fast JavaScript Object Diff
+description: "@blazediff/object vs microdiff benchmarked on 8 object shapes. The same flat list of CREATE, REMOVE and CHANGE entries with paths, with cycle detection and a stable result shape."
+---
+
+# BlazeDiff vs microdiff
+
+import BenchmarkCharts, {
+  FasterThan,
+} from "../../../components/benchmarks/benchmark-charts";
+
+**`@blazediff/object` is <FasterThan bench="object" ours="blazediff" theirs="microdiff" />
+than microdiff over our 8 object shapes, and it returns the same kind of
+result: a flat list of changes, each with a path.** Most of that gain comes from
+large arrays, identical ones above all. On small, flat objects microdiff is
+faster, so check the per-fixture table for the shapes you diff.
+
+microdiff is a tiny, zero-dependency object diff that runs everywhere. BlazeDiff
+started from the same idea and adds a fixed result shape. Every entry has `type`,
+`path`, `value` and `oldValue`, which keeps the V8 object shape stable in hot
+loops.
+
+## At a glance
+
+|                   | microdiff                                   | BlazeDiff (`@blazediff/object`)                 |
+| ----------------- | ------------------------------------------- | ----------------------------------------------- |
+| License           | MIT                                         | MIT                                             |
+| Size              | Under 1 KB                                  | Zero dependencies                               |
+| Runtimes          | Node, Deno, Bun, browsers                   | Node, Deno, Bun, browsers                       |
+| Change types      | Strings: `"CREATE"`, `"REMOVE"`, `"CHANGE"` | Numbers: `0` create, `1` remove, `2` change      |
+| Entry shape       | `value` and `oldValue` only when relevant   | Always `type`, `path`, `value`, `oldValue`       |
+| Cycle handling    | `cyclesFix` (default on)                    | `detectCycles` (default on)                     |
+| Rich types        | Date, RegExp, boxed primitives, Temporal    | Date, RegExp                                    |
+
+## Benchmarks
+
+<BenchmarkCharts cards={["object"]} />
+
+## Switching
+
+The call is the same. Compare `type` against numbers instead of strings.
+
+```ts
+// Before
+import diff from "microdiff";
+const changes = diff(oldObj, newObj, { cyclesFix: false });
+const added = changes.filter((c) => c.type === "CREATE");
+
+// After
+import diff from "@blazediff/object";
+const changes = diff(oldObj, newObj, { detectCycles: false });
+const added = changes.filter((c) => c.type === 0);
+```
+
+## When to keep microdiff
+
+- Bundle size is your first constraint.
+- You mostly diff small, flat objects, where microdiff wins in our runs.
+- You diff Temporal values.
+- Your code reads the string change types and you do not want to touch it.
+
+## Related
+
+- [Object comparison](/docs/object-comparison)
+- [`@blazediff/object` API](/apis/object)
+- [All benchmarks](/benchmarks#object)

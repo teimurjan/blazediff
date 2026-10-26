@@ -2995,7 +2995,7 @@ Compare two images with a draggable divider.
 
 ### `mountTwoUp(target, options)`
 
-Two images side by side, with dimension-change detection.
+Two images side by side, with dimension-change detection. When `zoom` is set, hovering either image shows a popup with both images magnified at the same pixel.
 
 | Option                    | Type                                              | Default | Description                       |
 | ------------------------- | ------------------------------------------------- | ------- | --------------------------------- |
@@ -3008,6 +3008,10 @@ Two images side by side, with dimension-change detection.
 | `panelClassName`          | `string`                                          | -       | Class for each panel              |
 | `imageClassName`          | `string`                                          | -       | Class for images                  |
 | `dimensionInfoClassName`  | `string`                                          | -       | Class for the dimension info text |
+| `zoom`                    | `number`                                          | -       | Magnification of the hover zoom popup. The popup is off when unset. |
+| `zoomSize`                | `number`                                          | `160`   | Side of each square zoom pane in px |
+| `zoomClassName`           | `string`                                          | -       | Class for the zoom popup          |
+| `zoomPanelClassName`      | `string`                                          | -       | Class for each zoom pane          |
 | `onImagesLoaded`          | `(detail) => void`                                | -       | `{ image1, image2 }` dimensions   |
 | `onLoadError`             | `(error: unknown) => void`                        | -       | Called when loading fails         |
 
@@ -3078,10 +3082,10 @@ engine.destroy();
 | --------------------------------------------- | --------------------------------------------------------------------- | -------------------------------- |
 | `createDifferenceEngine(config)`              | `{ status, diff?: { output, width, height, diffCount, totalPixels, percentage }, error? }` | –        |
 | `createSwipeEngine(initialPosition = 50)`     | `{ position, isDragging }`                                            | `start`, `move`, `end`, `setPosition` |
-| `createTwoUpEngine(config)`                   | `{ status, dims1, dims2, dimensionLabel, changed, error }`            | –                                |
+| `createTwoUpEngine(config)`                   | `{ status, dims1, dims2, dimensionLabel, changed, error, zoom? }`     | `hover`, `leave`                 |
 | `createOnionSkinEngine(config, opacity = 50)` | `{ status, opacity, dims1, dims2, error }`                            | `setOpacity`                     |
 
-Also exported: `formatDimensionLabel`, `normalizedOpacity`, `loadImageElement`, `getImageData`, `createStore`.
+Also exported: `formatDimensionLabel`, `normalizedOpacity`, `loadImageElement`, `getImageData`, `createStore`, and for the two-up zoom `toTwoUpHover`, `zoomPaneStyle` and `placeZoomPopup`. `zoom` holds the hovered `point` in natural image pixels and the pointer `anchor` in client pixels.
 
 The engine uses browser APIs (`Image`, a throwaway `<canvas>` for pixel extraction) but never touches the surface you render to — that boundary is what keeps it framework-agnostic.
 
@@ -3152,7 +3156,7 @@ Interactive swipe component for comparing two images with a draggable divider.
 
 ### `<TwoUpMode />`
 
-Side-by-side comparison component with dimension information.
+Side-by-side comparison component with dimension information. When `zoom` is set, hovering either image shows a popup with both images magnified at the same pixel.
 
 #### Props
 
@@ -3166,6 +3170,10 @@ Side-by-side comparison component with dimension information.
 | `panelClassName`          | `string`                                                    | -       | CSS class for each panel          |
 | `imageClassName`          | `string`                                                    | -       | CSS class for images              |
 | `dimensionInfoClassName`  | `string`                                                    | -       | CSS class for dimension info text |
+| `zoom`                    | `number`                                                    | -       | Magnification of the hover zoom popup. The popup is off when unset. |
+| `zoomSize`                | `number`                                                    | `160`   | Side of each square zoom pane in px |
+| `zoomClassName`           | `string`                                                    | -       | CSS class for the zoom popup      |
+| `zoomPanelClassName`      | `string`                                                    | -       | CSS class for each zoom pane      |
 | `onImagesLoaded`          | `(detail: {image1: {width, height}, image2: {width, height}}) => void` | - | Callback when images load |
 | `onLoadError`             | `(error: unknown) => void`                                 | -       | Callback when loading fails       |
 
@@ -3756,7 +3764,7 @@ The per-codec modules (`png_io`, `jpeg_io`, `qoi_io`) are public too, for caller
 
 # blazediff-png
 
-A from-scratch PNG codec in Rust: **single-threaded, SIMD-first, with byte-exact decode parity to [libspng](https://libspng.org)** — and faster than spng on every fixture we test, for both encode and decode. It powers PNG I/O in the BlazeDiff Rust crate.
+A from-scratch PNG codec in Rust: **single-threaded, SIMD-first, with byte-exact decode parity to [libspng](https://libspng.org)**, and faster than spng on every fixture we test, for both encode and decode. It powers PNG I/O in the BlazeDiff Rust crate. It differs from spng in one place, where spng breaks the PNG spec (see [Where blazediff-png differs from spng](#where-blazediff-png-differs-from-spng)).
 
 [View per-fixture benchmarks](https://github.com/teimurjan/blazediff/tree/main/crates/blazediff-png-benchmark)
 
@@ -3790,7 +3798,7 @@ Versus spng over the BlazeDiff corpus (34 PNGs, 342.7 MPx, up to 5600×3200), si
 | Encode, stored (level 0) | **~2.2×** | uncompressed deflate blocks, copy- and allocation-light pipeline |
 | Encode, compressed | **~3.8×** | libdeflate level 6 vs spng zlib 4, at ~94% of spng's file size |
 
-The wins come from doing less, not from threads: a whole-buffer inflate instead of spng's per-scanline gating, in-place sequential defiltering, autovectorizable row expansion, and hand-written NEON kernels for the encode SAD/filter hot path. [See the full per-fixture benchmarks →](/benchmarks/png-codec)
+The wins come from doing less, not from threads: a whole-buffer inflate instead of spng's per-scanline gating, in-place sequential defiltering, autovectorizable row expansion, and hand-written NEON kernels for the encode SAD/filter hot path. [See the full per-fixture benchmarks →](/benchmarks#png-codec)
 
 ## Library Usage
 
@@ -3850,7 +3858,32 @@ The inflate/compress seam is pluggable; everything else is pure Rust.
 | `zlib-backend` (default) | system zlib + libdeflate (C) | byte-exact spng parity, incl. accept/reject on malformed streams |
 | `rust-backend` | `zune-inflate` + `fdeflate` (pure Rust) | C-free native builds |
 
-The `rust-backend` is correct for every well-formed PNG but is **not** bug-compatible with spng on malformed/adversarial streams; spng's edge-case accept/reject parity is a `zlib-backend`-only guarantee.
+## Where blazediff-png differs from spng
+
+Gray tRNS key. A gray tRNS key is the one gray value that decodes as
+transparent. PNG 3rd edition (11.3.1.1) says that decoders must mask the key to
+the image bit depth before they compare it. spng compares the full 16-bit
+value, so a key with bits set above the bit depth never matches, and those
+pixels stay opaque. blazediff-png masks the key, as image-rs does, so those
+pixels are transparent. Only files from encoders that do not zero the unused
+bits are affected. With `BLAZEDIFF_PNG_ENABLED` set, these files decode
+differently from the spng path. The `gray_trns_key_is_masked_to_bit_depth`
+test pins this.
+
+Adler-32 trailer. The Adler-32 trailer is the checksum at the end of the zlib
+stream. Neither decoder reads it. Both stop inflating at the last scanline
+byte, so a wrong or missing trailer is not an error. spng behaves this way even
+with Adler-32 checks enabled. blazediff-png keeps this behavior because a check
+makes every decode read past the image data, and it rejects files that spng
+accepts. The `wrong_adler_trailer_is_never_read` test pins this.
+
+`rust-backend` on malformed deflate streams. `rust-backend` inflates with
+`zune-inflate`, not the zlib that spng links. On some malformed streams it
+rejects a file that spng accepts, for example a stream with no final-block bit
+or with invalid data after the last needed byte. Every valid PNG decodes the
+same on both backends. This matters for the wasm build, which can use
+only `rust-backend`: a browser can reject a damaged file that the native build
+accepts. spng accept/reject parity on malformed streams is a `zlib-backend`-only guarantee.
 
 ## Parity by identity
 
@@ -3862,7 +3895,7 @@ So for the malformed-input edge cases the decoder **links the same system zlib s
 
 | Layer | Result |
 | --- | --- |
-| Exhaustive matrix | every `{depth × color × interlace × filter × tRNS}` at edge sizes, byte-parity with spng |
+| Exhaustive matrix | every `{depth × color × interlace × filter × tRNS}` at edge sizes, byte-parity with spng (except spec-masked gray tRNS keys) |
 | PngSuite conformance | 176/176 — 164 decode at parity, 12 corrupt files reject in lockstep |
 | Real-image corpus | Urban100 · BSD100 · Set14 · Set5 + PngSuite (~395 files) decode byte-identically to spng at RGBA8 and every `SPNG_FMT_*`; every accepted image encode-round-trips — run by the `Benchmark PNG` workflow (`corpus_differential`) |
 | Differential fuzzing | 40M+ execs vs spng, **0 unresolved divergences** |
@@ -5472,6 +5505,141 @@ What the numbers say, plainly:
 
 ---
 
+# Object Comparison
+
+**`@blazediff/object` takes two JavaScript values and returns a flat list of what
+changed, with the path to each change.** It handles nested objects, arrays, dates,
+regexes and circular references, and it is about 55% faster than
+[microdiff](https://github.com/AsyncBanana/microdiff) across the benchmark
+fixtures.
+
+This is the one part of BlazeDiff that has nothing to do with images. It shares
+the name and the performance work, not the pipeline. Use it for audit logs,
+undo stacks, state-change assertions in tests, or anywhere you would otherwise
+`JSON.stringify` two objects and compare strings.
+
+## Installation
+
+```bash
+npm install @blazediff/object
+```
+
+## What you get back
+
+One entry per change, always the same shape, so V8 keeps a single hidden class for
+the whole array:
+
+```ts
+interface Difference {
+  type: 0 | 1 | 2;            // CREATE | REMOVE | CHANGE
+  path: (string | number)[];  // e.g. ["user", "settings", "theme"]
+  value: unknown;             // the new value
+  oldValue: unknown;          // the previous value
+}
+```
+
+Types are numbers rather than strings on purpose: they get compared in the hot
+loop. `0` is CREATE, `1` is REMOVE, `2` is CHANGE.
+
+## Examples
+
+```ts
+import diff from "@blazediff/object";
+
+const oldObj = { a: 1, b: 2, c: 3 };
+const newObj = { a: 1, b: 20, d: 4 };
+
+// b changed, c was removed, d was created. a is not reported.
+const changes = diff(oldObj, newObj);
+```
+
+```ts
+import diff from "@blazediff/object";
+
+const oldObj = {
+  user: {
+    name: "John",
+    email: "john@old.com",
+    settings: {
+      theme: "dark",
+      notifications: true
+    }
+  }
+};
+
+const newObj = {
+  user: {
+    name: "John Doe",
+    email: "john@new.com",
+    settings: {
+      theme: "light",
+      notifications: true,
+      language: "en"
+    }
+  }
+};
+
+// Paths go all the way down, e.g. ["user", "settings", "theme"].
+const changes = diff(oldObj, newObj);
+```
+
+```ts
+import diff from "@blazediff/object";
+
+const oldObj = {
+  items: [
+    { id: 1, name: "Item 1", value: 100 },
+    { id: 2, name: "Item 2", value: 200 }
+  ],
+  total: 300
+};
+
+const newObj = {
+  items: [
+    { id: 1, name: "Item 1", value: 150 },
+    { id: 2, name: "Item 2", value: 200 },
+    { id: 3, name: "Item 3", value: 50 }
+  ],
+  total: 400
+};
+
+// Arrays are compared by index, so a prepend reports every element as changed.
+const changes = diff(oldObj, newObj);
+```
+
+## Things worth knowing
+
+- **Arrays are compared by index, not by identity.** Inserting at the front
+  reports every following element as a CHANGE. If you need move detection, key the
+  array yourself before diffing.
+- **Cycles are handled**, and the check costs something. If you know your input is
+  a tree, pass `{ detectCycles: false }`.
+- **Unchanged values are not reported.** An empty array means the two inputs are
+  structurally equal.
+
+## What it costs
+
+Against microdiff, M1 Max, Node 22, 10,000 iterations:
+
+| Fixture                | microdiff | `@blazediff/object` |
+| ---------------------- | --------- | ------------------- |
+| Large nested object    | 3.3318ms  | 1.4536ms            |
+| Large array            | 0.5859ms  | 0.2391ms            |
+| Large identical arrays | 0.0919ms  | 0.0031ms            |
+| Simple object          | 0.0003ms  | 0.0002ms            |
+
+About 55% faster on average, and ~97% faster when the two inputs are identical,
+which is the common case when you are diffing state on every update.
+[Full table](/benchmarks/object).
+
+## Next
+
+- Every option and the full `Difference` type:
+  [`@blazediff/object` reference](/apis/object)
+- Comparing images instead: [Introduction](/docs)
+
+---
+
 # Agentic Visual Testing: Setting Up
 
 **`@blazediff/agent` screenshots your routes, diffs them against baselines
@@ -5896,6 +6064,7 @@ npm install @blazediff/react
     ```tsx
 
     // Side by side, with a label when the two images differ in size.
+    // zoom={3} shows both images magnified under the pointer.
 
     ```
 
@@ -5955,9 +6124,11 @@ npm install @blazediff/ui
     ```ts
 
     // Side by side, with a label when the two images differ in size.
+    // zoom: 3 shows both images magnified under the pointer.
     const handle = mountTwoUp(document.getElementById("app"), {
       src1: "before.png",
       src2: "after.png",
+      zoom: 3,
       onImagesLoaded: ({ image1, image2 }) => console.log(image1, image2),
     });
     ```
@@ -5989,141 +6160,6 @@ npm install @blazediff/ui
 
 - Using React? [The React components](/docs/ui-components/react) wrap these
 - Every option and the engine API: [`@blazediff/ui` reference](/apis/ui)
-
----
-
-# Object Comparison
-
-**`@blazediff/object` takes two JavaScript values and returns a flat list of what
-changed, with the path to each change.** It handles nested objects, arrays, dates,
-regexes and circular references, and it is about 55% faster than
-[microdiff](https://github.com/AsyncBanana/microdiff) across the benchmark
-fixtures.
-
-This is the one part of BlazeDiff that has nothing to do with images. It shares
-the name and the performance work, not the pipeline. Use it for audit logs,
-undo stacks, state-change assertions in tests, or anywhere you would otherwise
-`JSON.stringify` two objects and compare strings.
-
-## Installation
-
-```bash
-npm install @blazediff/object
-```
-
-## What you get back
-
-One entry per change, always the same shape, so V8 keeps a single hidden class for
-the whole array:
-
-```ts
-interface Difference {
-  type: 0 | 1 | 2;            // CREATE | REMOVE | CHANGE
-  path: (string | number)[];  // e.g. ["user", "settings", "theme"]
-  value: unknown;             // the new value
-  oldValue: unknown;          // the previous value
-}
-```
-
-Types are numbers rather than strings on purpose: they get compared in the hot
-loop. `0` is CREATE, `1` is REMOVE, `2` is CHANGE.
-
-## Examples
-
-```ts
-import diff from "@blazediff/object";
-
-const oldObj = { a: 1, b: 2, c: 3 };
-const newObj = { a: 1, b: 20, d: 4 };
-
-// b changed, c was removed, d was created. a is not reported.
-const changes = diff(oldObj, newObj);
-```
-
-```ts
-import diff from "@blazediff/object";
-
-const oldObj = {
-  user: {
-    name: "John",
-    email: "john@old.com",
-    settings: {
-      theme: "dark",
-      notifications: true
-    }
-  }
-};
-
-const newObj = {
-  user: {
-    name: "John Doe",
-    email: "john@new.com",
-    settings: {
-      theme: "light",
-      notifications: true,
-      language: "en"
-    }
-  }
-};
-
-// Paths go all the way down, e.g. ["user", "settings", "theme"].
-const changes = diff(oldObj, newObj);
-```
-
-```ts
-import diff from "@blazediff/object";
-
-const oldObj = {
-  items: [
-    { id: 1, name: "Item 1", value: 100 },
-    { id: 2, name: "Item 2", value: 200 }
-  ],
-  total: 300
-};
-
-const newObj = {
-  items: [
-    { id: 1, name: "Item 1", value: 150 },
-    { id: 2, name: "Item 2", value: 200 },
-    { id: 3, name: "Item 3", value: 50 }
-  ],
-  total: 400
-};
-
-// Arrays are compared by index, so a prepend reports every element as changed.
-const changes = diff(oldObj, newObj);
-```
-
-## Things worth knowing
-
-- **Arrays are compared by index, not by identity.** Inserting at the front
-  reports every following element as a CHANGE. If you need move detection, key the
-  array yourself before diffing.
-- **Cycles are handled**, and the check costs something. If you know your input is
-  a tree, pass `{ detectCycles: false }`.
-- **Unchanged values are not reported.** An empty array means the two inputs are
-  structurally equal.
-
-## What it costs
-
-Against microdiff, M1 Max, Node 22, 10,000 iterations:
-
-| Fixture                | microdiff | `@blazediff/object` |
-| ---------------------- | --------- | ------------------- |
-| Large nested object    | 3.3318ms  | 1.4536ms            |
-| Large array            | 0.5859ms  | 0.2391ms            |
-| Large identical arrays | 0.0919ms  | 0.0031ms            |
-| Simple object          | 0.0003ms  | 0.0002ms            |
-
-About 55% faster on average, and ~97% faster when the two inputs are identical,
-which is the common case when you are diffing state on every update.
-[Full table](/benchmarks/object).
-
-## Next
-
-- Every option and the full `Difference` type:
-  [`@blazediff/object` reference](/apis/object)
-- Comparing images instead: [Introduction](/docs)
 
 ---
 
@@ -7748,5 +7784,679 @@ just counted.
 - [Rust + WASM in JavaScript →](/docs/pixel-comparison/rust-wasm)
 - [Speed up 4K diffs →](/guides/speed-up-4k-screenshot-diffs)
 - [Full benchmarks →](/benchmarks/pixel-by-pixel)
+
+---
+
+# Comparisons
+
+# BlazeDiff vs odiff
+  FasterThan,
+} from "../../../components/benchmarks/benchmark-charts";
+
+**`@blazediff/core-native` is 
+than odiff over our 34 fixtures, with image decode and diff PNG writing
+included.** Both are native binaries with a Node API, and both return the same
+kind of result, so most code moves over with a changed import.
+
+odiff is a SIMD image diff written in Zig, popular in visual testing tools. It
+decodes many image formats and has a server mode that keeps one process alive
+between comparisons. BlazeDiff runs a block-based Rust kernel with SIMD on ARM
+and x86, and it reads file paths or encoded bytes.
+
+## At a glance
+
+|                        | odiff                                         | BlazeDiff (`core-native`)                         |
+| ---------------------- | --------------------------------------------- | ------------------------------------------------- |
+| License                | MIT                                           | MIT                                               |
+| Implementation         | Zig, SIMD (SSE2, AVX2, AVX512, NEON)          | Rust, SIMD (NEON, SSE4.1)                          |
+| Delivery               | Native binary, Node API, CLI                  | N-API addon, `@blazediff/cli`, Python, Rust       |
+| Input                  | File paths, buffers                           | File paths, encoded bytes                          |
+| Formats                | PNG, JPEG, WebP, TIFF, BMP                    | PNG, JPEG, QOI                                     |
+| Color metric           | YIQ                                           | YIQ                                               |
+| Ignore regions         | Yes (rectangles)                              | No (selector masks in `@blazediff/agent`)          |
+| Browser / edge         | No                                            | Yes, through `@blazediff/core-wasm`               |
+| Beyond pixel counts    | Changed lines and columns                     | Region analysis, SSIM, GMSD and MILO packages      |
+
+## Benchmarks
+
+odiff runs through `ODiffServer`, its server mode, so process start-up is not
+counted against it. "BlazeDiff Next" is the same binary with the
+[`blazediff-png`](/apis/blazediff-png) codec turned on through
+`BLAZEDIFF_PNG_ENABLED=1`.
+
+## Switching
+
+The result is a discriminated union in both libraries: `match`, then a `reason`
+of `layout-diff`, `pixel-diff` or `file-not-exists`, with `diffCount` and
+`diffPercentage` on a pixel diff.
+
+```ts
+// Before
+import { compare } from "odiff-bin";
+// After
+import { compare } from "@blazediff/core-native";
+
+const result = await compare("baseline.png", "current.png", "diff.png", {
+  threshold: 0.1,
+  antialiasing: true,
+});
+
+if (!result.match && result.reason === "pixel-diff") {
+  console.log(`${result.diffCount} pixels differ`);
+}
+```
+
+> **Info:** odiff options such as `ignoreRegions`, `captureDiffLines` and `reduceRamUsage` have no direct counterpart. Remove them, or mask the regions before the diff.
+
+## When to keep odiff
+
+- You compare WebP, TIFF or BMP files, or a JPEG against a PNG.
+- You depend on `ignoreRegions` or on the changed-line output.
+- You use a tool that already integrates odiff, for example Argos or Lost Pixel.
+
+## Related
+
+- [Pixel comparison in native Node](/docs/pixel-comparison/rust-napi)
+- [`@blazediff/core-native` API](/apis/core-native)
+- [BlazeDiff vs honeydiff](/vs/honeydiff)
+- [All benchmarks](/benchmarks#pixel-by-pixel-native)
+
+---
+
+# BlazeDiff vs honeydiff
+  FasterThan,
+} from "../../../components/benchmarks/benchmark-charts";
+
+**`@blazediff/core-native` is 
+than honeydiff over our 34 fixtures, with image decode and diff PNG writing
+included.** Both are Rust image diffs that ship as native Node addons. The
+difference is scope and openness: BlazeDiff publishes its full source and also
+runs in browsers, Python and Rust.
+
+honeydiff is the diff engine of the Vizzly visual testing service, published on
+npm as `@vizzly-testing/honeydiff`. Its binaries carry an MIT license, but its
+public repository holds only a README and a changelog, not the Rust source. It
+returns rich JSON: changed-region statistics, perceptual scores, and
+accessibility checks.
+
+## At a glance
+
+|                     | honeydiff                                          | BlazeDiff                                                     |
+| ------------------- | -------------------------------------------------- | ------------------------------------------------------------- |
+| License             | MIT binaries, source not public                    | MIT, full source on GitHub                                    |
+| Runtimes            | Node 22 or later                                   | Node, browsers, Workers, Deno, Bun, Python, Rust              |
+| Platforms           | macOS arm64, Linux x64 and arm64, Windows x64      | macOS, Linux and Windows on x64 and arm64                     |
+| Input               | File path or encoded bytes                         | File path or encoded bytes (`core-native`), raw RGBA (`core`) |
+| Color metric        | CIEDE2000 ΔE (default threshold 2)                 | YIQ                                                           |
+| Anti-aliasing       | Detected                                           | Detected                                                      |
+| Region output       | Built in (`difference.regions`)                    | Separate package: `@blazediff/interpret-native`               |
+| Perceptual scores   | SSIM, MS-SSIM, GMSD through `analyze()`            | SSIM, MS-SSIM, GMSD and MILO in separate packages              |
+
+## Benchmarks
+
+Both libraries run at their defaults with anti-aliasing on and write a diff PNG.
+honeydiff thresholds on CIEDE2000 and BlazeDiff on YIQ, so the chart compares
+speed, not identical output.
+
+## Switching
+
+honeydiff returns `different` and a `pixels.changed.total` count. BlazeDiff
+returns `match`, a `reason`, and a `diffCount`.
+
+```ts
+// Before
+import { compare } from "@vizzly-testing/honeydiff";
+
+const before = await compare("baseline.png", "current.png", {});
+if (before.different) console.log(`${before.pixels.changed.total} pixels differ`);
+```
+
+```ts
+// After
+import { compare } from "@blazediff/core-native";
+
+const after = await compare("baseline.png", "current.png", "diff.png", {
+  antialiasing: true,
+});
+if (!after.match && after.reason === "pixel-diff") {
+  console.log(`${after.diffCount} pixels differ`);
+}
+```
+
+For the region data honeydiff puts in its result, run
+[difference analysis](/docs/difference-analysis). It labels each changed region
+as an addition, a deletion, a shift, a recolor or rendering noise.
+
+## When to keep honeydiff
+
+- You use Vizzly, which builds on it.
+- You want region statistics, perceptual scores and contrast checks from one
+  call.
+- You need CIEDE2000 color thresholds, or alignment of inserted rows.
+
+## Related
+
+- [BlazeDiff vs odiff](/vs/odiff)
+- [Pixel comparison in native Node](/docs/pixel-comparison/rust-napi)
+- [Image difference analysis](/docs/difference-analysis)
+- [All benchmarks](/benchmarks#pixel-by-pixel-native)
+
+---
+
+# BlazeDiff vs ssim.js
+  FasterThan,
+} from "../../../components/benchmarks/benchmark-charts";
+
+**`@blazediff/ssim` is 
+than ssim.js on standard SSIM, and the native `@blazediff/ssim-native` is
+.** Both
+take RGBA pixels and return a similarity score from 0 to 1. ssim.js is archived on
+GitHub, and its last release was 3.5.0 in 2020.
+
+ssim.js is a JavaScript port of the Wang et al. MATLAB reference. It offers
+several variants, and its default (`weber`) trades accuracy for speed. BlazeDiff
+ships standard SSIM that matches MATLAB `ssim.m` with an error below 0.01%, plus
+MS-SSIM and Hitchhiker's SSIM.
+
+## At a glance
+
+|                      | ssim.js                                       | BlazeDiff                                                      |
+| -------------------- | --------------------------------------------- | -------------------------------------------------------------- |
+| License              | MIT                                           | MIT                                                            |
+| Status               | Archived, last release 2020                   | Maintained                                                     |
+| Runtimes             | Node, browsers                                | Node, browsers, Deno, Bun (`ssim`); native Node (`ssim-native`) |
+| Input                | `ImageData`-like `{ data, width, height }`    | RGBA buffers (`ssim`); file paths or encoded bytes (`ssim-native`) |
+| Variants             | `original`, `fast`, `bezkrovny`, `weber`      | SSIM, MS-SSIM, Hitchhiker's SSIM; perceptual SSIM in native     |
+| Score map            | Yes (`ssim_map`)                              | Yes (grayscale map image)                                      |
+| Pass or fail result  | No, you compare the score                     | `ssim-native` takes `minScore` and returns `match`              |
+
+## Benchmarks
+
+The first chart compares standard SSIM against ssim.js `fast`. The second
+compares Hitchhiker's SSIM against ssim.js `weber`, its fastest mode. Decode is
+excluded.
+
+Hitchhiker's SSIM is 
+than ssim.js `weber` in JavaScript.
+
+## Switching
+
+ssim.js takes two image objects. `@blazediff/ssim` takes the two pixel buffers
+and the size, in the same order as a pixel diff.
+
+```ts
+// Before
+import ssim from "ssim.js";
+const { mssim } = ssim(img1, img2);
+
+// After
+import ssim from "@blazediff/ssim/ssim";
+const score = ssim(img1.data, img2.data, undefined, img1.width, img1.height);
+```
+
+> **Info:** Scores from different SSIM variants are not interchangeable. If you gated tests on an ssim.js `weber` score, measure your fixtures again before you copy the threshold.
+
+## When to keep ssim.js
+
+- You depend on the `bezkrovny` or `weber` variant scores exactly.
+- You use its UQI mode (`k1` and `k2` set to 0).
+
+## Related
+
+- [Structural comparison](/docs/structural-comparison)
+- [What is SSIM](/docs/metrics/ssim) and [choosing a metric](/docs/metrics/choosing-a-metric)
+- [`@blazediff/ssim` API](/apis/ssim) and [`@blazediff/ssim-native` API](/apis/ssim-native)
+- [All benchmarks](/benchmarks#structural)
+
+---
+
+# BlazeDiff vs dssim
+  FasterThan,
+} from "../../../components/benchmarks/benchmark-charts";
+
+**The `blazediff-ssim` crate computes MS-SSIM 
+than dssim, and it is MIT-licensed, while dssim is AGPL-3.0 or commercial.** The
+two answer related but different questions. dssim is a perceptual quality metric
+for tuning image codecs. BlazeDiff SSIM is a similarity score for visual tests.
+
+dssim computes multi-scale SSIM in L\*a\*b\* color space, scales in linear light,
+and reads color profiles. Its score is 1/SSIM − 1, so 0 means identical and the
+value has no upper limit. `blazediff-ssim` computes luma SSIM that follows the
+MATLAB reference implementations, and it scores from 0 to 1.
+
+## At a glance
+
+|                     | dssim                                         | BlazeDiff (`blazediff-ssim`)                                |
+| ------------------- | --------------------------------------------- | ----------------------------------------------------------- |
+| License             | AGPL-3.0, or a commercial license             | MIT                                                         |
+| Delivery            | Rust crate, CLI, C library                    | Rust crate, Node addon (`ssim-native`), JavaScript, Python  |
+| Input               | PNG and JPEG in the CLI; RGBA in the library  | RGBA in the crate; PNG, JPEG and QOI in `ssim-native`       |
+| Color               | L\*a\*b\* with chroma, color profiles         | Luma; `perceptual-ssim` adds L\*a\*b\* chroma               |
+| Score               | DSSIM, 0 = identical, unbounded               | SSIM, 1 = identical                                         |
+| Variants            | One multi-scale metric                        | SSIM, MS-SSIM, Hitchhiker's SSIM, perceptual SSIM          |
+| Threads             | Multi-core by default                         | Single-threaded; you run images in parallel                 |
+
+## Benchmarks
+
+dssim runs single-threaded here, so both sides use one core. dssim is a different
+algorithm, so the chart compares cost, not scores. Decode is excluded.
+
+## Switching
+
+```rust
+use blazediff_ssim::{ms_ssim, MsSsimOptions, Plane, Rgba8, SsimOptions};
+
+let base = Plane::from_rgba8(Rgba8::new(&rgba1, width, height))?;
+let current = Plane::from_rgba8(Rgba8::new(&rgba2, width, height))?;
+
+let outcome = ms_ssim(&base, &current, &SsimOptions::default(), &MsSsimOptions::default())?;
+println!("{:.6}", outcome.score); // 1.0 means identical
+```
+
+> **Info:** A dssim threshold does not convert to an SSIM threshold. Score your own fixtures with the new metric and pick the threshold from those scores.
+
+## When to keep dssim
+
+- You tune image codecs or compression settings. dssim was validated on TID2013
+  for that job.
+- You need color-profile handling, or errors that only show in chroma.
+- Your project is already AGPL, or you bought the commercial license.
+
+## Related
+
+- [Structural comparison](/docs/structural-comparison)
+- [What is SSIM](/docs/metrics/ssim)
+- [`blazediff-ssim` API](/apis/blazediff-ssim) and [`@blazediff/ssim-native` API](/apis/ssim-native)
+- [All benchmarks](/benchmarks#structural-rust)
+
+---
+
+# BlazeDiff vs microdiff
+  FasterThan,
+} from "../../../components/benchmarks/benchmark-charts";
+
+**`@blazediff/object` is 
+than microdiff over our 8 object shapes, and it returns the same kind of
+result: a flat list of changes, each with a path.** Most of that gain comes from
+large arrays, identical ones above all. On small, flat objects microdiff is
+faster, so check the per-fixture table for the shapes you diff.
+
+microdiff is a tiny, zero-dependency object diff that runs everywhere. BlazeDiff
+started from the same idea and adds a fixed result shape. Every entry has `type`,
+`path`, `value` and `oldValue`, which keeps the V8 object shape stable in hot
+loops.
+
+## At a glance
+
+|                   | microdiff                                   | BlazeDiff (`@blazediff/object`)                 |
+| ----------------- | ------------------------------------------- | ----------------------------------------------- |
+| License           | MIT                                         | MIT                                             |
+| Size              | Under 1 KB                                  | Zero dependencies                               |
+| Runtimes          | Node, Deno, Bun, browsers                   | Node, Deno, Bun, browsers                       |
+| Change types      | Strings: `"CREATE"`, `"REMOVE"`, `"CHANGE"` | Numbers: `0` create, `1` remove, `2` change      |
+| Entry shape       | `value` and `oldValue` only when relevant   | Always `type`, `path`, `value`, `oldValue`       |
+| Cycle handling    | `cyclesFix` (default on)                    | `detectCycles` (default on)                     |
+| Rich types        | Date, RegExp, boxed primitives, Temporal    | Date, RegExp                                    |
+
+## Benchmarks
+
+## Switching
+
+The call is the same. Compare `type` against numbers instead of strings.
+
+```ts
+// Before
+import diff from "microdiff";
+const changes = diff(oldObj, newObj, { cyclesFix: false });
+const added = changes.filter((c) => c.type === "CREATE");
+
+// After
+import diff from "@blazediff/object";
+const changes = diff(oldObj, newObj, { detectCycles: false });
+const added = changes.filter((c) => c.type === 0);
+```
+
+## When to keep microdiff
+
+- Bundle size is your first constraint.
+- You mostly diff small, flat objects, where microdiff wins in our runs.
+- You diff Temporal values.
+- Your code reads the string change types and you do not want to touch it.
+
+## Related
+
+- [Object comparison](/docs/object-comparison)
+- [`@blazediff/object` API](/apis/object)
+- [All benchmarks](/benchmarks#object)
+
+---
+
+# BlazeDiff vs OpenCV
+  FasterThan,
+} from "../../../components/benchmarks/benchmark-charts";
+
+**The `blazediff` Python wheel is 
+than reading two files with OpenCV and running `cv2.absdiff`, and it answers the
+question a visual test asks: how many pixels differ, and where.** OpenCV gives you
+a difference array, and the counting, thresholding and anti-aliasing handling are
+up to you.
+
+`cv2.absdiff` subtracts two arrays per channel and returns the absolute values.
+That is a building block, not a test assertion: it has no perceptual threshold
+and no anti-aliasing detection, so one-pixel font rendering changes count as
+differences. `blazediff.compare` decodes both files, runs a YIQ color delta with
+optional anti-aliasing detection, and can write a diff image.
+
+## At a glance
+
+|                       | OpenCV (`opencv-python`)                         | BlazeDiff (`blazediff`)                          |
+| --------------------- | ------------------------------------------------ | ------------------------------------------------ |
+| License               | Apache-2.0 (wheels bundle LGPL FFmpeg and Qt)    | MIT                                              |
+| Dependencies          | numpy                                            | None                                             |
+| Input                 | numpy arrays, after `cv2.imread`                 | File paths (PNG, JPEG, QOI)                      |
+| Output                | Per-channel difference array                     | `match`, `diff_count`, `diff_percentage`, diff image |
+| Perceptual threshold  | No, you threshold the array                      | Yes, YIQ delta with `threshold`                  |
+| Anti-aliasing         | No                                               | Optional detection                               |
+| Scope                 | Full computer vision library                     | Image diffing                                    |
+
+## Benchmarks
+
+The OpenCV side reads both files as grayscale, runs `cv2.absdiff`, and counts the
+non-zero pixels. The BlazeDiff side reads both files in color and runs
+`compare`. Decode is included for both.
+
+## Switching
+
+```python
+# Before
+import cv2
+import numpy as np
+
+a = cv2.imread("baseline.png", cv2.IMREAD_GRAYSCALE)
+b = cv2.imread("current.png", cv2.IMREAD_GRAYSCALE)
+changed = np.count_nonzero(cv2.absdiff(a, b))
+
+# After
+from blazediff import compare
+
+result = compare("baseline.png", "current.png", "diff.png", threshold=0.1, antialiasing=True)
+if not result.match and result.reason == "pixel-diff":
+    print(f"{result.diff_count} pixels differ")
+```
+
+`compare` returns `reason == "layout-diff"` when the two images differ in size,
+where `cv2.absdiff` raises an error.
+
+## When to keep OpenCV
+
+- The diff is one step in a larger vision pipeline: alignment, contours,
+  morphology or feature matching.
+- You need formats that only OpenCV reads, such as TIFF, WebP or HDR.
+- You need GPU processing.
+
+## Related
+
+- [Python API](/apis/python)
+- [BlazeDiff vs pixelmatch](/vs/pixelmatch), which covers the PyPI pixelmatch port
+- [Image difference analysis](/docs/difference-analysis) for regions instead of a count
+- [All benchmarks](/benchmarks#pixel-by-pixel-python)
+
+---
+
+# BlazeDiff vs spng
+  FasterThan,
+} from "../../../components/benchmarks/benchmark-charts";
+
+**`blazediff-png` decodes the same pixels spng decodes and is 
+at it. Compressed encode is ,
+and the files come out smaller.** Both are single-threaded codecs. spng is C and
+`blazediff-png` is Rust.
+
+libspng is a security-focused C PNG library with a simpler API than libpng. BlazeDiff
+used it through FFI before it had its own codec. `blazediff-png` replaces it on its
+own terms. With the default backend, it returns the same accept or reject
+decision and the same pixels as spng, for valid files and for malformed chunks
+and deflate streams. The test suite checks this on a 395-file corpus that
+includes PngSuite.
+
+## At a glance
+
+|                     | spng (libspng)                                    | BlazeDiff (`blazediff-png`)                                        |
+| ------------------- | ------------------------------------------------- | ------------------------------------------------------------------ |
+| License             | BSD-2-Clause                                      | MIT                                                                |
+| Language            | C                                                 | Rust                                                               |
+| Delivery            | Source files, built with CMake or Meson           | crates.io; Node and wasm packages `@blazediff/codec-png-*`          |
+| Decode formats      | Every PNG format, to many `SPNG_FMT_*` outputs    | Every PNG format, to RGBA8 or any `SPNG_FMT_*` output (`decode_with`) |
+| Encode              | zlib levels                                       | libdeflate levels 1 to 12, plus stored                             |
+| Streaming / progressive | Yes                                           | Streaming encode (`encode_to`); whole-buffer decode                 |
+| Parallel encode     | No                                                | Optional `parallel` feature                                        |
+| Deflate backend     | zlib or miniz                                     | System zlib + libdeflate, or pure Rust (`rust-backend`)            |
+
+## Benchmarks
+
+The compressed encode compares the default levels: libdeflate 6 in `blazediff-png`
+and zlib 4 in spng. Decode is to RGBA8.
+
+## Switching
+
+```toml
+# Cargo.toml
+[dependencies]
+blazediff-png = "6"
+```
+
+```rust
+use blazediff_png::{decode, encode, EncodeOptions};
+
+let bytes = std::fs::read("image.png")?;
+let image = decode(&bytes)?; // RGBA8: Image { data, width, height }
+let png = encode(&image, &EncodeOptions::default())?;
+```
+
+> **Info:** There is one deliberate difference. The PNG specification says a decoder must mask a gray tRNS key to the image bit depth. spng does not, and `blazediff-png` does, as image-rs does. Only files from encoders that leave the unused key bits set decode differently: those pixels are transparent in `blazediff-png` and opaque in spng.
+
+## When to keep spng
+
+- Your project is C or C++ and you do not want a Rust toolchain.
+- You need progressive or streaming decode.
+- You rely on spng's security record: CERT C rules, OSS-Fuzz, Coverity and
+  PVS-Studio.
+
+## Related
+
+- [`blazediff-png` API](/apis/blazediff-png)
+- [BlazeDiff vs image-rs](/vs/image-rs) and [BlazeDiff vs zune-png](/vs/zune-png)
+- [All benchmarks](/benchmarks#png-codec)
+
+---
+
+# BlazeDiff vs image-rs
+  FasterThan,
+} from "../../../components/benchmarks/benchmark-charts";
+
+**`blazediff-png` decodes 
+than the image-rs `png` crate in total, and its uncompressed encode is
+.
+At compressed encode the two are level on time.** The per-fixture tables show
+where each one wins: image-rs decodes some files faster, and it wins about half
+of the compressed encodes.
+
+The `png` crate is the PNG backend of the `image` crate: pure Rust, no `unsafe`,
+with APNG support. `blazediff-png` is built for one job, fast single-image decode
+and encode on one core, and it matches libspng's output byte for byte.
+
+## At a glance
+
+|                     | image-rs `png`                         | BlazeDiff (`blazediff-png`)                               |
+| ------------------- | -------------------------------------- | --------------------------------------------------------- |
+| License             | MIT OR Apache-2.0                      | MIT                                                       |
+| Safety              | Pure Rust, no `unsafe`                 | Rust with SIMD kernels; default backend links zlib and libdeflate (C) |
+| Pure Rust build     | Yes                                    | Yes, with the `rust-backend` feature                      |
+| APNG                | Yes                                    | No                                                        |
+| Decode output       | Native format, optional transformations | RGBA8, or any `SPNG_FMT_*` format                         |
+| Compressed encode   | flate2 or fdeflate                     | libdeflate levels 1 to 12; optional parallel encode       |
+| Parity reference    | Its own behavior                       | Byte-identical to libspng                                 |
+| JavaScript packages | No first-party bindings                | `@blazediff/codec-png-native` and `-wasm`                 |
+
+## Benchmarks
+
+The compressed encode compares libdeflate level 6 in `blazediff-png` with flate2
+level 4 in image-rs.
+
+Total compressed encode time: BlazeDiff is 
+than image-rs, and it writes smaller files in total.
+
+## Switching
+
+```rust
+use blazediff_png::{decode, encode, EncodeOptions};
+
+let bytes = std::fs::read("image.png")?;
+let image = decode(&bytes)?; // RGBA8: Image { data, width, height }
+let png = encode(&image, &EncodeOptions::default())?;
+```
+
+`decode` always returns RGBA8. If you read 16-bit or grayscale data in its native
+format, use `decode_with` and pick the output format.
+
+## When to keep image-rs
+
+- You need APNG.
+- You want a dependency tree with no C and no `unsafe`.
+- You already use the `image` crate for other formats.
+
+## Related
+
+- [`blazediff-png` API](/apis/blazediff-png)
+- [BlazeDiff vs spng](/vs/spng) and [BlazeDiff vs zune-png](/vs/zune-png)
+- [All benchmarks](/benchmarks#png-codec-rust)
+
+---
+
+# BlazeDiff vs zune-png
+  FasterThan,
+} from "../../../components/benchmarks/benchmark-charts";
+
+**`blazediff-png` decodes 
+than zune-png natively, and 
+in WebAssembly.** zune-png is one of the fastest pure-Rust PNG decoders. In our
+benchmarks its encoder writes stored (uncompressed) data at every level, so its
+compressed-encode bars measure a different job.
+
+zune-png is part of the zune-image family, which also covers JPEG, QOI, PSD, HDR
+and JPEG XL. It supports `no_std` and composites APNG frames. `blazediff-png` is a
+PNG-only codec with libspng output parity, real deflate compression, and Node and
+WebAssembly packages.
+
+## At a glance
+
+|                     | zune-png                                    | BlazeDiff (`blazediff-png`)                                |
+| ------------------- | ------------------------------------------- | ---------------------------------------------------------- |
+| License             | MIT OR Apache-2.0 OR Zlib                   | MIT                                                        |
+| Language            | Rust, `unsafe` only for SIMD                | Rust with SIMD kernels; C zlib and libdeflate by default   |
+| `no_std`            | Yes                                         | No                                                         |
+| APNG                | Yes, with frame compositing                 | No                                                         |
+| Encode              | Stored data in these benchmarks             | Stored, or libdeflate levels 1 to 12 (fdeflate in wasm)     |
+| WebAssembly         | Build it yourself (`zune-wasm` on npm is from 2024) | `@blazediff/codec-png-wasm`, about 150 KB with SIMD   |
+| Parity reference    | Cross-checked against the `png` crate       | Byte-identical to libspng                                  |
+
+## Benchmarks
+
+Native Rust, single-threaded, decode to RGBA8:
+
+WebAssembly with SIMD, running in Node:
+
+> **Info:** zune-png is fastest in the compressed-encode charts because its output is stored, not compressed: it is the same size as its uncompressed output. Read the size charts next to the time charts.
+
+## Switching
+
+In Rust:
+
+```rust
+use blazediff_png::decode;
+
+let image = decode(&std::fs::read("image.png")?)?; // RGBA8: Image { data, width, height }
+```
+
+In a browser, an edge runtime or Node:
+
+```ts
+import { decode, encode } from "@blazediff/codec-png-wasm";
+
+const image = await decode(bytes); // { data, width, height }, RGBA8
+const png = await encode(image, { compression: 4 });
+```
+
+## When to keep zune-png
+
+- You need `no_std`, or APNG frame compositing.
+- You already decode other formats with zune-image.
+- You want a pure-Rust decoder and do not need libspng parity.
+
+## Related
+
+- [`blazediff-png` API](/apis/blazediff-png)
+- [BlazeDiff vs spng](/vs/spng), [BlazeDiff vs image-rs](/vs/image-rs) and [BlazeDiff vs jSquash](/vs/jsquash)
+- [All benchmarks](/benchmarks#png-codec)
+
+---
+
+# BlazeDiff vs jSquash
+  FasterThan,
+} from "../../../components/benchmarks/benchmark-charts";
+
+**`@blazediff/codec-png-wasm` decodes PNG 
+than `@jsquash/png`, and at default settings it encodes 
+in total, with smaller files.** Both are Rust compiled to WebAssembly. jSquash
+wins some individual encodes, so read the per-fixture tables for your image sizes.
+
+jSquash is a set of browser image codecs derived from Squoosh: AVIF, JPEG, JPEG XL,
+OxiPNG, PNG, QOI, WebP and resize. Its PNG codec wraps the image-rs `png` crate,
+version 0.17. `@blazediff/codec-png-wasm` is the `blazediff-png` codec with wasm
+SIMD, about 150 KB, and it decodes every PNG format to RGBA8.
+
+## At a glance
+
+|                     | jSquash (`@jsquash/png`)                      | BlazeDiff (`@blazediff/codec-png-wasm`)            |
+| ------------------- | --------------------------------------------- | -------------------------------------------------- |
+| License             | Apache-2.0                                    | MIT                                                |
+| Engine              | image-rs `png` 0.17, compiled to wasm          | `blazediff-png`, compiled to wasm with SIMD        |
+| Runtimes            | Browsers, Workers, Deno; Node is experimental | Browsers, Workers, Deno, Node                      |
+| Decode output       | `ImageData`, or 16-bit RGBA                   | RGBA8 `{ data, width, height }`                    |
+| Encode options      | Bit depth                                     | Compression level, filter, color mode              |
+| Other formats       | Sibling packages for AVIF, JPEG, WebP, JXL    | PNG only                                           |
+| Native twin         | No                                            | `@blazediff/codec-png-native` for Node             |
+
+## Benchmarks
+
+Both run single-threaded in Node with wasm SIMD. The default encode is fdeflate
+with adaptive filtering in BlazeDiff and the `png` crate default in jSquash. The
+charts also show zune-png, which writes stored data.
+
+## Switching
+
+```ts
+// Before
+import { decode, encode } from "@jsquash/png";
+const imageData = await decode(arrayBuffer);
+const png = await encode(imageData);
+
+// After
+import { decode, encode } from "@blazediff/codec-png-wasm";
+const image = await decode(new Uint8Array(arrayBuffer)); // { data, width, height }
+const out = await encode(image, { compression: 4 });
+```
+
+## When to keep jSquash
+
+- You need 16-bit PNG output.
+- You already use other jSquash codecs and want one toolchain.
+- You need an `ImageData` object to draw on a canvas without a conversion step.
+
+## Related
+
+- [BlazeDiff vs zune-png](/vs/zune-png) and [BlazeDiff vs image-rs](/vs/image-rs)
+- [`blazediff-png` API](/apis/blazediff-png)
+- [All benchmarks](/benchmarks#png-codec-wasm)
 
 ---

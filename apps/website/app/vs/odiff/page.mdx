@@ -1,0 +1,85 @@
+---
+title: BlazeDiff vs odiff - Faster Native Image Diff for Node
+description: BlazeDiff vs odiff benchmarked on 34 image pairs with image decode included. A native Rust image diff with the same result shape, a smaller binary and buffer input.
+---
+
+# BlazeDiff vs odiff
+
+import { Callout } from "nextra/components";
+import BenchmarkCharts, {
+  FasterThan,
+} from "../../../components/benchmarks/benchmark-charts";
+
+**`@blazediff/core-native` is <FasterThan bench="core-native" ours="blazediff" theirs="odiff" />
+than odiff over our 34 fixtures, with image decode and diff PNG writing
+included.** Both are native binaries with a Node API, and both return the same
+kind of result, so most code moves over with a changed import.
+
+odiff is a SIMD image diff written in Zig, popular in visual testing tools. It
+decodes many image formats and has a server mode that keeps one process alive
+between comparisons. BlazeDiff runs a block-based Rust kernel with SIMD on ARM
+and x86, and it reads file paths or encoded bytes.
+
+## At a glance
+
+|                        | odiff                                         | BlazeDiff (`core-native`)                         |
+| ---------------------- | --------------------------------------------- | ------------------------------------------------- |
+| License                | MIT                                           | MIT                                               |
+| Implementation         | Zig, SIMD (SSE2, AVX2, AVX512, NEON)          | Rust, SIMD (NEON, SSE4.1)                          |
+| Delivery               | Native binary, Node API, CLI                  | N-API addon, `@blazediff/cli`, Python, Rust       |
+| Input                  | File paths, buffers                           | File paths, encoded bytes                          |
+| Formats                | PNG, JPEG, WebP, TIFF, BMP                    | PNG, JPEG, QOI                                     |
+| Color metric           | YIQ                                           | YIQ                                               |
+| Ignore regions         | Yes (rectangles)                              | No (selector masks in `@blazediff/agent`)          |
+| Browser / edge         | No                                            | Yes, through `@blazediff/core-wasm`               |
+| Beyond pixel counts    | Changed lines and columns                     | Region analysis, SSIM, GMSD and MILO packages      |
+
+## Benchmarks
+
+odiff runs through `ODiffServer`, its server mode, so process start-up is not
+counted against it. "BlazeDiff Next" is the same binary with the
+[`blazediff-png`](/apis/blazediff-png) codec turned on through
+`BLAZEDIFF_PNG_ENABLED=1`.
+
+<BenchmarkCharts cards={["core-native"]} />
+
+## Switching
+
+The result is a discriminated union in both libraries: `match`, then a `reason`
+of `layout-diff`, `pixel-diff` or `file-not-exists`, with `diffCount` and
+`diffPercentage` on a pixel diff.
+
+```ts
+// Before
+import { compare } from "odiff-bin";
+// After
+import { compare } from "@blazediff/core-native";
+
+const result = await compare("baseline.png", "current.png", "diff.png", {
+  threshold: 0.1,
+  antialiasing: true,
+});
+
+if (!result.match && result.reason === "pixel-diff") {
+  console.log(`${result.diffCount} pixels differ`);
+}
+```
+
+<Callout type="info">
+  odiff options such as `ignoreRegions`, `captureDiffLines` and
+  `reduceRamUsage` have no direct counterpart. Remove them, or mask the
+  regions before the diff.
+</Callout>
+
+## When to keep odiff
+
+- You compare WebP, TIFF or BMP files, or a JPEG against a PNG.
+- You depend on `ignoreRegions` or on the changed-line output.
+- You use a tool that already integrates odiff, for example Argos or Lost Pixel.
+
+## Related
+
+- [Pixel comparison in native Node](/docs/pixel-comparison/rust-napi)
+- [`@blazediff/core-native` API](/apis/core-native)
+- [BlazeDiff vs honeydiff](/vs/honeydiff)
+- [All benchmarks](/benchmarks#pixel-by-pixel-native)

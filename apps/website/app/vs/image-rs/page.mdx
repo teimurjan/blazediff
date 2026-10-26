@@ -1,0 +1,69 @@
+---
+title: BlazeDiff vs image-rs png - Rust PNG Decode and Encode Speed
+description: blazediff-png vs the image-rs png crate benchmarked on 36 PNG files. Faster decode and stored encode; compressed encode is level on time and slightly smaller on size.
+---
+
+# BlazeDiff vs image-rs
+
+import BenchmarkCharts, {
+  FasterThan,
+} from "../../../components/benchmarks/benchmark-charts";
+
+**`blazediff-png` decodes <FasterThan bench="png" section="decode" ours="blazediff" theirs="image-rs" />
+than the image-rs `png` crate in total, and its uncompressed encode is
+<FasterThan bench="png" section="encode-none" ours="blazediff" theirs="image-rs" />.
+At compressed encode the two are level on time.** The per-fixture tables show
+where each one wins: image-rs decodes some files faster, and it wins about half
+of the compressed encodes.
+
+The `png` crate is the PNG backend of the `image` crate: pure Rust, no `unsafe`,
+with APNG support. `blazediff-png` is built for one job, fast single-image decode
+and encode on one core, and it matches libspng's output byte for byte.
+
+## At a glance
+
+|                     | image-rs `png`                         | BlazeDiff (`blazediff-png`)                               |
+| ------------------- | -------------------------------------- | --------------------------------------------------------- |
+| License             | MIT OR Apache-2.0                      | MIT                                                       |
+| Safety              | Pure Rust, no `unsafe`                 | Rust with SIMD kernels; default backend links zlib and libdeflate (C) |
+| Pure Rust build     | Yes                                    | Yes, with the `rust-backend` feature                      |
+| APNG                | Yes                                    | No                                                        |
+| Decode output       | Native format, optional transformations | RGBA8, or any `SPNG_FMT_*` format                         |
+| Compressed encode   | flate2 or fdeflate                     | libdeflate levels 1 to 12; optional parallel encode       |
+| Parity reference    | Its own behavior                       | Byte-identical to libspng                                 |
+| JavaScript packages | No first-party bindings                | `@blazediff/codec-png-native` and `-wasm`                 |
+
+## Benchmarks
+
+The compressed encode compares libdeflate level 6 in `blazediff-png` with flate2
+level 4 in image-rs.
+
+<BenchmarkCharts cards={["png"]} />
+
+Total compressed encode time: BlazeDiff is <FasterThan bench="png" section="encode-half" ours="blazediff" theirs="image-rs" />
+than image-rs, and it writes smaller files in total.
+
+## Switching
+
+```rust
+use blazediff_png::{decode, encode, EncodeOptions};
+
+let bytes = std::fs::read("image.png")?;
+let image = decode(&bytes)?; // RGBA8: Image { data, width, height }
+let png = encode(&image, &EncodeOptions::default())?;
+```
+
+`decode` always returns RGBA8. If you read 16-bit or grayscale data in its native
+format, use `decode_with` and pick the output format.
+
+## When to keep image-rs
+
+- You need APNG.
+- You want a dependency tree with no C and no `unsafe`.
+- You already use the `image` crate for other formats.
+
+## Related
+
+- [`blazediff-png` API](/apis/blazediff-png)
+- [BlazeDiff vs spng](/vs/spng) and [BlazeDiff vs zune-png](/vs/zune-png)
+- [All benchmarks](/benchmarks#png-codec-rust)

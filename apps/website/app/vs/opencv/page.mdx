@@ -1,0 +1,78 @@
+---
+title: BlazeDiff vs OpenCV absdiff - Image Diff for Python Tests
+description: The blazediff Python wheel vs opencv-python cv2.absdiff, benchmarked on 34 image pairs with decode included. One call returns a diff count, a percentage and a diff image.
+---
+
+# BlazeDiff vs OpenCV
+
+import BenchmarkCharts, {
+  FasterThan,
+} from "../../../components/benchmarks/benchmark-charts";
+
+**The `blazediff` Python wheel is <FasterThan bench="python-opencv" ours="blazediff" theirs="opencv-absdiff" />
+than reading two files with OpenCV and running `cv2.absdiff`, and it answers the
+question a visual test asks: how many pixels differ, and where.** OpenCV gives you
+a difference array, and the counting, thresholding and anti-aliasing handling are
+up to you.
+
+`cv2.absdiff` subtracts two arrays per channel and returns the absolute values.
+That is a building block, not a test assertion: it has no perceptual threshold
+and no anti-aliasing detection, so one-pixel font rendering changes count as
+differences. `blazediff.compare` decodes both files, runs a YIQ color delta with
+optional anti-aliasing detection, and can write a diff image.
+
+## At a glance
+
+|                       | OpenCV (`opencv-python`)                         | BlazeDiff (`blazediff`)                          |
+| --------------------- | ------------------------------------------------ | ------------------------------------------------ |
+| License               | Apache-2.0 (wheels bundle LGPL FFmpeg and Qt)    | MIT                                              |
+| Dependencies          | numpy                                            | None                                             |
+| Input                 | numpy arrays, after `cv2.imread`                 | File paths (PNG, JPEG, QOI)                      |
+| Output                | Per-channel difference array                     | `match`, `diff_count`, `diff_percentage`, diff image |
+| Perceptual threshold  | No, you threshold the array                      | Yes, YIQ delta with `threshold`                  |
+| Anti-aliasing         | No                                               | Optional detection                               |
+| Scope                 | Full computer vision library                     | Image diffing                                    |
+
+## Benchmarks
+
+The OpenCV side reads both files as grayscale, runs `cv2.absdiff`, and counts the
+non-zero pixels. The BlazeDiff side reads both files in color and runs
+`compare`. Decode is included for both.
+
+<BenchmarkCharts cards={["python-opencv"]} />
+
+## Switching
+
+```python
+# Before
+import cv2
+import numpy as np
+
+a = cv2.imread("baseline.png", cv2.IMREAD_GRAYSCALE)
+b = cv2.imread("current.png", cv2.IMREAD_GRAYSCALE)
+changed = np.count_nonzero(cv2.absdiff(a, b))
+
+# After
+from blazediff import compare
+
+result = compare("baseline.png", "current.png", "diff.png", threshold=0.1, antialiasing=True)
+if not result.match and result.reason == "pixel-diff":
+    print(f"{result.diff_count} pixels differ")
+```
+
+`compare` returns `reason == "layout-diff"` when the two images differ in size,
+where `cv2.absdiff` raises an error.
+
+## When to keep OpenCV
+
+- The diff is one step in a larger vision pipeline: alignment, contours,
+  morphology or feature matching.
+- You need formats that only OpenCV reads, such as TIFF, WebP or HDR.
+- You need GPU processing.
+
+## Related
+
+- [Python API](/apis/python)
+- [BlazeDiff vs pixelmatch](/vs/pixelmatch), which covers the PyPI pixelmatch port
+- [Image difference analysis](/docs/difference-analysis) for regions instead of a count
+- [All benchmarks](/benchmarks#pixel-by-pixel-python)

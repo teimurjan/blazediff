@@ -1,0 +1,81 @@
+---
+title: BlazeDiff vs zune-png - PNG Decode Speed in Rust and WebAssembly
+description: blazediff-png vs zune-png benchmarked on 36 PNG files, natively and in WebAssembly. Faster decode on both, and a compressing encoder where zune-png writes stored data.
+---
+
+# BlazeDiff vs zune-png
+
+import { Callout } from "nextra/components";
+import BenchmarkCharts, {
+  FasterThan,
+} from "../../../components/benchmarks/benchmark-charts";
+
+**`blazediff-png` decodes <FasterThan bench="png" section="decode" ours="blazediff" theirs="zune" />
+than zune-png natively, and <FasterThan bench="png-wasm" section="decode" ours="blazediff" theirs="zune" />
+in WebAssembly.** zune-png is one of the fastest pure-Rust PNG decoders. In our
+benchmarks its encoder writes stored (uncompressed) data at every level, so its
+compressed-encode bars measure a different job.
+
+zune-png is part of the zune-image family, which also covers JPEG, QOI, PSD, HDR
+and JPEG XL. It supports `no_std` and composites APNG frames. `blazediff-png` is a
+PNG-only codec with libspng output parity, real deflate compression, and Node and
+WebAssembly packages.
+
+## At a glance
+
+|                     | zune-png                                    | BlazeDiff (`blazediff-png`)                                |
+| ------------------- | ------------------------------------------- | ---------------------------------------------------------- |
+| License             | MIT OR Apache-2.0 OR Zlib                   | MIT                                                        |
+| Language            | Rust, `unsafe` only for SIMD                | Rust with SIMD kernels; C zlib and libdeflate by default   |
+| `no_std`            | Yes                                         | No                                                         |
+| APNG                | Yes, with frame compositing                 | No                                                         |
+| Encode              | Stored data in these benchmarks             | Stored, or libdeflate levels 1 to 12 (fdeflate in wasm)     |
+| WebAssembly         | Build it yourself (`zune-wasm` on npm is from 2024) | `@blazediff/codec-png-wasm`, about 150 KB with SIMD   |
+| Parity reference    | Cross-checked against the `png` crate       | Byte-identical to libspng                                  |
+
+## Benchmarks
+
+Native Rust, single-threaded, decode to RGBA8:
+
+<BenchmarkCharts cards={["png"]} />
+
+WebAssembly with SIMD, running in Node:
+
+<BenchmarkCharts cards={["png-wasm"]} />
+
+<Callout type="info">
+  zune-png is fastest in the compressed-encode charts because its output is
+  stored, not compressed: it is the same size as its uncompressed output. Read
+  the size charts next to the time charts.
+</Callout>
+
+## Switching
+
+In Rust:
+
+```rust
+use blazediff_png::decode;
+
+let image = decode(&std::fs::read("image.png")?)?; // RGBA8: Image { data, width, height }
+```
+
+In a browser, an edge runtime or Node:
+
+```ts
+import { decode, encode } from "@blazediff/codec-png-wasm";
+
+const image = await decode(bytes); // { data, width, height }, RGBA8
+const png = await encode(image, { compression: 4 });
+```
+
+## When to keep zune-png
+
+- You need `no_std`, or APNG frame compositing.
+- You already decode other formats with zune-image.
+- You want a pure-Rust decoder and do not need libspng parity.
+
+## Related
+
+- [`blazediff-png` API](/apis/blazediff-png)
+- [BlazeDiff vs spng](/vs/spng), [BlazeDiff vs image-rs](/vs/image-rs) and [BlazeDiff vs jSquash](/vs/jsquash)
+- [All benchmarks](/benchmarks#png-codec)

@@ -1,0 +1,100 @@
+---
+title: BlazeDiff vs pixelmatch - A Faster, API-Compatible Pixel Diff
+description: BlazeDiff vs pixelmatch benchmarked on 34 image pairs. Same YIQ algorithm and the same call signature, faster in JavaScript, WebAssembly, native Node and Python.
+---
+
+# BlazeDiff vs pixelmatch
+
+import { Callout } from "nextra/components";
+import BenchmarkCharts, {
+  FasterThan,
+} from "../../../components/benchmarks/benchmark-charts";
+
+**`@blazediff/core` runs the pixelmatch algorithm with the pixelmatch call
+signature, and it is <FasterThan bench="core" ours="blazediff" theirs="pixelmatch" />
+over our 34 fixtures.** The WebAssembly build is <FasterThan bench="core-wasm" ours="blazediff-core-wasm" theirs="pixelmatch" />.
+Switching is a one-line import change.
+
+pixelmatch is the reference pixel diff for JavaScript: a few hundred lines,
+anti-aliasing detection, and a YIQ color delta. BlazeDiff started as a faster
+implementation of the same algorithm. It skips identical blocks of pixels before
+it runs the per-pixel delta, so unchanged areas cost almost nothing.
+
+## At a glance
+
+|                       | pixelmatch                         | BlazeDiff                                                         |
+| --------------------- | ---------------------------------- | ----------------------------------------------------------------- |
+| License               | ISC                                | MIT                                                               |
+| Implementations       | JavaScript (plus a C++ port)       | JavaScript, WebAssembly, native Node, Python, Rust                 |
+| Input                 | Raw RGBA buffers                   | Raw RGBA (`core`, `core-wasm`), or file paths and encoded bytes (`core-native`) |
+| Decodes images itself | No (CLI reads PNG through pngjs)   | `core-native` and Python decode PNG, JPEG and QOI                  |
+| Color metric          | YIQ in 7.x, OKLab + HyAB in 8.0    | YIQ                                                               |
+| Anti-aliasing         | Detected (Vyšniauskas 2009)        | Detected, same method                                             |
+| Output                | Diff pixel count, diff image       | Diff pixel count, diff image                                      |
+| Beyond pixel counts   | No                                 | SSIM, GMSD, MILO scores and region analysis in sibling packages   |
+
+## Benchmarks
+
+Decode is excluded for the JavaScript and WebAssembly charts, so they measure the
+diff kernel only. The charts use pixelmatch 7.2.0.
+
+<BenchmarkCharts cards={["core", "core-wasm"]} />
+
+## Switching
+
+The arguments, the options and the return value are the same as pixelmatch 7.x.
+
+```ts
+// Before
+import pixelmatch from "pixelmatch";
+// After
+import pixelmatch from "@blazediff/core";
+
+const diffCount = pixelmatch(img1, img2, diff, width, height, { threshold: 0.1 });
+```
+
+If your images come from files, `@blazediff/core-native` also decodes them, so the
+pngjs step goes away:
+
+```ts
+import { compare } from "@blazediff/core-native";
+
+const result = await compare("baseline.png", "current.png", "diff.png", {
+  threshold: 0.1,
+  antialiasing: true,
+});
+```
+
+<Callout type="info">
+  pixelmatch 8.0 changed its color metric to OKLab + HyAB, so its diff counts
+  differ from 7.x. BlazeDiff matches the 7.x counts. If you upgraded to 8.0 and
+  depend on its exact counts, re-baseline your thresholds after you switch.
+</Callout>
+
+## Python
+
+The PyPI `pixelmatch` package is a pure Python port by a different author. The
+`blazediff` wheel runs the Rust core and decodes the files itself. This chart
+includes image decode for both sides.
+
+<BenchmarkCharts cards={["python-pixelmatch"]} />
+
+```python
+from blazediff import compare
+
+result = compare("baseline.png", "current.png", "diff.png", threshold=0.1)
+```
+
+## When to keep pixelmatch
+
+- You need the pixelmatch 8.0 features: `windowSize` noise filtering or
+  `ignoreMask`.
+- You want the smallest possible dependency and diff speed does not matter.
+- Your project depends on pixelmatch 8.0 diff counts exactly.
+
+## Related
+
+- [Pixel comparison in JavaScript](/docs/pixel-comparison/vanilla-javascript)
+- [Pixel comparison in WebAssembly](/docs/pixel-comparison/rust-wasm)
+- [`@blazediff/core` API](/apis/core) and [Python API](/apis/python)
+- [All benchmarks](/benchmarks#pixel-by-pixel)

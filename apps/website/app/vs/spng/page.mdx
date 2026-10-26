@@ -1,0 +1,80 @@
+---
+title: BlazeDiff vs spng - A Faster PNG Codec With spng Parity
+description: blazediff-png vs libspng benchmarked on 36 PNG files. A Rust PNG codec that decodes the same bytes spng decodes, rejects the same broken files, and encodes faster at a smaller size.
+---
+
+# BlazeDiff vs spng
+
+import { Callout } from "nextra/components";
+import BenchmarkCharts, {
+  FasterThan,
+} from "../../../components/benchmarks/benchmark-charts";
+
+**`blazediff-png` decodes the same pixels spng decodes and is <FasterThan bench="png" section="decode" ours="blazediff" theirs="spng" />
+at it. Compressed encode is <FasterThan bench="png" section="encode-half" ours="blazediff" theirs="spng" />,
+and the files come out smaller.** Both are single-threaded codecs. spng is C and
+`blazediff-png` is Rust.
+
+libspng is a security-focused C PNG library with a simpler API than libpng. BlazeDiff
+used it through FFI before it had its own codec. `blazediff-png` replaces it on its
+own terms. With the default backend, it returns the same accept or reject
+decision and the same pixels as spng, for valid files and for malformed chunks
+and deflate streams. The test suite checks this on a 395-file corpus that
+includes PngSuite.
+
+## At a glance
+
+|                     | spng (libspng)                                    | BlazeDiff (`blazediff-png`)                                        |
+| ------------------- | ------------------------------------------------- | ------------------------------------------------------------------ |
+| License             | BSD-2-Clause                                      | MIT                                                                |
+| Language            | C                                                 | Rust                                                               |
+| Delivery            | Source files, built with CMake or Meson           | crates.io; Node and wasm packages `@blazediff/codec-png-*`          |
+| Decode formats      | Every PNG format, to many `SPNG_FMT_*` outputs    | Every PNG format, to RGBA8 or any `SPNG_FMT_*` output (`decode_with`) |
+| Encode              | zlib levels                                       | libdeflate levels 1 to 12, plus stored                             |
+| Streaming / progressive | Yes                                           | Streaming encode (`encode_to`); whole-buffer decode                 |
+| Parallel encode     | No                                                | Optional `parallel` feature                                        |
+| Deflate backend     | zlib or miniz                                     | System zlib + libdeflate, or pure Rust (`rust-backend`)            |
+
+## Benchmarks
+
+The compressed encode compares the default levels: libdeflate 6 in `blazediff-png`
+and zlib 4 in spng. Decode is to RGBA8.
+
+<BenchmarkCharts cards={["png"]} />
+
+## Switching
+
+```toml
+# Cargo.toml
+[dependencies]
+blazediff-png = "6"
+```
+
+```rust
+use blazediff_png::{decode, encode, EncodeOptions};
+
+let bytes = std::fs::read("image.png")?;
+let image = decode(&bytes)?; // RGBA8: Image { data, width, height }
+let png = encode(&image, &EncodeOptions::default())?;
+```
+
+<Callout type="info">
+  There is one deliberate difference. The PNG specification says a decoder must
+  mask a gray tRNS key to the image bit depth. spng does not, and
+  `blazediff-png` does, as image-rs does. Only files from encoders that leave
+  the unused key bits set decode differently: those pixels are transparent in
+  `blazediff-png` and opaque in spng.
+</Callout>
+
+## When to keep spng
+
+- Your project is C or C++ and you do not want a Rust toolchain.
+- You need progressive or streaming decode.
+- You rely on spng's security record: CERT C rules, OSS-Fuzz, Coverity and
+  PVS-Studio.
+
+## Related
+
+- [`blazediff-png` API](/apis/blazediff-png)
+- [BlazeDiff vs image-rs](/vs/image-rs) and [BlazeDiff vs zune-png](/vs/zune-png)
+- [All benchmarks](/benchmarks#png-codec)
