@@ -6,6 +6,7 @@ packages:
   - packages/ssim-native/*
   - packages/interpret-native/*
   - packages/milo-native/*
+  - packages/codec-png-native/*
   - apps/*
   - examples/*
   # Version-only shadows for the Rust crates + Python wheel (private; crates.io/PyPI, not npm).
@@ -34,3 +35,4 @@ ignoredOptionalDependencies:
   - "@blazediff/ssim-native-*"
   - "@blazediff/interpret-native-*"
   - "@blazediff/milo-native-*"
+  - "@blazediff/codec-png-native-*"

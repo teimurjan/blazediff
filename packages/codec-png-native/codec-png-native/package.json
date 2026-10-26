@@ -1,0 +1,60 @@
+{
+	"name": "@blazediff/codec-png-native",
+	"version": "0.0.0",
+	"description": "Native Rust PNG codec for the blazediff library: SIMD decode and libdeflate encode through N-API",
+	"private": false,
+	"publishConfig": {
+		"access": "public"
+	},
+	"main": "dist/index.js",
+	"module": "dist/index.mjs",
+	"types": "dist/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.mjs",
+			"require": "./dist/index.js"
+		}
+	},
+	"files": [
+		"dist"
+	],
+	"scripts": {
+		"typecheck": "tsc --noEmit",
+		"build": "tsup",
+		"clean": "rm -rf dist",
+		"test": "vitest run",
+		"test:watch": "vitest"
+	},
+	"optionalDependencies": {
+		"@blazediff/codec-png-native-darwin-arm64": "0.0.0",
+		"@blazediff/codec-png-native-darwin-x64": "0.0.0",
+		"@blazediff/codec-png-native-linux-arm64": "0.0.0",
+		"@blazediff/codec-png-native-linux-x64": "0.0.0",
+		"@blazediff/codec-png-native-win32-arm64": "0.0.0",
+		"@blazediff/codec-png-native-win32-x64": "0.0.0"
+	},
+	"keywords": [
+		"png",
+		"image",
+		"codec",
+		"decoder",
+		"encoder",
+		"native",
+		"rust",
+		"simd",
+		"fast"
+	],
+	"author": "Teimur Gasanov <me@teimurjan.dev> (https://github.com/teimurjan)",
+	"repository": "https://github.com/teimurjan/blazediff",
+	"homepage": "https://blazediff.dev",
+	"license": "MIT",
+	"devDependencies": {
+		"@types/node": "^24.3.0",
+		"@types/pngjs": "^6.0.5",
+		"pngjs": "^7.0.0",
+		"tsup": "8.5.0",
+		"typescript": "5.9.2",
+		"vitest": "^3.2.4"
+	}
+}

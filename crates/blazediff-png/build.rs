@@ -7,12 +7,17 @@
 //! platform — including old-zlib targets (e.g. some aarch64-linux sysroots)
 //! where the symbol is absent. There, both fall back to validating adler32
 //! and, crucially, linking a reference to the missing symbol no longer fails.
+//!
+//! With the `napi` feature it also runs napi-build's link setup.
 
 use std::env;
 use std::fs;
 use std::path::PathBuf;
 
 fn main() {
+    #[cfg(feature = "napi")]
+    napi_build::setup();
+
     println!("cargo:rustc-check-cfg=cfg(has_inflate_validate)");
     println!("cargo:rerun-if-changed=build.rs");
 

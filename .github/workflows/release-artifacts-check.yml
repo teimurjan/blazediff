@@ -12,7 +12,8 @@ name: release-artifacts-check
 #   3. Maintainer comments `/build` on the PR; build-artifacts.yml rebuilds
 #      every platform on GitHub runners and pushes the artifacts to the branch.
 #      (Locally that is: pnpm build:rust, build:rust:ssim, build:rust:milo,
-#      build:wasm, build:wasm:interpret, build:wasm:milo and the
+#      build:rust:codec-png, build:wasm, build:wasm:interpret,
+#      build:wasm:milo, build:wasm:codec-png and the
 #      build:python:*:all scripts with
 #      -- --version <NEW>, committed and pushed.)
 #   4. Check turns green; PR is mergeable; merge fires release.yml.
@@ -75,7 +76,7 @@ jobs:
           # build-artifacts.yml, keeping what /build produces aligned with
           # what this check requires.
           eval "$(node scripts/release/changed-artifacts.js "$BASE_SHA")"
-          echo "families needing fresh artifacts: core=$core ssim=$ssim interpret=$interpret wasm=$wasm wasm_interpret=$wasm_interpret milo=$milo wasm_milo=$wasm_milo"
+          echo "families needing fresh artifacts: core=$core ssim=$ssim interpret=$interpret wasm=$wasm wasm_interpret=$wasm_interpret milo=$milo wasm_milo=$wasm_milo codec_png=$codec_png wasm_codec_png=$wasm_codec_png"
 
           # With per-family version groups there is no all-bump safety net:
           # crate sources changed without a changeset would ship stale
@@ -182,6 +183,20 @@ jobs:
             require_file "packages/milo-wasm/wasm/blazediff_milo.js"
           fi
 
+          if [[ "$codec_png" == "true" ]]; then
+            # --- CODEC-PNG NAPI .node --------------------------------------
+            for plat in darwin-arm64 darwin-x64 linux-arm64 linux-x64 win32-arm64 win32-x64; do
+              require_fresh_file "packages/codec-png-native/codec-png-native-${plat}/blazediff_png.node"
+            done
+          fi
+
+          if [[ "$wasm_codec_png" == "true" ]]; then
+            # --- CODEC-PNG WASM --------------------------------------------
+            # Same module-is-the-proof reasoning as the core wasm block above.
+            require_fresh_file "packages/codec-png-wasm/wasm/blazediff_png_bg.wasm"
+            require_file "packages/codec-png-wasm/wasm/blazediff_png.js"
+          fi
+
           if [[ ${#missing[@]} -gt 0 || ${#stale[@]} -gt 0 ]]; then
             echo "::error::Release artifacts are not ready."
             if [[ ${#missing[@]} -gt 0 ]]; then
@@ -205,6 +220,8 @@ jobs:
             if [[ "$wasm_interpret" == "true" ]]; then echo "  pnpm build:wasm:interpret"; fi
             if [[ "$milo" == "true" ]]; then echo "  pnpm build:rust:milo"; fi
             if [[ "$wasm_milo" == "true" ]]; then echo "  pnpm build:wasm:milo"; fi
+            if [[ "$codec_png" == "true" ]]; then echo "  pnpm build:rust:codec-png"; fi
+            if [[ "$wasm_codec_png" == "true" ]]; then echo "  pnpm build:wasm:codec-png"; fi
             echo "  pnpm build:python:all -- --version ${CORE_VER}"
             echo "  pnpm build:python:ssim:all -- --version ${SSIM_VER}"
             echo "  pnpm build:python:interpret:all -- --version ${INTERPRET_VER}"

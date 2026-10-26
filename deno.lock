@@ -43,10 +43,8 @@
     "npm:@types/pngjs@6.0.5": "6.0.5",
     "npm:@types/pngjs@^6.0.5": "6.0.5",
     "npm:@types/react-dom@19": "19.2.3_@types+react@19.2.17",
-    "npm:@types/react-dom@^18.3.0": "18.3.7_@types+react@19.2.17",
     "npm:@types/react-dom@^19.1.9": "19.2.3_@types+react@19.2.17",
     "npm:@types/react@19": "19.2.17",
-    "npm:@types/react@^18.3.0": "18.3.31",
     "npm:@types/react@^19.1.13": "19.2.17",
     "npm:@types/react@^19.1.8": "19.2.17",
     "npm:@types/sharp@0.32": "0.32.0",
@@ -70,10 +68,8 @@
     "npm:pngjs@7": "7.0.0",
     "npm:pngjs@7.0.0": "7.0.0",
     "npm:postcss@^8.5.6": "8.5.15",
-    "npm:react-dom@^18.3.1": "18.3.1_react@19.2.7",
     "npm:react-dom@^19.1.1": "19.2.7_react@19.2.7",
     "npm:react-router-dom@^7.1.1": "7.17.0_react@19.2.7_react-dom@19.2.7__react@19.2.7",
-    "npm:react@^18.3.1": "18.3.1",
     "npm:react@^19.1.1": "19.2.7",
     "npm:remotion@4.0.291": "4.0.291_react@19.2.7_react-dom@19.2.7__react@19.2.7",
     "npm:sharp@0.34": "0.34.5",
@@ -9947,6 +9943,7 @@
         "packageJson": {
           "dependencies": [
             "npm:@types/node@^24.3.0",
+            "npm:@vizzly-testing/honeydiff@0.17",
             "npm:odiff-bin@^4.3.8",
             "npm:pixelmatch@^7.2.0",
             "npm:pngjs@7",
@@ -10059,16 +10056,18 @@
             "npm:@langchain/core@^1.1.44",
             "npm:@langchain/langgraph-checkpoint@^1.0.2",
             "npm:@langchain/langgraph@^1.3.0",
+            "npm:@tailwindcss/vite@^4.1.13",
             "npm:@types/node@^24.3.0",
-            "npm:@types/react-dom@^18.3.0",
-            "npm:@types/react@^18.3.0",
+            "npm:@types/react-dom@^19.1.9",
+            "npm:@types/react@^19.1.13",
             "npm:@vitejs/plugin-react@^6.0.2",
             "npm:commander@^13.1.0",
             "npm:picocolors@^1.1.1",
             "npm:playwright@^1.50.0",
-            "npm:react-dom@^18.3.1",
-            "npm:react@^18.3.1",
+            "npm:react-dom@^19.1.1",
+            "npm:react@^19.1.1",
             "npm:sharp@0.34",
+            "npm:tailwindcss@^4.1.13",
             "npm:tree-kill@^1.2.2",
             "npm:tsup@8.5.0",
             "npm:typescript@5.9.2",
@@ -10117,6 +10116,38 @@
             "npm:@types/node@^24.3.0",
             "npm:tsup@8.5.0",
             "npm:typescript@5.9.2"
+          ]
+        }
+      },
+      "packages/codec-png-native/codec-png-native": {
+        "dependencies": [
+          "npm:@blazediff/codec-png-native-darwin-arm64@0.0.0",
+          "npm:@blazediff/codec-png-native-darwin-x64@0.0.0",
+          "npm:@blazediff/codec-png-native-linux-arm64@0.0.0",
+          "npm:@blazediff/codec-png-native-linux-x64@0.0.0",
+          "npm:@blazediff/codec-png-native-win32-arm64@0.0.0",
+          "npm:@blazediff/codec-png-native-win32-x64@0.0.0"
+        ],
+        "packageJson": {
+          "dependencies": [
+            "npm:@types/node@^24.3.0",
+            "npm:@types/pngjs@^6.0.5",
+            "npm:pngjs@7",
+            "npm:tsup@8.5.0",
+            "npm:typescript@5.9.2",
+            "npm:vitest@^3.2.4"
+          ]
+        }
+      },
+      "packages/codec-png-wasm": {
+        "packageJson": {
+          "dependencies": [
+            "npm:@types/node@^24.3.0",
+            "npm:@types/pngjs@^6.0.5",
+            "npm:pngjs@7",
+            "npm:tsup@8.5.0",
+            "npm:typescript@5.9.2",
+            "npm:vitest@^3.2.4"
           ]
         }
       },

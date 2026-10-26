@@ -6,7 +6,7 @@ name: build-artifacts
 # release-artifacts-check.yml otherwise asks the maintainer to do by hand.
 #
 # Selective: scripts/release/changed-artifacts.js decides which artifact
-# families (core / ssim / interpret / milo / wasm) changed since each family's last
+# families (core / ssim / interpret / milo / codec-png / wasm) changed since each family's last
 # published release tag — version-only churn doesn't count — and only those
 # get compiled. Each of the three wheel sets is rebuilt when its family's
 # sources changed or its version bumped without a matching wheel set. The same
@@ -64,6 +64,8 @@ jobs:
       wasm_interpret: ${{ steps.families.outputs.wasm_interpret }}
       milo: ${{ steps.families.outputs.milo }}
       wasm_milo: ${{ steps.families.outputs.wasm_milo }}
+      codec_png: ${{ steps.families.outputs.codec_png }}
+      wasm_codec_png: ${{ steps.families.outputs.wasm_codec_png }}
       core_version: ${{ steps.version.outputs.core_version }}
       ssim_version: ${{ steps.version.outputs.ssim_version }}
       interpret_version: ${{ steps.version.outputs.interpret_version }}
@@ -192,6 +194,12 @@ jobs:
           if [[ "${{ steps.families.outputs.wasm_milo }}" == "true" ]]; then
             parts+=("milo-wasm v$(pkg_version packages/milo-wasm)")
           fi
+          if [[ "${{ steps.families.outputs.codec_png }}" == "true" ]]; then
+            parts+=("codec-png v$(pkg_version packages/codec-png-native/codec-png-native)")
+          fi
+          if [[ "${{ steps.families.outputs.wasm_codec_png }}" == "true" ]]; then
+            parts+=("codec-png-wasm v$(pkg_version packages/codec-png-wasm)")
+          fi
           if [[ "$WHEELS_CORE" == "true" ]]; then
             parts+=("blazediff wheels v$CORE_VER")
           fi
@@ -274,7 +282,8 @@ jobs:
           (needs.resolve.outputs.core == 'true' ||
            needs.resolve.outputs.ssim == 'true' ||
            needs.resolve.outputs.interpret == 'true' ||
-           needs.resolve.outputs.milo == 'true')
+           needs.resolve.outputs.milo == 'true' ||
+           needs.resolve.outputs.codec_png == 'true')
         run: cargo binstall -y --disable-strategies compile cross@0.2.5
 
       # maturin cross-links the Linux wheels with zig (build-maturin.sh), which
@@ -310,6 +319,10 @@ jobs:
       - name: Build milo .node
         if: needs.resolve.outputs.milo == 'true'
         run: crates/blazediff-milo/scripts/build-napi.sh --target ${{ matrix.target }}
+
+      - name: Build codec-png .node
+        if: needs.resolve.outputs.codec_png == 'true'
+        run: crates/blazediff-png/scripts/build-napi.sh --target ${{ matrix.target }}
 
       # zig links against a bare glibc sysroot with no zlib, and picking up the
       # runner's libz would undo the manylinux tag. The vendored miniz is what
@@ -370,6 +383,9 @@ jobs:
           if [[ "${{ needs.resolve.outputs.milo }}" == "true" ]]; then
             files+=("packages/milo-native/milo-native-${{ matrix.pkg }}/blazediff_milo.node")
           fi
+          if [[ "${{ needs.resolve.outputs.codec_png }}" == "true" ]]; then
+            files+=("packages/codec-png-native/codec-png-native-${{ matrix.pkg }}/blazediff_png.node")
+          fi
           for f in "${files[@]}"; do
             if [[ ! -s "$f" ]]; then
               echo "::error::$f missing or empty after build"
@@ -402,6 +418,9 @@ jobs:
           if [[ "${{ needs.resolve.outputs.milo }}" != "true" ]]; then
             rm -f "packages/milo-native/milo-native-${{ matrix.pkg }}/blazediff_milo.node"
           fi
+          if [[ "${{ needs.resolve.outputs.codec_png }}" != "true" ]]; then
+            rm -f "packages/codec-png-native/codec-png-native-${{ matrix.pkg }}/blazediff_png.node"
+          fi
 
       - uses: actions/upload-artifact@v4
         with:
@@ -423,6 +442,7 @@ jobs:
             packages/ssim-native/ssim-native-${{ matrix.pkg }}/blazediff_ssim.node
             packages/interpret-native/interpret-native-${{ matrix.pkg }}/blazediff_interpret.node
             packages/milo-native/milo-native-${{ matrix.pkg }}/blazediff_milo.node
+            packages/codec-png-native/codec-png-native-${{ matrix.pkg }}/blazediff_png.node
             crates/blazediff/wheels/*.whl
             crates/blazediff-ssim/wheels/*.whl
             crates/blazediff-interpret/wheels/*.whl
@@ -437,7 +457,8 @@ jobs:
     if: >-
       needs.resolve.outputs.wasm == 'true' ||
       needs.resolve.outputs.wasm_interpret == 'true' ||
-      needs.resolve.outputs.wasm_milo == 'true'
+      needs.resolve.outputs.wasm_milo == 'true' ||
+      needs.resolve.outputs.wasm_codec_png == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
@@ -456,6 +477,10 @@ jobs:
             family: wasm_milo
             crate: blazediff-milo
             pkg: milo-wasm
+          - artifact: codec-png-wasm
+            family: wasm_codec_png
+            crate: blazediff-png
+            pkg: codec-png-wasm
     steps:
       - uses: actions/checkout@v5
         if: needs.resolve.outputs[matrix.family] == 'true'
@@ -568,6 +593,12 @@ jobs:
         with:
           name: milo-wasm
           path: packages/milo-wasm/wasm
+
+      - uses: actions/download-artifact@v4
+        if: needs.resolve.outputs.wasm_codec_png == 'true'
+        with:
+          name: codec-png-wasm
+          path: packages/codec-png-wasm/wasm
 
       - name: Stage artifacts
         run: |

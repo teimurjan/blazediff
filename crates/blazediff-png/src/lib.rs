@@ -39,6 +39,8 @@ compile_error!(
 );
 
 mod backend;
+#[cfg(any(feature = "napi", feature = "wasm", test))]
+mod binding;
 mod chunks;
 mod container;
 mod convert;
@@ -50,8 +52,12 @@ mod expand;
 mod format;
 mod interlace;
 mod meta;
+#[cfg(feature = "napi")]
+mod napi;
 #[cfg(feature = "parallel")]
 mod parallel;
+#[cfg(all(feature = "wasm", target_arch = "wasm32"))]
+mod wasm;
 
 pub use encode::{ColorMode, EncodeOptions, Filter, FilterSet};
 pub use error::PngError;
