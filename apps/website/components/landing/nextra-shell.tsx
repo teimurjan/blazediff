@@ -1,24 +1,23 @@
 import { IconBrandGithub } from "@tabler/icons-react";
 import Link from "next/link";
+import type { PageMapItem } from "nextra";
 import { Banner } from "nextra/components";
 import { getPageMap } from "nextra/page-map";
 import { Footer, Layout, Navbar } from "nextra-theme-docs";
 import Picture, { sizesForHeight } from "./picture";
 
 const banner = (
-	<Banner storageKey="ssim-interpret-native-launch">
+	<Banner storageKey="codec-png-launch">
 		New:{" "}
-		<Link href="/apis/ssim-native" className="underline underline-offset-2">
-			<b className="text-blue-400">ssim-native</b>
+		<Link href="/vs/spng" className="underline underline-offset-2">
+			<b className="text-blue-400">codec-png-native</b>
 		</Link>{" "}
-		brings SSIM, MS-SSIM and Hitchhiker&apos;s to Node, and{" "}
-		<Link
-			href="/apis/interpret-native"
-			className="underline underline-offset-2"
-		>
-			<b className="text-blue-400">interpret-native</b>
+		and{" "}
+		<Link href="/vs/jsquash" className="underline underline-offset-2">
+			<b className="text-blue-400">codec-png-wasm</b>
 		</Link>{" "}
-		ships diff interpretation on its own. Read more →
+		bring the blazediff-png codec to Node and WebAssembly, faster than spng and
+		jSquash. Read more →
 	</Banner>
 );
 
@@ -42,14 +41,17 @@ const footer = <Footer>MIT {new Date().getFullYear()} © BlazeDiff.</Footer>;
 
 export default async function NextraShell({
 	children,
+	pageMap,
 }: {
 	children: React.ReactNode;
+	/** Defaults to the whole site's page map. */
+	pageMap?: PageMapItem[];
 }) {
 	return (
 		<Layout
 			banner={banner}
 			navbar={navbar}
-			pageMap={await getPageMap()}
+			pageMap={pageMap ?? (await getPageMap())}
 			docsRepositoryBase="https://github.com/teimurjan/blazediff/tree/main/apps/website"
 			footer={footer}
 			darkMode={false}
