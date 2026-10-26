@@ -11,7 +11,8 @@
 			"!crates",
 			"!packages/core-wasm/wasm",
 			"!packages/interpret-wasm/wasm",
-			"!packages/milo-wasm/wasm"
+			"!packages/milo-wasm/wasm",
+			"!packages/codec-png-wasm/wasm"
 		],
 		"ignoreUnknown": false
 	},

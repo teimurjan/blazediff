@@ -119,4 +119,4 @@ jobs:
           BLAZEDIFF_PNG_CORPUS: ${{ github.workspace }}/crates/blazediff-png/.corpus
         run: >
           cargo test --release --manifest-path crates/Cargo.toml
-          -p blazediff-png --test corpus_differential -- --nocapture
+          -p blazediff-png --test corpus_differential -- --ignored --nocapture

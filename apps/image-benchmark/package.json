@@ -22,10 +22,12 @@
 		"ssim": "node dist/structure/ssim-benchmark.js",
 		"hitchhikers-ssim": "node dist/structure/hitchhikers-ssim-benchmark.js",
 		"ssim.js": "node dist/structure/external-ssim-benchmark.js",
-		"weber-ssim.js": "node dist/structure/external-ssim-weber-benchmark.js"
+		"weber-ssim.js": "node dist/structure/external-ssim-weber-benchmark.js",
+		"png-wasm": "node dist/png-codec/png-wasm-benchmark.js"
 	},
 	"devDependencies": {
 		"@blazediff/cli": "workspace:*",
+		"@blazediff/codec-png-wasm": "workspace:*",
 		"@blazediff/codec-pngjs": "workspace:*",
 		"@blazediff/core": "workspace:*",
 		"@blazediff/core-native": "workspace:*",
@@ -33,6 +35,7 @@
 		"@blazediff/gmsd": "workspace:*",
 		"@blazediff/ssim": "workspace:*",
 		"@blazediff/ssim-native": "workspace:*",
+		"@jsquash/png": "3.1.1",
 		"@types/node": "^24.3.0",
 		"@vizzly-testing/honeydiff": "^0.17.0",
 		"odiff-bin": "^4.3.8",

@@ -1,0 +1,22 @@
+[package]
+name = "zune-png-wasm-bench"
+version = "0.0.0"
+edition = "2021"
+publish = false
+description = "Bench-only wasm build of zune-png for the png-wasm benchmark"
+
+# Standalone: not a member of crates/Cargo.toml.
+[workspace]
+
+[lib]
+crate-type = ["cdylib"]
+path = "lib.rs"
+
+[dependencies]
+zune-png = "=0.5.2"
+zune-core = "=0.5.3"
+
+[profile.release]
+codegen-units = 1
+lto = "fat"
+panic = "abort"

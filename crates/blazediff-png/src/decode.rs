@@ -2,7 +2,8 @@
 //!
 //! Byte-exact parity with blazediff's spng reference path
 //! (`SPNG_FMT_RGBA8` + `SPNG_DECODE_TRNS`, `SPNG_CTX_IGNORE_ADLER32`,
-//! `SPNG_CRC_USE`) on both accepted output and rejected inputs. See
+//! `SPNG_CRC_USE`) on both accepted output and rejected inputs, except that
+//! a gray tRNS key is masked to the bit depth per the PNG spec. See
 //! chunks.rs for the validation contract and expand.rs for the sample
 //! conversion contract.
 

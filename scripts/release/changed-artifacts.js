@@ -22,6 +22,9 @@
 //                                         blazediff-shared (built without codecs)
 //   milo       milo .node                 blazediff-milo, blazediff-shared, blazediff-png
 //   wasm_milo  milo wasm module           blazediff-milo (built without codecs)
+//   codec_png  codec-png .node            blazediff-png
+//   wasm_codec_png
+//              codec-png wasm module      blazediff-png (pure-Rust backend)
 //
 // Family keys are shell identifiers: this script's output is `eval`'d in
 // release-artifacts-check.yml and `tee`'d into $GITHUB_OUTPUT, so a hyphen
@@ -61,6 +64,8 @@ const FAMILIES = [
 	"wasm_interpret",
 	"milo",
 	"wasm_milo",
+	"codec_png",
+	"wasm_codec_png",
 ];
 
 /** The crate sources compiled into each family's artifacts. */
@@ -87,6 +92,8 @@ const FAMILY_CRATES = {
 	// The wasm build's only dependency is std; blazediff-shared is a
 	// binding-only optional dependency it never enables.
 	wasm_milo: ["blazediff-milo"],
+	codec_png: ["blazediff-png"],
+	wasm_codec_png: ["blazediff-png"],
 };
 
 /** The npm package whose changesets tag anchors each family's last release. */
@@ -98,6 +105,8 @@ const FAMILY_NPM = {
 	wasm_interpret: "@blazediff/interpret-wasm",
 	milo: "@blazediff/milo-native",
 	wasm_milo: "@blazediff/milo-wasm",
+	codec_png: "@blazediff/codec-png-native",
+	wasm_codec_png: "@blazediff/codec-png-wasm",
 };
 
 const FAMILY_PACKAGE = {
@@ -108,12 +117,19 @@ const FAMILY_PACKAGE = {
 	wasm_interpret: "packages/interpret-wasm/package.json",
 	milo: "packages/milo-native/milo-native/package.json",
 	wasm_milo: "packages/milo-wasm/package.json",
+	codec_png: "packages/codec-png-native/codec-png-native/package.json",
+	wasm_codec_png: "packages/codec-png-wasm/package.json",
 };
 
 const ALL_CRATES = [...new Set(Object.values(FAMILY_CRATES).flat())];
 
 /** Families whose artifact is a wasm module rather than a native binary. */
-const WASM_FAMILIES = new Set(["wasm", "wasm_interpret", "wasm_milo"]);
+const WASM_FAMILIES = new Set([
+	"wasm",
+	"wasm_interpret",
+	"wasm_milo",
+	"wasm_codec_png",
+]);
 
 /** Crates under crates/ that never ship in an artifact. */
 const UNSHIPPED_CRATES = new Set([

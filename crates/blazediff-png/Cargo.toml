@@ -13,6 +13,9 @@ include = ["src/**/*", "build.rs", "Cargo.toml", "README.md"]
 [lib]
 name = "blazediff_png"
 path = "src/lib.rs"
+# cdylib is what the `napi` and `wasm` features turn into a `.node` / `.wasm`;
+# the rlib is what everyone else links.
+crate-type = ["lib", "cdylib"]
 
 [dependencies]
 # CRC-32 / Adler-32 for the C-free rust-backend only; the zlib backend uses
@@ -37,6 +40,20 @@ libz-rs-sys = { version = "0.6", optional = true }
 zune-inflate = { version = "0.2", default-features = false, features = ["zlib", "std"], optional = true }
 # Compress (encode): image-rs fast PNG-tuned deflate (ultra-fast mode). Pure safe Rust.
 fdeflate = { version = "0.3", optional = true }
+# Band-parallel encode (feature "parallel"). libdeflate cannot end a stream on a
+# non-final block, so bands are compressed with zlib-rs sync flushes. No
+# c-allocator: stays C-free and wasm-compatible.
+zlib-rs = { version = "0.6", optional = true, default-features = false, features = ["std"] }
+# N-API bindings for `@blazediff/codec-png-native` (feature "napi").
+napi = { version = "2", features = ["napi4"], optional = true }
+napi-derive = { version = "2", optional = true }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+# wasm-bindgen bindings for `@blazediff/codec-png-wasm` (feature "wasm").
+# Pinned to the wasm-bindgen-cli version in scripts/build-wasm.sh. Bumping
+# requires bumping both in lockstep.
+wasm-bindgen = { version = "=0.2.100", optional = true }
+console_error_panic_hook = { version = "0.1", optional = true }
 
 [features]
 default = ["zlib-backend"]
@@ -44,6 +61,13 @@ default = ["zlib-backend"]
 zlib-backend = ["dep:libz-sys", "dep:libdeflater"]
 # Pure-Rust deflate for C-free native builds.
 rust-backend = ["dep:zune-inflate", "dep:fdeflate", "dep:crc32fast", "dep:simd-adler32"]
+# Opt-in multithreaded encode: `encode_parallel`.
+parallel = ["dep:zlib-rs"]
+# N-API bindings for `@blazediff/codec-png-native`, on the default zlib backend.
+napi = ["dep:napi", "dep:napi-derive", "dep:napi-build"]
+# wasm-bindgen bindings for `@blazediff/codec-png-wasm`. wasm32 cannot link the
+# C zlib backend, so build with `--no-default-features --features wasm`.
+wasm = ["rust-backend", "dep:wasm-bindgen", "dep:console_error_panic_hook"]
 # Internal-only: strict-window reference inflate for the differential fuzzer.
 # Requires the zlib backend.
 fuzzing = ["dep:libz-rs-sys", "zlib-backend"]
@@ -51,13 +75,19 @@ fuzzing = ["dep:libz-rs-sys", "zlib-backend"]
 [build-dependencies]
 # Compile-only probe of the target zlib's ZLIB_VERNUM (see build.rs).
 cc = "1"
+napi-build = { version = "2", optional = true }
 
 [dev-dependencies]
 png = "0.18.1"
+# Builds compressed test inputs only. A plain dev-dep, so it never enables
+# `zlib-backend` on a `rust-backend` test run.
+libdeflater = "1.25.2"
 # The spng reference oracle for differential tests (decode_spng_reference).
 # Path-only, so cargo strips it when publishing and the dev-dependency cycle
 # with blazediff-shared (which depends on this crate) never reaches crates.io.
-blazediff-shared = { path = "../blazediff-shared", features = ["fuzzing"] }
+# default-features off: `codecs` would pull this crate back in with its default
+# features and silently force `zlib-backend` onto `rust-backend` test runs.
+blazediff-shared = { path = "../blazediff-shared", default-features = false, features = ["fuzzing"] }
 criterion = { version = "0.5", default-features = false }
 libc = "0.2"
 
@@ -70,3 +100,9 @@ harness = false
 name = "stored_encode"
 path = "benchmarks/stored_encode.rs"
 harness = false
+
+[[bench]]
+name = "parallel_encode"
+path = "benchmarks/parallel_encode.rs"
+harness = false
+required-features = ["parallel"]

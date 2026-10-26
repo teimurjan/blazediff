@@ -7,7 +7,6 @@ import InstallSnippet from "../../components/landing/install-snippet";
 import NumberedCard, {
 	type NumberedCardProps,
 } from "../../components/landing/numbered-card";
-import ReportCycling from "../../components/landing/report-cycling";
 import Section from "../../components/landing/section";
 import LandingShell from "../../components/landing/shell";
 import StepCard from "../../components/landing/step-card";
@@ -28,7 +27,7 @@ const FIXTURE_B =
 const DEMO_ENTRY_ID = "examples-interpret";
 
 // Route ids from a real `blazediff-agent check` on this website, plus the
-// fixture entry the hero and report sections both flag.
+// fixture entry the hero flags.
 const DEMO_ROUTES = [
 	"home",
 	"agent",
@@ -187,38 +186,6 @@ export default function AgentPage() {
 				>
 					Open full screen
 				</a>
-			</Section>
-
-			<Section
-				title="REPORT OUTPUT"
-				intro="Every check writes a 5-column Markdown report with baseline, actual, and diff thumbnails per route. The sample below is from a real run on this website."
-			>
-				<TerminalFrame title=".blazediff/summary.md">
-					<div className="p-6 bg-canvas flex flex-col gap-6">
-						<div className="flex flex-wrap items-center gap-6 border-b border-line pb-4 font-mono text-[13px] uppercase tracking-widest">
-							<span className="text-muted">
-								TOTAL <span className="text-fg">23</span>
-							</span>
-							<span className="text-muted">
-								PASSED <span className="text-accent">22</span>
-							</span>
-							<span className="text-muted">
-								PENDING <span className="text-magenta">1</span>
-							</span>
-						</div>
-
-						<ReportCycling
-							id={DEMO_ENTRY_ID}
-							fixtureBaseline={FIXTURE_A}
-							fixtureCurrent={FIXTURE_B}
-							imageWidth={interpretData.width}
-							imageHeight={interpretData.height}
-							regions={interpretData.regions}
-							diffPercentage={interpretData.diffPercentage}
-							severity={interpretData.severity}
-						/>
-					</div>
-				</TerminalFrame>
 			</Section>
 
 			<Section>

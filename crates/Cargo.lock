@@ -165,6 +165,7 @@ version = "6.0.0"
 dependencies = [
  "blazediff-shared",
  "cc",
+ "console_error_panic_hook",
  "crc32fast",
  "criterion",
  "fdeflate",
@@ -172,8 +173,13 @@ dependencies = [
  "libdeflater",
  "libz-rs-sys",
  "libz-sys",
+ "napi",
+ "napi-build",
+ "napi-derive",
  "png",
  "simd-adler32",
+ "wasm-bindgen",
+ "zlib-rs",
  "zune-inflate",
 ]
 

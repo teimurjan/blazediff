@@ -25,7 +25,9 @@ pub mod jpeg_io;
 pub mod png_io;
 #[cfg(feature = "codecs")]
 pub mod qoi_io;
-#[cfg(feature = "codecs")]
+#[cfg(feature = "spng")]
+mod spng_decode;
+#[cfg(feature = "spng")]
 #[allow(
     non_upper_case_globals,
     non_camel_case_types,
@@ -336,7 +338,7 @@ pub fn save_image<P: AsRef<Path>>(
 #[cfg(feature = "fuzzing")]
 #[doc(hidden)]
 pub fn decode_spng_reference(data: &[u8]) -> Result<Image, ImageError> {
-    png_io::decode_spng(data)
+    spng_decode::decode_spng(data)
 }
 
 /// Fuzzing-only oracle: decode through spng at an arbitrary `SPNG_FMT_*` and
@@ -349,7 +351,7 @@ pub fn decode_spng_reference_fmt(
     fmt: std::os::raw::c_int,
     flags: std::os::raw::c_int,
 ) -> Result<(u32, u32, u8, u8, Vec<u8>), ImageError> {
-    png_io::decode_spng_fmt(data, fmt, flags)
+    spng_decode::decode_spng_fmt(data, fmt, flags)
 }
 
 #[cfg(test)]

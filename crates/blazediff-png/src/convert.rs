@@ -240,7 +240,8 @@ impl RowConverter {
             0xFFFF
         };
         let gray_trns = match (apply_trns, color_type, trns) {
-            (true, COLOR_GRAYSCALE, Some(Trns::Gray(g))) => Some(*g),
+            // Masked per PNG 3rd edition 11.3.1.1, unlike spng (see expand.rs).
+            (true, COLOR_GRAYSCALE, Some(Trns::Gray(g))) => Some(*g & mask),
             _ => None,
         };
         let rgb_trns_be = match (apply_trns, color_type, trns) {

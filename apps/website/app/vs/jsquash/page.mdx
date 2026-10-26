@@ -1,0 +1,66 @@
+---
+title: BlazeDiff vs jSquash PNG - WebAssembly PNG Codec Speed and Size
+description: "@blazediff/codec-png-wasm vs @jsquash/png benchmarked on 36 PNG files. Faster WebAssembly decode, and default encodes that are smaller in total, for browsers, Workers and Node."
+---
+
+# BlazeDiff vs jSquash
+
+import BenchmarkCharts, {
+  FasterThan,
+} from "../../../components/benchmarks/benchmark-charts";
+
+**`@blazediff/codec-png-wasm` decodes PNG <FasterThan bench="png-wasm" section="decode" ours="blazediff" theirs="jsquash" />
+than `@jsquash/png`, and at default settings it encodes <FasterThan bench="png-wasm" section="encode-default" ours="blazediff" theirs="jsquash" />
+in total, with smaller files.** Both are Rust compiled to WebAssembly. jSquash
+wins some individual encodes, so read the per-fixture tables for your image sizes.
+
+jSquash is a set of browser image codecs derived from Squoosh: AVIF, JPEG, JPEG XL,
+OxiPNG, PNG, QOI, WebP and resize. Its PNG codec wraps the image-rs `png` crate,
+version 0.17. `@blazediff/codec-png-wasm` is the `blazediff-png` codec with wasm
+SIMD, about 150 KB, and it decodes every PNG format to RGBA8.
+
+## At a glance
+
+|                     | jSquash (`@jsquash/png`)                      | BlazeDiff (`@blazediff/codec-png-wasm`)            |
+| ------------------- | --------------------------------------------- | -------------------------------------------------- |
+| License             | Apache-2.0                                    | MIT                                                |
+| Engine              | image-rs `png` 0.17, compiled to wasm          | `blazediff-png`, compiled to wasm with SIMD        |
+| Runtimes            | Browsers, Workers, Deno; Node is experimental | Browsers, Workers, Deno, Node                      |
+| Decode output       | `ImageData`, or 16-bit RGBA                   | RGBA8 `{ data, width, height }`                    |
+| Encode options      | Bit depth                                     | Compression level, filter, color mode              |
+| Other formats       | Sibling packages for AVIF, JPEG, WebP, JXL    | PNG only                                           |
+| Native twin         | No                                            | `@blazediff/codec-png-native` for Node             |
+
+## Benchmarks
+
+Both run single-threaded in Node with wasm SIMD. The default encode is fdeflate
+with adaptive filtering in BlazeDiff and the `png` crate default in jSquash. The
+charts also show zune-png, which writes stored data.
+
+<BenchmarkCharts cards={["png-wasm"]} />
+
+## Switching
+
+```ts
+// Before
+import { decode, encode } from "@jsquash/png";
+const imageData = await decode(arrayBuffer);
+const png = await encode(imageData);
+
+// After
+import { decode, encode } from "@blazediff/codec-png-wasm";
+const image = await decode(new Uint8Array(arrayBuffer)); // { data, width, height }
+const out = await encode(image, { compression: 4 });
+```
+
+## When to keep jSquash
+
+- You need 16-bit PNG output.
+- You already use other jSquash codecs and want one toolchain.
+- You need an `ImageData` object to draw on a canvas without a conversion step.
+
+## Related
+
+- [BlazeDiff vs zune-png](/vs/zune-png) and [BlazeDiff vs image-rs](/vs/image-rs)
+- [`blazediff-png` API](/apis/blazediff-png)
+- [All benchmarks](/benchmarks#png-codec-wasm)

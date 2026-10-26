@@ -174,3 +174,40 @@ export function mergeSections(
 		),
 	};
 }
+
+/** A bench key (one chart per section), or several benches merged into one chart. */
+export type CardSpec = string | { id: string; title: string; keys: string[] };
+
+export interface Card {
+	id: string;
+	artifacts: BenchmarkArtifact[];
+	section: BenchmarkSection;
+}
+
+// A merged chart keeps whichever of its benches exist; a lone survivor
+// renders as its own chart.
+export function resolveCards(spec: CardSpec): Card[] {
+	if (typeof spec === "string") {
+		const artifact = findArtifact(spec);
+		return artifact
+			? artifact.sections.map((section) => ({
+					id: `${spec}-${section.id}`,
+					artifacts: [artifact],
+					section,
+				}))
+			: [];
+	}
+	const artifacts = spec.keys.flatMap((key) => findArtifact(key) ?? []);
+	const sections = spec.keys.flatMap((key) => findSection(key) ?? []);
+	if (sections.length === 0) return [];
+	return [
+		{
+			id: spec.id,
+			artifacts,
+			section:
+				sections.length === 1
+					? sections[0]
+					: mergeSections(spec.id, spec.title, sections),
+		},
+	];
+}

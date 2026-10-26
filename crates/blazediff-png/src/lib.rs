@@ -6,7 +6,9 @@
 //! - **Decode**: every format spng accepts — bit depths 1/2/4/8/16, all five
 //!   color types, palette + tRNS, gray/RGB tRNS color-keying, Adam7
 //!   interlacing — decoded to RGBA8 byte-identically to spng, with the same
-//!   accept/reject behavior on malformed inputs.
+//!   accept/reject behavior on malformed inputs. One deliberate exception: a
+//!   gray tRNS key is masked to the bit depth as the PNG spec requires, which
+//!   spng does not do (see the README).
 //! - **Decode formats**: [`decode_with`] targets any spng `SPNG_FMT_*`
 //!   (`RGBA8`/`RGBA16`/`RGB8`/`GA8`/`GA16`/`G8`/native `PNG`/`RAW`) with
 //!   optional tRNS / gamma / sBIT transforms, each byte-identical to
@@ -37,6 +39,8 @@ compile_error!(
 );
 
 mod backend;
+#[cfg(any(feature = "napi", feature = "wasm", test))]
+mod binding;
 mod chunks;
 mod container;
 mod convert;
@@ -48,6 +52,12 @@ mod expand;
 mod format;
 mod interlace;
 mod meta;
+#[cfg(feature = "napi")]
+mod napi;
+#[cfg(feature = "parallel")]
+mod parallel;
+#[cfg(all(feature = "wasm", target_arch = "wasm32"))]
+mod wasm;
 
 pub use encode::{ColorMode, EncodeOptions, Filter, FilterSet};
 pub use error::PngError;
@@ -102,6 +112,8 @@ pub struct DecodedPng {
 
 /// Decode a PNG to RGBA8, byte-identical to libspng's FMT_RGBA8 + tRNS
 /// output for every input spng accepts, rejecting the inputs spng rejects.
+/// The exception is a gray tRNS key with bits above the bit depth, which is
+/// masked per the PNG spec.
 pub fn decode(data: &[u8]) -> Result<Image, PngError> {
     decode::decode(data)
 }
@@ -133,6 +145,20 @@ pub fn decode_with(data: &[u8], options: &DecodeOptions) -> Result<Decoded, PngE
 /// [`EncodeOptions::default`] auto-picks the smallest lossless mode.
 pub fn encode(image: &Image, options: &EncodeOptions) -> Result<Vec<u8>, PngError> {
     encode::encode(image.into(), options, &Metadata::default())
+}
+
+/// [`encode`] with the deflate stream compressed in fixed bands on up to
+/// `threads` workers (feature `parallel`). The bytes depend only on `image`
+/// and `options`, never on `threads`. They differ from [`encode`]'s
+/// (zlib-rs instead of libdeflate), but decode to the same pixels. Level 0
+/// produces exactly [`encode`]'s output.
+#[cfg(feature = "parallel")]
+pub fn encode_parallel(
+    image: &Image,
+    options: &EncodeOptions,
+    threads: std::num::NonZeroUsize,
+) -> Result<Vec<u8>, PngError> {
+    encode::encode_parallel(image.into(), options, &Metadata::default(), threads)
 }
 
 /// [`encode`] from a borrowed [`ImageRef`] — same output, no [`Image`]

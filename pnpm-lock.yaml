@@ -29,6 +29,9 @@ importers:
       '@blazediff/cli':
         specifier: workspace:*
         version: link:../../packages/cli
+      '@blazediff/codec-png-wasm':
+        specifier: workspace:*
+        version: link:../../packages/codec-png-wasm
       '@blazediff/codec-pngjs':
         specifier: workspace:*
         version: link:../../packages/codec-pngjs
@@ -50,6 +53,9 @@ importers:
       '@blazediff/ssim-native':
         specifier: workspace:*
         version: link:../../packages/ssim-native/ssim-native
+      '@jsquash/png':
+        specifier: 3.1.1
+        version: 3.1.1
       '@types/node':
         specifier: ^24.3.0
         version: 24.3.0
@@ -505,6 +511,60 @@ importers:
       typescript:
         specifier: 5.9.2
         version: 5.9.2
+
+  packages/codec-png-native/codec-png-native:
+    devDependencies:
+      '@types/node':
+        specifier: ^24.3.0
+        version: 24.3.0
+      '@types/pngjs':
+        specifier: ^6.0.5
+        version: 6.0.5
+      pngjs:
+        specifier: ^7.0.0
+        version: 7.0.0
+      tsup:
+        specifier: 8.5.0
+        version: 8.5.0(jiti@2.6.0)(postcss@8.5.15)(tsx@4.20.6)(typescript@5.9.2)(yaml@2.8.1)
+      typescript:
+        specifier: 5.9.2
+        version: 5.9.2
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.4(@types/debug@4.1.12)(@types/node@24.3.0)(@vitest/ui@3.2.4)(happy-dom@18.0.1)(jiti@2.6.0)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.20.6)(yaml@2.8.1)
+
+  packages/codec-png-native/codec-png-native-darwin-arm64: {}
+
+  packages/codec-png-native/codec-png-native-darwin-x64: {}
+
+  packages/codec-png-native/codec-png-native-linux-arm64: {}
+
+  packages/codec-png-native/codec-png-native-linux-x64: {}
+
+  packages/codec-png-native/codec-png-native-win32-arm64: {}
+
+  packages/codec-png-native/codec-png-native-win32-x64: {}
+
+  packages/codec-png-wasm:
+    devDependencies:
+      '@types/node':
+        specifier: ^24.3.0
+        version: 24.3.0
+      '@types/pngjs':
+        specifier: ^6.0.5
+        version: 6.0.5
+      pngjs:
+        specifier: ^7.0.0
+        version: 7.0.0
+      tsup:
+        specifier: 8.5.0
+        version: 8.5.0(jiti@2.6.0)(postcss@8.5.15)(tsx@4.20.6)(typescript@5.9.2)(yaml@2.8.1)
+      typescript:
+        specifier: 5.9.2
+        version: 5.9.2
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.4(@types/debug@4.1.12)(@types/node@24.3.0)(@vitest/ui@3.2.4)(happy-dom@18.0.1)(jiti@2.6.0)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.20.6)(yaml@2.8.1)
 
   packages/codec-pngjs:
     dependencies:
@@ -3930,7 +3990,6 @@ packages:
 
   bun@1.3.5:
     resolution: {integrity: sha512-c1YHIGUfgvYPJmLug5QiLzNWlX2Dg7X/67JWu1Va+AmMXNXzC/KQn2lgQ7rD+n1u1UqDpJMowVGGxTNpbPydNw==}
-    cpu: [arm64, x64]
     os: [darwin, linux, win32]
     hasBin: true
 
@@ -7599,6 +7658,7 @@ packages:
     resolution: {integrity: sha512-bXE4cR/kVZhKZX/RjPEflHaKVhUVl85noU3v6b8apfQEc1x4A+zBxjZ4lN8LqGd6WZ3dl98pY4o717VFmoPp+A==}
 
 ignoredOptionalDependencies:
+  - '@blazediff/codec-png-native-*'
   - '@blazediff/core-native-*'
   - '@blazediff/interpret-native-*'
   - '@blazediff/milo-native-*'

@@ -4,31 +4,9 @@
 //! (non-strict mode discards malformed ancillary chunks, fatal only on
 //! limits) — byte-for-byte against the oracle.
 
-use blazediff_png::decode;
+mod common;
 
-fn oracle(bytes: &[u8]) -> Option<Vec<u8>> {
-    blazediff_shared::decode_spng_reference(bytes)
-        .ok()
-        .map(|i| i.data)
-}
-
-#[track_caller]
-fn assert_parity(bytes: &[u8], label: &str) {
-    match (decode(bytes), oracle(bytes)) {
-        (Ok(m), Some(data)) => assert_eq!(m.data, data, "{label}: pixel mismatch"),
-        (Err(_), None) => {}
-        (Ok(_), None) => panic!("{label}: blazediff_png accepts, spng rejects"),
-        (Err(e), None_) => panic!("{label}: blazediff_png rejects ({e}), spng {None_:?}"),
-    }
-}
-
-fn chunk(ty: &[u8; 4], payload: &[u8]) -> Vec<u8> {
-    let mut c = (payload.len() as u32).to_be_bytes().to_vec();
-    c.extend_from_slice(ty);
-    c.extend_from_slice(payload);
-    c.extend_from_slice(&[0; 4]); // CRC unchecked by both decoders
-    c
-}
+use common::{assert_chunk_parity, chunk, zlib};
 
 /// A valid 2x2 RGB base image; chunks are spliced at offset 33 (after IHDR).
 fn base() -> Vec<u8> {
@@ -49,14 +27,6 @@ fn spliced(chunks: &[Vec<u8>]) -> Vec<u8> {
     let flat: Vec<u8> = chunks.iter().flatten().copied().collect();
     out.splice(33..33, flat);
     out
-}
-
-fn zlib(data: &[u8]) -> Vec<u8> {
-    let mut c = libdeflater::Compressor::new(libdeflater::CompressionLvl::default());
-    let mut z = vec![0u8; c.zlib_compress_bound(data.len())];
-    let n = c.zlib_compress(data, &mut z).unwrap();
-    z.truncate(n);
-    z
 }
 
 #[test]
@@ -159,17 +129,17 @@ fn standard_chunks_valid_and_malformed() {
     gama_ok.clear();
 
     for (label, c) in &cases {
-        assert_parity(&spliced(std::slice::from_ref(c)), label);
+        assert_chunk_parity(&spliced(std::slice::from_ref(c)), label);
     }
 
     // All valid chunks together, then duplicates of each (dup discard path).
     let all: Vec<Vec<u8>> = cases.iter().map(|(_, c)| c.clone()).collect();
-    assert_parity(&spliced(&all), "all chunks spliced together");
+    assert_chunk_parity(&spliced(&all), "all chunks spliced together");
     let doubled: Vec<Vec<u8>> = cases
         .iter()
         .flat_map(|(_, c)| [c.clone(), c.clone()])
         .collect();
-    assert_parity(&spliced(&doubled), "every chunk duplicated");
+    assert_chunk_parity(&spliced(&doubled), "every chunk duplicated");
 }
 
 /// Chunks positioned after PLTE that spng requires before it (discarded),
@@ -208,7 +178,7 @@ fn position_sensitive_chunks_after_plte() {
     ] {
         let mut spliced = out.clone();
         spliced.splice(plte..plte, c);
-        assert_parity(&spliced, label);
+        assert_chunk_parity(&spliced, label);
     }
 }
 
@@ -225,7 +195,7 @@ fn text_peek_horizon() {
     payload.push(0);
     payload.push(0);
     payload.push(b't');
-    assert_parity(
+    assert_chunk_parity(
         &spliced(&[chunk(b"iTXt", &payload)]),
         "iTXt language tag beyond peek",
     );
@@ -235,5 +205,5 @@ fn text_peek_horizon() {
     let mut payload = vec![b'k'; 80];
     payload.push(0);
     payload.push(b'v');
-    assert_parity(&spliced(&[chunk(b"tEXt", &payload)]), "keyword nul at 80");
+    assert_chunk_parity(&spliced(&[chunk(b"tEXt", &payload)]), "keyword nul at 80");
 }

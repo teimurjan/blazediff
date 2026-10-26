@@ -45,6 +45,17 @@
 			"@blazediff/milo-native-win32-x64",
 			"@blazediff/milo-wasm",
 			"@blazediff/rust-milo"
+		],
+		[
+			"@blazediff/codec-png-native",
+			"@blazediff/codec-png-native-darwin-arm64",
+			"@blazediff/codec-png-native-darwin-x64",
+			"@blazediff/codec-png-native-linux-arm64",
+			"@blazediff/codec-png-native-linux-x64",
+			"@blazediff/codec-png-native-win32-arm64",
+			"@blazediff/codec-png-native-win32-x64",
+			"@blazediff/codec-png-wasm",
+			"@blazediff/rust-png"
 		]
 	],
 	"linked": [],

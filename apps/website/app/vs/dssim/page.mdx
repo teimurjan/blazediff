@@ -1,0 +1,71 @@
+---
+title: BlazeDiff vs dssim - MIT-Licensed SSIM in Rust
+description: blazediff-ssim vs dssim benchmarked on 16 image pairs. MIT-licensed SSIM, MS-SSIM and Hitchhiker's SSIM in Rust, Node and Python, compared with the AGPL dssim quality metric.
+---
+
+# BlazeDiff vs dssim
+
+import { Callout } from "nextra/components";
+import BenchmarkCharts, {
+  FasterThan,
+} from "../../../components/benchmarks/benchmark-charts";
+
+**The `blazediff-ssim` crate computes MS-SSIM <FasterThan bench="ssim-dssim" ours="ms-ssim" theirs="dssim" />
+than dssim, and it is MIT-licensed, while dssim is AGPL-3.0 or commercial.** The
+two answer related but different questions. dssim is a perceptual quality metric
+for tuning image codecs. BlazeDiff SSIM is a similarity score for visual tests.
+
+dssim computes multi-scale SSIM in L\*a\*b\* color space, scales in linear light,
+and reads color profiles. Its score is 1/SSIM − 1, so 0 means identical and the
+value has no upper limit. `blazediff-ssim` computes luma SSIM that follows the
+MATLAB reference implementations, and it scores from 0 to 1.
+
+## At a glance
+
+|                     | dssim                                         | BlazeDiff (`blazediff-ssim`)                                |
+| ------------------- | --------------------------------------------- | ----------------------------------------------------------- |
+| License             | AGPL-3.0, or a commercial license             | MIT                                                         |
+| Delivery            | Rust crate, CLI, C library                    | Rust crate, Node addon (`ssim-native`), JavaScript, Python  |
+| Input               | PNG and JPEG in the CLI; RGBA in the library  | RGBA in the crate; PNG, JPEG and QOI in `ssim-native`       |
+| Color               | L\*a\*b\* with chroma, color profiles         | Luma; `perceptual-ssim` adds L\*a\*b\* chroma               |
+| Score               | DSSIM, 0 = identical, unbounded               | SSIM, 1 = identical                                         |
+| Variants            | One multi-scale metric                        | SSIM, MS-SSIM, Hitchhiker's SSIM, perceptual SSIM          |
+| Threads             | Multi-core by default                         | Single-threaded; you run images in parallel                 |
+
+## Benchmarks
+
+dssim runs single-threaded here, so both sides use one core. dssim is a different
+algorithm, so the chart compares cost, not scores. Decode is excluded.
+
+<BenchmarkCharts cards={["ssim-dssim"]} />
+
+## Switching
+
+```rust
+use blazediff_ssim::{ms_ssim, MsSsimOptions, Plane, Rgba8, SsimOptions};
+
+let base = Plane::from_rgba8(Rgba8::new(&rgba1, width, height))?;
+let current = Plane::from_rgba8(Rgba8::new(&rgba2, width, height))?;
+
+let outcome = ms_ssim(&base, &current, &SsimOptions::default(), &MsSsimOptions::default())?;
+println!("{:.6}", outcome.score); // 1.0 means identical
+```
+
+<Callout type="info">
+  A dssim threshold does not convert to an SSIM threshold. Score your own
+  fixtures with the new metric and pick the threshold from those scores.
+</Callout>
+
+## When to keep dssim
+
+- You tune image codecs or compression settings. dssim was validated on TID2013
+  for that job.
+- You need color-profile handling, or errors that only show in chroma.
+- Your project is already AGPL, or you bought the commercial license.
+
+## Related
+
+- [Structural comparison](/docs/structural-comparison)
+- [What is SSIM](/docs/metrics/ssim)
+- [`blazediff-ssim` API](/apis/blazediff-ssim) and [`@blazediff/ssim-native` API](/apis/ssim-native)
+- [All benchmarks](/benchmarks#structural-rust)

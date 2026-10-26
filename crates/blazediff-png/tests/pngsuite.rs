@@ -1,16 +1,16 @@
-//! PngSuite conformance: decode parity with spng across Willem van Schaik's
-//! canonical corpus — every format variant (basn*/basi*), odd sizes (s*),
-//! filtering (f*), palettes (p*), ancillary chunks (c*/t*/g*), zlib levels
-//! (z*), and the intentionally corrupt x* files where accept/reject must
-//! match.
+//! PngSuite conformance across Willem van Schaik's canonical corpus: every
+//! format variant (basn*/basi*), odd sizes (s*), filtering (f*), palettes
+//! (p*), ancillary chunks (c*/t*/g*) and zlib levels (z*) must decode
+//! identically through blazediff_png, spng and image-rs (Rule A). The
+//! intentionally corrupt x* files must reject in lockstep with spng (Rule B).
 
-use blazediff_png::decode;
+mod common;
+
+use common::{assert_chunk_parity, assert_valid};
 
 #[test]
-fn pngsuite_parity_with_spng() {
+fn pngsuite_conformance() {
     let dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/pngsuite");
-    let mut checked = 0;
-    let mut accepted = 0;
     let mut entries: Vec<_> = std::fs::read_dir(&dir)
         .expect("vendored pngsuite present")
         .flatten()
@@ -20,27 +20,17 @@ fn pngsuite_parity_with_spng() {
     entries.sort();
     assert!(entries.len() >= 170, "expected the full PngSuite corpus");
 
-    for path in entries {
+    let mut valid = 0;
+    for path in &entries {
         let name = path.file_name().unwrap().to_string_lossy().into_owned();
-        let bytes = std::fs::read(&path).unwrap();
-        let mine = decode(&bytes);
-        let spng = blazediff_shared::decode_spng_reference(&bytes).ok();
-        match (&mine, &spng) {
-            (Ok(m), Some(s)) => {
-                assert_eq!(
-                    (m.width, m.height),
-                    (s.width, s.height),
-                    "{name}: dimension mismatch"
-                );
-                assert_eq!(m.data, s.data, "{name}: pixel mismatch");
-                accepted += 1;
-            }
-            (Err(_), None) => {}
-            (Ok(_), None) => panic!("{name}: blazediff_png accepts, spng rejects"),
-            (Err(e), Some(_)) => panic!("{name}: blazediff_png rejects ({e}), spng accepts"),
+        let bytes = std::fs::read(path).unwrap();
+        if name.starts_with('x') {
+            assert_chunk_parity(&bytes, &name);
+        } else {
+            assert_valid(&bytes, &name);
+            valid += 1;
         }
-        checked += 1;
     }
-    println!("pngsuite: {checked} files, {accepted} decoded at parity");
-    assert!(accepted >= 140, "most of the suite should decode");
+    println!("pngsuite: {} files, {valid} valid", entries.len());
+    assert!(valid >= 140, "most of the suite should be valid");
 }

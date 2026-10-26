@@ -11,9 +11,11 @@ export default defineConfig({
 	// Keep the native/wasm packages out of the bundle so they resolve their
 	// platform binaries at runtime instead of being inlined.
 	external: [
+		"@blazediff/codec-png-wasm",
 		"@blazediff/core-native",
 		"@blazediff/core-wasm",
 		"@blazediff/ssim-native",
+		"@jsquash/png",
 		"@vizzly-testing/honeydiff",
 	],
 });

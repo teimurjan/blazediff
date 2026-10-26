@@ -3,7 +3,10 @@
 //! every `SPNG_FMT_*` + decode-flags combination. Every authored input must
 //! decode byte-identically — or be rejected identically — at every format.
 
+mod common;
+
 use blazediff_png::{decode_with, DecodeFormat, DecodeOptions};
+use common::{chunk_with_crc, lcg_bytes, pack_rows, png_encode};
 
 const ALL_FORMATS: [DecodeFormat; 8] = [
     DecodeFormat::Rgba8,
@@ -94,85 +97,12 @@ fn check_all_formats(bytes: &[u8], label: &str) {
     }
 }
 
-// --- authoring helpers (shared shape with differential.rs) ---
-
-fn lcg_bytes(n: usize, mut seed: u32) -> Vec<u8> {
-    let mut v = Vec::with_capacity(n);
-    for _ in 0..n {
-        seed = seed.wrapping_mul(1664525).wrapping_add(1013904223);
-        v.push((seed >> 24) as u8);
-    }
-    v
-}
-
-fn pack_rows(samples: &[u8], width: usize, height: usize, depth: u8) -> Vec<u8> {
-    let row_bytes = (width * depth as usize).div_ceil(8);
-    let mut out = vec![0u8; row_bytes * height];
-    for y in 0..height {
-        for x in 0..width {
-            let s = samples[y * width + x] & ((1u16 << depth) as u8).wrapping_sub(1);
-            let bit = x * depth as usize;
-            out[y * row_bytes + bit / 8] |= s << (8 - depth as usize - bit % 8);
-        }
-    }
-    out
-}
-
-#[allow(clippy::too_many_arguments)]
-fn png_encode(
-    raw: &[u8],
-    width: u32,
-    height: u32,
-    color: png::ColorType,
-    depth: png::BitDepth,
-    filter: png::Filter,
-    palette: Option<&[u8]>,
-    trns: Option<&[u8]>,
-) -> Vec<u8> {
-    let mut out = Vec::new();
-    {
-        let mut enc = png::Encoder::new(&mut out, width, height);
-        enc.set_color(color);
-        enc.set_depth(depth);
-        enc.set_filter(filter);
-        if let Some(plte) = palette {
-            enc.set_palette(plte.to_vec());
-        }
-        if let Some(t) = trns {
-            enc.set_trns(t.to_vec());
-        }
-        let mut w = enc.write_header().unwrap();
-        w.write_image_data(raw).unwrap();
-    }
-    out
-}
-
 /// Insert an ancillary chunk (e.g. gAMA, sBIT) just after IHDR.
 fn splice_chunk(png: &[u8], ty: &[u8; 4], payload: &[u8]) -> Vec<u8> {
-    let mut chunk = (payload.len() as u32).to_be_bytes().to_vec();
-    chunk.extend_from_slice(ty);
-    chunk.extend_from_slice(payload);
-    let crc = crc32(&[&ty[..], payload].concat());
-    chunk.extend_from_slice(&crc.to_be_bytes());
     let mut out = png[..33].to_vec();
-    out.extend_from_slice(&chunk);
+    out.extend_from_slice(&chunk_with_crc(ty, payload));
     out.extend_from_slice(&png[33..]);
     out
-}
-
-fn crc32(data: &[u8]) -> u32 {
-    let mut crc: u32 = 0xFFFF_FFFF;
-    for &b in data {
-        crc ^= b as u32;
-        for _ in 0..8 {
-            crc = if crc & 1 != 0 {
-                (crc >> 1) ^ 0xEDB8_8320
-            } else {
-                crc >> 1
-            };
-        }
-    }
-    !crc
 }
 
 // --- tests ---

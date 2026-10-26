@@ -41,6 +41,12 @@ export default {
 		title: "APIs",
 		type: "page",
 	},
+	// Out of the navbar and other sidebars; app/vs/layout.tsx shows it to itself.
+	vs: {
+		title: "Compare",
+		type: "page",
+		display: "hidden",
+	},
 	benchmarks: {
 		title: "Benchmarks",
 		type: "page",

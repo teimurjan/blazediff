@@ -392,7 +392,26 @@ pub fn encode(
             return Ok(out);
         }
     }
-    encode_core(image, options, meta)
+    encode_core(image, options, meta, compress)
+}
+
+/// [`encode`] with band-parallel compression on up to `threads` workers. Level
+/// 0 has nothing to compress and takes the [`encode`] path unchanged.
+#[cfg(feature = "parallel")]
+pub fn encode_parallel(
+    image: ImageRef,
+    options: &EncodeOptions,
+    meta: &Metadata,
+    threads: std::num::NonZeroUsize,
+) -> Result<Vec<u8>, PngError> {
+    if options.compression == 0 {
+        return encode(image, options, meta);
+    }
+    validate_image(image)?;
+    validate_options(options)?;
+    encode_core(image, options, meta, |raw, level| {
+        crate::parallel::compress_banded(raw, level, threads)
+    })
 }
 
 /// Stream the encode into `out`. The stored RGBA8 hot path writes directly to
@@ -410,7 +429,7 @@ pub fn encode_to<W: Write>(
     if stored_rgba8_applies(options, meta) && write_stored_rgba8(image, out)? {
         return Ok(());
     }
-    let bytes = encode_core(image, options, meta)?;
+    let bytes = encode_core(image, options, meta, compress)?;
     out.write_all(&bytes)?;
     Ok(())
 }
@@ -422,6 +441,7 @@ fn encode_core(
     image: ImageRef,
     options: &EncodeOptions,
     meta: &Metadata,
+    compress: impl FnOnce(&[u8], u8) -> Vec<u8>,
 ) -> Result<Vec<u8>, PngError> {
     let mode = resolve_mode(image, options.color)?;
     let mode = apply_explicit_palette(image, mode, meta)?;

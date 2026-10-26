@@ -4,23 +4,10 @@
 //! reference implementation, so it holds regardless of which backend's CRC
 //! kernel (libdeflate vs crc32fast) produced the bytes.
 
-use blazediff_png::{encode, ColorMode, EncodeOptions, Filter, Image};
+mod common;
 
-/// Bit-serial CRC-32/ISO-HDLC (PNG/zlib polynomial), independent of the codec.
-fn crc32_ref(data: &[u8]) -> u32 {
-    let mut crc = 0xFFFF_FFFFu32;
-    for &byte in data {
-        crc ^= byte as u32;
-        for _ in 0..8 {
-            crc = if crc & 1 != 0 {
-                (crc >> 1) ^ 0xEDB8_8320
-            } else {
-                crc >> 1
-            };
-        }
-    }
-    !crc
-}
+use blazediff_png::{encode, ColorMode, EncodeOptions, Filter, Image};
+use common::crc32;
 
 /// Walk the chunk stream and assert every stored CRC matches the reference over
 /// `type ++ payload`. Also returns the chunk-type sequence for a sanity check.
@@ -37,7 +24,7 @@ fn verify_chunk_crcs(png: &[u8]) -> Vec<[u8; 4]> {
         let ty: [u8; 4] = png[pos + 4..pos + 8].try_into().unwrap();
         let crc_off = pos + 8 + len;
         let stored = u32::from_be_bytes(png[crc_off..crc_off + 4].try_into().unwrap());
-        let want = crc32_ref(&png[pos + 4..crc_off]); // type + payload
+        let want = crc32(&png[pos + 4..crc_off]); // type + payload
         assert_eq!(
             stored,
             want,

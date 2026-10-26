@@ -65,6 +65,11 @@ const WASM_FAMILIES = [
 		pkg: "interpret-wasm",
 	},
 	{ artifact: "milo-wasm", family: "wasm_milo", pkg: "milo-wasm" },
+	{
+		artifact: "codec-png-wasm",
+		family: "wasm_codec_png",
+		pkg: "codec-png-wasm",
+	},
 ];
 // One committed wheels dir per PyPI distribution, each named after its crate.
 const WHEELS_DIRS = [
@@ -99,6 +104,8 @@ function familyOf(relative) {
 	if (relative.startsWith("packages/interpret-native/interpret-native-"))
 		return "interpret";
 	if (relative.startsWith("packages/milo-native/milo-native-")) return "milo";
+	if (relative.startsWith("packages/codec-png-native/codec-png-native-"))
+		return "codec_png";
 	for (const { family, pkg } of WASM_FAMILIES) {
 		if (relative.startsWith(path.join("packages", pkg))) return family;
 	}

@@ -14,6 +14,8 @@
 		"./packages/ssim-native/ssim-native",
 		"./packages/milo-native/milo-native",
 		"./packages/milo-wasm",
+		"./packages/codec-png-native/codec-png-native",
+		"./packages/codec-png-wasm",
 		"./packages/matcher",
 		"./packages/cli"
 	],

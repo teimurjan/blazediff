@@ -36,10 +36,12 @@
 - **[@blazediff/gmsd](./packages/gmsd#readme)** - Gradient Magnitude Similarity Deviation metric
 - **[@blazediff/milo-native](./packages/milo-native/milo-native#readme)** - Native Rust MILO (Çoğalan et al. 2025), a learned perceptual metric that models visual masking. The authors' weights embedded, PyTorch parity, no PyTorch
 - **[@blazediff/milo-wasm](./packages/milo-wasm#readme)** - WebAssembly build of the same metric for browsers, edge runtimes, and any wasm host
+- **[@blazediff/codec-png-native](./packages/codec-png-native/codec-png-native#readme)** - The `blazediff-png` Rust PNG codec for Node.js through N-API: spng-parity decode, libdeflate encode
+- **[@blazediff/codec-png-wasm](./packages/codec-png-wasm#readme)** - WebAssembly build of the same codec for browsers, edge runtimes, and any wasm host
 
 ### Rust Crates
 - **[blazediff](https://crates.io/crates/blazediff)** - The Rust crate powering `@blazediff/core-native`: block-based image diffing with SIMD ([source](./crates/blazediff#readme))
-- **[blazediff-png](https://crates.io/crates/blazediff-png)** - From-scratch PNG codec in Rust, single-threaded and SIMD-first, with byte-exact decode parity to libspng and faster on every fixture ([source](./crates/blazediff-png#readme))
+- **[blazediff-png](https://crates.io/crates/blazediff-png)** - From-scratch PNG codec in Rust, single-threaded and SIMD-first, with byte-exact decode parity to libspng and faster on every fixture. Powers `@blazediff/codec-png-native` and `@blazediff/codec-png-wasm` ([source](./crates/blazediff-png#readme))
 - **[blazediff-ssim](https://crates.io/crates/blazediff-ssim)** - SSIM, MS-SSIM and Hitchhiker's SSIM in Rust, dependency-free and SIMD-vectorised, held to the reference MATLAB scripts through Octave ([source](./crates/blazediff-ssim#readme))
 - **[blazediff-interpret](https://crates.io/crates/blazediff-interpret)** - Structured region analysis for image diffs: classify what changed, not just where. Powers `@blazediff/interpret-native` ([source](./crates/blazediff-interpret#readme))
 - **[blazediff-milo](https://crates.io/crates/blazediff-milo)** - MILO perceptual quality metric as a std-only SIMD CNN, multi-threaded, held to the authors' PyTorch outputs by test. Powers `@blazediff/milo-native` and `@blazediff/milo-wasm` ([source](./crates/blazediff-milo#readme))
@@ -83,7 +85,7 @@ cargo add blazediff
 pip install blazediff blazediff-ssim blazediff-interpret
 ```
 
-Every package above is available on both registries **except** the test-runner adapters (`@blazediff/vitest`, `@blazediff/jest`, `@blazediff/bun`) and the UI libraries (`@blazediff/ui`, `@blazediff/react`), which remain NPM-only - the adapters augment each runner's `Matchers` types and the UI packages have browser-DOM and React type surfaces that JSR's publish-time slow-types check doesn't allow. Native-binary sub-packages under `@blazediff/core-native-*`, `@blazediff/ssim-native-*`, `@blazediff/interpret-native-*` and `@blazediff/milo-native-*` are also NPM-only; Deno consumers resolve them transparently via `npm:` specifiers declared inside the parent package.
+Every package above is available on both registries **except** the test-runner adapters (`@blazediff/vitest`, `@blazediff/jest`, `@blazediff/bun`) and the UI libraries (`@blazediff/ui`, `@blazediff/react`), which remain NPM-only - the adapters augment each runner's `Matchers` types and the UI packages have browser-DOM and React type surfaces that JSR's publish-time slow-types check doesn't allow. Native-binary sub-packages under `@blazediff/core-native-*`, `@blazediff/ssim-native-*`, `@blazediff/interpret-native-*`, `@blazediff/milo-native-*` and `@blazediff/codec-png-native-*` are also NPM-only; Deno consumers resolve them transparently via `npm:` specifiers declared inside the parent package.
 
 ## Performance
 

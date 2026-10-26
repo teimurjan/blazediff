@@ -1,0 +1,86 @@
+---
+title: BlazeDiff vs honeydiff - Open-Source Native Image Diff
+description: BlazeDiff vs honeydiff (Vizzly) benchmarked on 34 image pairs with image decode included. Both are native Rust image diffs for Node; BlazeDiff publishes its source and runs outside Node too.
+---
+
+# BlazeDiff vs honeydiff
+
+import BenchmarkCharts, {
+  FasterThan,
+} from "../../../components/benchmarks/benchmark-charts";
+
+**`@blazediff/core-native` is <FasterThan bench="honeydiff" ours="blazediff" theirs="honeydiff" />
+than honeydiff over our 34 fixtures, with image decode and diff PNG writing
+included.** Both are Rust image diffs that ship as native Node addons. The
+difference is scope and openness: BlazeDiff publishes its full source and also
+runs in browsers, Python and Rust.
+
+honeydiff is the diff engine of the Vizzly visual testing service, published on
+npm as `@vizzly-testing/honeydiff`. Its binaries carry an MIT license, but its
+public repository holds only a README and a changelog, not the Rust source. It
+returns rich JSON: changed-region statistics, perceptual scores, and
+accessibility checks.
+
+## At a glance
+
+|                     | honeydiff                                          | BlazeDiff                                                     |
+| ------------------- | -------------------------------------------------- | ------------------------------------------------------------- |
+| License             | MIT binaries, source not public                    | MIT, full source on GitHub                                    |
+| Runtimes            | Node 22 or later                                   | Node, browsers, Workers, Deno, Bun, Python, Rust              |
+| Platforms           | macOS arm64, Linux x64 and arm64, Windows x64      | macOS, Linux and Windows on x64 and arm64                     |
+| Input               | File path or encoded bytes                         | File path or encoded bytes (`core-native`), raw RGBA (`core`) |
+| Color metric        | CIEDE2000 ΔE (default threshold 2)                 | YIQ                                                           |
+| Anti-aliasing       | Detected                                           | Detected                                                      |
+| Region output       | Built in (`difference.regions`)                    | Separate package: `@blazediff/interpret-native`               |
+| Perceptual scores   | SSIM, MS-SSIM, GMSD through `analyze()`            | SSIM, MS-SSIM, GMSD and MILO in separate packages              |
+
+## Benchmarks
+
+Both libraries run at their defaults with anti-aliasing on and write a diff PNG.
+honeydiff thresholds on CIEDE2000 and BlazeDiff on YIQ, so the chart compares
+speed, not identical output.
+
+<BenchmarkCharts cards={["honeydiff"]} />
+
+## Switching
+
+honeydiff returns `different` and a `pixels.changed.total` count. BlazeDiff
+returns `match`, a `reason`, and a `diffCount`.
+
+```ts
+// Before
+import { compare } from "@vizzly-testing/honeydiff";
+
+const before = await compare("baseline.png", "current.png", {});
+if (before.different) console.log(`${before.pixels.changed.total} pixels differ`);
+```
+
+```ts
+// After
+import { compare } from "@blazediff/core-native";
+
+const after = await compare("baseline.png", "current.png", "diff.png", {
+  antialiasing: true,
+});
+if (!after.match && after.reason === "pixel-diff") {
+  console.log(`${after.diffCount} pixels differ`);
+}
+```
+
+For the region data honeydiff puts in its result, run
+[difference analysis](/docs/difference-analysis). It labels each changed region
+as an addition, a deletion, a shift, a recolor or rendering noise.
+
+## When to keep honeydiff
+
+- You use Vizzly, which builds on it.
+- You want region statistics, perceptual scores and contrast checks from one
+  call.
+- You need CIEDE2000 color thresholds, or alignment of inserted rows.
+
+## Related
+
+- [BlazeDiff vs odiff](/vs/odiff)
+- [Pixel comparison in native Node](/docs/pixel-comparison/rust-napi)
+- [Image difference analysis](/docs/difference-analysis)
+- [All benchmarks](/benchmarks#pixel-by-pixel-native)

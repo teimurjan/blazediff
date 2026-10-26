@@ -28,10 +28,13 @@ default = ["codecs"]
 # PNG/JPEG/QOI decode and encode. With it off the crate is pure Rust with no
 # vendored C and leaves only `Image`, `ImageError` and `ImageFormat` — which is
 # exactly what the wasm build of `blazediff` links.
-codecs = ["dep:memmap2", "dep:libc", "dep:qoi", "dep:rayon", "dep:blazediff-png"]
+codecs = ["spng", "dep:memmap2", "dep:libc", "dep:qoi", "dep:rayon", "dep:blazediff-png"]
+# Vendored libspng and its decode path alone, without `blazediff-png`. Lets
+# `blazediff-png` test against spng without unifying its own default backend.
+spng = []
 # Internal-only: exposes the spng reference decoder to `blazediff-png`'s
 # differential tests and to blazediff's fuzz targets.
-fuzzing = ["codecs"]
+fuzzing = ["spng"]
 
 [dependencies]
 bytemuck = "1"

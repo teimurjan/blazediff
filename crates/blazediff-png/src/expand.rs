@@ -74,15 +74,15 @@ impl RowExpander {
             },
             (COLOR_GRAYSCALE, depth) => {
                 let mut lut = Box::new([[0u8; 4]; 256]);
+                // PNG 3rd edition 11.3.1.1: mask the key to the bit depth.
+                // spng compares it unmasked, so its high-bit keys never match.
                 let trns_gray = match trns {
-                    Some(Trns::Gray(g)) => Some(*g),
+                    Some(Trns::Gray(g)) => Some(*g & ((1u16 << depth) - 1)),
                     _ => None,
                 };
                 let max = 1usize << depth.min(8);
                 for (s, entry) in lut.iter_mut().enumerate().take(max) {
                     let g = scale_to_8(s as u8, depth);
-                    // spng compares the raw sample against the full u16
-                    // tRNS value; values above the sample range never match.
                     let a = if trns_gray == Some(s as u16) { 0 } else { 255 };
                     *entry = [g, g, g, a];
                 }

@@ -2,7 +2,7 @@
 
 import { Callout } from "nextra/components";
 
-A from-scratch PNG codec in Rust: **single-threaded, SIMD-first, with byte-exact decode parity to [libspng](https://libspng.org)** — and faster than spng on every fixture we test, for both encode and decode. It powers PNG I/O in the BlazeDiff Rust crate.
+A from-scratch PNG codec in Rust: **single-threaded, SIMD-first, with byte-exact decode parity to [libspng](https://libspng.org)**, and faster than spng on every fixture we test, for both encode and decode. It powers PNG I/O in the BlazeDiff Rust crate. It differs from spng in one place, where spng breaks the PNG spec (see [Where blazediff-png differs from spng](#where-blazediff-png-differs-from-spng)).
 
 [View per-fixture benchmarks](https://github.com/teimurjan/blazediff/tree/main/crates/blazediff-png-benchmark)
 
@@ -104,7 +104,32 @@ The inflate/compress seam is pluggable; everything else is pure Rust.
 | `zlib-backend` (default) | system zlib + libdeflate (C) | byte-exact spng parity, incl. accept/reject on malformed streams |
 | `rust-backend` | `zune-inflate` + `fdeflate` (pure Rust) | C-free native builds |
 
-The `rust-backend` is correct for every well-formed PNG but is **not** bug-compatible with spng on malformed/adversarial streams; spng's edge-case accept/reject parity is a `zlib-backend`-only guarantee.
+## Where blazediff-png differs from spng
+
+Gray tRNS key. A gray tRNS key is the one gray value that decodes as
+transparent. PNG 3rd edition (11.3.1.1) says that decoders must mask the key to
+the image bit depth before they compare it. spng compares the full 16-bit
+value, so a key with bits set above the bit depth never matches, and those
+pixels stay opaque. blazediff-png masks the key, as image-rs does, so those
+pixels are transparent. Only files from encoders that do not zero the unused
+bits are affected. With `BLAZEDIFF_PNG_ENABLED` set, these files decode
+differently from the spng path. The `gray_trns_key_is_masked_to_bit_depth`
+test pins this.
+
+Adler-32 trailer. The Adler-32 trailer is the checksum at the end of the zlib
+stream. Neither decoder reads it. Both stop inflating at the last scanline
+byte, so a wrong or missing trailer is not an error. spng behaves this way even
+with Adler-32 checks enabled. blazediff-png keeps this behavior because a check
+makes every decode read past the image data, and it rejects files that spng
+accepts. The `wrong_adler_trailer_is_never_read` test pins this.
+
+`rust-backend` on malformed deflate streams. `rust-backend` inflates with
+`zune-inflate`, not the zlib that spng links. On some malformed streams it
+rejects a file that spng accepts, for example a stream with no final-block bit
+or with invalid data after the last needed byte. Every valid PNG decodes the
+same on both backends. This matters for the wasm build, which can use
+only `rust-backend`: a browser can reject a damaged file that the native build
+accepts. spng accept/reject parity on malformed streams is a `zlib-backend`-only guarantee.
 
 ## Parity by identity
 
@@ -116,7 +141,7 @@ So for the malformed-input edge cases the decoder **links the same system zlib s
 
 | Layer | Result |
 | --- | --- |
-| Exhaustive matrix | every `{depth × color × interlace × filter × tRNS}` at edge sizes, byte-parity with spng |
+| Exhaustive matrix | every `{depth × color × interlace × filter × tRNS}` at edge sizes, byte-parity with spng (except spec-masked gray tRNS keys) |
 | PngSuite conformance | 176/176 — 164 decode at parity, 12 corrupt files reject in lockstep |
 | Real-image corpus | Urban100 · BSD100 · Set14 · Set5 + PngSuite (~395 files) decode byte-identically to spng at RGBA8 and every `SPNG_FMT_*`; every accepted image encode-round-trips — run by the `Benchmark PNG` workflow (`corpus_differential`) |
 | Differential fuzzing | 40M+ execs vs spng, **0 unresolved divergences** |

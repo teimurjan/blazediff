@@ -1,0 +1,78 @@
+---
+title: BlazeDiff vs ssim.js - Maintained SSIM for JavaScript and Node
+description: BlazeDiff vs ssim.js benchmarked on 22 image pairs. MATLAB-compatible SSIM, MS-SSIM and Hitchhiker's SSIM in JavaScript, plus a native Node build, while ssim.js is archived.
+---
+
+# BlazeDiff vs ssim.js
+
+import { Callout } from "nextra/components";
+import BenchmarkCharts, {
+  FasterThan,
+} from "../../../components/benchmarks/benchmark-charts";
+
+**`@blazediff/ssim` is <FasterThan bench="ssim" ours="blazediff" theirs="ssim-js" />
+than ssim.js on standard SSIM, and the native `@blazediff/ssim-native` is
+<FasterThan bench="ssim" ours="blazediff-ssim-native" theirs="ssim-js" />.** Both
+take RGBA pixels and return a similarity score from 0 to 1. ssim.js is archived on
+GitHub, and its last release was 3.5.0 in 2020.
+
+ssim.js is a JavaScript port of the Wang et al. MATLAB reference. It offers
+several variants, and its default (`weber`) trades accuracy for speed. BlazeDiff
+ships standard SSIM that matches MATLAB `ssim.m` with an error below 0.01%, plus
+MS-SSIM and Hitchhiker's SSIM.
+
+## At a glance
+
+|                      | ssim.js                                       | BlazeDiff                                                      |
+| -------------------- | --------------------------------------------- | -------------------------------------------------------------- |
+| License              | MIT                                           | MIT                                                            |
+| Status               | Archived, last release 2020                   | Maintained                                                     |
+| Runtimes             | Node, browsers                                | Node, browsers, Deno, Bun (`ssim`); native Node (`ssim-native`) |
+| Input                | `ImageData`-like `{ data, width, height }`    | RGBA buffers (`ssim`); file paths or encoded bytes (`ssim-native`) |
+| Variants             | `original`, `fast`, `bezkrovny`, `weber`      | SSIM, MS-SSIM, Hitchhiker's SSIM; perceptual SSIM in native     |
+| Score map            | Yes (`ssim_map`)                              | Yes (grayscale map image)                                      |
+| Pass or fail result  | No, you compare the score                     | `ssim-native` takes `minScore` and returns `match`              |
+
+## Benchmarks
+
+The first chart compares standard SSIM against ssim.js `fast`. The second
+compares Hitchhiker's SSIM against ssim.js `weber`, its fastest mode. Decode is
+excluded.
+
+<BenchmarkCharts cards={["ssim", "hitchhikers-ssim"]} />
+
+Hitchhiker's SSIM is <FasterThan bench="hitchhikers-ssim" ours="blazediff" theirs="ssim-js" />
+than ssim.js `weber` in JavaScript.
+
+## Switching
+
+ssim.js takes two image objects. `@blazediff/ssim` takes the two pixel buffers
+and the size, in the same order as a pixel diff.
+
+```ts
+// Before
+import ssim from "ssim.js";
+const { mssim } = ssim(img1, img2);
+
+// After
+import ssim from "@blazediff/ssim/ssim";
+const score = ssim(img1.data, img2.data, undefined, img1.width, img1.height);
+```
+
+<Callout type="info">
+  Scores from different SSIM variants are not interchangeable. If you gated
+  tests on an ssim.js `weber` score, measure your fixtures again before you
+  copy the threshold.
+</Callout>
+
+## When to keep ssim.js
+
+- You depend on the `bezkrovny` or `weber` variant scores exactly.
+- You use its UQI mode (`k1` and `k2` set to 0).
+
+## Related
+
+- [Structural comparison](/docs/structural-comparison)
+- [What is SSIM](/docs/metrics/ssim) and [choosing a metric](/docs/metrics/choosing-a-metric)
+- [`@blazediff/ssim` API](/apis/ssim) and [`@blazediff/ssim-native` API](/apis/ssim-native)
+- [All benchmarks](/benchmarks#structural)

@@ -5,49 +5,14 @@
 //! rejection. Behavioural — each asserts the observable result, and every
 //! decode case stays at spng parity.
 
+mod common;
+
 use blazediff_png::{
     decode, decode_with, encode, encode16, encode16_with_metadata, encode_ref, encode_to,
     encode_with_metadata, ColorMode, DecodeFormat, DecodeOptions, EncodeOptions, Filter, Image,
     Image16, ImageRef, Metadata, Palette, PngError, Trns,
 };
-
-// --- shared builders (mirrors edge.rs's minimal-PNG helpers) --------------
-
-fn chunk(ty: &[u8; 4], payload: &[u8]) -> Vec<u8> {
-    let mut c = (payload.len() as u32).to_be_bytes().to_vec();
-    c.extend_from_slice(ty);
-    c.extend_from_slice(payload);
-    c.extend_from_slice(&[0; 4]); // CRC unchecked by both decoders
-    c
-}
-
-fn ihdr(w: u32, h: u32, depth: u8, color: u8) -> [u8; 13] {
-    let mut p = [0u8; 13];
-    p[0..4].copy_from_slice(&w.to_be_bytes());
-    p[4..8].copy_from_slice(&h.to_be_bytes());
-    p[8] = depth;
-    p[9] = color;
-    p
-}
-
-fn png_with(ihdr: [u8; 13], chunks: &[Vec<u8>], idat: &[u8]) -> Vec<u8> {
-    let mut out = vec![0x89, b'P', b'N', b'G', b'\r', b'\n', 0x1a, b'\n'];
-    out.extend_from_slice(&chunk(b"IHDR", &ihdr));
-    for c in chunks {
-        out.extend_from_slice(c);
-    }
-    out.extend_from_slice(&chunk(b"IDAT", idat));
-    out.extend_from_slice(&chunk(b"IEND", &[]));
-    out
-}
-
-fn zlib(data: &[u8]) -> Vec<u8> {
-    let mut c = libdeflater::Compressor::new(libdeflater::CompressionLvl::default());
-    let mut z = vec![0u8; c.zlib_compress_bound(data.len())];
-    let n = c.zlib_compress(data, &mut z).unwrap();
-    z.truncate(n);
-    z
-}
+use common::{assert_chunk_parity, chunk, ihdr, png_with, zlib};
 
 fn small_rgba(w: u32, h: u32, seed: u32) -> Image {
     let n = (w * h) as usize;
@@ -372,22 +337,13 @@ fn truecolor_colorkey_matches_spng_at_wide_formats() {
 
 // --- invalid scanline filter rejection ------------------------------------
 
-#[track_caller]
-fn assert_decode_parity(bytes: &[u8], label: &str) {
-    let mine = decode(bytes).ok().map(|i| i.data);
-    let spng = blazediff_shared::decode_spng_reference(bytes)
-        .ok()
-        .map(|i| i.data);
-    assert_eq!(mine, spng, "{label}: decoders must agree");
-}
-
 #[test]
 fn invalid_filter_type_rejected_non_interlaced() {
     // 2x2 gray-8: each scanline is [filter, s0, s1]; filter 5 is invalid.
     let idat = zlib(&[5, 10, 20, 5, 30, 40]);
     let png = png_with(ihdr(2, 2, 8, 0), &[], &idat);
     assert!(matches!(decode(&png), Err(PngError::Filter)));
-    assert_decode_parity(&png, "invalid filter non-interlaced");
+    assert_chunk_parity(&png, "invalid filter non-interlaced");
 }
 
 fn gather_idat(png: &[u8]) -> Vec<u8> {
@@ -433,7 +389,7 @@ fn invalid_filter_type_rejected_interlaced() {
     hdr[12] = 1; // Adam7
     let bad = png_with(hdr, &[], &zlib(&raw));
     assert!(matches!(decode(&bad), Err(PngError::Filter)));
-    assert_decode_parity(&bad, "invalid filter interlaced");
+    assert_chunk_parity(&bad, "invalid filter interlaced");
 }
 
 #[test]

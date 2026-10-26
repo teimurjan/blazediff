@@ -1,26 +1,38 @@
 export default {
+	"intro-separator": {
+		type: "separator",
+		title: "Intro",
+	},
 	index: {
-		title: "Introduction",
+		title: "Overview",
+	},
+	"what-separator": {
+		type: "separator",
+		title: "What to diff",
 	},
 	"pixel-comparison": {
-		title: "Pixel-by-pixel Image Comparison",
+		title: "Pixels",
 	},
 	"structural-comparison": {
-		title: "Structural Image Comparison",
+		title: "Similarity",
 	},
 	metrics: {
-		title: "Metrics Explained",
+		title: "Metrics",
 	},
 	"difference-analysis": {
-		title: "Image Difference Analysis",
-	},
-	"agentic-testing": {
-		title: "Agentic Visual Testing",
-	},
-	"ui-components": {
-		title: "Interactive UI Components",
+		title: "Changes",
 	},
 	"object-comparison": {
-		title: "Object Comparison",
+		title: "Objects",
+	},
+	"how-separator": {
+		type: "separator",
+		title: "How to diff",
+	},
+	"agentic-testing": {
+		title: "With an agent",
+	},
+	"ui-components": {
+		title: "In a UI",
 	},
 };
