@@ -1,5 +1,7 @@
 # @blazediff/rust-ssim
 
+## 6.1.1
+
 ## 6.1.0
 
 ### Minor Changes

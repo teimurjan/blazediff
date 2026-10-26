@@ -1,6 +1,6 @@
 [package]
 name = "blazediff-interpret"
-version = "6.4.0"
+version = "6.4.1"
 edition = "2021"
 authors = ["Teimur Gasanov"]
 description = "Structured region analysis for image diffs: classify what changed, not just where"
@@ -57,8 +57,8 @@ required-features = ["cli"]
 # than either of them depending on it. `version` is required to publish to
 # crates.io; kept in lockstep by scripts/release/sync-cargo-version.js.
 blazediff-shared = { path = "../blazediff-shared", version = "6.0.0", default-features = false }
-blazediff = { path = "../blazediff", version = "6.0.1", default-features = false }
-blazediff-ssim = { path = "../blazediff-ssim", version = "6.1.0" }
+blazediff = { path = "../blazediff", version = "6.0.2", default-features = false }
+blazediff-ssim = { path = "../blazediff-ssim", version = "6.1.1" }
 serde = { version = "1", features = ["derive"] }
 napi = { version = "2", features = ["napi4", "serde-json"], optional = true }
 napi-derive = { version = "2", optional = true }
