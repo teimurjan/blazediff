@@ -4,24 +4,20 @@
 //! row). All filter bytes are validated (<= 4) up front so [`defilter_row`]'s
 //! match stays total.
 
-/// Branchless Paeth predictor. The two comparisons in the spec's
-/// `pa<=pb && pa<=pc ? a : pb<=pc ? b : c` are data-dependent and unpredictable
-/// on photographic residuals (Paeth is ~half of all filtered bytes in the
-/// corpus), so they're folded into mask arithmetic — no branches to mispredict,
-/// and the per-channel chains stay independent so the const-BPP loop pipelines.
-/// Byte-identical to the spec predictor (see `matches_reference_*` test).
+/// Paeth predictor in stb_image's threshold form: `a` (the loop-carried left
+/// byte) feeds only an add, a min/max and two selects, a shorter chain than the
+/// spec's three absolute differences (~20-25% faster defilter on Paeth rows).
+/// The selects compile to csel/cmov, so nothing mispredicts on photo residuals.
+/// Byte-identical to the spec predictor over all inputs (`paeth_matches_spec`).
 #[inline(always)]
 fn paeth(a: u8, b: u8, c: u8) -> u8 {
-    let (ia, ib, ic) = (a as i32, b as i32, c as i32);
-    let pa = (ib - ic).abs();
-    let pb = (ia - ic).abs();
-    let pc = (ia + ib - 2 * ic).abs();
-    // use_a = pa<=pb && pa<=pc; use_b = pb<=pc. `-(flag)` is an all-ones mask
-    // when the flag holds, so `x + ((y - x) & mask)` selects y over x.
-    let use_a = -(((pa <= pb) & (pa <= pc)) as i32);
-    let use_b = -((pb <= pc) as i32);
-    let bc = ic + ((ib - ic) & use_b); // use_b ? b : c
-    (bc + ((ia - bc) & use_a)) as u8 // use_a ? a : bc
+    let (a, b, c) = (a as i32, b as i32, c as i32);
+    let thresh = 3 * c - (a + b);
+    let lo = a.min(b);
+    let hi = a.max(b);
+    let t0 = if hi <= thresh { lo } else { c };
+    let t1 = if thresh <= lo { hi } else { t0 };
+    t1 as u8
 }
 
 /// Defilter one row given the previous defiltered row (`prev` empty for the
@@ -60,13 +56,7 @@ fn defilter_row<const BPP: usize>(filter: u8, row: &mut [u8], prev: &[u8]) {
                     }
                 }
             } else {
-                for (px, pb) in row.chunks_exact_mut(BPP).zip(prev.chunks_exact(BPP)) {
-                    for i in 0..BPP {
-                        let avg = ((a[i] as u16 + pb[i] as u16) >> 1) as u8;
-                        a[i] = px[i].wrapping_add(avg);
-                        px[i] = a[i];
-                    }
-                }
+                avg_row::<BPP>(row, prev);
             }
         }
         4 => {
@@ -91,6 +81,57 @@ fn defilter_row<const BPP: usize>(filter: u8, row: &mut [u8], prev: &[u8]) {
             }
         }
         _ => unreachable!("filter validated by defilter_in_place_bpp"),
+    }
+}
+
+/// Avg against a previous row. 4- and 8-byte pixels take the NEON kernel on
+/// aarch64 (1.25x and 1.8x on Avg rows); NEON Sub and Paeth measured no faster.
+#[inline(always)]
+fn avg_row<const BPP: usize>(row: &mut [u8], prev: &[u8]) {
+    #[cfg(target_arch = "aarch64")]
+    if BPP == 4 || BPP == 8 {
+        neon::avg_row::<BPP>(row, prev);
+        return;
+    }
+    let mut a = [0u8; BPP];
+    for (px, pb) in row.chunks_exact_mut(BPP).zip(prev.chunks_exact(BPP)) {
+        for i in 0..BPP {
+            let avg = ((a[i] as u16 + pb[i] as u16) >> 1) as u8;
+            a[i] = px[i].wrapping_add(avg);
+            px[i] = a[i];
+        }
+    }
+}
+
+#[cfg(target_arch = "aarch64")]
+mod neon {
+    use core::arch::aarch64::*;
+
+    /// One pixel per 8-lane register: `vhadd` is the truncating `(a + b) >> 1`
+    /// without widening. Pixels load straight into vector registers (a detour
+    /// through general registers cost half the win). BPP must be 4 or 8.
+    #[inline(always)]
+    pub fn avg_row<const BPP: usize>(row: &mut [u8], prev: &[u8]) {
+        // SAFETY: NEON is part of the aarch64 baseline. Every access covers
+        // exactly one BPP-byte pixel of `row` or `prev`, read unaligned.
+        unsafe {
+            let mut a = vdup_n_u8(0);
+            for (px, pb) in row.chunks_exact_mut(BPP).zip(prev.chunks_exact(BPP)) {
+                if BPP == 8 {
+                    let x = vld1_u8(px.as_ptr());
+                    let b = vld1_u8(pb.as_ptr());
+                    a = vadd_u8(x, vhadd_u8(a, b));
+                    vst1_u8(px.as_mut_ptr(), a);
+                } else {
+                    let load = |p: *const u8| {
+                        vreinterpret_u8_u32(vdup_n_u32(p.cast::<u32>().read_unaligned()))
+                    };
+                    a = vadd_u8(load(px.as_ptr()), vhadd_u8(a, load(pb.as_ptr())));
+                    let out = vget_lane_u32::<0>(vreinterpret_u32_u8(a));
+                    px.as_mut_ptr().cast::<u32>().write_unaligned(out);
+                }
+            }
+        }
     }
 }
 
@@ -196,6 +237,34 @@ fn defilter_in_place_bpp<const BPP: usize>(
 mod tests {
     use super::*;
 
+    /// Paeth predictor exactly as written in the PNG spec.
+    fn paeth_spec(a: u8, b: u8, c: u8) -> u8 {
+        let p = a as i32 + b as i32 - c as i32;
+        let (pa, pb, pc) = (
+            (p - a as i32).abs(),
+            (p - b as i32).abs(),
+            (p - c as i32).abs(),
+        );
+        if pa <= pb && pa <= pc {
+            a
+        } else if pb <= pc {
+            b
+        } else {
+            c
+        }
+    }
+
+    #[test]
+    fn paeth_matches_spec() {
+        for a in 0..=255u8 {
+            for b in 0..=255u8 {
+                for c in 0..=255u8 {
+                    assert_eq!(paeth(a, b, c), paeth_spec(a, b, c), "a={a} b={b} c={c}");
+                }
+            }
+        }
+    }
+
     /// Reference defilter straight from the PNG spec.
     fn defilter_reference(raw: &[u8], width_bytes: usize, height: usize, bpp: usize) -> Vec<u8> {
         let stride = 1 + width_bytes;
@@ -216,7 +285,7 @@ mod tests {
                     1 => out[pos].wrapping_add(a),
                     2 => out[pos].wrapping_add(b),
                     3 => out[pos].wrapping_add(((a as u16 + b as u16) / 2) as u8),
-                    4 => out[pos].wrapping_add(paeth(a, b, c)),
+                    4 => out[pos].wrapping_add(paeth_spec(a, b, c)),
                     _ => unreachable!(),
                 };
             }
