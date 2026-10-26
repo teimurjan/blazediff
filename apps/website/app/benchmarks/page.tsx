@@ -91,8 +91,11 @@ const CATEGORIES: {
 		id: "png-codec",
 		title: "PNG CODEC",
 		intro:
-			"The blazediff-png codec against spng, image-rs and zune-png, decode and encode.",
-		groups: [{ id: "rust", title: "Rust", cards: ["png"] }],
+			"The blazediff-png codec against spng, image-rs and zune-png in Rust, and against zune-png and jSquash in WebAssembly, decode and encode.",
+		groups: [
+			{ id: "rust", title: "Rust", cards: ["png"] },
+			{ id: "wasm", title: "WebAssembly", cards: ["png-wasm"] },
+		],
 	},
 ];
 

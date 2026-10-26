@@ -9,7 +9,8 @@
  *      blazediff / spng / image-rs / zune.
  *   2. Convert that JSON into `benchmarks/results/png.json` (see `artifact.js`).
  *   3. Write `benchmarks/png-codec.md` (intro, decode/encode/size tables) from
- *      the artifact in the existing HTML-table style.
+ *      the artifact in the existing HTML-table style, plus a WebAssembly part
+ *      from `png-wasm.json` when that bench has run (see `png-wasm.js`).
  *
  * Usage (from repo root):
  *   pnpm benchmark png                 # build + run, then regenerate
@@ -149,18 +150,18 @@ function seriesTotals(section) {
 }
 
 // A decode/encode timing table: one row per fixture plus a bold TOTAL, with a
-// trailing "blazediff vs spng" % column tying back to the headline ratio.
+// trailing "blazediff vs <baseline>" % column tying back to the headline ratio.
 function timingTable(section) {
 	const ids = section.series.map((s) => s.id);
 	const bdIdx = ids.indexOf(OURS);
-	const spngIdx = ids.indexOf(BASELINE);
+	const baseIdx = section.series.findIndex((s) => s.baseline);
 	const saved = (vals) =>
-		vals[spngIdx] ? ((vals[spngIdx] - vals[bdIdx]) / vals[spngIdx]) * 100 : 0;
+		vals[baseIdx] ? ((vals[baseIdx] - vals[bdIdx]) / vals[baseIdx]) * 100 : 0;
 	const head = [
 		"Benchmark",
 		"MPx",
 		...section.series.map((s) => s.name),
-		"BlazeDiff vs spng",
+		`BlazeDiff vs ${section.series[baseIdx].name}`,
 	];
 	const body = section.rows.map((row) => {
 		const vals = rowValues(section, row);
@@ -180,7 +181,7 @@ function timingTable(section) {
 	]);
 	return {
 		html: htmlTable(head, body),
-		ratio: totals[spngIdx] / totals[bdIdx],
+		ratio: totals[baseIdx] / totals[bdIdx],
 	};
 }
 
@@ -197,7 +198,7 @@ function sizeTable(section) {
 		...totals.map((t) => `<strong>${fmtKb(t)}</strong>`),
 	]);
 	body.push([
-		`<strong>vs ${BASELINE}</strong>`,
+		`<strong>vs ${section.series[baseIdx].name}</strong>`,
 		...totals.map(
 			(t) => `<strong>${fmtPct((t / totals[baseIdx]) * 100)}</strong>`,
 		),
@@ -206,21 +207,25 @@ function sizeTable(section) {
 }
 
 // A full encode section (heading, level note, ratio blockquote, timing table,
-// size table) for one compression mode.
-function encodeSection(timing, size, label, encNick) {
+// size table) for one compression mode. `depth` is the heading level.
+function encodeSection(timing, size, label, encNick, depth = "##") {
 	const t = timingTable(timing);
+	const base = timing.series.find((s) => s.baseline).name;
+	const zune = size.series.some((s) => s.id === "zune")
+		? " zune-png has no compressed mode, so it always writes stored output — far larger than the rest."
+		: "";
 	return [
-		`## Encode — ${label}`,
+		`${depth} Encode — ${label}`,
 		"",
 		`_${timing.note}_`,
 		"",
-		`> blazediff encodes **~${t.ratio.toFixed(2)}×** faster than spng (${encNick}) across the corpus.`,
+		`> blazediff encodes **~${t.ratio.toFixed(2)}×** faster than ${base} (${encNick}) across the corpus.`,
 		"",
 		t.html,
 		"",
-		`### Encode Size — ${label}`,
+		`${depth}# Encode Size — ${label}`,
 		"",
-		"> Output bytes per codec; the final row is each codec's total as a percentage of spng's (the de-facto reference). zune-png has no compressed mode, so it always writes stored output — far larger than the rest.",
+		`> Output bytes per codec; the final row is each codec's total as a percentage of ${base}'s${base === "spng" ? " (the de-facto reference)" : ""}.${zune}`,
 		"",
 		sizeTable(size),
 		"",
@@ -263,6 +268,56 @@ function buildMarkdown(artifact) {
 	].join("\n")}`;
 }
 
+// The `png-wasm` artifact (see png-wasm.js): the same codec as WebAssembly in
+// Node, against zune-png and jSquash.
+function buildWasmMarkdown(artifact) {
+	const byId = Object.fromEntries(artifact.sections.map((s) => [s.id, s]));
+	const decode = timingTable(byId.decode);
+	return [
+		"## WebAssembly",
+		"",
+		`\`@blazediff/codec-png-wasm\` against [zune-png](https://github.com/etemesi254/zune-image) compiled to wasm (\`apps/image-benchmark/zune-png-wasm\`) and [jSquash](https://github.com/jamsinclair/jSquash) (\`@jsquash/png\`, the Rust \`png\` crate via Squoosh), run in Node ${artifact.env.node ?? ""} (V8) on ${artifact.env.cpu ?? "the reference machine"}. Same method as above. Each timed call copies its input into wasm memory and its output back out. Refresh with \`pnpm benchmark png-wasm\`.`,
+		"",
+		"### Decode",
+		"",
+		`> blazediff decodes **~${decode.ratio.toFixed(2)}×** faster than jSquash across the corpus.`,
+		"",
+		decode.html,
+		"",
+		encodeSection(
+			byId["encode-none"],
+			byId["size-none"],
+			"No Compression",
+			"stored",
+			"###",
+		),
+		encodeSection(
+			byId["encode-default"],
+			byId["size-default"],
+			"Default Settings",
+			"each codec's default",
+			"###",
+		),
+	].join("\n");
+}
+
+/** Write `benchmarks/png-codec.md` from the `png` artifact, plus `png-wasm` when present. */
+function writeMarkdown(artifact = readArtifact(KEY)) {
+	if (!artifact) {
+		console.error(`Missing artifact: ${artifactPath(KEY)}`);
+		process.exit(1);
+	}
+	const wasm = readArtifact("png-wasm");
+	const parts = [
+		buildMarkdown(artifact),
+		...(wasm ? [buildWasmMarkdown(wasm)] : []),
+	];
+	fs.writeFileSync(MD_PATH, parts.join("\n"));
+	console.log(
+		`\n${path.relative(REPO_ROOT, MD_PATH)} written (${artifact.sections[0].rows.length} fixtures${wasm ? ", with WebAssembly" : ""}).`,
+	);
+}
+
 // Flags come from `run.js`'s parser, so `--skip-run` / `--skip-artifact` /
 // `--skip-md` mean the same here as they do for pair benches.
 function run(flags = {}) {
@@ -289,12 +344,7 @@ function run(flags = {}) {
 		console.log(`\nArtifact: ${path.relative(REPO_ROOT, out)}`);
 	}
 
-	if (!flags["skip-md"]) {
-		fs.writeFileSync(MD_PATH, buildMarkdown(artifact));
-		console.log(
-			`\n${path.relative(REPO_ROOT, MD_PATH)} written (${artifact.sections[0].rows.length} fixtures).`,
-		);
-	}
+	if (!flags["skip-md"]) writeMarkdown(artifact);
 }
 
-module.exports = { run };
+module.exports = { run, writeMarkdown };

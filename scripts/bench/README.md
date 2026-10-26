@@ -67,6 +67,7 @@ Some benches do not fit the left/right pair model. They own their whole pipeline
 | ------------ | ----------------------------------------------- | ----------------------------- | -------------------------------------------- |
 | `png`        | `results/png.json`, `benchmarks/png-codec.md`   | `scripts/bench/png.js`        | none, it runs `cargo run` on the crate       |
 | `ssim-dssim` | `results/ssim-dssim.json` (no Markdown)         | `scripts/bench/ssim-dssim.js` | none, it runs `cargo run --features dssim`   |
+| `png-wasm`   | `results/png-wasm.json`, `benchmarks/png-codec.md` | `scripts/bench/png-wasm.js` | none, it builds the zune shim and the bench app |
 
 ## Variants (multi-table pairs)
 
@@ -121,6 +122,25 @@ Encode is measured at two compression modes, so the speed/size trade-off is expl
 - Half compression: half of each codec's own max deflate level (libdeflate 12 → 6, zlib 9 → 4). zune-png only supports stored output, so its half-compression pass is the same uncompressed encode (about 6× larger).
 
 Each mode gets its own timing section and size section in the artifact. The Rust binary (`codecs::level_label`) reports the level per codec and mode in the JSON's `encodeLevels`. `png.js` copies it into each section's `note`.
+
+## PNG codec in WebAssembly (`png-wasm` standalone)
+
+`@blazediff/codec-png-wasm` against zune-png and `@jsquash/png`, all as wasm in Node:
+
+```sh
+pnpm benchmark png-wasm                                # build + run, then regenerate
+pnpm benchmark png-wasm --skip-run                     # reuse the last JSON
+pnpm benchmark png-wasm --fixtures fixtures/pixelmatch # a subset while iterating
+```
+
+zune ships no wasm package, so `apps/image-benchmark/zune-png-wasm` wraps zune-png in a small C ABI. `png-wasm.js` builds it with the same `simd128` flags as the codec, builds the codec module when it is missing, and runs `apps/image-benchmark/src/png-codec/png-wasm-benchmark.ts`. The method matches `png`: best-of, iterations scaled by image size, and every PNG under `fixtures/`.
+
+Encode has two modes:
+
+- No compression: blazediff stored RGBA8 (`color: "rgba8"`) against zune's stored encoder. jSquash has no uncompressed mode, so it is not in this section.
+- Default settings: each codec's default. blazediff writes the smallest lossless color mode with fdeflate, jSquash uses the `png` crate's default level, and zune writes stored output.
+
+The results land in `results/png-wasm.json`. `png.js` adds them to `benchmarks/png-codec.md` as a WebAssembly part, whichever of the two benches runs last.
 
 ## SSIM vs dssim (`ssim-dssim` standalone)
 

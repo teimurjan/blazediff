@@ -329,6 +329,7 @@ const PAIRS = {
  */
 const STANDALONE = {
 	png: "./png.js",
+	"png-wasm": "./png-wasm.js",
 	"ssim-dssim": "./ssim-dssim.js",
 };
 

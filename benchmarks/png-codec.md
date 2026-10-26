@@ -1636,3 +1636,1369 @@ _Levels: blazediff libdeflate 6 · spng zlib 4 · image-rs flate2 4 · zune stor
     </tr>
   </tbody>
 </table>
+
+## WebAssembly
+
+`@blazediff/codec-png-wasm` against [zune-png](https://github.com/etemesi254/zune-image) compiled to wasm (`apps/image-benchmark/zune-png-wasm`) and [jSquash](https://github.com/jamsinclair/jSquash) (`@jsquash/png`, the Rust `png` crate via Squoosh), run in Node v22.14.0 (V8) on Apple M1 Max. Same method as above. Each timed call copies its input into wasm memory and its output back out. Refresh with `pnpm benchmark png-wasm`.
+
+### Decode
+
+> blazediff decodes **~2.69×** faster than jSquash across the corpus.
+
+<table>
+  <thead>
+    <tr>
+      <th width="500">Benchmark</th>
+      <th width="500">MPx</th>
+      <th width="500">blazediff</th>
+      <th width="500">zune-png</th>
+      <th width="500">jSquash</th>
+      <th width="500">BlazeDiff vs jSquash</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>4k/1a.png</td>
+      <td>17.9</td>
+      <td>185.27ms</td>
+      <td>222.90ms</td>
+      <td>397.80ms</td>
+      <td>53.4%</td>
+    </tr>
+    <tr>
+      <td>4k/1b.png</td>
+      <td>17.9</td>
+      <td>163.47ms</td>
+      <td>205.72ms</td>
+      <td>378.03ms</td>
+      <td>56.8%</td>
+    </tr>
+    <tr>
+      <td>4k/2a.png</td>
+      <td>20.0</td>
+      <td>223.80ms</td>
+      <td>273.85ms</td>
+      <td>545.24ms</td>
+      <td>59.0%</td>
+    </tr>
+    <tr>
+      <td>4k/2b.png</td>
+      <td>20.0</td>
+      <td>231.70ms</td>
+      <td>268.83ms</td>
+      <td>546.98ms</td>
+      <td>57.6%</td>
+    </tr>
+    <tr>
+      <td>4k/3a.png</td>
+      <td>24.0</td>
+      <td>245.23ms</td>
+      <td>310.26ms</td>
+      <td>568.71ms</td>
+      <td>56.9%</td>
+    </tr>
+    <tr>
+      <td>4k/3b.png</td>
+      <td>24.0</td>
+      <td>242.07ms</td>
+      <td>308.84ms</td>
+      <td>578.82ms</td>
+      <td>58.2%</td>
+    </tr>
+    <tr>
+      <td>alpha/1a.png</td>
+      <td>0.0</td>
+      <td>0.10ms</td>
+      <td>0.12ms</td>
+      <td>0.36ms</td>
+      <td>71.1%</td>
+    </tr>
+    <tr>
+      <td>alpha/1b.png</td>
+      <td>0.0</td>
+      <td>0.11ms</td>
+      <td>0.11ms</td>
+      <td>0.36ms</td>
+      <td>69.9%</td>
+    </tr>
+    <tr>
+      <td>blazediff/1a.png</td>
+      <td>0.4</td>
+      <td>0.85ms</td>
+      <td>0.97ms</td>
+      <td>4.32ms</td>
+      <td>80.3%</td>
+    </tr>
+    <tr>
+      <td>blazediff/1b.png</td>
+      <td>0.4</td>
+      <td>0.80ms</td>
+      <td>1.00ms</td>
+      <td>4.35ms</td>
+      <td>81.7%</td>
+    </tr>
+    <tr>
+      <td>blazediff/2a.png</td>
+      <td>0.4</td>
+      <td>0.74ms</td>
+      <td>0.88ms</td>
+      <td>3.66ms</td>
+      <td>79.7%</td>
+    </tr>
+    <tr>
+      <td>blazediff/2b.png</td>
+      <td>0.4</td>
+      <td>0.80ms</td>
+      <td>0.97ms</td>
+      <td>3.71ms</td>
+      <td>78.6%</td>
+    </tr>
+    <tr>
+      <td>blazediff/3a.png</td>
+      <td>1.6</td>
+      <td>13.48ms</td>
+      <td>16.19ms</td>
+      <td>36.66ms</td>
+      <td>63.2%</td>
+    </tr>
+    <tr>
+      <td>blazediff/3b.png</td>
+      <td>1.6</td>
+      <td>13.52ms</td>
+      <td>16.08ms</td>
+      <td>35.38ms</td>
+      <td>61.8%</td>
+    </tr>
+    <tr>
+      <td>blazediff/4a.png</td>
+      <td>3.8</td>
+      <td>4.40ms</td>
+      <td>4.74ms</td>
+      <td>31.96ms</td>
+      <td>86.2%</td>
+    </tr>
+    <tr>
+      <td>blazediff/4b.png</td>
+      <td>3.8</td>
+      <td>4.51ms</td>
+      <td>4.78ms</td>
+      <td>31.67ms</td>
+      <td>85.8%</td>
+    </tr>
+    <tr>
+      <td>page/1a.png</td>
+      <td>58.9</td>
+      <td>210.43ms</td>
+      <td>277.50ms</td>
+      <td>625.52ms</td>
+      <td>66.4%</td>
+    </tr>
+    <tr>
+      <td>page/1b.png</td>
+      <td>58.9</td>
+      <td>217.45ms</td>
+      <td>262.05ms</td>
+      <td>609.95ms</td>
+      <td>64.3%</td>
+    </tr>
+    <tr>
+      <td>page/2a.png</td>
+      <td>41.7</td>
+      <td>47.61ms</td>
+      <td>53.70ms</td>
+      <td>286.25ms</td>
+      <td>83.4%</td>
+    </tr>
+    <tr>
+      <td>page/2b.png</td>
+      <td>41.7</td>
+      <td>46.96ms</td>
+      <td>51.86ms</td>
+      <td>282.66ms</td>
+      <td>83.4%</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/1a.png</td>
+      <td>0.1</td>
+      <td>0.77ms</td>
+      <td>0.94ms</td>
+      <td>1.82ms</td>
+      <td>57.6%</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/1b.png</td>
+      <td>0.1</td>
+      <td>0.61ms</td>
+      <td>0.81ms</td>
+      <td>1.81ms</td>
+      <td>66.5%</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/2a.png</td>
+      <td>0.1</td>
+      <td>0.20ms</td>
+      <td>0.23ms</td>
+      <td>0.77ms</td>
+      <td>73.9%</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/2b.png</td>
+      <td>0.1</td>
+      <td>0.21ms</td>
+      <td>0.23ms</td>
+      <td>0.78ms</td>
+      <td>73.4%</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/3a.png</td>
+      <td>0.1</td>
+      <td>0.58ms</td>
+      <td>0.67ms</td>
+      <td>1.52ms</td>
+      <td>61.5%</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/3b.png</td>
+      <td>0.1</td>
+      <td>0.55ms</td>
+      <td>0.67ms</td>
+      <td>1.52ms</td>
+      <td>63.8%</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/4a.png</td>
+      <td>0.2</td>
+      <td>1.78ms</td>
+      <td>2.21ms</td>
+      <td>4.31ms</td>
+      <td>58.8%</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/4b.png</td>
+      <td>0.2</td>
+      <td>1.99ms</td>
+      <td>2.37ms</td>
+      <td>4.68ms</td>
+      <td>57.4%</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/5a.png</td>
+      <td>0.1</td>
+      <td>0.56ms</td>
+      <td>0.59ms</td>
+      <td>1.03ms</td>
+      <td>45.6%</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/5b.png</td>
+      <td>0.1</td>
+      <td>0.56ms</td>
+      <td>0.55ms</td>
+      <td>0.75ms</td>
+      <td>24.5%</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/6a.png</td>
+      <td>0.1</td>
+      <td>0.68ms</td>
+      <td>0.67ms</td>
+      <td>1.32ms</td>
+      <td>48.1%</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/6b.png</td>
+      <td>0.1</td>
+      <td>0.90ms</td>
+      <td>0.99ms</td>
+      <td>1.37ms</td>
+      <td>34.5%</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/7a.png</td>
+      <td>0.3</td>
+      <td>0.34ms</td>
+      <td>0.39ms</td>
+      <td>1.90ms</td>
+      <td>81.9%</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/7b.png</td>
+      <td>0.3</td>
+      <td>0.34ms</td>
+      <td>0.41ms</td>
+      <td>1.88ms</td>
+      <td>81.8%</td>
+    </tr>
+    <tr>
+      <td>same/1a.png</td>
+      <td>1.7</td>
+      <td>3.54ms</td>
+      <td>7.37ms</td>
+      <td>14.08ms</td>
+      <td>74.9%</td>
+    </tr>
+    <tr>
+      <td>same/1b.png</td>
+      <td>1.7</td>
+      <td>3.56ms</td>
+      <td>7.43ms</td>
+      <td>14.03ms</td>
+      <td>74.7%</td>
+    </tr>
+    <tr>
+      <td><strong>TOTAL</strong></td>
+      <td></td>
+      <td><strong>1870.48ms</strong></td>
+      <td><strong>2307.87ms</strong></td>
+      <td><strong>5025.95ms</strong></td>
+      <td><strong>62.8%</strong></td>
+    </tr>
+  </tbody>
+</table>
+
+### Encode — No Compression
+
+_Levels: blazediff stored · zune-png stored._
+
+> blazediff encodes **~1.82×** faster than zune-png (stored) across the corpus.
+
+<table>
+  <thead>
+    <tr>
+      <th width="500">Benchmark</th>
+      <th width="500">MPx</th>
+      <th width="500">blazediff</th>
+      <th width="500">zune-png</th>
+      <th width="500">BlazeDiff vs zune-png</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>4k/1a.png</td>
+      <td>17.9</td>
+      <td>44.55ms</td>
+      <td>71.50ms</td>
+      <td>37.7%</td>
+    </tr>
+    <tr>
+      <td>4k/1b.png</td>
+      <td>17.9</td>
+      <td>37.01ms</td>
+      <td>66.31ms</td>
+      <td>44.2%</td>
+    </tr>
+    <tr>
+      <td>4k/2a.png</td>
+      <td>20.0</td>
+      <td>51.72ms</td>
+      <td>81.47ms</td>
+      <td>36.5%</td>
+    </tr>
+    <tr>
+      <td>4k/2b.png</td>
+      <td>20.0</td>
+      <td>42.54ms</td>
+      <td>74.70ms</td>
+      <td>43.1%</td>
+    </tr>
+    <tr>
+      <td>4k/3a.png</td>
+      <td>24.0</td>
+      <td>52.96ms</td>
+      <td>91.61ms</td>
+      <td>42.2%</td>
+    </tr>
+    <tr>
+      <td>4k/3b.png</td>
+      <td>24.0</td>
+      <td>50.30ms</td>
+      <td>94.01ms</td>
+      <td>46.5%</td>
+    </tr>
+    <tr>
+      <td>alpha/1a.png</td>
+      <td>0.0</td>
+      <td>0.09ms</td>
+      <td>0.14ms</td>
+      <td>37.6%</td>
+    </tr>
+    <tr>
+      <td>alpha/1b.png</td>
+      <td>0.0</td>
+      <td>0.09ms</td>
+      <td>0.14ms</td>
+      <td>36.1%</td>
+    </tr>
+    <tr>
+      <td>blazediff/1a.png</td>
+      <td>0.4</td>
+      <td>0.94ms</td>
+      <td>1.50ms</td>
+      <td>36.9%</td>
+    </tr>
+    <tr>
+      <td>blazediff/1b.png</td>
+      <td>0.4</td>
+      <td>0.91ms</td>
+      <td>1.50ms</td>
+      <td>39.2%</td>
+    </tr>
+    <tr>
+      <td>blazediff/2a.png</td>
+      <td>0.4</td>
+      <td>0.75ms</td>
+      <td>1.19ms</td>
+      <td>37.1%</td>
+    </tr>
+    <tr>
+      <td>blazediff/2b.png</td>
+      <td>0.4</td>
+      <td>0.77ms</td>
+      <td>1.22ms</td>
+      <td>37.0%</td>
+    </tr>
+    <tr>
+      <td>blazediff/3a.png</td>
+      <td>1.6</td>
+      <td>3.35ms</td>
+      <td>6.20ms</td>
+      <td>45.9%</td>
+    </tr>
+    <tr>
+      <td>blazediff/3b.png</td>
+      <td>1.6</td>
+      <td>3.42ms</td>
+      <td>5.85ms</td>
+      <td>41.6%</td>
+    </tr>
+    <tr>
+      <td>blazediff/4a.png</td>
+      <td>3.8</td>
+      <td>7.90ms</td>
+      <td>13.80ms</td>
+      <td>42.7%</td>
+    </tr>
+    <tr>
+      <td>blazediff/4b.png</td>
+      <td>3.8</td>
+      <td>7.97ms</td>
+      <td>13.63ms</td>
+      <td>41.5%</td>
+    </tr>
+    <tr>
+      <td>page/1a.png</td>
+      <td>58.9</td>
+      <td>129.48ms</td>
+      <td>257.85ms</td>
+      <td>49.8%</td>
+    </tr>
+    <tr>
+      <td>page/1b.png</td>
+      <td>58.9</td>
+      <td>131.27ms</td>
+      <td>263.75ms</td>
+      <td>50.2%</td>
+    </tr>
+    <tr>
+      <td>page/2a.png</td>
+      <td>41.7</td>
+      <td>89.78ms</td>
+      <td>153.34ms</td>
+      <td>41.4%</td>
+    </tr>
+    <tr>
+      <td>page/2b.png</td>
+      <td>41.7</td>
+      <td>88.88ms</td>
+      <td>156.25ms</td>
+      <td>43.1%</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/1a.png</td>
+      <td>0.1</td>
+      <td>0.28ms</td>
+      <td>0.45ms</td>
+      <td>38.3%</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/1b.png</td>
+      <td>0.1</td>
+      <td>0.28ms</td>
+      <td>0.47ms</td>
+      <td>39.2%</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/2a.png</td>
+      <td>0.1</td>
+      <td>0.14ms</td>
+      <td>0.24ms</td>
+      <td>39.8%</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/2b.png</td>
+      <td>0.1</td>
+      <td>0.14ms</td>
+      <td>0.23ms</td>
+      <td>37.5%</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/3a.png</td>
+      <td>0.1</td>
+      <td>0.28ms</td>
+      <td>0.45ms</td>
+      <td>37.2%</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/3b.png</td>
+      <td>0.1</td>
+      <td>0.27ms</td>
+      <td>0.46ms</td>
+      <td>39.9%</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/4a.png</td>
+      <td>0.2</td>
+      <td>0.38ms</td>
+      <td>0.61ms</td>
+      <td>38.3%</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/4b.png</td>
+      <td>0.2</td>
+      <td>0.39ms</td>
+      <td>0.63ms</td>
+      <td>38.8%</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/5a.png</td>
+      <td>0.1</td>
+      <td>0.14ms</td>
+      <td>0.24ms</td>
+      <td>38.7%</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/5b.png</td>
+      <td>0.1</td>
+      <td>0.14ms</td>
+      <td>0.23ms</td>
+      <td>37.9%</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/6a.png</td>
+      <td>0.1</td>
+      <td>0.14ms</td>
+      <td>0.22ms</td>
+      <td>37.5%</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/6b.png</td>
+      <td>0.1</td>
+      <td>0.14ms</td>
+      <td>0.22ms</td>
+      <td>38.4%</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/7a.png</td>
+      <td>0.3</td>
+      <td>0.52ms</td>
+      <td>0.85ms</td>
+      <td>39.1%</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/7b.png</td>
+      <td>0.3</td>
+      <td>0.52ms</td>
+      <td>0.86ms</td>
+      <td>40.3%</td>
+    </tr>
+    <tr>
+      <td>same/1a.png</td>
+      <td>1.7</td>
+      <td>3.58ms</td>
+      <td>6.16ms</td>
+      <td>41.8%</td>
+    </tr>
+    <tr>
+      <td>same/1b.png</td>
+      <td>1.7</td>
+      <td>3.60ms</td>
+      <td>6.16ms</td>
+      <td>41.6%</td>
+    </tr>
+    <tr>
+      <td><strong>TOTAL</strong></td>
+      <td></td>
+      <td><strong>755.64ms</strong></td>
+      <td><strong>1374.44ms</strong></td>
+      <td><strong>45.0%</strong></td>
+    </tr>
+  </tbody>
+</table>
+
+#### Encode Size — No Compression
+
+> Output bytes per codec; the final row is each codec's total as a percentage of zune-png's. zune-png has no compressed mode, so it always writes stored output — far larger than the rest.
+
+<table>
+  <thead>
+    <tr>
+      <th width="500">Benchmark</th>
+      <th width="500">blazediff</th>
+      <th width="500">zune-png</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>4k/1a.png</td>
+      <td>70008.5 KB</td>
+      <td>70111.1 KB</td>
+    </tr>
+    <tr>
+      <td>4k/1b.png</td>
+      <td>70008.5 KB</td>
+      <td>70111.1 KB</td>
+    </tr>
+    <tr>
+      <td>4k/2a.png</td>
+      <td>77985.6 KB</td>
+      <td>78099.8 KB</td>
+    </tr>
+    <tr>
+      <td>4k/2b.png</td>
+      <td>77985.6 KB</td>
+      <td>78099.8 KB</td>
+    </tr>
+    <tr>
+      <td>4k/3a.png</td>
+      <td>93761.1 KB</td>
+      <td>93898.5 KB</td>
+    </tr>
+    <tr>
+      <td>4k/3b.png</td>
+      <td>93761.1 KB</td>
+      <td>93898.5 KB</td>
+    </tr>
+    <tr>
+      <td>alpha/1a.png</td>
+      <td>144.3 KB</td>
+      <td>144.5 KB</td>
+    </tr>
+    <tr>
+      <td>alpha/1b.png</td>
+      <td>144.3 KB</td>
+      <td>144.5 KB</td>
+    </tr>
+    <tr>
+      <td>blazediff/1a.png</td>
+      <td>1686.4 KB</td>
+      <td>1688.8 KB</td>
+    </tr>
+    <tr>
+      <td>blazediff/1b.png</td>
+      <td>1686.4 KB</td>
+      <td>1688.8 KB</td>
+    </tr>
+    <tr>
+      <td>blazediff/2a.png</td>
+      <td>1372.2 KB</td>
+      <td>1374.2 KB</td>
+    </tr>
+    <tr>
+      <td>blazediff/2b.png</td>
+      <td>1372.2 KB</td>
+      <td>1374.2 KB</td>
+    </tr>
+    <tr>
+      <td>blazediff/3a.png</td>
+      <td>6372.0 KB</td>
+      <td>6381.3 KB</td>
+    </tr>
+    <tr>
+      <td>blazediff/3b.png</td>
+      <td>6372.0 KB</td>
+      <td>6381.3 KB</td>
+    </tr>
+    <tr>
+      <td>blazediff/4a.png</td>
+      <td>14792.1 KB</td>
+      <td>14813.8 KB</td>
+    </tr>
+    <tr>
+      <td>blazediff/4b.png</td>
+      <td>14792.1 KB</td>
+      <td>14813.8 KB</td>
+    </tr>
+    <tr>
+      <td>page/1a.png</td>
+      <td>230305.6 KB</td>
+      <td>230643.0 KB</td>
+    </tr>
+    <tr>
+      <td>page/1b.png</td>
+      <td>230305.6 KB</td>
+      <td>230643.0 KB</td>
+    </tr>
+    <tr>
+      <td>page/2a.png</td>
+      <td>162963.6 KB</td>
+      <td>163202.3 KB</td>
+    </tr>
+    <tr>
+      <td>page/2b.png</td>
+      <td>162963.6 KB</td>
+      <td>163202.3 KB</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/1a.png</td>
+      <td>512.4 KB</td>
+      <td>513.1 KB</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/1b.png</td>
+      <td>512.4 KB</td>
+      <td>513.1 KB</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/2a.png</td>
+      <td>256.3 KB</td>
+      <td>256.7 KB</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/2b.png</td>
+      <td>256.3 KB</td>
+      <td>256.7 KB</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/3a.png</td>
+      <td>512.4 KB</td>
+      <td>513.1 KB</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/3b.png</td>
+      <td>512.4 KB</td>
+      <td>513.1 KB</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/4a.png</td>
+      <td>705.4 KB</td>
+      <td>706.5 KB</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/4b.png</td>
+      <td>705.4 KB</td>
+      <td>706.5 KB</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/5a.png</td>
+      <td>256.3 KB</td>
+      <td>256.7 KB</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/5b.png</td>
+      <td>256.3 KB</td>
+      <td>256.7 KB</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/6a.png</td>
+      <td>256.3 KB</td>
+      <td>256.7 KB</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/6b.png</td>
+      <td>256.3 KB</td>
+      <td>256.7 KB</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/7a.png</td>
+      <td>977.2 KB</td>
+      <td>978.6 KB</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/7b.png</td>
+      <td>977.2 KB</td>
+      <td>978.6 KB</td>
+    </tr>
+    <tr>
+      <td>same/1a.png</td>
+      <td>6789.5 KB</td>
+      <td>6799.5 KB</td>
+    </tr>
+    <tr>
+      <td>same/1b.png</td>
+      <td>6789.5 KB</td>
+      <td>6799.5 KB</td>
+    </tr>
+    <tr>
+      <td><strong>TOTAL</strong></td>
+      <td><strong>1339314.5 KB</strong></td>
+      <td><strong>1341276.3 KB</strong></td>
+    </tr>
+    <tr>
+      <td><strong>vs zune-png</strong></td>
+      <td><strong>99.9%</strong></td>
+      <td><strong>100.0%</strong></td>
+    </tr>
+  </tbody>
+</table>
+
+### Encode — Default Settings
+
+_Levels: blazediff fdeflate, adaptive filter · zune-png stored · jSquash png crate default._
+
+> blazediff encodes **~1.16×** faster than jSquash (each codec's default) across the corpus.
+
+<table>
+  <thead>
+    <tr>
+      <th width="500">Benchmark</th>
+      <th width="500">MPx</th>
+      <th width="500">blazediff</th>
+      <th width="500">zune-png</th>
+      <th width="500">jSquash</th>
+      <th width="500">BlazeDiff vs jSquash</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>4k/1a.png</td>
+      <td>17.9</td>
+      <td>235.80ms</td>
+      <td>65.81ms</td>
+      <td>286.28ms</td>
+      <td>17.6%</td>
+    </tr>
+    <tr>
+      <td>4k/1b.png</td>
+      <td>17.9</td>
+      <td>225.35ms</td>
+      <td>70.29ms</td>
+      <td>275.77ms</td>
+      <td>18.3%</td>
+    </tr>
+    <tr>
+      <td>4k/2a.png</td>
+      <td>20.0</td>
+      <td>234.34ms</td>
+      <td>73.03ms</td>
+      <td>308.31ms</td>
+      <td>24.0%</td>
+    </tr>
+    <tr>
+      <td>4k/2b.png</td>
+      <td>20.0</td>
+      <td>239.92ms</td>
+      <td>74.41ms</td>
+      <td>303.07ms</td>
+      <td>20.8%</td>
+    </tr>
+    <tr>
+      <td>4k/3a.png</td>
+      <td>24.0</td>
+      <td>303.96ms</td>
+      <td>87.89ms</td>
+      <td>384.38ms</td>
+      <td>20.9%</td>
+    </tr>
+    <tr>
+      <td>4k/3b.png</td>
+      <td>24.0</td>
+      <td>303.94ms</td>
+      <td>89.58ms</td>
+      <td>388.25ms</td>
+      <td>21.7%</td>
+    </tr>
+    <tr>
+      <td>alpha/1a.png</td>
+      <td>0.0</td>
+      <td>0.16ms</td>
+      <td>0.14ms</td>
+      <td>0.23ms</td>
+      <td>28.3%</td>
+    </tr>
+    <tr>
+      <td>alpha/1b.png</td>
+      <td>0.0</td>
+      <td>0.16ms</td>
+      <td>0.14ms</td>
+      <td>0.23ms</td>
+      <td>27.5%</td>
+    </tr>
+    <tr>
+      <td>blazediff/1a.png</td>
+      <td>0.4</td>
+      <td>3.48ms</td>
+      <td>1.50ms</td>
+      <td>3.17ms</td>
+      <td>-9.5%</td>
+    </tr>
+    <tr>
+      <td>blazediff/1b.png</td>
+      <td>0.4</td>
+      <td>3.44ms</td>
+      <td>1.52ms</td>
+      <td>3.18ms</td>
+      <td>-8.3%</td>
+    </tr>
+    <tr>
+      <td>blazediff/2a.png</td>
+      <td>0.4</td>
+      <td>1.38ms</td>
+      <td>1.20ms</td>
+      <td>2.12ms</td>
+      <td>34.8%</td>
+    </tr>
+    <tr>
+      <td>blazediff/2b.png</td>
+      <td>0.4</td>
+      <td>1.40ms</td>
+      <td>1.19ms</td>
+      <td>2.14ms</td>
+      <td>34.6%</td>
+    </tr>
+    <tr>
+      <td>blazediff/3a.png</td>
+      <td>1.6</td>
+      <td>17.94ms</td>
+      <td>6.10ms</td>
+      <td>18.34ms</td>
+      <td>2.2%</td>
+    </tr>
+    <tr>
+      <td>blazediff/3b.png</td>
+      <td>1.6</td>
+      <td>17.72ms</td>
+      <td>5.82ms</td>
+      <td>17.91ms</td>
+      <td>1.1%</td>
+    </tr>
+    <tr>
+      <td>blazediff/4a.png</td>
+      <td>3.8</td>
+      <td>23.73ms</td>
+      <td>13.54ms</td>
+      <td>19.57ms</td>
+      <td>-21.3%</td>
+    </tr>
+    <tr>
+      <td>blazediff/4b.png</td>
+      <td>3.8</td>
+      <td>23.81ms</td>
+      <td>13.54ms</td>
+      <td>19.55ms</td>
+      <td>-21.8%</td>
+    </tr>
+    <tr>
+      <td>page/1a.png</td>
+      <td>58.9</td>
+      <td>484.51ms</td>
+      <td>232.90ms</td>
+      <td>412.93ms</td>
+      <td>-17.3%</td>
+    </tr>
+    <tr>
+      <td>page/1b.png</td>
+      <td>58.9</td>
+      <td>480.00ms</td>
+      <td>234.40ms</td>
+      <td>404.29ms</td>
+      <td>-18.7%</td>
+    </tr>
+    <tr>
+      <td>page/2a.png</td>
+      <td>41.7</td>
+      <td>207.30ms</td>
+      <td>157.35ms</td>
+      <td>323.10ms</td>
+      <td>35.8%</td>
+    </tr>
+    <tr>
+      <td>page/2b.png</td>
+      <td>41.7</td>
+      <td>191.22ms</td>
+      <td>156.01ms</td>
+      <td>321.35ms</td>
+      <td>40.5%</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/1a.png</td>
+      <td>0.1</td>
+      <td>1.14ms</td>
+      <td>0.44ms</td>
+      <td>0.93ms</td>
+      <td>-22.0%</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/1b.png</td>
+      <td>0.1</td>
+      <td>1.19ms</td>
+      <td>0.47ms</td>
+      <td>0.96ms</td>
+      <td>-24.2%</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/2a.png</td>
+      <td>0.1</td>
+      <td>0.50ms</td>
+      <td>0.24ms</td>
+      <td>0.91ms</td>
+      <td>45.4%</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/2b.png</td>
+      <td>0.1</td>
+      <td>0.49ms</td>
+      <td>0.23ms</td>
+      <td>0.89ms</td>
+      <td>45.1%</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/3a.png</td>
+      <td>0.1</td>
+      <td>1.12ms</td>
+      <td>0.45ms</td>
+      <td>0.81ms</td>
+      <td>-37.6%</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/3b.png</td>
+      <td>0.1</td>
+      <td>1.12ms</td>
+      <td>0.46ms</td>
+      <td>0.82ms</td>
+      <td>-37.0%</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/4a.png</td>
+      <td>0.2</td>
+      <td>2.28ms</td>
+      <td>0.62ms</td>
+      <td>2.62ms</td>
+      <td>13.0%</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/4b.png</td>
+      <td>0.2</td>
+      <td>2.28ms</td>
+      <td>0.64ms</td>
+      <td>2.75ms</td>
+      <td>17.0%</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/5a.png</td>
+      <td>0.1</td>
+      <td>0.60ms</td>
+      <td>0.24ms</td>
+      <td>0.52ms</td>
+      <td>-14.9%</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/5b.png</td>
+      <td>0.1</td>
+      <td>0.57ms</td>
+      <td>0.23ms</td>
+      <td>0.52ms</td>
+      <td>-10.6%</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/6a.png</td>
+      <td>0.1</td>
+      <td>0.80ms</td>
+      <td>0.22ms</td>
+      <td>0.80ms</td>
+      <td>0.3%</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/6b.png</td>
+      <td>0.1</td>
+      <td>0.79ms</td>
+      <td>0.22ms</td>
+      <td>0.74ms</td>
+      <td>-6.7%</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/7a.png</td>
+      <td>0.3</td>
+      <td>1.25ms</td>
+      <td>0.85ms</td>
+      <td>2.04ms</td>
+      <td>38.7%</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/7b.png</td>
+      <td>0.3</td>
+      <td>1.22ms</td>
+      <td>0.86ms</td>
+      <td>2.06ms</td>
+      <td>40.8%</td>
+    </tr>
+    <tr>
+      <td>same/1a.png</td>
+      <td>1.7</td>
+      <td>12.78ms</td>
+      <td>6.16ms</td>
+      <td>10.73ms</td>
+      <td>-19.1%</td>
+    </tr>
+    <tr>
+      <td>same/1b.png</td>
+      <td>1.7</td>
+      <td>12.82ms</td>
+      <td>6.16ms</td>
+      <td>10.69ms</td>
+      <td>-19.9%</td>
+    </tr>
+    <tr>
+      <td><strong>TOTAL</strong></td>
+      <td></td>
+      <td><strong>3040.51ms</strong></td>
+      <td><strong>1304.85ms</strong></td>
+      <td><strong>3532.95ms</strong></td>
+      <td><strong>13.9%</strong></td>
+    </tr>
+  </tbody>
+</table>
+
+#### Encode Size — Default Settings
+
+> Output bytes per codec; the final row is each codec's total as a percentage of jSquash's. zune-png has no compressed mode, so it always writes stored output — far larger than the rest.
+
+<table>
+  <thead>
+    <tr>
+      <th width="500">Benchmark</th>
+      <th width="500">blazediff</th>
+      <th width="500">zune-png</th>
+      <th width="500">jSquash</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>4k/1a.png</td>
+      <td>20350.6 KB</td>
+      <td>70111.1 KB</td>
+      <td>26447.3 KB</td>
+    </tr>
+    <tr>
+      <td>4k/1b.png</td>
+      <td>18833.1 KB</td>
+      <td>70111.1 KB</td>
+      <td>25134.3 KB</td>
+    </tr>
+    <tr>
+      <td>4k/2a.png</td>
+      <td>28706.7 KB</td>
+      <td>78099.8 KB</td>
+      <td>38017.8 KB</td>
+    </tr>
+    <tr>
+      <td>4k/2b.png</td>
+      <td>28730.4 KB</td>
+      <td>78099.8 KB</td>
+      <td>38035.9 KB</td>
+    </tr>
+    <tr>
+      <td>4k/3a.png</td>
+      <td>36327.3 KB</td>
+      <td>93898.5 KB</td>
+      <td>44223.4 KB</td>
+    </tr>
+    <tr>
+      <td>4k/3b.png</td>
+      <td>35895.5 KB</td>
+      <td>93898.5 KB</td>
+      <td>43777.6 KB</td>
+    </tr>
+    <tr>
+      <td>alpha/1a.png</td>
+      <td>2.3 KB</td>
+      <td>144.5 KB</td>
+      <td>4.5 KB</td>
+    </tr>
+    <tr>
+      <td>alpha/1b.png</td>
+      <td>2.2 KB</td>
+      <td>144.5 KB</td>
+      <td>4.5 KB</td>
+    </tr>
+    <tr>
+      <td>blazediff/1a.png</td>
+      <td>67.9 KB</td>
+      <td>1688.8 KB</td>
+      <td>152.5 KB</td>
+    </tr>
+    <tr>
+      <td>blazediff/1b.png</td>
+      <td>68.1 KB</td>
+      <td>1688.8 KB</td>
+      <td>152.8 KB</td>
+    </tr>
+    <tr>
+      <td>blazediff/2a.png</td>
+      <td>19.6 KB</td>
+      <td>1374.2 KB</td>
+      <td>77.8 KB</td>
+    </tr>
+    <tr>
+      <td>blazediff/2b.png</td>
+      <td>20.2 KB</td>
+      <td>1374.2 KB</td>
+      <td>79.9 KB</td>
+    </tr>
+    <tr>
+      <td>blazediff/3a.png</td>
+      <td>996.6 KB</td>
+      <td>6381.3 KB</td>
+      <td>1257.9 KB</td>
+    </tr>
+    <tr>
+      <td>blazediff/3b.png</td>
+      <td>978.8 KB</td>
+      <td>6381.3 KB</td>
+      <td>1238.6 KB</td>
+    </tr>
+    <tr>
+      <td>blazediff/4a.png</td>
+      <td>307.2 KB</td>
+      <td>14813.8 KB</td>
+      <td>232.3 KB</td>
+    </tr>
+    <tr>
+      <td>blazediff/4b.png</td>
+      <td>328.9 KB</td>
+      <td>14813.8 KB</td>
+      <td>236.9 KB</td>
+    </tr>
+    <tr>
+      <td>page/1a.png</td>
+      <td>12697.4 KB</td>
+      <td>230643.0 KB</td>
+      <td>17097.6 KB</td>
+    </tr>
+    <tr>
+      <td>page/1b.png</td>
+      <td>12686.4 KB</td>
+      <td>230643.0 KB</td>
+      <td>17085.0 KB</td>
+    </tr>
+    <tr>
+      <td>page/2a.png</td>
+      <td>6641.8 KB</td>
+      <td>163202.3 KB</td>
+      <td>17253.3 KB</td>
+    </tr>
+    <tr>
+      <td>page/2b.png</td>
+      <td>6625.9 KB</td>
+      <td>163202.3 KB</td>
+      <td>17272.7 KB</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/1a.png</td>
+      <td>37.0 KB</td>
+      <td>513.1 KB</td>
+      <td>40.0 KB</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/1b.png</td>
+      <td>36.9 KB</td>
+      <td>513.1 KB</td>
+      <td>40.0 KB</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/2a.png</td>
+      <td>44.9 KB</td>
+      <td>256.7 KB</td>
+      <td>122.3 KB</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/2b.png</td>
+      <td>46.0 KB</td>
+      <td>256.7 KB</td>
+      <td>124.7 KB</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/3a.png</td>
+      <td>27.8 KB</td>
+      <td>513.1 KB</td>
+      <td>33.6 KB</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/3b.png</td>
+      <td>27.9 KB</td>
+      <td>513.1 KB</td>
+      <td>33.7 KB</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/4a.png</td>
+      <td>280.8 KB</td>
+      <td>706.5 KB</td>
+      <td>317.8 KB</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/4b.png</td>
+      <td>299.9 KB</td>
+      <td>706.5 KB</td>
+      <td>338.2 KB</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/5a.png</td>
+      <td>14.6 KB</td>
+      <td>256.7 KB</td>
+      <td>43.5 KB</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/5b.png</td>
+      <td>13.9 KB</td>
+      <td>256.7 KB</td>
+      <td>42.6 KB</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/6a.png</td>
+      <td>82.7 KB</td>
+      <td>256.7 KB</td>
+      <td>105.0 KB</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/6b.png</td>
+      <td>65.5 KB</td>
+      <td>256.7 KB</td>
+      <td>87.5 KB</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/7a.png</td>
+      <td>51.2 KB</td>
+      <td>978.6 KB</td>
+      <td>144.8 KB</td>
+    </tr>
+    <tr>
+      <td>pixelmatch/7b.png</td>
+      <td>50.5 KB</td>
+      <td>978.6 KB</td>
+      <td>143.2 KB</td>
+    </tr>
+    <tr>
+      <td>same/1a.png</td>
+      <td>206.3 KB</td>
+      <td>6799.5 KB</td>
+      <td>306.2 KB</td>
+    </tr>
+    <tr>
+      <td>same/1b.png</td>
+      <td>206.3 KB</td>
+      <td>6799.5 KB</td>
+      <td>306.2 KB</td>
+    </tr>
+    <tr>
+      <td><strong>TOTAL</strong></td>
+      <td><strong>211779.1 KB</strong></td>
+      <td><strong>1341276.3 KB</strong></td>
+      <td><strong>290011.7 KB</strong></td>
+    </tr>
+    <tr>
+      <td><strong>vs jSquash</strong></td>
+      <td><strong>73.0%</strong></td>
+      <td><strong>462.5%</strong></td>
+      <td><strong>100.0%</strong></td>
+    </tr>
+  </tbody>
+</table>
