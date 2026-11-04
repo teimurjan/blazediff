@@ -1,7 +1,5 @@
 # @blazediff/core-native-win32-arm64
 
-## 7.0.0
-
 ## 6.0.2
 
 ## 6.0.1

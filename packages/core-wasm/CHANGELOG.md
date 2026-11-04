@@ -1,12 +1,5 @@
 # @blazediff/core-wasm
 
-## 7.0.0
-
-### Patch Changes
-
-- Updated dependencies [6b605d4]
-  - @blazediff/core@2.0.0
-
 ## 6.0.2
 
 ## 6.0.1
