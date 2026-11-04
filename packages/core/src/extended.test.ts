@@ -124,8 +124,9 @@ describe("metric: oklab", () => {
 });
 
 describe("mask", () => {
-	it("an all-zero mask keeps the default YIQ counts and output", () => {
-		for (const { name, a, b } of pairs) {
+	it.each(pairs)(
+		"an all-zero mask keeps the default YIQ counts and output: $name",
+		({ a, b }) => {
 			const mask = new Uint8Array(a.width * a.height);
 			const variants: DiffOptions[] = [
 				{},
@@ -136,17 +137,16 @@ describe("mask", () => {
 				const plain = blank(a);
 				const masked = blank(a);
 				const plainCount = countOf(a, b, { ...options, output: plain });
-				expect(countOf(a, b, { ...options, mask, output: masked }), name).toBe(
+				expect(countOf(a, b, { ...options, mask, output: masked })).toBe(
 					plainCount,
 				);
 				expect(
 					Buffer.compare(masked.data as Uint8Array, plain.data as Uint8Array),
-					name,
 				).toBe(0);
-				expect(countOf(a, b, { ...options, mask }), name).toBe(plainCount);
+				expect(countOf(a, b, { ...options, mask })).toBe(plainCount);
 			}
-		}
-	});
+		},
+	);
 
 	it("skips masked pixels and draws them as unchanged", () => {
 		const a: Image = {
