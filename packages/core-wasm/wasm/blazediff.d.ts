@@ -2,20 +2,20 @@
 /* eslint-disable */
 export function _start(): void;
 /**
- * Diff two RGBA buffers. Returns the count of differing pixels.
+ * Diff two equally sized RGBA buffers.
  *
- * If `out_diff` is provided, the visualization is written into it in-place
- * (must be width*height*4 bytes). Pass `null`/`undefined` to skip the
- * visualization and just get a count.
+ * Returns `[count, has_window, window_x, window_y, window_count]`. If
+ * `out_diff` is provided, the visualization is written into it in place
+ * (must be width*height*4 bytes).
  */
-export function diffRgba(rgba_a: Uint8Array, rgba_b: Uint8Array, width: number, height: number, threshold: number, include_aa: boolean, diff_mask: boolean, diff_color_alt?: Uint8Array | null, out_diff?: Uint8Array | null): number;
+export function diffRgba(rgba_a: Uint8Array, rgba_b: Uint8Array, width: number, height: number, threshold: number, antialiasing: boolean, metric: string | null | undefined, mask: Uint8Array | null | undefined, window: number | null | undefined, alpha: number, diff_color: Uint8Array | null | undefined, diff_color_alt: Uint8Array | null | undefined, aa_color: Uint8Array | null | undefined, transparent: boolean, out_diff?: Uint8Array | null): Uint32Array;
 
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
 export interface InitOutput {
   readonly memory: WebAssembly.Memory;
   readonly _start: () => void;
-  readonly diffRgba: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number, l: number, m: number) => void;
+  readonly diffRgba: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number, l: number, m: number, n: number, o: number, p: number, q: number, r: number, s: number, t: number, u: number, v: number, w: number) => void;
   readonly __wbindgen_export_0: (a: number, b: number, c: number) => void;
   readonly __wbindgen_export_1: (a: number, b: number) => number;
   readonly __wbindgen_export_2: (a: number, b: number, c: number, d: number) => number;
