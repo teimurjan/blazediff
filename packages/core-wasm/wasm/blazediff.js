@@ -126,40 +126,71 @@ function passArray8ToWasm0(arg, malloc) {
 function isLikeNone(x) {
     return x === undefined || x === null;
 }
+
+let cachedUint32ArrayMemory0 = null;
+
+function getUint32ArrayMemory0() {
+    if (cachedUint32ArrayMemory0 === null || cachedUint32ArrayMemory0.byteLength === 0) {
+        cachedUint32ArrayMemory0 = new Uint32Array(wasm.memory.buffer);
+    }
+    return cachedUint32ArrayMemory0;
+}
+
+function getArrayU32FromWasm0(ptr, len) {
+    ptr = ptr >>> 0;
+    return getUint32ArrayMemory0().subarray(ptr / 4, ptr / 4 + len);
+}
 /**
- * Diff two RGBA buffers. Returns the count of differing pixels.
+ * Diff two equally sized RGBA buffers.
  *
- * If `out_diff` is provided, the visualization is written into it in-place
- * (must be width*height*4 bytes). Pass `null`/`undefined` to skip the
- * visualization and just get a count.
+ * Returns `[count, has_window, window_x, window_y, window_count]`. If
+ * `out_diff` is provided, the visualization is written into it in place
+ * (must be width*height*4 bytes).
  * @param {Uint8Array} rgba_a
  * @param {Uint8Array} rgba_b
  * @param {number} width
  * @param {number} height
  * @param {number} threshold
- * @param {boolean} include_aa
- * @param {boolean} diff_mask
- * @param {Uint8Array | null} [diff_color_alt]
+ * @param {boolean} antialiasing
+ * @param {string | null | undefined} metric
+ * @param {Uint8Array | null | undefined} mask
+ * @param {number | null | undefined} window
+ * @param {number} alpha
+ * @param {Uint8Array | null | undefined} diff_color
+ * @param {Uint8Array | null | undefined} diff_color_alt
+ * @param {Uint8Array | null | undefined} aa_color
+ * @param {boolean} transparent
  * @param {Uint8Array | null} [out_diff]
- * @returns {number}
+ * @returns {Uint32Array}
  */
-export function diffRgba(rgba_a, rgba_b, width, height, threshold, include_aa, diff_mask, diff_color_alt, out_diff) {
+export function diffRgba(rgba_a, rgba_b, width, height, threshold, antialiasing, metric, mask, window, alpha, diff_color, diff_color_alt, aa_color, transparent, out_diff) {
     try {
         const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
         const ptr0 = passArray8ToWasm0(rgba_a, wasm.__wbindgen_export_1);
         const len0 = WASM_VECTOR_LEN;
         const ptr1 = passArray8ToWasm0(rgba_b, wasm.__wbindgen_export_1);
         const len1 = WASM_VECTOR_LEN;
-        var ptr2 = isLikeNone(diff_color_alt) ? 0 : passArray8ToWasm0(diff_color_alt, wasm.__wbindgen_export_1);
+        var ptr2 = isLikeNone(metric) ? 0 : passStringToWasm0(metric, wasm.__wbindgen_export_1, wasm.__wbindgen_export_2);
         var len2 = WASM_VECTOR_LEN;
-        wasm.diffRgba(retptr, ptr0, len0, ptr1, len1, width, height, threshold, include_aa, diff_mask, ptr2, len2, isLikeNone(out_diff) ? 0 : addHeapObject(out_diff));
+        var ptr3 = isLikeNone(mask) ? 0 : passArray8ToWasm0(mask, wasm.__wbindgen_export_1);
+        var len3 = WASM_VECTOR_LEN;
+        var ptr4 = isLikeNone(diff_color) ? 0 : passArray8ToWasm0(diff_color, wasm.__wbindgen_export_1);
+        var len4 = WASM_VECTOR_LEN;
+        var ptr5 = isLikeNone(diff_color_alt) ? 0 : passArray8ToWasm0(diff_color_alt, wasm.__wbindgen_export_1);
+        var len5 = WASM_VECTOR_LEN;
+        var ptr6 = isLikeNone(aa_color) ? 0 : passArray8ToWasm0(aa_color, wasm.__wbindgen_export_1);
+        var len6 = WASM_VECTOR_LEN;
+        wasm.diffRgba(retptr, ptr0, len0, ptr1, len1, width, height, threshold, antialiasing, ptr2, len2, ptr3, len3, isLikeNone(window) ? 0x100000001 : (window) >>> 0, alpha, ptr4, len4, ptr5, len5, ptr6, len6, transparent, isLikeNone(out_diff) ? 0 : addHeapObject(out_diff));
         var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
         var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
         var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
-        if (r2) {
-            throw takeObject(r1);
+        var r3 = getDataViewMemory0().getInt32(retptr + 4 * 3, true);
+        if (r3) {
+            throw takeObject(r2);
         }
-        return r0 >>> 0;
+        var v8 = getArrayU32FromWasm0(r0, r1).slice();
+        wasm.__wbindgen_export_0(r0, r1 * 4, 4);
+        return v8;
     } finally {
         wasm.__wbindgen_add_to_stack_pointer(16);
     }
@@ -262,6 +293,7 @@ function __wbg_finalize_init(instance, module) {
     wasm = instance.exports;
     __wbg_init.__wbindgen_wasm_module = module;
     cachedDataViewMemory0 = null;
+    cachedUint32ArrayMemory0 = null;
     cachedUint8ArrayMemory0 = null;
 
 
