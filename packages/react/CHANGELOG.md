@@ -1,5 +1,11 @@
 # @blazediff/react
 
+## 1.9.1
+
+### Patch Changes
+
+- @blazediff/ui@2.2.1
+
 ## 1.9.0
 
 ### Minor Changes

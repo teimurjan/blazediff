@@ -1,5 +1,11 @@
 # @blazediff/vitest
 
+## 1.1.27
+
+### Patch Changes
+
+- @blazediff/matcher@2.0.9
+
 ## 1.1.26
 
 ### Patch Changes
