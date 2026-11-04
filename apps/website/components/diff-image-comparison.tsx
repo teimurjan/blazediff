@@ -1,6 +1,6 @@
 "use client";
 
-import blazediff, { type CoreOptions } from "@blazediff/core";
+import { type DiffOptions, diff } from "@blazediff/core";
 import { useCallback, useEffect, useState } from "react";
 import { imageToCanvas, loadImage } from "../utils/image";
 
@@ -11,16 +11,18 @@ interface ComparisonResult {
 	error?: string;
 }
 
+const NO_OPTIONS: Omit<DiffOptions, "output"> = {};
+
 interface DiffImageComparisonProps {
 	fixtureA: string;
 	fixtureB: string;
-	options: CoreOptions;
+	options?: Omit<DiffOptions, "output">;
 }
 
 export default function DiffImageComparison({
 	fixtureA,
 	fixtureB,
-	options,
+	options = NO_OPTIONS,
 }: DiffImageComparisonProps) {
 	const [result, setResult] = useState<ComparisonResult | null>(null);
 	const [diffImageUrl, setDiffImageUrl] = useState<string | null>(null);
@@ -57,15 +59,11 @@ export default function DiffImageComparison({
 
 			const diffData = diffCtx.createImageData(canvas1.width, canvas1.height);
 
-			// Run comparison
-			const diffPixels = blazediff(
-				data1.data,
-				data2.data,
-				diffData.data,
-				canvas1.width,
-				canvas1.height,
-				options,
-			);
+			const comparison = diff(data1, data2, { ...options, output: diffData });
+			if (comparison.kind !== "compared") {
+				throw new Error("Images have different dimensions");
+			}
+			const diffPixels = comparison.count;
 
 			diffCtx.putImageData(diffData, 0, 0);
 			setDiffImageUrl(diffCanvas.toDataURL());

@@ -7,9 +7,11 @@ import {
 	brightnessDelta,
 	calculateOptimalBlockSize,
 	colorDelta,
+	type DiffOptions,
 	diff,
 	drawGrayPixel,
 	drawPixel,
+	type Image,
 	isValidImage,
 } from "./index";
 
@@ -259,427 +261,254 @@ describe("antialiased", () => {
 	});
 });
 
+function image(
+	width: number,
+	height: number,
+	fill: [number, number, number, number] = [0, 0, 0, 255],
+): Image {
+	return { data: createTestImage(width, height, fill), width, height };
+}
+
+function countOf(a: Image, b: Image, options?: DiffOptions): number {
+	const result = diff(a, b, options);
+	if (result.kind !== "compared") throw new Error(`got ${result.kind}`);
+	return result.count;
+}
+
+/** 3x3 gray image whose center pixel turned black. */
+function centerChanged(): [Image, Image] {
+	const a = image(3, 3, [128, 128, 128, 255]);
+	const b = image(3, 3, [128, 128, 128, 255]);
+	b.data.fill(0, 16, 19);
+	return [a, b];
+}
+
 describe("diff", () => {
-	describe("error handling", () => {
-		it("should throw for invalid image1 type", () => {
-			const valid = new Uint8Array(16);
-			expect(() => diff([1, 2, 3, 4] as any, valid, undefined, 2, 2)).toThrow(
-				"Image data: Uint8Array, Uint8ClampedArray or Buffer expected.",
-			);
-		});
+	describe("invalid arguments", () => {
+		const valid = image(2, 2);
+		const cases: Array<[string, () => unknown, string]> = [
+			[
+				"a is not a byte array",
+				() => diff({ ...valid, data: [1, 2, 3, 4] as never }, valid),
+				"invalid-image",
+			],
+			[
+				"b is not a byte array",
+				() => diff(valid, { ...valid, data: "invalid" as never }),
+				"invalid-image",
+			],
+			[
+				"data does not match the size",
+				() => diff({ ...valid, width: 10, height: 10 }, valid),
+				"invalid-image",
+			],
+			[
+				"output is not a byte array",
+				() => diff(valid, valid, { output: { ...valid, data: {} as never } }),
+				"invalid-output",
+			],
+			[
+				"output has another size",
+				() => diff(valid, valid, { output: image(4, 1) }),
+				"invalid-output",
+			],
+			[
+				"render.background is unknown",
+				() => diff(valid, valid, { render: { background: "none" as "faded" } }),
+				"invalid-option",
+			],
+		];
+		for (const [label, run, code] of cases) {
+			it(`throws ${code} when ${label}`, () => {
+				expect(run).toThrowError(
+					expect.objectContaining({ name: "BlazeDiffError", code }),
+				);
+			});
+		}
+	});
 
-		it("should throw for invalid image2 type", () => {
-			const valid = new Uint8Array(16);
-			expect(() => diff(valid, "invalid" as any, undefined, 2, 2)).toThrow(
-				"Image data: Uint8Array, Uint8ClampedArray or Buffer expected.",
-			);
-		});
-
-		it("should throw for invalid output type", () => {
-			const valid = new Uint8Array(16);
-			expect(() => diff(valid, valid, {} as any, 2, 2)).toThrow(
-				"Image data: Uint8Array, Uint8ClampedArray or Buffer expected.",
-			);
-		});
-
-		it("should throw for mismatched image sizes", () => {
-			const img1 = new Uint8Array(16);
-			const img2 = new Uint8Array(32);
-			expect(() => diff(img1, img2, undefined, 2, 2)).toThrow(
-				"Image sizes do not match",
-			);
-		});
-
-		it("should throw for mismatched output size", () => {
-			const img = new Uint8Array(16);
-			const output = new Uint8Array(32);
-			expect(() => diff(img, img, output, 2, 2)).toThrow(
-				"Image sizes do not match",
-			);
-		});
-
-		it("should throw for incorrect buffer size vs dimensions", () => {
-			const img = new Uint8Array(16);
-			expect(() => diff(img, img, undefined, 10, 10)).toThrow(
-				"Image data size does not match width/height",
-			);
+	it("reports a dimension mismatch instead of throwing", () => {
+		expect(diff(image(2, 2), image(4, 1))).toEqual({
+			kind: "dimension-mismatch",
+			a: { width: 2, height: 2 },
+			b: { width: 4, height: 1 },
 		});
 	});
 
 	describe("identical images", () => {
-		it("should return 0 for identical images", () => {
-			const img = createTestImage(10, 10, [128, 64, 32, 255]);
-			expect(diff(img, img, undefined, 10, 10)).toBe(0);
+		it("returns an identical result", () => {
+			const img = image(10, 10, [128, 64, 32, 255]);
+			expect(diff(img, img)).toEqual({
+				kind: "compared",
+				count: 0,
+				percentage: 0,
+				identical: true,
+			});
 		});
 
-		it("should return 0 with fastBufferCheck disabled", () => {
-			const img = createTestImage(10, 10, [128, 64, 32, 255]);
-			expect(
-				diff(img, img, undefined, 10, 10, { fastBufferCheck: false }),
-			).toBe(0);
-		});
-
-		it("should fill output with grayscale for identical images", () => {
-			const img = createTestImage(2, 2, [100, 100, 100, 255]);
-			const output = new Uint8Array(16);
-			diff(img, img, output, 2, 2);
-
+		it("fills the output with grayscale", () => {
+			const img = image(2, 2, [100, 100, 100, 255]);
+			const output = image(2, 2);
+			diff(img, img, { output });
 			for (let i = 0; i < 4; i++) {
-				expect(output[i * 4]).toBe(output[i * 4 + 1]);
-				expect(output[i * 4 + 1]).toBe(output[i * 4 + 2]);
-				expect(output[i * 4 + 3]).toBe(255);
+				expect(output.data[i * 4]).toBe(output.data[i * 4 + 1]);
+				expect(output.data[i * 4 + 1]).toBe(output.data[i * 4 + 2]);
+				expect(output.data[i * 4 + 3]).toBe(255);
 			}
 		});
 	});
 
 	describe("different images", () => {
-		it("should detect completely different images", () => {
-			const img1 = createTestImage(10, 10, [0, 0, 0, 255]);
-			const img2 = createTestImage(10, 10, [255, 255, 255, 255]);
-			const result = diff(img1, img2, undefined, 10, 10);
-			expect(result).toBe(100);
+		it("counts every pixel of completely different images", () => {
+			const result = diff(image(10, 10), image(10, 10, [255, 255, 255, 255]));
+			expect(result).toEqual({
+				kind: "compared",
+				count: 100,
+				percentage: 100,
+				identical: false,
+			});
 		});
 
-		it("should detect single pixel difference", () => {
-			const img1 = createTestImage(3, 3, [128, 128, 128, 255]);
-			const img2 = createTestImage(3, 3, [128, 128, 128, 255]);
-			img2[16] = 0;
-			img2[17] = 0;
-			img2[18] = 0;
-			const result = diff(img1, img2, undefined, 3, 3);
-			expect(result).toBe(1);
+		it("detects a single pixel difference", () => {
+			const [a, b] = centerChanged();
+			expect(countOf(a, b)).toBe(1);
 		});
 
-		it("should treat null output like undefined (count-only)", () => {
-			const img1 = createTestImage(3, 3, [128, 128, 128, 255]);
-			const img2 = createTestImage(3, 3, [128, 128, 128, 255]);
-			img2[16] = 0;
-			img2[17] = 0;
-			img2[18] = 0;
-			// pixelmatch accepts `null` for the output to mean "count only";
-			// this must not throw "Cannot read properties of null".
-			expect(diff(img1, img2, null, 3, 3)).toBe(
-				diff(img1, img2, undefined, 3, 3),
-			);
-		});
-
-		it("should write diffColor for different pixels", () => {
-			const img1 = createTestImage(2, 2, [0, 0, 0, 255]);
-			const img2 = createTestImage(2, 2, [255, 255, 255, 255]);
-			const output = new Uint8Array(16);
-			diff(img1, img2, output, 2, 2, { diffColor: [255, 0, 0] });
-
-			expect(output[0]).toBe(255);
-			expect(output[1]).toBe(0);
-			expect(output[2]).toBe(0);
+		it("draws diffColor for different pixels", () => {
+			const output = image(2, 2);
+			diff(image(2, 2), image(2, 2, [255, 255, 255, 255]), { output });
+			expect(Array.from(output.data.subarray(0, 3))).toEqual([255, 0, 0]);
 		});
 	});
 
 	describe("options", () => {
-		it("should respect threshold=0 (most sensitive)", () => {
-			const img1 = createTestImage(3, 3, [100, 100, 100, 255]);
-			const img2 = createTestImage(3, 3, [101, 100, 100, 255]);
-			const result = diff(img1, img2, undefined, 3, 3, { threshold: 0 });
-			expect(result).toBeGreaterThan(0);
+		it("threshold 0 is the most sensitive", () => {
+			const a = image(3, 3, [100, 100, 100, 255]);
+			const b = image(3, 3, [101, 100, 100, 255]);
+			expect(countOf(a, b, { threshold: 0 })).toBeGreaterThan(0);
 		});
 
-		it("should respect threshold=1 (least sensitive)", () => {
-			const img1 = createTestImage(3, 3, [100, 100, 100, 255]);
-			const img2 = createTestImage(3, 3, [150, 100, 100, 255]);
-			const result = diff(img1, img2, undefined, 3, 3, { threshold: 1 });
-			expect(result).toBe(0);
+		it("threshold 1 is the least sensitive", () => {
+			const a = image(3, 3, [100, 100, 100, 255]);
+			const b = image(3, 3, [150, 100, 100, 255]);
+			expect(countOf(a, b, { threshold: 1 })).toBe(0);
 		});
 
-		it("should apply custom diffColor", () => {
-			const img1 = createTestImage(2, 2, [0, 0, 0, 255]);
-			const img2 = createTestImage(2, 2, [255, 255, 255, 255]);
-			const output = new Uint8Array(16);
-			diff(img1, img2, output, 2, 2, { diffColor: [0, 255, 0] });
-
-			expect(output[0]).toBe(0);
-			expect(output[1]).toBe(255);
-			expect(output[2]).toBe(0);
-		});
-
-		it("should apply diffColorAlt for darkening changes", () => {
-			// When image1 is brighter and image2 is darker, delta is negative
-			// diffColorAlt is used when delta < 0
-			const brighter = createTestImage(2, 2, [200, 200, 200, 255]);
-			const darker = createTestImage(2, 2, [50, 50, 50, 255]);
-			const output = new Uint8Array(16);
-			diff(brighter, darker, output, 2, 2, {
-				diffColor: [255, 0, 0],
-				diffColorAlt: [0, 0, 255],
+		it("draws render.diffColor", () => {
+			const output = image(2, 2);
+			diff(image(2, 2), image(2, 2, [255, 255, 255, 255]), {
+				output,
+				render: { diffColor: [0, 255, 0] },
 			});
-
-			// diffColorAlt should be used because delta < 0 (darkening)
-			expect(output[0]).toBe(0);
-			expect(output[1]).toBe(0);
-			expect(output[2]).toBe(255);
+			expect(Array.from(output.data.subarray(0, 3))).toEqual([0, 255, 0]);
 		});
 
-		it("should apply diffMask mode (transparent background)", () => {
-			const img1 = createTestImage(3, 3, [128, 128, 128, 255]);
-			const img2 = createTestImage(3, 3, [128, 128, 128, 255]);
-			img2[16] = 0;
-			img2[17] = 0;
-			img2[18] = 0;
-
-			const output = new Uint8Array(36);
-			diff(img1, img2, output, 3, 3, { diffMask: true });
-
-			expect(output[3]).toBe(0);
-			expect(output[19]).toBe(255);
+		it("draws render.diffColorAlt for darkening changes", () => {
+			const output = image(2, 2);
+			diff(image(2, 2, [200, 200, 200, 255]), image(2, 2, [50, 50, 50, 255]), {
+				output,
+				render: { diffColor: [255, 0, 0], diffColorAlt: [0, 0, 255] },
+			});
+			expect(Array.from(output.data.subarray(0, 3))).toEqual([0, 0, 255]);
 		});
 
-		it("should include anti-aliased pixels when includeAA=true", () => {
-			const img1 = createTestImage(3, 3, [128, 128, 128, 255]);
-			const img2 = createTestImage(3, 3, [128, 128, 128, 255]);
-			img2[16] = 255;
-			img2[17] = 255;
-			img2[18] = 255;
-
-			const withAA = diff(img1, img2, undefined, 3, 3, { includeAA: true });
-			const withoutAA = diff(img1, img2, undefined, 3, 3, { includeAA: false });
-
-			expect(withAA).toBeGreaterThanOrEqual(withoutAA);
+		it("render.background transparent clears unchanged pixels", () => {
+			const [a, b] = centerChanged();
+			const output = image(3, 3, [9, 9, 9, 9]);
+			diff(a, b, { output, render: { background: "transparent" } });
+			expect(output.data[3]).toBe(0);
+			expect(output.data[19]).toBe(255);
 		});
 
-		it("should apply custom alpha for output", () => {
-			const img = createTestImage(2, 2, [128, 128, 128, 255]);
-			const output1 = new Uint8Array(16);
-			const output2 = new Uint8Array(16);
+		it("antialiasing false counts at least as many pixels", () => {
+			const a = image(3, 3, [128, 128, 128, 255]);
+			const b = image(3, 3, [128, 128, 128, 255]);
+			b.data.fill(255, 16, 19);
+			expect(countOf(a, b, { antialiasing: false })).toBeGreaterThanOrEqual(
+				countOf(a, b),
+			);
+		});
 
-			diff(img, img, output1, 2, 2, { alpha: 0.1 });
-			diff(img, img, output2, 2, 2, { alpha: 0.9 });
-
-			expect(output1[0]).not.toBe(output2[0]);
+		it("render.alpha changes the faded background", () => {
+			const img = image(2, 2, [128, 128, 128, 255]);
+			const faint = image(2, 2);
+			const strong = image(2, 2);
+			diff(img, img, { output: faint, render: { alpha: 0.1 } });
+			diff(img, img, { output: strong, render: { alpha: 0.9 } });
+			expect(faint.data[0]).not.toBe(strong.data[0]);
 		});
 	});
 
-	describe("buffer types", () => {
-		it("should work with Buffer", () => {
-			const img1 = Buffer.from(createTestImage(2, 2, [0, 0, 0, 255]));
-			const img2 = Buffer.from(createTestImage(2, 2, [255, 255, 255, 255]));
-			const result = diff(img1, img2, undefined, 2, 2);
-			expect(result).toBe(4);
-		});
-
-		it("should work with Uint8ClampedArray", () => {
-			const img1 = new Uint8ClampedArray(createTestImage(2, 2, [0, 0, 0, 255]));
-			const img2 = new Uint8ClampedArray(
-				createTestImage(2, 2, [255, 255, 255, 255]),
-			);
-			const result = diff(img1, img2, undefined, 2, 2);
-			expect(result).toBe(4);
-		});
-
-		it("should work with mixed buffer types", () => {
-			const img1 = new Uint8Array(createTestImage(2, 2, [0, 0, 0, 255]));
-			const img2 = Buffer.from(createTestImage(2, 2, [255, 255, 255, 255]));
-			const result = diff(img1, img2, undefined, 2, 2);
-			expect(result).toBe(4);
-		});
+	it("accepts Buffer, Uint8ClampedArray and mixed inputs", () => {
+		const black = createTestImage(2, 2, [0, 0, 0, 255]);
+		const white = createTestImage(2, 2, [255, 255, 255, 255]);
+		const pairs: Array<[Image["data"], Image["data"]]> = [
+			[Buffer.from(black), Buffer.from(white)],
+			[new Uint8ClampedArray(black), new Uint8ClampedArray(white)],
+			[new Uint8Array(black), Buffer.from(white)],
+		];
+		for (const [a, b] of pairs) {
+			expect(
+				countOf(
+					{ data: a, width: 2, height: 2 },
+					{ data: b, width: 2, height: 2 },
+				),
+			).toBe(4);
+		}
 	});
 });
 
 describe("integration tests with PNG fixtures", () => {
-	describe("identical images", () => {
-		it("same/1a.png vs same/1b.png should return 0 (identical)", () => {
-			const img1 = loadPNG("same/1a.png");
-			const img2 = loadPNG("same/1b.png");
-			const result = diff(
-				img1.data,
-				img2.data,
-				undefined,
-				img1.width,
-				img1.height,
-			);
-			expect(result).toBe(0);
-		});
+	it("same/1 is identical", () => {
+		expect(countOf(loadPNG("same/1a.png"), loadPNG("same/1b.png"))).toBe(0);
 	});
 
-	describe("pixelmatch test fixtures", () => {
-		it("pixelmatch/1a.png vs 1b.png should detect differences", () => {
-			const img1 = loadPNG("pixelmatch/1a.png");
-			const img2 = loadPNG("pixelmatch/1b.png");
-			const result = diff(
-				img1.data,
-				img2.data,
-				undefined,
-				img1.width,
-				img1.height,
-			);
-			expect(result).toBeGreaterThan(0);
-			expect(result).toMatchInlineSnapshot(`106`);
-		});
-
-		it("pixelmatch/2a.png vs 2b.png should detect differences", () => {
-			const img1 = loadPNG("pixelmatch/2a.png");
-			const img2 = loadPNG("pixelmatch/2b.png");
-			const result = diff(
-				img1.data,
-				img2.data,
-				undefined,
-				img1.width,
-				img1.height,
-			);
-			expect(result).toBeGreaterThan(0);
-			expect(result).toMatchInlineSnapshot(`9730`);
-		});
-
-		it("pixelmatch/3a.png vs 3b.png should detect differences", () => {
-			const img1 = loadPNG("pixelmatch/3a.png");
-			const img2 = loadPNG("pixelmatch/3b.png");
-			const result = diff(
-				img1.data,
-				img2.data,
-				undefined,
-				img1.width,
-				img1.height,
-			);
-			expect(result).toBeGreaterThan(0);
-			expect(result).toMatchInlineSnapshot(`178`);
-		});
-
-		it("pixelmatch/4a.png vs 4b.png should detect differences", () => {
-			const img1 = loadPNG("pixelmatch/4a.png");
-			const img2 = loadPNG("pixelmatch/4b.png");
-			const result = diff(
-				img1.data,
-				img2.data,
-				undefined,
-				img1.width,
-				img1.height,
-			);
-			expect(result).toBeGreaterThan(0);
-			expect(result).toMatchInlineSnapshot(`6889`);
-		});
-
-		it("pixelmatch/5a.png vs 5b.png should detect differences", () => {
-			const img1 = loadPNG("pixelmatch/5a.png");
-			const img2 = loadPNG("pixelmatch/5b.png");
-			const result = diff(
-				img1.data,
-				img2.data,
-				undefined,
-				img1.width,
-				img1.height,
-			);
-			expect(result).toBeGreaterThan(0);
-			expect(result).toMatchInlineSnapshot(`6`);
-		});
-
-		it("pixelmatch/6a.png vs 6b.png should detect differences", () => {
-			const img1 = loadPNG("pixelmatch/6a.png");
-			const img2 = loadPNG("pixelmatch/6b.png");
-			const result = diff(
-				img1.data,
-				img2.data,
-				undefined,
-				img1.width,
-				img1.height,
-			);
-			expect(result).toBeGreaterThan(0);
-			expect(result).toMatchInlineSnapshot(`51`);
-		});
-
-		it("pixelmatch/7a.png vs 7b.png should detect differences", () => {
-			const img1 = loadPNG("pixelmatch/7a.png");
-			const img2 = loadPNG("pixelmatch/7b.png");
-			const result = diff(
-				img1.data,
-				img2.data,
-				undefined,
-				img1.width,
-				img1.height,
-			);
-			expect(result).toBeGreaterThan(0);
-			expect(result).toMatchInlineSnapshot(`2448`);
-		});
+	it.each([
+		[1, 106],
+		[2, 9730],
+		[3, 178],
+		[4, 6889],
+		[5, 6],
+		[6, 51],
+		[7, 2448],
+	])("pixelmatch/%i counts %i pixels with the defaults", (n, expected) => {
+		const a = loadPNG(`pixelmatch/${n}a.png`);
+		const b = loadPNG(`pixelmatch/${n}b.png`);
+		expect(countOf(a, b)).toBe(expected);
+		expect(
+			countOf(a, b, { output: { ...a, data: new Uint8Array(a.data.length) } }),
+		).toBe(expected);
 	});
 
-	describe("consistency across runs", () => {
-		it("should produce identical results for repeated comparisons", () => {
-			const img1 = loadPNG("pixelmatch/1a.png");
-			const img2 = loadPNG("pixelmatch/1b.png");
+	it("gives the same result on repeated runs", () => {
+		const a = loadPNG("pixelmatch/1a.png");
+		const b = loadPNG("pixelmatch/1b.png");
+		const results = Array.from({ length: 5 }, () => countOf(a, b));
+		expect(new Set(results).size).toBe(1);
+	});
 
-			const results = [];
-			for (let i = 0; i < 5; i++) {
-				results.push(
-					diff(img1.data, img2.data, undefined, img1.width, img1.height),
-				);
+	it("leaves unchanged pixels transparent with background transparent", () => {
+		const a = loadPNG("pixelmatch/1a.png");
+		const output = { ...a, data: new Uint8Array(a.data.length) };
+		diff(a, loadPNG("pixelmatch/1b.png"), {
+			output,
+			render: { background: "transparent" },
+		});
+		let transparent = false;
+		for (let i = 3; i < output.data.length; i += 4) {
+			if (output.data[i] === 0) {
+				transparent = true;
+				break;
 			}
-
-			expect(new Set(results).size).toBe(1);
-		});
+		}
+		expect(transparent).toBe(true);
 	});
 
-	describe("output buffer generation", () => {
-		it("should generate valid diff visualization", () => {
-			const img1 = loadPNG("pixelmatch/1a.png");
-			const img2 = loadPNG("pixelmatch/1b.png");
-			const output = new Uint8Array(img1.width * img1.height * 4);
-
-			diff(img1.data, img2.data, output, img1.width, img1.height);
-
-			let hasNonZero = false;
-			for (let i = 0; i < output.length; i++) {
-				if (output[i] !== 0) {
-					hasNonZero = true;
-					break;
-				}
-			}
-			expect(hasNonZero).toBe(true);
-		});
-
-		it("should respect diffMask option with real images", () => {
-			const img1 = loadPNG("pixelmatch/1a.png");
-			const img2 = loadPNG("pixelmatch/1b.png");
-			const output = new Uint8Array(img1.width * img1.height * 4);
-
-			diff(img1.data, img2.data, output, img1.width, img1.height, {
-				diffMask: true,
-			});
-
-			let hasTransparent = false;
-			for (let i = 3; i < output.length; i += 4) {
-				if (output[i] === 0) {
-					hasTransparent = true;
-					break;
-				}
-			}
-			expect(hasTransparent).toBe(true);
-		});
-	});
-
-	describe("threshold sensitivity with real images", () => {
-		it("lower threshold should detect more differences", () => {
-			const img1 = loadPNG("pixelmatch/1a.png");
-			const img2 = loadPNG("pixelmatch/1b.png");
-
-			const strict = diff(
-				img1.data,
-				img2.data,
-				undefined,
-				img1.width,
-				img1.height,
-				{
-					threshold: 0.05,
-				},
-			);
-			const loose = diff(
-				img1.data,
-				img2.data,
-				undefined,
-				img1.width,
-				img1.height,
-				{
-					threshold: 0.3,
-				},
-			);
-
-			expect(strict).toBeGreaterThanOrEqual(loose);
-		});
+	it("a lower threshold detects at least as many differences", () => {
+		const a = loadPNG("pixelmatch/1a.png");
+		const b = loadPNG("pixelmatch/1b.png");
+		expect(countOf(a, b, { threshold: 0.05 })).toBeGreaterThanOrEqual(
+			countOf(a, b, { threshold: 0.3 }),
+		);
 	});
 });

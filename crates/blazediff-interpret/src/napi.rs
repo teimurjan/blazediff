@@ -57,10 +57,8 @@ fn diff_options(options: &Option<NapiInterpretOptions>) -> DiffOptions {
     };
     DiffOptions {
         threshold: options.threshold.unwrap_or(defaults.threshold),
-        // The N-API surface calls it `antialiasing` where the core calls the
-        // inverse `include_aa`, matching @blazediff/core-native.
-        include_aa: !options.antialiasing.unwrap_or(false),
-        compression: options.compression.unwrap_or(defaults.compression),
+        // Interpret keeps its own default: AA pixels count unless asked.
+        antialiasing: options.antialiasing.unwrap_or(false),
         ..defaults
     }
 }
@@ -103,7 +101,8 @@ pub fn interpret_images(
     if let (Some(path), Some(image)) = (&diff_output, &output) {
         if result.diff_count > 0 {
             let quality = options.as_ref().and_then(|o| o.quality).unwrap_or(90);
-            blazediff_shared::save_image(image, path, opts.compression, quality).map_err(|e| {
+            let compression = options.as_ref().and_then(|o| o.compression).unwrap_or(0);
+            blazediff_shared::save_image(image, path, compression, quality).map_err(|e| {
                 Error::new(Status::GenericFailure, format!("Failed to save diff: {e}"))
             })?;
         }

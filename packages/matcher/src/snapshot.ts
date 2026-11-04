@@ -64,13 +64,11 @@ function getSnapshotPaths(
 	const identifier =
 		options.snapshotIdentifier ?? generateSnapshotIdentifier(testContext);
 
-	const diffExt = options.method === "core-native" ? "html" : "png";
-
 	return {
 		snapshotDir,
 		baselinePath: join(snapshotDir, `${identifier}.png`),
 		receivedPath: join(snapshotDir, `${identifier}.received.png`),
-		diffPath: join(snapshotDir, `${identifier}.diff.${diffExt}`),
+		diffPath: join(snapshotDir, `${identifier}.diff.png`),
 	};
 }
 
@@ -216,13 +214,11 @@ export async function getOrCreateSnapshot(
 		};
 	}
 
-	// For core-native method, skip normalization - it requires file paths
-	// For other methods, normalize if needed
+	// core-native reads the input as given; the other methods need decoded pixels.
 	let result: RunComparisonResult;
 	let normalizedReceived: ImageInput;
 
 	if (options.method === "core-native") {
-		// core-native method requires file paths, call runComparison directly
 		result = await runComparison(
 			received,
 			baselinePath,
@@ -230,7 +226,7 @@ export async function getOrCreateSnapshot(
 			options,
 			diffPath,
 		);
-		normalizedReceived = received; // Keep as file path for core-native method
+		normalizedReceived = received;
 	} else {
 		// Normalize received for comparison (deferred until needed)
 		normalizedReceived = isRawPng ? await normalize(received) : received;
@@ -339,8 +335,8 @@ export async function getOrCreateSnapshot(
 		);
 	}
 
-	// Save diff output if available (not for core-native method which doesn't produce diff)
-	if (result.diffOutput && options.method !== "core-native") {
+	// core-native already wrote its diff to diffPath.
+	if (result.diffOutput) {
 		const dims = isImageData(normalizedReceived)
 			? normalizedReceived
 			: await normalize(normalizedReceived);

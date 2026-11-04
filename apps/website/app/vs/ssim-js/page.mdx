@@ -46,8 +46,8 @@ than ssim.js `weber` in JavaScript.
 
 ## Switching
 
-ssim.js takes two image objects. `@blazediff/ssim` takes the two pixel buffers
-and the size, in the same order as a pixel diff.
+Both take two image objects with `data`, `width` and `height`. `@blazediff/ssim`
+returns a result object with the score.
 
 ```ts
 // Before
@@ -56,7 +56,8 @@ const { mssim } = ssim(img1, img2);
 
 // After
 import ssim from "@blazediff/ssim/ssim";
-const score = ssim(img1.data, img2.data, undefined, img1.width, img1.height);
+const result = ssim(img1, img2);
+const score = result.kind === "compared" ? result.score : 0;
 ```
 
 <Callout type="info">

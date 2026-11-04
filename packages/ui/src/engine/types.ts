@@ -47,7 +47,7 @@ export interface DifferenceConfig {
 	src1: ImageSource;
 	src2: ImageSource;
 	threshold?: number;
-	includeAA?: boolean;
+	antialiasing?: boolean;
 	alpha?: number;
 	crossOrigin?: string | null;
 	enabled?: boolean;

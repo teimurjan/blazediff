@@ -19,6 +19,7 @@ import codec from "@blazediff/codec-pngjs";
 import { describe, expect, it } from "vitest";
 import { hitchhikersSSIM } from "./hitchhikers-ssim";
 import { ssim } from "./ssim";
+import { scoreOf } from "./test-helpers";
 
 /**
  * Run MATLAB ssim function and return the result (for comparison reference)
@@ -63,32 +64,16 @@ describe("Hitchhiker's SSIM - Comparison with MATLAB SSIM", () => {
 		const png2 = await codec.read(readFileSync(img2Path));
 
 		// Compute Hitchhiker's SSIM with both pooling methods
-		const hitchhikersCov = hitchhikersSSIM(
-			png1.data,
-			png2.data,
-			undefined,
-			png1.width,
-			png1.height,
-			{ covPooling: true },
+		const hitchhikersCov = scoreOf(
+			hitchhikersSSIM(png1, png2, { hitchhikers: { covPooling: true } }),
 		);
 
-		const hitchhikersMean = hitchhikersSSIM(
-			png1.data,
-			png2.data,
-			undefined,
-			png1.width,
-			png1.height,
-			{ covPooling: false },
+		const hitchhikersMean = scoreOf(
+			hitchhikersSSIM(png1, png2, { hitchhikers: { covPooling: false } }),
 		);
 
 		// Compute standard SSIM (Gaussian-based)
-		const gaussianSsim = ssim(
-			png1.data,
-			png2.data,
-			undefined,
-			png1.width,
-			png1.height,
-		);
+		const gaussianSsim = scoreOf(ssim(png1, png2));
 
 		const matlabResult = runMatlabSsim(img1Path, img2Path);
 
@@ -114,31 +99,15 @@ describe("Hitchhiker's SSIM - Comparison with MATLAB SSIM", () => {
 		const png1 = await codec.read(readFileSync(img1Path));
 		const png2 = await codec.read(readFileSync(img2Path));
 
-		const hitchhikersCov = hitchhikersSSIM(
-			png1.data,
-			png2.data,
-			undefined,
-			png1.width,
-			png1.height,
-			{ covPooling: true },
+		const hitchhikersCov = scoreOf(
+			hitchhikersSSIM(png1, png2, { hitchhikers: { covPooling: true } }),
 		);
 
-		const hitchhikersMean = hitchhikersSSIM(
-			png1.data,
-			png2.data,
-			undefined,
-			png1.width,
-			png1.height,
-			{ covPooling: false },
+		const hitchhikersMean = scoreOf(
+			hitchhikersSSIM(png1, png2, { hitchhikers: { covPooling: false } }),
 		);
 
-		const gaussianSsim = ssim(
-			png1.data,
-			png2.data,
-			undefined,
-			png1.width,
-			png1.height,
-		);
+		const gaussianSsim = scoreOf(ssim(png1, png2));
 
 		const matlabResult = runMatlabSsim(img1Path, img2Path);
 
@@ -163,31 +132,15 @@ describe("Hitchhiker's SSIM - Comparison with MATLAB SSIM", () => {
 			const png1 = await codec.read(readFileSync(img1Path));
 			const png2 = await codec.read(readFileSync(img2Path));
 
-			const hitchhikersCov = hitchhikersSSIM(
-				png1.data,
-				png2.data,
-				undefined,
-				png1.width,
-				png1.height,
-				{ covPooling: true },
+			const hitchhikersCov = scoreOf(
+				hitchhikersSSIM(png1, png2, { hitchhikers: { covPooling: true } }),
 			);
 
-			const hitchhikersMean = hitchhikersSSIM(
-				png1.data,
-				png2.data,
-				undefined,
-				png1.width,
-				png1.height,
-				{ covPooling: false },
+			const hitchhikersMean = scoreOf(
+				hitchhikersSSIM(png1, png2, { hitchhikers: { covPooling: false } }),
 			);
 
-			const gaussianSsim = ssim(
-				png1.data,
-				png2.data,
-				undefined,
-				png1.width,
-				png1.height,
-			);
+			const gaussianSsim = scoreOf(ssim(png1, png2));
 
 			const matlabResult = runMatlabSsim(img1Path, img2Path);
 
@@ -210,22 +163,12 @@ describe("Hitchhiker's SSIM - Comparison with MATLAB SSIM", () => {
 		const png1 = await codec.read(readFileSync(img1Path));
 		const png2 = await codec.read(readFileSync(img2Path));
 
-		const hitchhikersCov = hitchhikersSSIM(
-			png1.data,
-			png2.data,
-			undefined,
-			png1.width,
-			png1.height,
-			{ covPooling: true },
+		const hitchhikersCov = scoreOf(
+			hitchhikersSSIM(png1, png2, { hitchhikers: { covPooling: true } }),
 		);
 
-		const hitchhikersMean = hitchhikersSSIM(
-			png1.data,
-			png2.data,
-			undefined,
-			png1.width,
-			png1.height,
-			{ covPooling: false },
+		const hitchhikersMean = scoreOf(
+			hitchhikersSSIM(png1, png2, { hitchhikers: { covPooling: false } }),
 		);
 
 		const matlabResult = runMatlabSsim(img1Path, img2Path);
@@ -265,7 +208,12 @@ describe("Hitchhiker's SSIM - Algorithm Correctness", () => {
 				img2[i + 3] = 255;
 			}
 
-			const score = hitchhikersSSIM(img1, img2, undefined, width, height);
+			const score = scoreOf(
+				hitchhikersSSIM(
+					{ data: img1, width, height },
+					{ data: img2, width, height },
+				),
+			);
 			expect(score).toBe(1.0);
 		});
 
@@ -295,7 +243,12 @@ describe("Hitchhiker's SSIM - Algorithm Correctness", () => {
 				}
 			}
 
-			const score = hitchhikersSSIM(img1, img2, undefined, width, height);
+			const score = scoreOf(
+				hitchhikersSSIM(
+					{ data: img1, width, height },
+					{ data: img2, width, height },
+				),
+			);
 			expect(score).toBe(1.0);
 		});
 	});
@@ -323,9 +276,13 @@ describe("Hitchhiker's SSIM - Algorithm Correctness", () => {
 			}
 
 			// Use mean pooling for uniform images (CoV pooling doesn't work well with uniform images)
-			const score = hitchhikersSSIM(img1, img2, undefined, width, height, {
-				covPooling: false,
-			});
+			const score = scoreOf(
+				hitchhikersSSIM(
+					{ data: img1, width, height },
+					{ data: img2, width, height },
+					{ hitchhikers: { covPooling: false } },
+				),
+			);
 			expect(score).toBeLessThan(1.0);
 			expect(score).toBeGreaterThan(0.9); // Should still be high similarity
 		});
@@ -352,9 +309,13 @@ describe("Hitchhiker's SSIM - Algorithm Correctness", () => {
 			}
 
 			// Use mean pooling for uniform images (CoV pooling doesn't work well with uniform images)
-			const score = hitchhikersSSIM(img1, img2, undefined, width, height, {
-				covPooling: false,
-			});
+			const score = scoreOf(
+				hitchhikersSSIM(
+					{ data: img1, width, height },
+					{ data: img2, width, height },
+					{ hitchhikers: { covPooling: false } },
+				),
+			);
 			expect(score).toBeLessThan(0.5);
 		});
 	});
@@ -387,12 +348,20 @@ describe("Hitchhiker's SSIM - Algorithm Correctness", () => {
 				}
 			}
 
-			const scoreCov = hitchhikersSSIM(img1, img2, undefined, width, height, {
-				covPooling: true,
-			});
-			const scoreMean = hitchhikersSSIM(img1, img2, undefined, width, height, {
-				covPooling: false,
-			});
+			const scoreCov = scoreOf(
+				hitchhikersSSIM(
+					{ data: img1, width, height },
+					{ data: img2, width, height },
+					{ hitchhikers: { covPooling: true } },
+				),
+			);
+			const scoreMean = scoreOf(
+				hitchhikersSSIM(
+					{ data: img1, width, height },
+					{ data: img2, width, height },
+					{ hitchhikers: { covPooling: false } },
+				),
+			);
 
 			// Scores should be different
 			expect(scoreCov).not.toBe(scoreMean);
@@ -432,15 +401,27 @@ describe("Hitchhiker's SSIM - Algorithm Correctness", () => {
 				}
 			}
 
-			const score8 = hitchhikersSSIM(img1, img2, undefined, width, height, {
-				windowSize: 8,
-			});
-			const score11 = hitchhikersSSIM(img1, img2, undefined, width, height, {
-				windowSize: 11,
-			});
-			const score16 = hitchhikersSSIM(img1, img2, undefined, width, height, {
-				windowSize: 16,
-			});
+			const score8 = scoreOf(
+				hitchhikersSSIM(
+					{ data: img1, width, height },
+					{ data: img2, width, height },
+					{ windowSize: 8 },
+				),
+			);
+			const score11 = scoreOf(
+				hitchhikersSSIM(
+					{ data: img1, width, height },
+					{ data: img2, width, height },
+					{ windowSize: 11 },
+				),
+			);
+			const score16 = scoreOf(
+				hitchhikersSSIM(
+					{ data: img1, width, height },
+					{ data: img2, width, height },
+					{ windowSize: 16 },
+				),
+			);
 
 			// All should give perfect score for identical images
 			expect(score8).toBe(1.0);
@@ -469,29 +450,21 @@ describe("Hitchhiker's SSIM - Algorithm Correctness", () => {
 			}
 
 			// Non-overlapping (stride = windowSize)
-			const scoreNonOverlap = hitchhikersSSIM(
-				img1,
-				img2,
-				undefined,
-				width,
-				height,
-				{
-					windowSize: 11,
-					windowStride: 11,
-				},
+			const scoreNonOverlap = scoreOf(
+				hitchhikersSSIM(
+					{ data: img1, width, height },
+					{ data: img2, width, height },
+					{ windowSize: 11, hitchhikers: { windowStride: 11 } },
+				),
 			);
 
 			// Overlapping (stride < windowSize)
-			const scoreOverlap = hitchhikersSSIM(
-				img1,
-				img2,
-				undefined,
-				width,
-				height,
-				{
-					windowSize: 11,
-					windowStride: 5,
-				},
+			const scoreOverlap = scoreOf(
+				hitchhikersSSIM(
+					{ data: img1, width, height },
+					{ data: img2, width, height },
+					{ windowSize: 11, hitchhikers: { windowStride: 5 } },
+				),
 			);
 
 			// Both should give perfect score for identical images
@@ -523,7 +496,13 @@ describe("Hitchhiker's SSIM - Algorithm Correctness", () => {
 				img2[i + 3] = 255;
 			}
 
-			const _score = hitchhikersSSIM(img1, img2, output, width, height);
+			const _score = scoreOf(
+				hitchhikersSSIM(
+					{ data: img1, width, height },
+					{ data: img2, width, height },
+					{ output: { data: output, width, height } },
+				),
+			);
 
 			// Check that output was filled
 			expect(output.some((v) => v !== 0)).toBe(true);
@@ -558,7 +537,12 @@ describe("Hitchhiker's SSIM - Algorithm Correctness", () => {
 				img2[i + 3] = 255;
 			}
 
-			const score = hitchhikersSSIM(img1, img2, undefined, width, height);
+			const score = scoreOf(
+				hitchhikersSSIM(
+					{ data: img1, width, height },
+					{ data: img2, width, height },
+				),
+			);
 			expect(score).toBe(1.0);
 		});
 
@@ -576,7 +560,12 @@ describe("Hitchhiker's SSIM - Algorithm Correctness", () => {
 				img2[i + 3] = 255;
 			}
 
-			const score = hitchhikersSSIM(img1, img2, undefined, width, height);
+			const score = scoreOf(
+				hitchhikersSSIM(
+					{ data: img1, width, height },
+					{ data: img2, width, height },
+				),
+			);
 			expect(score).toBe(1.0);
 		});
 	});

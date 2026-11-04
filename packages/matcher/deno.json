@@ -1,15 +1,15 @@
 {
 	"name": "@blazediff/matcher",
-	"version": "1.4.2",
+	"version": "3.0.0",
 	"exports": "./src/index.ts",
 	"imports": {
-		"@blazediff/core": "jsr:@blazediff/core@^1.9.1",
-		"@blazediff/gmsd": "jsr:@blazediff/gmsd@^1.7.1",
-		"@blazediff/ssim": "jsr:@blazediff/ssim@^1.7.1",
-		"@blazediff/ssim/hitchhikers-ssim": "jsr:@blazediff/ssim@^1.7.1/hitchhikers-ssim",
-		"@blazediff/ssim/msssim": "jsr:@blazediff/ssim@^1.7.1/msssim",
+		"@blazediff/core": "jsr:@blazediff/core@^2.0.0",
+		"@blazediff/gmsd": "jsr:@blazediff/gmsd@^2.0.0",
+		"@blazediff/ssim": "jsr:@blazediff/ssim@^2.0.0",
+		"@blazediff/ssim/hitchhikers-ssim": "jsr:@blazediff/ssim@^2.0.0/hitchhikers-ssim",
+		"@blazediff/ssim/msssim": "jsr:@blazediff/ssim@^2.0.0/msssim",
 		"@blazediff/codec-pngjs": "jsr:@blazediff/codec-pngjs@^4.0.0",
-		"@blazediff/core-native": "jsr:@blazediff/core-native@^4.2.0",
+		"@blazediff/core-native": "jsr:@blazediff/core-native@^7.0.0",
 		"picocolors": "npm:picocolors@^1.1.1"
 	},
 	"publish": {

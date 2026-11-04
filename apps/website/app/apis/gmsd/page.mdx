@@ -19,36 +19,37 @@ npm install @blazediff/gmsd
 
 ## API Reference
 
-### `gmsd(image1, image2, output, width, height, options?)`
+### `gmsd(a, b, options?)`
 
-Compares two images using GMSD metric and returns a similarity score.
+Compares two RGBA images of the same size with the GMSD metric. `a` and `b` are `{ data, width, height }`.
 
-#### Parameters
+```typescript
+import gmsd from "@blazediff/gmsd";
 
-| Parameter | Type                                         | Description                                      |
-| --------- | -------------------------------------------- | ------------------------------------------------ |
-| `image1`  | `Buffer`, `Uint8Array`, or `Uint8ClampedArray`  | Image data of the first image                    |
-| `image2`  | `Buffer`, `Uint8Array`, or `Uint8ClampedArray`  | Image data of the second image                   |
-| `output`  | `Buffer`, `Uint8Array`, `Uint8ClampedArray`, or `undefined` | Optional output buffer for GMS map visualization |
-| `width`   | `number`                                     | Width of the images in pixels                    |
-| `height`  | `number`                                     | Height of the images in pixels                   |
-| `options` | `GmsdOptions`                                | Comparison options (optional)                    |
+const output = { data: new Uint8ClampedArray(width * height * 4), width, height };
+const result = gmsd(a, b, { output });
+
+if (result.kind === "compared") console.log(result.score);
+```
 
 ##### Options
 
-| Option       | Type     | Default | Description                                           |
-| ------------ | -------- | ------- | ----------------------------------------------------- |
+| Option       | Type       | Default | Description                                           |
+| ------------ | ---------- | ------- | ----------------------------------------------------- |
 | `downsample` | `0` or `1` | `0`     | Downsample factor (0 = no downsampling, 1 = half)     |
-| `c`          | `number` | `170`   | Constant for numerical stability (tuned for Prewitt)  |
+| `c`          | `number`   | `170`   | Constant for numerical stability (tuned for Prewitt)  |
+| `output`     | `Image`    | -       | Draws the GMS map as grayscale                        |
 
 ##### Returns
 
-`number` - Difference score between 0 and 1:
+`{ kind: "compared", score }`, or `{ kind: "dimension-mismatch", a, b }` when the sizes differ. `score` is a difference score between 0 and 1:
 - `0.0` - Images are identical or perceptually identical
 - `0.0-0.05` - Very low difference (minor compression artifacts)
 - `0.05-0.15` - Low difference (noticeable but small changes)
 - `0.15-0.35` - Moderate similarity (significant structural differences)
 - `>0.35` - High difference (major differences)
+
+A buffer that does not hold `width * height * 4` bytes, or an `output` of the wrong size, throws.
 
 <Callout type="info">
   **Score Guidelines:**

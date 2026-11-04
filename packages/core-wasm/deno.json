@@ -1,7 +1,10 @@
 {
 	"name": "@blazediff/core-wasm",
-	"version": "4.3.0",
+	"version": "7.0.0",
 	"exports": "./src/index.ts",
+	"imports": {
+		"@blazediff/core": "jsr:@blazediff/core@^2.0.0"
+	},
 	"publish": {
 		"include": [
 			"src/**/*.ts",

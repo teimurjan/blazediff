@@ -1,0 +1,174 @@
+---
+title: Migrating to the unified diff API
+description: Move from the old per-package BlazeDiff APIs to one diff call with the same options and result in JavaScript, WebAssembly, native Node, Rust, Python, the CLIs and the test matchers.
+---
+
+# Migrating to the unified diff API
+
+import { Callout } from "nextra/components";
+
+Every BlazeDiff surface now has one diff call. It takes two images and an options object, and it returns a result object. The option names are the same in JavaScript, WebAssembly, native Node, Rust, Python and both CLIs. Rust and Python use snake_case.
+
+<Callout type="warning">
+  Native, Python and the native CLI now detect anti-aliased pixels by default, like the JavaScript core always did. If you kept the defaults, your counts can go down. Pass `antialiasing: false` (`--no-antialiasing` on the CLI) to keep the old counts.
+</Callout>
+
+## Versions
+
+Each package moves to its own next major version:
+
+| Package | New version |
+| ------- | ----------- |
+| `@blazediff/core` | 2.0.0 |
+| `@blazediff/core-native`, `@blazediff/core-wasm`, the `blazediff` crate and the `blazediff` Python package | 7.0.0 |
+| `@blazediff/cli` | 6.0.0 |
+| `@blazediff/matcher` | 3.0.0 |
+| `@blazediff/jest`, `@blazediff/vitest`, `@blazediff/bun` | 2.0.0 |
+| `@blazediff/ui` | 3.0.0 |
+| `@blazediff/react` | 2.0.0 |
+| `@blazediff/ssim`, `@blazediff/gmsd` | 2.0.0 |
+| `@blazediff/interpret-native`, `@blazediff/interpret-wasm` and the `blazediff-interpret` crate | 7.0.0 |
+
+The interpret packages move to a new major because the `blazediff-interpret` Rust crate takes the new `DiffOptions`. Their JavaScript, Python and wasm options do not change, and their `antialiasing` default stays `false`.
+
+## The new contract
+
+```ts
+interface Image {
+  data: Uint8Array | Uint8ClampedArray; // RGBA, width * height * 4 bytes
+  width: number;
+  height: number;
+}
+
+interface DiffOptions {
+  threshold?: number;        // 0-1, default 0.1
+  antialiasing?: boolean;    // detect and exclude AA pixels, default true
+  metric?: "yiq" | "oklab";  // default "yiq"; "oklab" is pixelmatch 8
+  mask?: Uint8Array;         // width * height, non-zero = skip
+  window?: number;           // also report the busiest N×N window
+  output?: Image;            // draw the diff here; omit for count only
+  render?: {
+    alpha?: number;
+    diffColor?: [number, number, number];
+    diffColorAlt?: [number, number, number];
+    aaColor?: [number, number, number];
+    background?: "faded" | "transparent";
+  };
+}
+
+type DiffResult =
+  | { kind: "compared"; count: number; percentage: number; identical: boolean;
+      window?: { x: number; y: number; count: number } }
+  | { kind: "dimension-mismatch"; a: Size; b: Size };
+```
+
+Images of different sizes return `dimension-mismatch` instead of throwing. Invalid buffers or options throw a `BlazeDiffError` with a `code`. With `window`, `count` stays the total, and `window` gives the top-left corner and the count of the busiest window.
+
+## Old to new
+
+| Surface | Before | After |
+| ------- | ------ | ----- |
+| core, core-wasm | `diff(a.data, b.data, out, w, h, opts)` | `diff(a, b, { output, ...opts })` |
+| core-wasm | `diff(a, b, w, h, out, opts)` | `diff(a, b, { output, ...opts })` |
+| core, core-wasm | `includeAA: true` | `antialiasing: false` |
+| native, Python, CLI | `antialiasing` default `false` | default `true` |
+| all | `colorSpace` / `color_space` | `metric` |
+| all | `ignoreMask` / `ignore_mask` | `mask` |
+| all | `windowSize` / `window_size` (count replaced by the window count) | `window` (total `count`, plus `window: { x, y, count }`) |
+| core, core-wasm, native | `diffMask: true` | `render: { background: "transparent" }`. The buffer is cleared first |
+| core, core-wasm | `alpha`, `aaColor`, `diffColor`, `diffColorAlt` | `render.*` |
+| core | `fastBufferCheck` | removed, always on |
+| core, core-wasm | returns `number` | `result.count` |
+| core, core-wasm, Rust | throws on a size mismatch | `result.kind === "dimension-mismatch"` |
+| native, Python | `compare()` | `diff()` |
+| native | `{ match, reason }` | `{ kind, ... }`. `file-not-exists` becomes `io-error` |
+| native | paths or encoded bytes only | also raw RGBA `Image` inputs and outputs |
+| Rust | `DiffOptions.compression` | an argument of `save_png_with_compression` |
+| matcher | flat `threshold`, `antialiasing`, `includeAA`, `windowSize`, `k1`, `k2`, `downsample` | `diff: {}`, `ssim: {}`, `gmsd: {}` |
+| matcher | `core-native` takes file paths only | also PNG buffers and raw images |
+| ui, react | `includeAA` | `antialiasing` (default `true`) |
+| ssim | `ssim(a.data, b.data, out, w, h, opts)` | `ssim(a, b, { output, ...opts })`, returns `{ kind, score }` |
+| ssim | `L: 255` | `bitDepth: 8` |
+| ssim | `msssim(..., { weight, level, method: "wtd_sum" })` | `msssim(a, b, { msSsim: { weights, method: "weighted-sum" } })`. The scale count is `weights.length` |
+| ssim | `windowStride`, `covPooling` | `hitchhikers: { windowStride, covPooling }` |
+| gmsd | `gmsd(a.data, b.data, out, w, h, opts)` | `gmsd(a, b, { output, ...opts })`, returns `{ kind, score }`. RGBA input only |
+| CLI | `--include-aa`, `-a/--antialiasing` | `--no-antialiasing`. Detection is on by default |
+| CLI | `--diff-mask` | `--background transparent` |
+| CLI | `--color-space`, `--ignore-mask`, `--window-size` | `--metric`, `--mask`, `--window` |
+| CLI | positional output, `--output-format` | `-o/--output`, `--json` |
+
+## Per surface
+
+### JavaScript and WebAssembly
+
+```ts
+import { diff } from "@blazediff/core"; // or "@blazediff/core-wasm", which returns a Promise
+
+const output = { data: new Uint8Array(a.width * a.height * 4), width: a.width, height: a.height };
+const result = diff(a, b, { output, threshold: 0.1 });
+if (result.kind === "compared" && !result.identical) console.log(result.count);
+```
+
+### Native Node
+
+```ts
+import { diff } from "@blazediff/core-native";
+
+const result = await diff("baseline.png", "current.png", { output: "diff.png" });
+if (result.kind === "io-error") throw new Error(result.message);
+```
+
+### Rust
+
+```rust
+use blazediff::{diff, DiffOptions, DiffResult};
+
+match diff(&a, &b, Some(&mut output), &DiffOptions::default())? {
+    DiffResult::Compared { count, .. } => println!("{count} pixels differ"),
+    DiffResult::DimensionMismatch { a, b } => println!("{a:?} vs {b:?}"),
+}
+```
+
+### Python
+
+```python
+from blazediff import diff
+
+result = diff("baseline.png", "current.png", "diff.png", threshold=0.1)
+if result.kind == "compared" and not result.identical:
+    print(result.count)
+```
+
+### CLIs
+
+```bash
+blazediff baseline.png current.png -o diff.png --metric oklab --window 16 --json
+blazediff-cli core baseline.png current.png -o diff.png --no-antialiasing
+```
+
+### Matchers
+
+```ts
+await expect(screenshot).toMatchImageSnapshot({
+  method: "core",
+  diff: { threshold: 0.05 },
+});
+```
+
+### SSIM and GMSD
+
+```ts
+import ssim from "@blazediff/ssim/ssim";
+import gmsd from "@blazediff/gmsd";
+
+const structural = ssim(a, b, { windowSize: 11 });
+const gradient = gmsd(a, b, { downsample: 1 });
+```
+
+## Coming from pixelmatch
+
+`@blazediff/core/pixelmatch` has the same signature, options, errors, counts and output bytes as pixelmatch 8.0.0. Change the import and nothing else:
+
+```ts
+import pixelmatch from "@blazediff/core/pixelmatch";
+```

@@ -49,9 +49,9 @@ Pre-built binaries are included via platform-specific packages:
 
 ## API
 
-### compare(base, comparison, diffOutput, options?)
+### diff(a, b, options?)
 
-Compare two images from file paths or encoded `Uint8Array`/`Buffer` inputs and optionally generate a diff image. Both inputs must use the same input type. Format is auto-detected from the file extension or encoded bytes.
+Compare two images and optionally draw the diff. `options` is `@blazediff/core`'s `DiffOptions`, with a wider `output`.
 
 <table>
   <tr>
@@ -60,44 +60,18 @@ Compare two images from file paths or encoded `Uint8Array`/`Buffer` inputs and o
     <th width="500">Description</th>
   </tr>
   <tr>
-    <td><code>base</code></td>
-    <td>string | Uint8Array</td>
-    <td>Base/expected image path or encoded bytes</td>
-  </tr>
-  <tr>
-    <td><code>comparison</code></td>
-    <td>string | Uint8Array</td>
-    <td>Comparison/actual image path or encoded bytes</td>
-  </tr>
-  <tr>
-    <td><code>diffOutput</code></td>
-    <td>string</td>
-    <td>Path where the diff image will be saved</td>
+    <td><code>a</code>, <code>b</code></td>
+    <td>string | Uint8Array | Image</td>
+    <td>A file path, encoded PNG, JPEG or QOI bytes (a <code>Buffer</code> works), or raw RGBA pixels <code>{ data, width, height }</code>. The two sides can use different kinds</td>
   </tr>
   <tr>
     <td><code>options</code></td>
-    <td>BlazeDiffOptions</td>
+    <td>NativeDiffOptions</td>
     <td>Comparison options (optional)</td>
   </tr>
 </table>
 
-<strong>Returns:</strong> `Promise<BlazeDiffResult>`
-
-#### Encoded Buffer Inputs
-
-```typescript
-import { readFile } from "node:fs/promises";
-import { compare } from "@blazediff/core-native";
-
-const [expected, actual] = await Promise.all([
-  readFile("expected.png"),
-  readFile("actual.png"),
-]);
-
-const result = await compare(expected, actual, "diff.png");
-```
-
-The native binding borrows the existing `Buffer` or `Uint8Array` backing memory for the synchronous call. The encoded bytes are not copied into Rust, so the same JavaScript buffers can be reused across comparisons. Decoding still allocates native RGBA pixel buffers.
+<strong>Returns:</strong> `Promise<NativeDiffResult>`
 
 <table>
   <tr>
@@ -107,77 +81,106 @@ The native binding borrows the existing `Buffer` or `Uint8Array` backing memory 
     <th width="500">Description</th>
   </tr>
   <tr>
-    <td><code>metric</code></td>
-    <td>"pixel" | "ssim" | "ms-ssim" | "hitchhikers-ssim"</td>
-    <td>"pixel"</td>
-    <td>Comparison metric. <code>pixel</code> reports which pixels changed; the rest report a pooled similarity <code>score</code> in 0-1</td>
-  </tr>
-  <tr>
-    <td><code>minScore</code></td>
-    <td>number</td>
-    <td>1</td>
-    <td>Score at or above which the ssim metrics call two images identical</td>
-  </tr>
-  <tr>
-    <td><code>ssimWindowSize</code></td>
-    <td>number</td>
-    <td>11</td>
-    <td>Local window size for the ssim metrics</td>
-  </tr>
-  <tr>
     <td><code>threshold</code></td>
     <td>number</td>
     <td>0.1</td>
-    <td>Color difference threshold (0.0-1.0). Lower = more strict. Pixel metric only</td>
+    <td>Color difference threshold (0-1). Lower is stricter</td>
   </tr>
   <tr>
     <td><code>antialiasing</code></td>
     <td>boolean</td>
-    <td>false</td>
-    <td>Enable anti-aliasing detection to exclude AA pixels from diff count</td>
+    <td>true</td>
+    <td>Detect anti-aliased pixels and leave them out of the count</td>
   </tr>
   <tr>
-    <td><code>diffMask</code></td>
-    <td>boolean</td>
-    <td>false</td>
-    <td>Output only differences with transparent background</td>
+    <td><code>metric</code></td>
+    <td>"yiq" | "oklab"</td>
+    <td>"yiq"</td>
+    <td>Color difference metric. <code>oklab</code> gives the same counts as pixelmatch 8</td>
   </tr>
   <tr>
-    <td><code>diffColorAlt</code></td>
-    <td>[number, number, number]</td>
-    <td>diff color</td>
-    <td>Alternative RGB color for darkening differences</td>
+    <td><code>mask</code></td>
+    <td>Uint8Array</td>
+    <td>-</td>
+    <td>One byte per pixel (width × height). Non-zero pixels are skipped. Needs the N-API binding</td>
+  </tr>
+  <tr>
+    <td><code>window</code></td>
+    <td>number</td>
+    <td>-</td>
+    <td>Also report the N×N window with the most diff pixels</td>
+  </tr>
+  <tr>
+    <td><code>output</code></td>
+    <td>string | Image | { path, compression?, quality? }</td>
+    <td>-</td>
+    <td>Where to draw the diff: a file (PNG compression 0-9, JPEG quality 1-100), or an <code>Image</code> filled in place. A file is not written when the images are identical. An <code>Image</code> is always filled</td>
+  </tr>
+  <tr>
+    <td><code>render</code></td>
+    <td>{ alpha?, diffColor?, diffColorAlt?, aaColor?, background? }</td>
+    <td>-</td>
+    <td>Output styling. <code>background: "transparent"</code> draws the diff alone</td>
   </tr>
 </table>
 
 ### Result Types
 
 ```typescript
-type BlazeDiffResult =
-  | { match: true }
-  | { match: false; reason: "layout-diff" }
-  | { match: false; reason: "pixel-diff"; diffCount: number; diffPercentage: number }
-  | { match: false; reason: "file-not-exists"; file: string };
+type NativeDiffResult =
+  | {
+      kind: "compared";
+      count: number;
+      percentage: number;
+      identical: boolean;
+      /** Top-left corner and count of the busiest window, when `window` is set. */
+      window?: { x: number; y: number; count: number };
+    }
+  | { kind: "dimension-mismatch"; a: Size; b: Size }
+  | { kind: "io-error"; path?: string; message: string };
 ```
+
+Invalid options or buffers throw a `BlazeDiffError` (re-exported from `@blazediff/core`) with a `code`: `invalid-image`, `invalid-output`, `invalid-mask` or `invalid-option`.
+
+#### Encoded Buffer Inputs
+
+```typescript
+import { readFile } from "node:fs/promises";
+import { diff } from "@blazediff/core-native";
+
+const [expected, actual] = await Promise.all([
+  readFile("expected.png"),
+  readFile("actual.png"),
+]);
+
+const result = await diff(expected, actual, { output: "diff.png" });
+```
+
+The native binding borrows the existing `Buffer` or `Uint8Array` backing memory for the synchronous call. The encoded bytes are not copied into Rust, so the same JavaScript buffers can be reused across comparisons. Decoding still allocates native RGBA pixel buffers.
+
+#### CLI fallback
+
+If the N-API binding cannot load, `diff` runs the bundled `blazediff` CLI. The fallback takes path inputs and a path output only, and no `mask`. Anything else throws.
 
 ## Usage
 
 ### Programmatic API
 
 ```typescript
-import { compare } from '@blazediff/core-native';
+import { diff } from '@blazediff/core-native';
 
-const result = await compare('expected.png', 'actual.png', 'diff.png', {
+const result = await diff('expected.png', 'actual.png', {
+  output: 'diff.png',
   threshold: 0.1,
-  antialiasing: true,
 });
 
-if (result.match) {
-  console.log('Images are identical!');
-} else if (result.reason === 'pixel-diff') {
-  console.log(`${result.diffCount} pixels differ (${result.diffPercentage.toFixed(2)}%)`);
-} else if (result.reason === 'layout-diff') {
+if (result.kind === 'compared') {
+  if (result.identical) console.log('Images are identical!');
+  else console.log(`${result.count} pixels differ (${result.percentage.toFixed(2)}%)`);
+} else if (result.kind === 'dimension-mismatch') {
   console.log('Images have different dimensions');
+} else {
+  console.log(`Could not read ${result.path}: ${result.message}`);
 }
 ```
 
@@ -201,57 +204,57 @@ console.log(`Severity: ${result.severity}, ${result.diffPercentage.toFixed(2)}% 
 
 ```bash
 # Compare two PNG images
-npx blazediff expected.png actual.png diff.png
+npx blazediff expected.png actual.png -o diff.png
 
 # Compare two JPEG images
-npx blazediff expected.jpg actual.jpg diff.jpg
-
-# Compare two QOI images
-npx blazediff expected.qoi actual.qoi diff.qoi
+npx blazediff expected.jpg actual.jpg -o diff.jpg
 
 # Mixed formats (PNG input, QOI output - recommended for smallest diff files)
-npx blazediff expected.png actual.png diff.qoi
+npx blazediff expected.png actual.png -o diff.qoi
 
 # With options
-npx blazediff expected.png actual.png diff.png --threshold 0.05 --antialiasing
+npx blazediff expected.png actual.png -o diff.png --threshold 0.05 --no-antialiasing
 
-# Score structural similarity instead of counting pixels, and pass at 0.99
-npx blazediff expected.png actual.png ssim-map.png --metric ssim --min-score 0.99
+# pixelmatch 8 metric, a mask, and the busiest 16×16 window
+npx blazediff expected.png actual.png --metric oklab --mask mask.png --window 16
 
 # With higher PNG compression (smaller output file, slower)
-npx blazediff expected.png actual.png diff.png -c 6
-
-# With JPEG quality setting
-npx blazediff expected.jpg actual.jpg diff.jpg -q 85
+npx blazediff expected.png actual.png -o diff.png -c 6
 
 # Output as JSON
-npx blazediff expected.png actual.png diff.png --output-format json
+npx blazediff expected.png actual.png --json
 ```
 
 ### CLI Options
 
 ```
-Usage: blazediff [OPTIONS] <IMAGE1> <IMAGE2> [OUTPUT]
+Usage: blazediff [OPTIONS] <A> <B>
 
 Arguments:
-  <IMAGE1>  First image path (PNG, JPEG, or QOI)
-  <IMAGE2>  Second image path (PNG, JPEG, or QOI)
-  [OUTPUT]  Output diff image path (optional, format detected from extension)
+  <A>  First image path (PNG, JPEG, or QOI)
+  <B>  Second image path (PNG, JPEG, or QOI)
 
 Options:
-      --metric <METRIC>        pixel, ssim, ms-ssim or hitchhikers-ssim [default: pixel]
-      --min-score <SCORE>      Score at or above which the ssim metrics call images identical [default: 1.0]
-      --ssim-window-size <N>   Local window size for the ssim metrics [default: 11]
-  -t, --threshold <THRESHOLD>  Color difference threshold (0.0-1.0) [default: 0.1]
-  -a, --antialiasing           Enable anti-aliasing detection
-      --diff-mask              Output only differences (transparent background)
-      --diff-color-alt <R,G,B> Alternative RGB color for darkening differences
-  -c, --compression <LEVEL>    PNG compression level (0-9, 0=fastest, 9=smallest) [default: 0]
-  -q, --quality <QUALITY>      JPEG quality (1-100) [default: 90]
-      --output-format <FORMAT> Output format (json or text) [default: json]
-  -h, --help                   Print help
-  -V, --version                Print version
+  -o, --output <OUTPUT>                  Write the diff image (only when the images differ)
+  -t, --threshold <THRESHOLD>            Color difference threshold (0.0-1.0) [default: 0.1]
+      --antialiasing                     Detect anti-aliased pixels and leave them out of the count (default)
+      --no-antialiasing                  Count anti-aliased pixels as differences
+      --metric <METRIC>                  Color difference metric: yiq or oklab (pixelmatch 8) [default: yiq]
+      --mask <MASK>                      Image the size of the inputs; its non-black pixels are skipped
+      --window <WINDOW>                  Also report the N×N window with the most diff pixels
+  -a, --alpha <ALPHA>                    Opacity of the faded background (0.0-1.0) [default: 0.1]
+      --diff-color <R,G,B>               RGB color for differing pixels
+      --diff-color-alt <R,G,B>           RGB color for pixels that get darker in the second image
+      --aa-color <R,G,B>                 RGB color for anti-aliased pixels
+      --background <BACKGROUND>          faded or transparent [default: faded]
+  -c, --compression <COMPRESSION>        PNG compression level (0-9, 0=fastest, 9=smallest) [default: 0]
+  -q, --quality <QUALITY>                JPEG quality (1-100) [default: 90]
+      --json                             Print the result as JSON
+  -h, --help                             Print help
+  -V, --version                          Print version
 ```
+
+With `--json`, the result object prints to stdout and an error such as `{"kind":"io-error","path":"...","message":"..."}` prints to stderr.
 
 ### Supported Formats
 
@@ -268,7 +271,7 @@ Input images can be mixed formats (e.g., compare PNG to JPEG). Output format is 
 ### Exit Codes
 
 - `0` - Images are identical
-- `1` - Images differ (includes layout/size mismatch)
+- `1` - Images differ, or their dimensions do not match
 - `2` - Error (file not found, invalid format, etc.)
 
 ## Performance

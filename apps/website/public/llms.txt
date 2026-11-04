@@ -33,38 +33,54 @@ npm install @blazediff/core
 ## Features
 
 - **1.5x faster** than pixelmatch on average, **88% faster** on identical images
-- **100% API compatible** with pixelmatch - drop-in replacement
+- **pixelmatch 8 adapter**: `@blazediff/core/pixelmatch` is a drop-in replacement
 - **Zero dependencies**
 
 ## API Reference
 
-### `blazediff(image1, image2, output, width, height, options?)`
+### `diff(a, b, options?)`
 
-Compares two images pixel by pixel and returns the number of different pixels.
+Compares two RGBA images pixel by pixel. `a` and `b` are `{ data, width, height }`, and browser `ImageData` fits as is. The same call, options and result exist in [`@blazediff/core-wasm`](/apis/core-wasm) and [`@blazediff/core-native`](/apis/core-native).
 
-#### Parameters
+```ts
+import { diff } from "@blazediff/core";
 
-| Parameter | Type                                                | Description                                 |
-| --------- | --------------------------------------------------- | ------------------------------------------- |
-| `image1`  | `Buffer \| Uint8Array \| Uint8ClampedArray`         | Image data of the first image               |
-| `image2`  | `Buffer \| Uint8Array \| Uint8ClampedArray`         | Image data of the second image              |
-| `output`  | `Buffer \| Uint8Array \| Uint8ClampedArray \| null` | Output buffer for the diff image (optional) |
-| `width`   | `number`                                            | Width of the images in pixels               |
-| `height`  | `number`                                            | Height of the images in pixels              |
-| `options` | `Options`                                       | Comparison options (optional)               |
+const output = { data: new Uint8Array(width * height * 4), width, height };
+const result = diff(a, b, { output });
+
+if (result.kind === "compared" && !result.identical) {
+  console.log(result.count, result.percentage);
+}
+```
 
 ##### Options
 
-| Option            | Type      | Default       | Description                                      |
-| ----------------- | --------- | ------------- | ------------------------------------------------ |
-| `threshold`       | `number`  | `0.1`         | Matching threshold (0-1). Lower = more sensitive |
-| `includeAA`       | `boolean` | `false`       | Include anti-aliased pixels in diff count        |
-| `alpha`           | `number`  | `0.1`         | Opacity of original image in diff output         |
-| `aaColor`         | `[R,G,B]` | `[255,255,0]` | Color of anti-aliased pixels (yellow)            |
-| `diffColor`       | `[R,G,B]` | `[255,0,0]`   | Color of different pixels (red)                  |
-| `diffColorAlt`    | `[R,G,B]` | `null`        | Alternative color for dark differences           |
-| `diffMask`        | `boolean` | `false`       | Draw diff as a mask with transparent background  |
-| `fastBufferCheck` | `boolean` | `true`        | Use fast buffer comparison for identical images  |
+| Option                | Type                         | Default       | Description |
+| --------------------- | ---------------------------- | ------------- | ----------- |
+| `threshold`           | `number`                     | `0.1`         | Matching threshold (0-1). Lower is stricter |
+| `antialiasing`        | `boolean`                    | `true`        | Detect anti-aliased pixels and leave them out of the count |
+| `metric`              | `"yiq" \| "oklab"`           | `"yiq"`       | Color metric. `"oklab"` is the metric of pixelmatch 8 |
+| `mask`                | `Uint8Array`                 | -             | One byte per pixel (width × height). Non-zero pixels are skipped |
+| `window`              | `number`                     | -             | Also report the N×N window with the most diff pixels |
+| `output`              | `Image`                      | -             | Draw the diff here. Omit for a count-only comparison |
+| `render.alpha`        | `number`                     | `0.1`         | Opacity of the original image in the output |
+| `render.diffColor`    | `[R,G,B]`                    | `[255,0,0]`   | Color of different pixels |
+| `render.diffColorAlt` | `[R,G,B]`                    | `diffColor`   | Color of pixels that get darker in `b` |
+| `render.aaColor`      | `[R,G,B]`                    | `[255,255,0]` | Color of anti-aliased pixels |
+| `render.background`   | `"faded" \| "transparent"`   | `"faded"`     | `transparent` draws the diff without the gray copy of `a` |
+
+##### Result
+
+| Kind                 | Fields |
+| -------------------- | ------ |
+| `compared`           | `count`, `percentage`, `identical`, and `window: { x, y, count }` when the `window` option is set |
+| `dimension-mismatch` | `a` and `b`, each `{ width, height }` |
+
+Invalid buffers or options throw a `BlazeDiffError` with a `code`: `invalid-image`, `invalid-output`, `invalid-mask` or `invalid-option`.
+
+### `pixelmatch(img1, img2, output, width, height, options?)`
+
+`import pixelmatch from "@blazediff/core/pixelmatch"` has the same signature, options, errors, counts and output bytes as pixelmatch 8.0.0, so you change the import and nothing else.
 
 > **Info:** **Threshold Guidelines:** - `0.0` - Exact match only - `0.05` - Strict comparison - `0.1` - Default balanced comparison - `0.2` - Lenient comparison
 
@@ -94,93 +110,43 @@ npm install @blazediff/ssim
 
 ## API Reference
 
-### `ssim(image1, image2, output, width, height, options?)`
+All three functions take two images of the same size and one options object, and return a result object:
 
-Compares two images using standard SSIM metric and returns a similarity score.
+```typescript
+interface Image {
+  data: Uint8Array | Uint8ClampedArray; // RGBA, width * height * 4 bytes. Buffer works too.
+  width: number;
+  height: number;
+}
 
-#### Parameters
+type SsimResult =
+  | { kind: "compared"; score: number } // 0-1, 1 when identical
+  | { kind: "dimension-mismatch"; a: Size; b: Size };
+```
 
-| Parameter | Type                                                        | Description                                       |
-| --------- | ----------------------------------------------------------- | ------------------------------------------------- |
-| `image1`  | `Buffer`, `Uint8Array`, or `Uint8ClampedArray`              | Image data of the first image                     |
-| `image2`  | `Buffer`, `Uint8Array`, or `Uint8ClampedArray`              | Image data of the second image                    |
-| `output`  | `Buffer`, `Uint8Array`, `Uint8ClampedArray`, or `undefined` | Optional output buffer for SSIM map visualization |
-| `width`   | `number`                                                    | Width of the images in pixels                     |
-| `height`  | `number`                                                    | Height of the images in pixels                    |
-| `options` | `SsimOptions`                                               | Comparison options (optional)                     |
+| Function | Description |
+| -------- | ----------- |
+| `ssim(a, b, options?)` | Standard SSIM with a Gaussian window and automatic downsampling to about 256px on the short edge, like MATLAB's `ssim.m` |
+| `msssim(a, b, options?)` | SSIM pooled across a dyadic pyramid, like `msssim.m`. The default five scales need at least 176px on the short edge |
+| `hitchhikersSSIM(a, b, options?)` | Box windows over integral images, pooled by coefficient of variation. About 4x faster than standard SSIM, using integral images for O(1) window computation |
 
-##### Options
-
-| Option       | Type     | Default | Description                       |
-| ------------ | -------- | ------- | --------------------------------- |
-| `windowSize` | `number` | `11`    | Size of the Gaussian window       |
-| `k1`         | `number` | `0.01`  | Algorithm parameter for luminance |
-| `k2`         | `number` | `0.03`  | Algorithm parameter for contrast  |
-| `L`          | `number` | `255`   | Dynamic range of pixel values     |
-
-##### Returns
-
-`number` - SSIM score between 0 and 1
-
-### `msssim(image1, image2, output, width, height, options?)`
-
-Compares two images using MS-SSIM (Multi-Scale SSIM) metric.
-
-#### Parameters
-
-| Parameter | Type                                                        | Description                                         |
-| --------- | ----------------------------------------------------------- | --------------------------------------------------- |
-| `image1`  | `Buffer`, `Uint8Array`, or `Uint8ClampedArray`              | Image data of the first image                       |
-| `image2`  | `Buffer`, `Uint8Array`, or `Uint8ClampedArray`              | Image data of the second image                      |
-| `output`  | `Buffer`, `Uint8Array`, `Uint8ClampedArray`, or `undefined` | Optional output buffer for SSIM map at finest scale |
-| `width`   | `number`                                                    | Width of the images in pixels                       |
-| `height`  | `number`                                                    | Height of the images in pixels                      |
-| `options` | `MsssimOptions`                                             | Comparison options (optional)                       |
+A buffer that does not hold `width * height * 4` bytes, or an `output` of the wrong size, throws.
 
 ##### Options
 
-| Option       | Type                   | Default                                    | Description                 |
-| ------------ | ---------------------- | ------------------------------------------ | --------------------------- |
-| `windowSize` | `number`               | `11`                                       | Size of the Gaussian window |
-| `scales`     | `number`               | `5`                                        | Number of scales to use     |
-| `weights`    | `number[]`             | `[0.0448, 0.2856, 0.3001, 0.2363, 0.1333]` | Weights for each scale      |
-| `method`     | `'product'` or `'sum'` | `'product'`                                | Aggregation method          |
+`SsimOptions` is one type for all three functions, with the field names of [`@blazediff/ssim-native`](/apis/ssim-native). Each function reads the shared fields and its own block.
 
-##### Returns
-
-`number` - MS-SSIM score between 0 and 1
-
-### `hitchhikersSSIM(image1, image2, output, width, height, options?)`
-
-Compares two images using Hitchhiker's SSIM (fast rectangular-window version).
-
-#### Parameters
-
-| Parameter | Type                                                        | Description                         |
-| --------- | ----------------------------------------------------------- | ----------------------------------- |
-| `image1`  | `Buffer`, `Uint8Array`, or `Uint8ClampedArray`              | Image data of the first image       |
-| `image2`  | `Buffer`, `Uint8Array`, or `Uint8ClampedArray`              | Image data of the second image      |
-| `output`  | `Buffer`, `Uint8Array`, `Uint8ClampedArray`, or `undefined` | Optional output buffer for SSIM map |
-| `width`   | `number`                                                    | Width of the images in pixels       |
-| `height`  | `number`                                                    | Height of the images in pixels      |
-| `options` | `HitchhikersSsimOptions`                                    | Comparison options (optional)       |
-
-##### Options
-
-| Option         | Type      | Default      | Description                                            |
-| -------------- | --------- | ------------ | ------------------------------------------------------ |
-| `windowSize`   | `number`  | `11`         | Size of the rectangular window                         |
-| `windowStride` | `number`  | `windowSize` | Stride for window sliding (non-overlapping by default) |
-| `covPooling`   | `boolean` | `true`       | Use Coefficient of Variation pooling (recommended)     |
-| `k1`           | `number`  | `0.01`       | Algorithm parameter for luminance                      |
-| `k2`           | `number`  | `0.03`       | Algorithm parameter for contrast                       |
-| `L`            | `number`  | `255`        | Dynamic range of pixel values                          |
-
-##### Returns
-
-`number` - SSIM score between 0 and 1
-
-**Performance**: ~4x faster than standard SSIM using integral images for O(1) window computation.
+| Option                     | Type                           | Default                                    | Description |
+| -------------------------- | ------------------------------ | ------------------------------------------ | ----------- |
+| `windowSize`               | `number`                       | `11`                                       | Side of the local window |
+| `k1`                       | `number`                       | `0.01`                                     | Luminance stability constant |
+| `k2`                       | `number`                       | `0.03`                                     | Contrast stability constant |
+| `bitDepth`                 | `number`                       | `8`                                        | Sample bit depth, setting `L = 2^bitDepth - 1` |
+| `output`                   | `Image`                        | -                                          | Draws the local score map as grayscale |
+| `msSsim.weights`           | `number[]`                     | `[0.0448, 0.2856, 0.3001, 0.2363, 0.1333]` | `msssim` only. Per-scale weights. The length sets the number of scales |
+| `msSsim.method`            | `"product" \| "weighted-sum"`  | `"product"`                                | `msssim` only. How the per-scale scores combine |
+| `hitchhikers.windowStride` | `number`                       | `windowSize`                               | `hitchhikersSSIM` only. Distance between window origins |
+| `hitchhikers.covPooling`   | `boolean`                      | `true`                                     | `hitchhikersSSIM` only. Coefficient of Variation pooling (recommended) |
 
 ### Score Interpretation
 
@@ -201,35 +167,30 @@ Compares two images using Hitchhiker's SSIM (fast rectangular-window version).
 import ssim from "@blazediff/ssim/ssim";
 
 // Basic usage
-const score = ssim(img1.data, img2.data, undefined, width, height);
+const result = ssim(img1, img2);
+if (result.kind === "compared") console.log(result.score);
 
 // With SSIM map output
-const output = new Uint8ClampedArray(width * height * 4);
-const score = ssim(img1.data, img2.data, output, width, height);
+const output = { data: new Uint8ClampedArray(width * height * 4), width, height };
+ssim(img1, img2, { output });
 
 // With custom options
-const score = ssim(img1.data, img2.data, undefined, width, height, {
-  windowSize: 8,
-  k1: 0.01,
-  k2: 0.03,
-});
+ssim(img1, img2, { windowSize: 8, k1: 0.01, k2: 0.03 });
 ```
 
 ```typescript
 import msssim from "@blazediff/ssim/msssim";
 
 // Basic usage
-const score = msssim(img1.data, img2.data, undefined, width, height);
+const result = msssim(img1, img2);
 
 // With SSIM map at finest scale
-const output = new Uint8ClampedArray(width * height * 4);
-const score = msssim(img1.data, img2.data, output, width, height);
+const output = { data: new Uint8ClampedArray(width * height * 4), width, height };
+msssim(img1, img2, { output });
 
-// With custom scales and weights
-const score = msssim(img1.data, img2.data, undefined, width, height, {
-  scales: 3,
-  weights: [0.33, 0.33, 0.34],
-  method: "sum",
+// Three scales with custom weights, combined as a weighted sum
+msssim(img1, img2, {
+  msSsim: { weights: [0.33, 0.33, 0.34], method: "weighted-sum" },
 });
 ```
 
@@ -237,18 +198,15 @@ const score = msssim(img1.data, img2.data, undefined, width, height, {
 import hitchhikersSSIM from "@blazediff/ssim/hitchhikers-ssim";
 
 // Basic usage with CoV pooling (recommended)
-const score = hitchhikersSSIM(img1.data, img2.data, undefined, width, height);
+const result = hitchhikersSSIM(img1, img2);
 
 // With mean pooling (traditional)
-const score = hitchhikersSSIM(img1.data, img2.data, undefined, width, height, {
-  covPooling: true,
-});
+hitchhikersSSIM(img1, img2, { hitchhikers: { covPooling: false } });
 
 // With custom window and stride
-const score = hitchhikersSSIM(img1.data, img2.data, undefined, width, height, {
+hitchhikersSSIM(img1, img2, {
   windowSize: 16,
-  windowStride: 8, // Overlapping windows
-  covPooling: true,
+  hitchhikers: { windowStride: 8, covPooling: true }, // Overlapping windows
 });
 ```
 
@@ -300,36 +258,37 @@ npm install @blazediff/gmsd
 
 ## API Reference
 
-### `gmsd(image1, image2, output, width, height, options?)`
+### `gmsd(a, b, options?)`
 
-Compares two images using GMSD metric and returns a similarity score.
+Compares two RGBA images of the same size with the GMSD metric. `a` and `b` are `{ data, width, height }`.
 
-#### Parameters
+```typescript
+import gmsd from "@blazediff/gmsd";
 
-| Parameter | Type                                         | Description                                      |
-| --------- | -------------------------------------------- | ------------------------------------------------ |
-| `image1`  | `Buffer`, `Uint8Array`, or `Uint8ClampedArray`  | Image data of the first image                    |
-| `image2`  | `Buffer`, `Uint8Array`, or `Uint8ClampedArray`  | Image data of the second image                   |
-| `output`  | `Buffer`, `Uint8Array`, `Uint8ClampedArray`, or `undefined` | Optional output buffer for GMS map visualization |
-| `width`   | `number`                                     | Width of the images in pixels                    |
-| `height`  | `number`                                     | Height of the images in pixels                   |
-| `options` | `GmsdOptions`                                | Comparison options (optional)                    |
+const output = { data: new Uint8ClampedArray(width * height * 4), width, height };
+const result = gmsd(a, b, { output });
+
+if (result.kind === "compared") console.log(result.score);
+```
 
 ##### Options
 
-| Option       | Type     | Default | Description                                           |
-| ------------ | -------- | ------- | ----------------------------------------------------- |
+| Option       | Type       | Default | Description                                           |
+| ------------ | ---------- | ------- | ----------------------------------------------------- |
 | `downsample` | `0` or `1` | `0`     | Downsample factor (0 = no downsampling, 1 = half)     |
-| `c`          | `number` | `170`   | Constant for numerical stability (tuned for Prewitt)  |
+| `c`          | `number`   | `170`   | Constant for numerical stability (tuned for Prewitt)  |
+| `output`     | `Image`    | -       | Draws the GMS map as grayscale                        |
 
 ##### Returns
 
-`number` - Difference score between 0 and 1:
+`{ kind: "compared", score }`, or `{ kind: "dimension-mismatch", a, b }` when the sizes differ. `score` is a difference score between 0 and 1:
 - `0.0` - Images are identical or perceptually identical
 - `0.0-0.05` - Very low difference (minor compression artifacts)
 - `0.05-0.15` - Low difference (noticeable but small changes)
 - `0.15-0.35` - Moderate similarity (significant structural differences)
 - `>0.35` - High difference (major differences)
+
+A buffer that does not hold `width * height * 4` bytes, or an `output` of the wrong size, throws.
 
 > **Info:** **Score Guidelines:** - Use threshold `>0.0` for strict regression testing - Use threshold `>0.15` for loose regression testing with compression - Scores below `0.35` indicate substantial visual differences
 
@@ -489,7 +448,7 @@ npm install --save-dev @blazediff/cli
 ### Using npx
 
 ```sh
-npx blazediff-cli image1.png image2.png diff.png
+npx blazediff-cli image1.png image2.png -o diff.png
 ```
 
 ## Available Commands
@@ -502,39 +461,53 @@ Native Rust binary with SIMD optimization. The fastest option - **3-4x faster** 
 
 ```bash
 # Default command (core-native)
-blazediff-cli image1.png image2.png diff.png
+blazediff-cli image1.png image2.png -o diff.png
 
 # Or explicitly
-blazediff-cli core-native image1.png image2.png diff.png
+blazediff-cli core-native image1.png image2.png -o diff.png
 ```
 
 #### With Options
 
 ```bash
-blazediff-cli image1.png image2.png diff.png --threshold 0.05 --antialiasing
+blazediff-cli image1.png image2.png -o diff.png --threshold 0.05 --no-antialiasing
 ```
 
 #### Options
 
+`core-native`, `core` and `core-wasm` take the same flags as the Rust `blazediff` CLI. Anti-aliased pixels are detected and left out of the count unless you pass `--no-antialiasing`.
+
 ```bash
-blazediff-cli core-native <image1> <image2> [output] [options]
+blazediff-cli core-native <image1> <image2> [options]
 
 Options:
-  -t, --threshold <n>        Color difference threshold (0-1, default: 0.1)
-  -a, --antialiasing         Enable anti-aliasing detection
-  --diff-mask                Output only differences (transparent background)
-  -c, --compression <n>      PNG compression level (0-9, default: 0)
-  -h, --help                 Display help
+  -o, --output <path>       Output path for the diff image
+  -t, --threshold <num>     Matching threshold (0 to 1, default: 0.1)
+  --no-antialiasing         Count anti-aliased pixels as differences
+  --metric <name>           Color metric: yiq (default) or oklab (pixelmatch 8)
+  --mask <path>             Image whose non-black pixels are skipped
+  --window <n>              Also report the n×n window with the most differences
+  -a, --alpha <num>         Opacity of the original image in the diff (default: 0.1)
+  --diff-color <r,g,b>      Color for different pixels (default: 255,0,0)
+  --diff-color-alt <r,g,b>  Color for pixels that get darker (default: diff color)
+  --aa-color <r,g,b>        Color for anti-aliased pixels (default: 255,255,0)
+  --background <name>       faded (default) or transparent
+  --json                    Print the result as JSON
+  --compression <num>       PNG compression level (0-9, default: 0)
+  --quality <num>           JPEG quality (1-100, default: 90)
+  -h, --help                Show this help message
 ```
+
+`--json` prints the result object, for example `{"kind":"compared","count":121,"percentage":0.09,"identical":false}`.
 
 #### Exit Codes
 
 - `0` - Images are identical
-- `1` - Images have differences
+- `1` - Images differ, or their dimensions do not match
 - `2` - Error (file not found, invalid format, etc.)
 
 ```bash
-blazediff-cli image1.png image2.png diff.png
+blazediff-cli image1.png image2.png -o diff.png
 if [ $? -eq 0 ]; then
   echo "Images match!"
 else
@@ -591,7 +564,7 @@ $ blazediff-cli interpret image1.png image2.png --json
 
 ### `blazediff-cli core`
 
-Pure JavaScript pixel-by-pixel comparison. Slower than `core-native` but offers more customization options like custom diff colors and color spaces.
+Pure JavaScript pixel-by-pixel comparison. Slower than `core-native`, with no native dependencies. `core-wasm` takes the same flags.
 
 #### Basic Usage
 
@@ -611,21 +584,27 @@ blazediff-cli core image1.png image2.png --output diff.png
 blazediff-cli core <image1> <image2> [options]
 
 Options:
-  -o, --output <path>      Output diff image path
-  -t, --threshold <n>      Matching threshold (0-1, default: 0.1)
-  -a, --alpha <n>          Opacity of original in diff (0-1, default: 0.1)
-  --diff-color <r,g,b>     Color for different pixels (default: 255,0,0)
-  --aa-color <r,g,b>       Color for anti-aliased pixels (default: 255,255,0)
-  --include-aa             Include anti-aliased pixels in diff count
-  --diff-mask              Output diff mask with transparent background
-  --codec <name>           Image codec (pngjs, sharp, jsquash-png)
-  -h, --help               Display help
+  -o, --output <path>       Output path for the diff image
+  -t, --threshold <num>     Matching threshold (0 to 1, default: 0.1)
+  --no-antialiasing         Count anti-aliased pixels as differences
+  --metric <name>           Color metric: yiq (default) or oklab (pixelmatch 8)
+  --mask <path>             Image whose non-black pixels are skipped
+  --window <n>              Also report the n×n window with the most differences
+  -a, --alpha <num>         Opacity of the original image in the diff (default: 0.1)
+  --diff-color <r,g,b>      Color for different pixels (default: 255,0,0)
+  --diff-color-alt <r,g,b>  Color for pixels that get darker (default: diff color)
+  --aa-color <r,g,b>        Color for anti-aliased pixels (default: 255,255,0)
+  --background <name>       faded (default) or transparent
+  --json                    Print the result as JSON
+  --codec <name>            Codec to use (pngjs, sharp, jsquash-png)
+  -h, --help                Show this help message
 ```
 
 #### Exit Codes
 
 - `0` - Images are identical or within threshold
-- `1` - Images have differences beyond threshold
+- `1` - Images differ beyond threshold, or their dimensions do not match
+- `2` - Error
 
 ```bash
 blazediff-cli core image1.png image2.png
@@ -812,7 +791,7 @@ SSIM: 0.9597
 | Algorithm | Best for |
 |-----------|----------|
 | `core-native` (default) | Maximum speed, CI/CD, large images |
-| `core` | Custom diff colors, color space control, no native deps |
+| `core` | No native dependencies, runs anywhere Node runs |
 | `gmsd` | Similarity score, compression-tolerant |
 | `ssim` | MATLAB-compatible, research |
 | `msssim` | Multi-scale, varying resolutions |
@@ -1322,37 +1301,33 @@ Pre-built binaries are included for all major platforms - no compilation require
 
 ## API Reference
 
-### `compare(base, comparison, diffOutput, options?)`
+### `diff(a, b, options?)`
 
-Compares two images from file paths or encoded `Buffer`/`Uint8Array` inputs and optionally generates a diff image. Both inputs must use the same input type. Format is auto-detected from the file extension or encoded bytes.
-
-#### Parameters
-
-| Parameter     | Type                      | Description                                  |
-| ------------- | ------------------------- | -------------------------------------------- |
-| `base`        | `string \| Uint8Array`     | Base/expected image path or encoded bytes    |
-| `comparison`  | `string \| Uint8Array`     | Comparison/actual image path or encoded bytes |
-| `diffOutput`  | `string`                  | Path where the diff image will be saved      |
-| `options`     | `BlazeDiffOptions`        | Comparison options (optional)                |
+Compares two images and optionally draws the diff. It takes the same options and returns the same result as [`@blazediff/core`](/apis/core), with wider inputs and outputs. Each side is a file path, encoded PNG, JPEG or QOI bytes (a `Buffer` works), or raw RGBA pixels `{ data, width, height }`. The two sides can use different kinds.
 
 ##### Options
 
-| Option             | Type      | Default | Description                                              |
-| ------------------ | --------- | ------- | -------------------------------------------------------- |
-| `threshold`        | `number`  | `0.1`   | Color difference threshold (0.0-1.0). Lower = more strict |
-| `antialiasing`     | `boolean` | `false` | Enable anti-aliasing detection                           |
-| `diffMask`         | `boolean` | `false` | Output only differences with transparent background      |
-| `diffColorAlt`     | `[number, number, number]` | diff color | Alternative RGB color for darkening differences |
+| Option         | Type                                       | Default   | Description |
+| -------------- | ------------------------------------------ | --------- | ----------- |
+| `threshold`    | `number`                                   | `0.1`     | Color difference threshold (0-1). Lower is stricter |
+| `antialiasing` | `boolean`                                  | `true`    | Detect anti-aliased pixels and leave them out of the count |
+| `metric`       | `"yiq" \| "oklab"`                         | `"yiq"`   | Color metric. `"oklab"` gives the same counts as pixelmatch 8 |
+| `mask`         | `Uint8Array`                               | -         | One byte per pixel (width × height). Non-zero pixels are skipped. Needs the N-API binding |
+| `window`       | `number`                                   | -         | Also report the N×N window with the most diff pixels |
+| `output`       | `string \| Image \| { path, compression?, quality? }` | - | A file path (PNG compression 0-9, JPEG quality 1-100), or an `Image` filled in place. A file is not written when the images are identical |
+| `render`       | `{ alpha?, diffColor?, diffColorAlt?, aaColor?, background? }` | - | Output styling, as in `@blazediff/core` |
 
-#### Return Types
+#### Result
 
 ```typescript
-type BlazeDiffResult =
-  | { match: true }
-  | { match: false; reason: "layout-diff" }
-  | { match: false; reason: "pixel-diff"; diffCount: number; diffPercentage: number }
-  | { match: false; reason: "file-not-exists"; file: string };
+type NativeDiffResult =
+  | { kind: "compared"; count: number; percentage: number; identical: boolean;
+      window?: { x: number; y: number; count: number } }
+  | { kind: "dimension-mismatch"; a: Size; b: Size }
+  | { kind: "io-error"; path?: string; message: string };
 ```
+
+Invalid options or buffers throw a `BlazeDiffError` with a `code`, as in `@blazediff/core`.
 
 > **Info:** Encoded inputs are passed by reference across the N-API boundary. Rust borrows the existing JavaScript backing memory for the synchronous call. Image decoding still allocates native RGBA pixel buffers.
 
@@ -1363,19 +1338,20 @@ type BlazeDiffResult =
 ### Programmatic API
 
 ```typescript
-import { compare } from '@blazediff/core-native';
+import { diff } from '@blazediff/core-native';
 
-const result = await compare('expected.png', 'actual.png', 'diff.png', {
+const result = await diff('expected.png', 'actual.png', {
+  output: 'diff.png',
   threshold: 0.1,
-  antialiasing: true,
 });
 
-if (result.match) {
-  console.log('Images are identical!');
-} else if (result.reason === 'pixel-diff') {
-  console.log(`${result.diffCount} pixels differ (${result.diffPercentage.toFixed(2)}%)`);
-} else if (result.reason === 'layout-diff') {
+if (result.kind === 'compared') {
+  if (result.identical) console.log('Images are identical!');
+  else console.log(`${result.count} pixels differ (${result.percentage.toFixed(2)}%)`);
+} else if (result.kind === 'dimension-mismatch') {
   console.log('Images have different dimensions');
+} else {
+  console.log(`Could not read ${result.path}: ${result.message}`);
 }
 ```
 
@@ -1383,7 +1359,7 @@ if (result.match) {
 
 ```typescript
 import { readFile } from "node:fs/promises";
-import { compare } from "@blazediff/core-native";
+import { diff } from "@blazediff/core-native";
 
 const [expected, actual] = await Promise.all([
   readFile("expected.png"),
@@ -1391,58 +1367,57 @@ const [expected, actual] = await Promise.all([
 ]);
 
 // Reuse these same Buffer objects across comparisons without a JS-to-Rust copy.
-const result = await compare(expected, actual, "diff.png");
+const result = await diff(expected, actual, { output: "diff.png" });
 ```
 
 ### CLI Usage
 
 ```bash
-# Compare two PNG images
-npx blazediff expected.png actual.png diff.png
+# Compare two PNG images and write the diff
+npx blazediff expected.png actual.png -o diff.png
 
 # Compare two JPEG images
-npx blazediff expected.jpg actual.jpg diff.jpg
-
-# Compare two QOI images
-npx blazediff expected.qoi actual.qoi diff.qoi
+npx blazediff expected.jpg actual.jpg -o diff.jpg
 
 # Mixed formats (PNG input, QOI output - recommended for smallest diff files)
-npx blazediff expected.png actual.png diff.qoi
+npx blazediff expected.png actual.png -o diff.qoi
 
-# With options
-npx blazediff expected.png actual.png diff.png --threshold 0.05 --antialiasing
+# Stricter threshold, anti-aliased pixels counted
+npx blazediff expected.png actual.png -o diff.png --threshold 0.05 --no-antialiasing
+
+# pixelmatch 8 metric and the busiest 16×16 window, as JSON
+npx blazediff expected.png actual.png --metric oklab --window 16 --json
 
 # With higher PNG compression (smaller output file, slower)
-npx blazediff expected.png actual.png diff.png -c 6
-
-# With JPEG quality setting
-npx blazediff expected.jpg actual.jpg diff.jpg -q 85
-
-# Output as text format
-npx blazediff expected.png actual.png diff.png --output-format text
+npx blazediff expected.png actual.png -o diff.png -c 6
 ```
 
 ### CLI Options
 
 ```bash
-blazediff [OPTIONS] <IMAGE1> <IMAGE2> [OUTPUT]
-
-Arguments:
-  <IMAGE1>  First image path (PNG, JPEG, or QOI)
-  <IMAGE2>  Second image path (PNG, JPEG, or QOI)
-  [OUTPUT]  Output diff image path (optional, format detected from extension)
+Usage: blazediff [OPTIONS] <A> <B>
 
 Options:
-  -t, --threshold <THRESHOLD>  Color difference threshold (0.0-1.0) [default: 0.1]
-  -a, --antialiasing           Enable anti-aliasing detection
-      --diff-mask              Output only differences (transparent background)
-      --diff-color-alt <R,G,B> Alternative RGB color for darkening differences
-  -c, --compression <LEVEL>    PNG compression level (0-9, 0=fastest, 9=smallest) [default: 0]
-  -q, --quality <QUALITY>      JPEG quality (1-100) [default: 90]
-      --output-format <FORMAT> Output format (json or text) [default: json]
-  -h, --help                   Print help
-  -V, --version                Print version
+  -o, --output <OUTPUT>            Write the diff image here (only when the images differ)
+  -t, --threshold <THRESHOLD>      Color difference threshold (0.0-1.0) [default: 0.1]
+      --antialiasing               Detect anti-aliased pixels and leave them out of the count (default)
+      --no-antialiasing            Count anti-aliased pixels as differences
+      --metric <METRIC>            Color difference metric: yiq or oklab (pixelmatch 8) [default: yiq]
+      --mask <MASK>                Image the size of the inputs; its non-black pixels are skipped
+      --window <WINDOW>            Also report the N×N window with the most diff pixels
+  -a, --alpha <ALPHA>              Opacity of the faded background (0.0-1.0) [default: 0.1]
+      --diff-color <R,G,B>         RGB color for differing pixels
+      --diff-color-alt <R,G,B>     RGB color for pixels that get darker in the second image
+      --aa-color <R,G,B>           RGB color for anti-aliased pixels
+      --background <BACKGROUND>    faded or transparent [default: faded]
+  -c, --compression <COMPRESSION>  PNG compression level (0-9) [default: 0]
+  -q, --quality <QUALITY>          JPEG quality (1-100) [default: 90]
+      --json                       Print the result as JSON
+  -h, --help                       Print help
+  -V, --version                    Print version
 ```
+
+`--json` prints the result object, for example `{"kind":"compared","count":121,"percentage":0.09,"identical":false}`.
 
 ### Supported Formats
 
@@ -1533,7 +1508,7 @@ Ships ~32 KB of optimized wasm + ~10 KB of JS glue. No native binaries, no posti
 
 - **Same algorithm as `@blazediff/core-native`**: YIQ perceptual delta + block-based cold/hot pass
 - **wasm32 v128 SIMD** (`+simd128`): 4-lane vectorized cold and hot loops; up to ~16× faster than pixelmatch on 4K
-- **Buffers-only API**: caller decodes images, hands in `Uint8Array`. No PNG/JPEG codecs bundled
+- **Same API as `@blazediff/core`**: caller decodes images and hands in `{ data, width, height }`. No PNG/JPEG codecs bundled
 - **Runs anywhere wasm runs**: browsers (`fetch()` of the .wasm), Node (`fs.readFileSync` + bytes), Cloudflare Workers, Deno, Bun
 
 ## API Reference
@@ -1560,12 +1535,12 @@ import { initBlazediff } from '@blazediff/core-wasm';
 
 await initBlazediff(
   new URL(
-    'https://cdn.jsdelivr.net/npm/@blazediff/core-wasm@4.2.0/wasm/blazediff_bg.wasm',
+    'https://cdn.jsdelivr.net/npm/@blazediff/core-wasm@7.0.0/wasm/blazediff_bg.wasm',
   ),
 );
 ```
 
-Pin the version (`@4.2.0`) for reproducibility. `unpkg.com/@blazediff/core-wasm@4.2.0/wasm/blazediff_bg.wasm` works identically.
+Pin the version (`@7.0.0`). It must match the installed package, because the JS glue and the `.wasm` change together. `unpkg.com/@blazediff/core-wasm@7.0.0/wasm/blazediff_bg.wasm` works identically.
 
 **Bundlers (Vite, Webpack 5+, esbuild, Rollup with plugin)**. The `new URL(asset, import.meta.url)` pattern is bundler-aware: the asset is emitted into the build output and the URL is rewritten at build time:
 
@@ -1604,37 +1579,20 @@ const wasmPath = require.resolve(
 await initBlazediff(readFileSync(wasmPath));
 ```
 
-### `diff(a, b, width, height, output?, options?)`
+### `diff(a, b, options?)`
 
-Compares two RGBA pixel buffers and returns the number of differing pixels.
-
-#### Parameters
-
-| Parameter | Type                  | Description                                              |
-| --------- | --------------------- | -------------------------------------------------------- |
-| `a`       | `Uint8Array`          | First image in RGBA8 order (`width * height * 4` bytes)  |
-| `b`       | `Uint8Array`          | Second image in RGBA8 order (same length)                |
-| `width`   | `number`              | Image width in pixels                                    |
-| `height`  | `number`              | Image height in pixels                                   |
-| `output`  | `Uint8Array \| undefined` | Optional diff visualization output (same length). Written in place |
-| `options` | `DiffOptions`         | Comparison options (optional)                            |
-
-##### Options
-
-| Option       | Type      | Default | Description                                              |
-| ------------ | --------- | ------- | -------------------------------------------------------- |
-| `threshold`  | `number`  | `0.1`   | Color difference threshold (0.0-1.0). Lower = more strict |
-| `includeAA`  | `boolean` | `false` | Count anti-aliased pixels as differences                 |
-| `diffMask`   | `boolean` | `false` | Render diff with transparent background instead of grayscale base |
-| `diffColorAlt` | `[number, number, number]` | diff color | Alternative RGB color for darkening differences |
-
-> **Info:** **Threshold Guidelines:** `0.0` exact match · `0.05` strict · `0.1` default · `0.2` lenient
+Compares two RGBA images and resolves to a result object. The images, options, result and errors are the same as in [`@blazediff/core`](/apis/core): `threshold`, `antialiasing` (default `true`), `metric`, `mask`, `window`, `output` and `render`.
 
 ```typescript
-const diffCount = await diff(a, b, width, height, output, {
-  diffColorAlt: [0, 128, 255],
+const result = await diff(a, b, {
+  output: { data: out, width: a.width, height: a.height },
+  render: { diffColorAlt: [0, 128, 255] },
 });
+
+if (result.kind === 'compared') console.log(result.count, result.percentage);
 ```
+
+> **Info:** **Threshold Guidelines:** `0.0` exact match · `0.05` strict · `0.1` default · `0.2` lenient
 
 > **Info:** Region analysis — *what* changed rather than where — is not part of this package. It lives in [`@blazediff/interpret-native`](/apis/interpret-native), a Node N-API package with no wasm build.
 
@@ -1662,11 +1620,12 @@ const a = await toRgba('/baseline.png');
 const b = await toRgba('/current.png');
 const out = new Uint8Array(a.width * a.height * 4);
 
-const diffCount = await diff(a.data, b.data, a.width, a.height, out, {
+const result = await diff(a, b, {
   threshold: 0.1,
+  output: { data: out, width: a.width, height: a.height },
 });
 
-console.log(`${diffCount} pixels differ`);
+if (result.kind === 'compared') console.log(`${result.count} pixels differ`);
 ```
 
 ### Node
@@ -1680,18 +1639,13 @@ import { PNG } from 'pngjs';
 
 await initBlazediff(
   new URL(
-    'https://cdn.jsdelivr.net/npm/@blazediff/core-wasm@4.2.0/wasm/blazediff_bg.wasm',
+    'https://cdn.jsdelivr.net/npm/@blazediff/core-wasm@7.0.0/wasm/blazediff_bg.wasm',
   ),
 );
 
 const a = PNG.sync.read(readFileSync('baseline.png'));
 const b = PNG.sync.read(readFileSync('current.png'));
-const diffCount = await diff(
-  new Uint8Array(a.data),
-  new Uint8Array(b.data),
-  a.width,
-  a.height,
-);
+const result = await diff(a, b);
 ```
 
 ## Performance
@@ -2217,7 +2171,7 @@ Main function for snapshot comparison and management.
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `received` | `ImageInput` | Image to compare (file path or buffer with dimensions) |
+| `received` | `ImageInput` | Image to compare: a file path, encoded PNG bytes, or raw RGBA pixels with dimensions |
 | `options` | `MatcherOptions` | Comparison options |
 | `testContext` | `TestContext` | Test information (testPath, testName) |
 
@@ -2236,18 +2190,23 @@ Core comparison options:
 | `snapshotIdentifier` | `string` | auto-generated | Custom identifier for the snapshot file |
 | `updateSnapshots` | `boolean` | `false` | Force update snapshots |
 
-Method-specific options:
+Method options sit in one namespace per method family. The matcher manages `output` itself:
 
-| Option | Type | Default | Description |
+| Option | Type | Used by | Description |
 |--------|------|---------|-------------|
-| `threshold` | `number` | `0.1` | Color difference threshold (0-1) for `core`/`core-native` methods |
-| `antialiasing` | `boolean` | `false` | Enable anti-aliasing detection (`core-native` method) |
-| `includeAA` | `boolean` | `false` | Include anti-aliased pixels in diff count (`core` method) |
-| `windowSize` | `number` | `11` | Window size for SSIM variants |
-| `k1` | `number` | `0.01` | k1 constant for SSIM |
-| `k2` | `number` | `0.03` | k2 constant for SSIM |
-| `downsample` | `0 \| 1` | `0` | Downsample factor for GMSD |
-| `runInWorker` | `boolean` | `true` | Run image I/O and comparison in a worker thread for better performance |
+| `diff` | `Omit<DiffOptions, "output">` | `core`, `core-wasm`, `core-native` | `threshold`, `antialiasing` (default `true`), `metric`, `mask`, `window`, `render`. See [@blazediff/core](/apis/core) |
+| `ssim` | `Omit<SsimOptions, "output">` | `ssim`, `msssim`, `hitchhikers-ssim` | `windowSize`, `k1`, `k2`, `bitDepth`, `msSsim`, `hitchhikers`. See [@blazediff/ssim](/apis/ssim) |
+| `gmsd` | `Omit<GmsdOptions, "output">` | `gmsd` | `downsample`, `c`. See [@blazediff/gmsd](/apis/gmsd) |
+| `runInWorker` | `boolean` | all | Run image I/O and comparison in a worker thread for better performance. Default: `true` |
+
+```typescript
+await getOrCreateSnapshot(screenshot, {
+  method: 'core',
+  failureThreshold: 0.1,
+  failureThresholdType: 'percent',
+  diff: { threshold: 0.05, metric: 'oklab' },
+}, testContext);
+```
 
 ### ComparisonResult
 
@@ -2270,6 +2229,7 @@ Result object returned by `getOrCreateSnapshot`:
 ```typescript
 type ImageInput =
   | string // File path
+  | Uint8Array // Encoded PNG bytes (a Buffer works)
   | {
       data: Uint8Array | Uint8ClampedArray | Buffer;
       width: number;
@@ -2279,7 +2239,7 @@ type ImageInput =
 
 ## Comparison Methods
 
-Available methods: `core`, `core-native`, `ssim`, `msssim`, `hitchhikers-ssim`, `gmsd`. See [@blazediff/core](/apis/core), [@blazediff/core-native](/apis/core-native), [@blazediff/ssim](/apis/ssim), and [@blazediff/gmsd](/apis/gmsd) for algorithm details.
+Available methods: `core`, `core-wasm`, `core-native`, `ssim`, `msssim`, `hitchhikers-ssim`, `gmsd`. See [@blazediff/core](/apis/core), [@blazediff/core-native](/apis/core-native), [@blazediff/ssim](/apis/ssim), and [@blazediff/gmsd](/apis/gmsd) for algorithm details.
 
 ## Links
 
@@ -2349,7 +2309,7 @@ await expect(imageInput).toMatchImageSnapshot(options?);
 | `snapshotsDir` | `string` | `'__snapshots__'` | Snapshot directory (relative to test) |
 | `snapshotIdentifier` | `string` | auto-generated | Custom snapshot filename |
 | `updateSnapshots` | `boolean` | `false` | Force snapshot update |
-| `threshold` | `number` | `0.1` | Color threshold for `core`/`core-native` (0-1) |
+| `diff` | `object` | - | Options for `core`, `core-wasm` and `core-native`, such as `{ threshold: 0.1, antialiasing: true }`. `ssim` and `gmsd` hold the options of those methods |
 | `runInWorker` | `boolean` | `true` | Run comparison in worker thread for better performance |
 
 See [@blazediff/matcher](/apis/matcher) for all available options.
@@ -2366,7 +2326,7 @@ await expect(screenshot).toMatchImageSnapshot({
 ### `core-native` - Rust Native (Fastest)
 ```typescript
 await expect('/path/to/image.png').toMatchImageSnapshot({
-  method: 'core-native', // Requires file paths
+  method: 'core-native', // Paths, PNG buffers or raw images
 });
 ```
 
@@ -2564,7 +2524,7 @@ await expect(imageInput).toMatchImageSnapshot(options?);
 | `snapshotsDir` | `string` | `'__snapshots__'` | Snapshot directory (relative to test) |
 | `snapshotIdentifier` | `string` | auto-generated | Custom snapshot filename |
 | `updateSnapshots` | `boolean` | `false` | Force snapshot update |
-| `threshold` | `number` | `0.1` | Color threshold for `core`/`core-native` (0-1) |
+| `diff` | `object` | - | Options for `core`, `core-wasm` and `core-native`, such as `{ threshold: 0.1, antialiasing: true }`. `ssim` and `gmsd` hold the options of those methods |
 | `runInWorker` | `boolean` | `true` | Run comparison in worker thread for better performance |
 
 See [@blazediff/matcher](/apis/matcher) for all available options.
@@ -2581,7 +2541,7 @@ await expect(screenshot).toMatchImageSnapshot({
 ### `core-native` - Rust Native (Fastest)
 ```typescript
 await expect('/path/to/image.png').toMatchImageSnapshot({
-  method: 'core-native', // Requires file paths
+  method: 'core-native', // Paths, PNG buffers or raw images
 });
 ```
 
@@ -2787,7 +2747,7 @@ await expect(imageInput).toMatchImageSnapshot(options?);
 | `failureThresholdType` | `'pixel' \| 'percent'` | `'pixel'` | Threshold interpretation |
 | `snapshotsDir` | `string` | `'__snapshots__'` | Snapshot directory (relative to test) |
 | `updateSnapshots` | `boolean` | `false` | Force snapshot update |
-| `threshold` | `number` | `0.1` | Color threshold for `core`/`core-native` (0-1) |
+| `diff` | `object` | - | Options for `core`, `core-wasm` and `core-native`, such as `{ threshold: 0.1, antialiasing: true }`. `ssim` and `gmsd` hold the options of those methods |
 | `runInWorker` | `boolean` | `true` | Run comparison in worker thread for better performance |
 
 See [@blazediff/matcher](/apis/matcher) for all available options.
@@ -3047,7 +3007,7 @@ Show pixel differences using the BlazeDiff algorithm, or render a precomputed di
 | `src2`               | `string \| Uint8Array`      | -       | URL or encoded bytes for the second image |
 | `diff`               | `Uint8Array`                | -       | Encoded precomputed diff image bytes |
 | `threshold`          | `number`                   | `0.1`   | Difference threshold (0–1)  |
-| `includeAA`          | `boolean`                  | `false` | Include anti-aliased pixels |
+| `antialiasing`       | `boolean`                  | `true`  | Detect anti-aliased pixels and leave them out of the count |
 | `alpha`              | `number`                   | `0.1`   | Opacity of the original     |
 | `crossOrigin`        | `string \| null`           | `"anonymous"` | `crossOrigin` for loads |
 | `className`          | `string`                   | -       | Class for the root element  |
@@ -3212,7 +3172,7 @@ Shows pixel differences using the BlazeDiff comparison algorithm. Pass encoded d
 | `src2`              | `string \| Uint8Array` (required)                                | -       | URL or encoded bytes for the second image |
 | `diff`              | `Uint8Array`                                                     | -       | Encoded precomputed diff image bytes |
 | `threshold`         | `number`                                                          | -       | Difference threshold (0-1)      |
-| `includeAA`         | `boolean`                                                         | -       | Include anti-aliased pixels     |
+| `antialiasing`      | `boolean`                                                         | `true`  | Detect anti-aliased pixels and leave them out of the count |
 | `alpha`             | `number`                                                          | -       | Opacity of original image       |
 | `className`         | `string`                                                          | -       | CSS class for the root element  |
 | `containerClassName`| `string`                                                          | -       | CSS class for the container     |
@@ -3251,52 +3211,51 @@ A single `abi3-py38` wheel per platform serves every CPython ≥ 3.8 - no separa
 ## Features
 
 - **PNG, JPEG & QOI support** - auto-detected by file extension
-- **Path-based** - pass file paths in, blazediff handles decode + compare + encode
+- **Paths or bytes** - pass file paths or encoded bytes in, blazediff handles decode + compare + encode
 - **SIMD-accelerated** - NEON on ARM, SSE4.1 on x86
 - **Block-based optimization** - skips unchanged regions
 - **Interpret mode** - region detection, classification, severity scoring, human-readable summaries
 
 ## API Reference
 
-### `compare(base_path, compare_path, diff_output=None, *, ...)`
+### `diff(a, b, output=None, *, ...)`
 
-Compares two images and optionally writes a diff image. All keyword arguments are optional.
+Compares two images and optionally writes a diff image. It has the same options and result as every other BlazeDiff surface, in snake_case. All keyword arguments are optional.
 
 ```python
-from blazediff import compare
+from blazediff import diff
 
-result = compare(
-    "expected.png",
-    "actual.png",
-    "diff.png",
-    threshold=0.1,
-    antialiasing=True,
-)
+result = diff("expected.png", "actual.png", "diff.png", threshold=0.1)
 ```
 
 #### Parameters
 
-| Parameter        | Type            | Default | Description                                                            |
-| ---------------- | --------------- | ------- | ---------------------------------------------------------------------- |
-| `base_path`      | `str`           | -       | Path to the base/expected image                                        |
-| `compare_path`   | `str`           | -       | Path to the comparison/actual image                                    |
-| `diff_output`    | `str \| None`   | `None`  | Path where the diff image (or HTML report) will be written             |
-| `threshold`      | `float`         | `0.1`   | Color difference threshold (0.0-1.0). Lower = stricter                 |
-| `antialiasing`   | `bool`          | `False` | Enable anti-aliasing detection                                         |
-| `diff_mask`      | `bool`          | `False` | Output only differences with a transparent background                  |
-| `compression`    | `int`           | `0`     | PNG compression level (0-9, 0 = fastest, 9 = smallest)                 |
-| `quality`        | `int`           | `90`    | JPEG quality (1-100)                                                   |
+| Parameter        | Type                   | Default   | Description |
+| ---------------- | ---------------------- | --------- | ----------- |
+| `a`, `b`         | `str \| bytes`         | -         | A file path or encoded PNG, JPEG or QOI bytes |
+| `output`         | `str \| None`          | `None`    | Path for the diff image. It is written only when the images differ |
+| `threshold`      | `float`                | `0.1`     | Color difference threshold (0.0-1.0). Lower is stricter |
+| `antialiasing`   | `bool`                 | `True`    | Detect anti-aliased pixels and leave them out of the count |
+| `metric`         | `str \| None`          | `"yiq"`   | Color metric: `"yiq"` or `"oklab"` (same counts as pixelmatch 8) |
+| `mask`           | `bytes \| None`        | `None`    | One byte per pixel (width × height). Non-zero pixels are skipped |
+| `window`         | `int \| None`          | `None`    | Also report the N×N window with the most diff pixels |
+| `alpha`          | `float`                | `0.1`     | Opacity of the faded background in the diff image |
+| `diff_color`, `diff_color_alt`, `aa_color` | `tuple[int, int, int] \| None` | red, `diff_color`, yellow | Colors of different, darker and anti-aliased pixels |
+| `background`     | `str \| None`          | `"faded"` | `"faded"` or `"transparent"` |
+| `compression`    | `int`                  | `0`       | PNG compression level (0-9, 0 = fastest, 9 = smallest) |
+| `quality`        | `int`                  | `90`      | JPEG quality (1-100) |
 
 #### Return value
 
-`compare()` returns a `DiffResult` object with:
+`diff()` returns a `DiffResult`. Its `kind` decides which fields are set:
 
-| Field            | Type                       | Description                                                  |
-| ---------------- | -------------------------- | ------------------------------------------------------------ |
-| `match`          | `bool`                     | `True` when images are identical (within threshold)          |
-| `reason`         | `str \| None`              | `"layout-diff"` or `"pixel-diff"` when `match` is `False`    |
-| `diff_count`     | `int \| None`              | Number of differing pixels (pixel-diff only)                 |
-| `diff_percentage`| `float \| None`            | Percentage of differing pixels (pixel-diff only)             |
+| `kind`                 | Fields |
+| ---------------------- | ------ |
+| `"compared"`           | `count`, `percentage`, `identical`, and `window` (`x`, `y`, `count`) when `window` is set |
+| `"dimension-mismatch"` | `a` and `b`, each with `width` and `height` |
+| `"io-error"`           | `path` (when known) and `message` |
+
+Invalid options raise `ValueError`.
 
 > **Info:** **Threshold guidelines:** - `0.0` - Exact match only - `0.05` - Strict comparison - `0.1` - Default balanced comparison - `0.2` - Lenient comparison
 
@@ -3305,40 +3264,43 @@ result = compare(
 ### Basic comparison
 
 ```python
-from blazediff import compare
+from blazediff import diff
 
-result = compare("expected.png", "actual.png", "diff.png", threshold=0.1)
+result = diff("expected.png", "actual.png", "diff.png", threshold=0.1)
 
-if result.match:
-    print("Images are identical!")
-elif result.reason == "pixel-diff":
-    print(f"{result.diff_count} pixels differ ({result.diff_percentage:.2f}%)")
-elif result.reason == "layout-diff":
+if result.kind == "compared":
+    if result.identical:
+        print("Images are identical!")
+    else:
+        print(f"{result.count} pixels differ ({result.percentage:.2f}%)")
+elif result.kind == "dimension-mismatch":
     print("Images have different dimensions")
+else:
+    print(f"Could not read {result.path}: {result.message}")
 ```
 
 ### pytest assertion
 
 ```python
-from blazediff import compare
+from blazediff import diff
 
 def test_homepage_matches_baseline():
-    result = compare("baseline.png", "rendered.png", "diff.png", threshold=0.05)
-    assert result.match, (
-        f"{result.diff_count} pixels differ ({result.diff_percentage:.2f}%)"
+    result = diff("baseline.png", "rendered.png", "diff.png", threshold=0.05)
+    assert result.kind == "compared" and result.identical, (
+        f"{result.count} pixels differ ({result.percentage:.2f}%)"
     )
 ```
 
 ### Mixed formats
 
-`compare()` infers format from the file extension. Inputs and outputs can mix freely:
+`diff()` infers format from the file extension. Inputs and outputs can mix freely:
 
 ```python
 # PNG inputs, QOI diff output (12x smaller diff files)
-compare("expected.png", "actual.png", "diff.qoi")
+diff("expected.png", "actual.png", "diff.qoi")
 
 # JPEG comparison
-compare("expected.jpg", "actual.jpg", "diff.jpg", quality=85)
+diff("expected.jpg", "actual.jpg", "diff.jpg", quality=85)
 ```
 
 | Format | Extensions       | Notes                                                              |
@@ -3406,16 +3368,19 @@ Pre-built binaries (via `cargo install`) and crate sources are available on [cra
 
 ```sh
 # Basic diff
-blazediff image1.png image2.png diff.png
+blazediff image1.png image2.png -o diff.png
 
 # Custom threshold (0.0 - 1.0)
-blazediff image1.png image2.png diff.png -t 0.05
+blazediff image1.png image2.png -o diff.png -t 0.05
 
 # JPEG comparison
-blazediff a.jpg b.jpg diff.jpg -q 85
+blazediff a.jpg b.jpg -o diff.jpg -q 85
 
 # QOI diff output (12x smaller than PNG, faster encode)
-blazediff a.png b.png diff.qoi
+blazediff a.png b.png -o diff.qoi
+
+# pixelmatch 8 metric and the busiest 16×16 window, as JSON
+blazediff a.png b.png --metric oklab --window 16 --json
 
 # Structured interpretation (separate crate and binary)
 blazediff-interpret a.png b.png --json
@@ -3424,29 +3389,32 @@ blazediff-interpret a.png b.png --json
 ### CLI Options
 
 ```sh
-blazediff [OPTIONS] <IMAGE1> <IMAGE2> [OUTPUT]
-
-Arguments:
-  <IMAGE1>  First image path (PNG, JPEG, or QOI)
-  <IMAGE2>  Second image path (PNG, JPEG, or QOI)
-  [OUTPUT]  Output diff image path (optional, format detected from extension)
+Usage: blazediff [OPTIONS] <A> <B>
 
 Options:
-  -t, --threshold <THRESHOLD>  Color difference threshold (0.0-1.0) [default: 0.1]
-  -a, --antialiasing           Enable anti-aliasing detection
-      --diff-mask              Output only differences (transparent background)
-      --diff-color-alt <R,G,B> Alternative RGB color for darkening differences
-  -c, --compression <LEVEL>    PNG compression level (0-9) [default: 0]
-  -q, --quality <QUALITY>      JPEG quality (1-100) [default: 90]
-      --output-format <FORMAT> Output format (json or text) [default: json]
-  -h, --help                   Print help
-  -V, --version                Print version
+  -o, --output <OUTPUT>            Write the diff image here (only when the images differ)
+  -t, --threshold <THRESHOLD>      Color difference threshold (0.0-1.0) [default: 0.1]
+      --antialiasing               Detect anti-aliased pixels and leave them out of the count (default)
+      --no-antialiasing            Count anti-aliased pixels as differences
+      --metric <METRIC>            Color difference metric: yiq or oklab (pixelmatch 8) [default: yiq]
+      --mask <MASK>                Image the size of the inputs; its non-black pixels are skipped
+      --window <WINDOW>            Also report the N×N window with the most diff pixels
+  -a, --alpha <ALPHA>              Opacity of the faded background (0.0-1.0) [default: 0.1]
+      --diff-color <R,G,B>         RGB color for differing pixels
+      --diff-color-alt <R,G,B>     RGB color for pixels that get darker in the second image
+      --aa-color <R,G,B>           RGB color for anti-aliased pixels
+      --background <BACKGROUND>    faded or transparent [default: faded]
+  -c, --compression <COMPRESSION>  PNG compression level (0-9) [default: 0]
+  -q, --quality <QUALITY>          JPEG quality (1-100) [default: 90]
+      --json                       Print the result as JSON
+  -h, --help                       Print help
+  -V, --version                    Print version
 ```
 
 ### Exit Codes
 
 - `0` - Images are identical
-- `1` - Images differ (includes layout/size mismatch)
+- `1` - Images differ (includes a dimension mismatch)
 - `2` - Error (file not found, invalid format, etc.)
 
 ## Library Usage
@@ -3454,22 +3422,25 @@ Options:
 The crate exposes `diff()` plus codec helpers for PNG, JPEG, and QOI. Decode once, diff in memory, encode if you want a diff image.
 
 ```rust
-use blazediff::{diff, load_pngs, save_png, DiffOptions, Image};
+use blazediff::{diff, load_pngs, save_png, DiffOptions, DiffResult, Image};
 
 let (img1, img2) = load_pngs("expected.png", "actual.png")?;
 
 let options = DiffOptions {
     threshold: 0.1,
-    include_aa: true,
+    antialiasing: false, // count anti-aliased pixels too
     ..Default::default()
 };
 
-let mut output = Image::new_uninit(img1.width, img1.height);
-let result = diff(&img1, &img2, Some(&mut output), &options)?;
-
-println!("{} pixels differ ({:.2}%)", result.diff_count, result.diff_percentage);
-if !result.identical {
-    save_png(&output, "diff.png")?;
+let mut output = Image::new(img1.width, img1.height);
+match diff(&img1, &img2, Some(&mut output), &options)? {
+    DiffResult::Compared { count, percentage, identical, .. } => {
+        println!("{count} pixels differ ({percentage:.2}%)");
+        if !identical {
+            save_png(&output, "diff.png")?;
+        }
+    }
+    DiffResult::DimensionMismatch { a, b } => println!("Sizes differ: {a:?} vs {b:?}"),
 }
 ```
 
@@ -3477,22 +3448,31 @@ if !result.identical {
 
 ```rust
 pub struct DiffOptions {
-    pub threshold: f64,           // 0.0-1.0, default 0.1
-    pub include_aa: bool,         // count anti-aliased pixels as diffs
-    pub alpha: f64,               // background opacity, default 0.1
-    pub aa_color: [u8; 3],        // default yellow [255, 255, 0]
-    pub diff_color: [u8; 3],      // default red   [255, 0, 0]
-    pub diff_color_alt: Option<[u8; 3]>,
-    pub diff_mask: bool,          // transparent background mode
-    pub compression: u8,          // PNG compression 0-9 (0 = fastest)
+    pub threshold: f64,         // 0.0-1.0, default 0.1
+    pub antialiasing: bool,     // detect and exclude anti-aliased pixels, default true
+    pub metric: Metric,         // Yiq (default) or Oklab (pixelmatch 8)
+    pub mask: Option<Vec<u8>>,  // one byte per pixel; non-zero is skipped
+    pub window: Option<u32>,    // also report the busiest N×N window
+    pub render: RenderOptions,
 }
 
-pub struct DiffResult {
-    pub diff_count: u32,
-    pub diff_percentage: f64,
-    pub identical: bool,
+pub struct RenderOptions {
+    pub alpha: f64,                      // background opacity, default 0.1
+    pub diff_color: [u8; 3],             // default red    [255, 0, 0]
+    pub diff_color_alt: Option<[u8; 3]>, // pixels that get darker in the second image
+    pub aa_color: [u8; 3],               // default yellow [255, 255, 0]
+    pub background: Background,          // Faded (default) or Transparent
 }
+
+pub enum DiffResult {
+    Compared { count: u32, percentage: f64, identical: bool, window: Option<WindowHit> },
+    DimensionMismatch { a: Size, b: Size },
+}
+
+pub struct WindowHit { pub x: u32, pub y: u32, pub count: u32 } // top-left corner and count
 ```
+
+`diff` returns `Err` only for buffers that do not match their size and masks of the wrong length. PNG compression is an argument of `save_png_with_compression`, not a diff option.
 
 ### Codec helpers
 
@@ -3594,10 +3574,10 @@ All three call the same function and get identical treatment; only the descripti
 use blazediff_interpret::{interpret, ChangeSource};
 
 // From a pixel diff — what `blazediff` does.
+// `diff` is the `DiffResult` that `blazediff::diff` returned.
 let result = interpret(&expected, &actual, ChangeSource::Diff {
-    output: &diff_image.data,
-    diff_count: diff.diff_count,
-    diff_percentage: diff.diff_percentage,
+    result: &diff,
+    output: &diff_image,
 })?;
 
 // From a similarity map — what `blazediff-ssim` does.
@@ -4225,21 +4205,20 @@ npm install @blazediff/core-native
 ```
 
 ```ts
-import { compare } from "@blazediff/core-native";
+import { diff } from "@blazediff/core-native";
 
-const result = await compare("baseline.png", "current.png", "diff.png");
+const result = await diff("baseline.png", "current.png", { output: "diff.png" });
 
-if (result.match) {
-  console.log("identical");
-} else if (result.reason === "layout-diff") {
+if (result.kind === "dimension-mismatch") {
   console.log("dimensions differ");
-} else {
-  console.log(`${result.diffCount} pixels differ (${result.diffPercentage.toFixed(2)}%)`);
+} else if (result.kind === "compared") {
+  if (result.identical) console.log("identical");
+  else console.log(`${result.count} pixels differ (${result.percentage.toFixed(2)}%)`);
 }
 ```
 
-`compare` takes file paths or encoded buffers, decodes PNG, JPEG and QOI itself,
-and writes the diff image when you pass an output path. The same call in the
+`diff` takes file paths, encoded buffers or raw RGBA images, decodes PNG, JPEG
+and QOI itself, and writes the diff image when you pass an output path. The same call in the
 browser is [WebAssembly](/docs/pixel-comparison/rust-wasm); the same call with no
 binary at all is [Vanilla JavaScript](/docs/pixel-comparison/vanilla-javascript).
 
@@ -4318,6 +4297,174 @@ Per-fixture tables, iteration counts and methodology notes:
 
 ---
 
+# Migrating to the unified diff API
+
+Every BlazeDiff surface now has one diff call. It takes two images and an options object, and it returns a result object. The option names are the same in JavaScript, WebAssembly, native Node, Rust, Python and both CLIs. Rust and Python use snake_case.
+
+> **Warning:** Native, Python and the native CLI now detect anti-aliased pixels by default, like the JavaScript core always did. If you kept the defaults, your counts can go down. Pass `antialiasing: false` (`--no-antialiasing` on the CLI) to keep the old counts.
+
+## Versions
+
+Each package moves to its own next major version:
+
+| Package | New version |
+| ------- | ----------- |
+| `@blazediff/core` | 2.0.0 |
+| `@blazediff/core-native`, `@blazediff/core-wasm`, the `blazediff` crate and the `blazediff` Python package | 7.0.0 |
+| `@blazediff/cli` | 6.0.0 |
+| `@blazediff/matcher` | 3.0.0 |
+| `@blazediff/jest`, `@blazediff/vitest`, `@blazediff/bun` | 2.0.0 |
+| `@blazediff/ui` | 3.0.0 |
+| `@blazediff/react` | 2.0.0 |
+| `@blazediff/ssim`, `@blazediff/gmsd` | 2.0.0 |
+| `@blazediff/interpret-native`, `@blazediff/interpret-wasm` and the `blazediff-interpret` crate | 7.0.0 |
+
+The interpret packages move to a new major because the `blazediff-interpret` Rust crate takes the new `DiffOptions`. Their JavaScript, Python and wasm options do not change, and their `antialiasing` default stays `false`.
+
+## The new contract
+
+```ts
+interface Image {
+  data: Uint8Array | Uint8ClampedArray; // RGBA, width * height * 4 bytes
+  width: number;
+  height: number;
+}
+
+interface DiffOptions {
+  threshold?: number;        // 0-1, default 0.1
+  antialiasing?: boolean;    // detect and exclude AA pixels, default true
+  metric?: "yiq" | "oklab";  // default "yiq"; "oklab" is pixelmatch 8
+  mask?: Uint8Array;         // width * height, non-zero = skip
+  window?: number;           // also report the busiest N×N window
+  output?: Image;            // draw the diff here; omit for count only
+  render?: {
+    alpha?: number;
+    diffColor?: [number, number, number];
+    diffColorAlt?: [number, number, number];
+    aaColor?: [number, number, number];
+    background?: "faded" | "transparent";
+  };
+}
+
+type DiffResult =
+  | { kind: "compared"; count: number; percentage: number; identical: boolean;
+      window?: { x: number; y: number; count: number } }
+  | { kind: "dimension-mismatch"; a: Size; b: Size };
+```
+
+Images of different sizes return `dimension-mismatch` instead of throwing. Invalid buffers or options throw a `BlazeDiffError` with a `code`. With `window`, `count` stays the total, and `window` gives the top-left corner and the count of the busiest window.
+
+## Old to new
+
+| Surface | Before | After |
+| ------- | ------ | ----- |
+| core, core-wasm | `diff(a.data, b.data, out, w, h, opts)` | `diff(a, b, { output, ...opts })` |
+| core-wasm | `diff(a, b, w, h, out, opts)` | `diff(a, b, { output, ...opts })` |
+| core, core-wasm | `includeAA: true` | `antialiasing: false` |
+| native, Python, CLI | `antialiasing` default `false` | default `true` |
+| all | `colorSpace` / `color_space` | `metric` |
+| all | `ignoreMask` / `ignore_mask` | `mask` |
+| all | `windowSize` / `window_size` (count replaced by the window count) | `window` (total `count`, plus `window: { x, y, count }`) |
+| core, core-wasm, native | `diffMask: true` | `render: { background: "transparent" }`. The buffer is cleared first |
+| core, core-wasm | `alpha`, `aaColor`, `diffColor`, `diffColorAlt` | `render.*` |
+| core | `fastBufferCheck` | removed, always on |
+| core, core-wasm | returns `number` | `result.count` |
+| core, core-wasm, Rust | throws on a size mismatch | `result.kind === "dimension-mismatch"` |
+| native, Python | `compare()` | `diff()` |
+| native | `{ match, reason }` | `{ kind, ... }`. `file-not-exists` becomes `io-error` |
+| native | paths or encoded bytes only | also raw RGBA `Image` inputs and outputs |
+| Rust | `DiffOptions.compression` | an argument of `save_png_with_compression` |
+| matcher | flat `threshold`, `antialiasing`, `includeAA`, `windowSize`, `k1`, `k2`, `downsample` | `diff: {}`, `ssim: {}`, `gmsd: {}` |
+| matcher | `core-native` takes file paths only | also PNG buffers and raw images |
+| ui, react | `includeAA` | `antialiasing` (default `true`) |
+| ssim | `ssim(a.data, b.data, out, w, h, opts)` | `ssim(a, b, { output, ...opts })`, returns `{ kind, score }` |
+| ssim | `L: 255` | `bitDepth: 8` |
+| ssim | `msssim(..., { weight, level, method: "wtd_sum" })` | `msssim(a, b, { msSsim: { weights, method: "weighted-sum" } })`. The scale count is `weights.length` |
+| ssim | `windowStride`, `covPooling` | `hitchhikers: { windowStride, covPooling }` |
+| gmsd | `gmsd(a.data, b.data, out, w, h, opts)` | `gmsd(a, b, { output, ...opts })`, returns `{ kind, score }`. RGBA input only |
+| CLI | `--include-aa`, `-a/--antialiasing` | `--no-antialiasing`. Detection is on by default |
+| CLI | `--diff-mask` | `--background transparent` |
+| CLI | `--color-space`, `--ignore-mask`, `--window-size` | `--metric`, `--mask`, `--window` |
+| CLI | positional output, `--output-format` | `-o/--output`, `--json` |
+
+## Per surface
+
+### JavaScript and WebAssembly
+
+```ts
+import { diff } from "@blazediff/core"; // or "@blazediff/core-wasm", which returns a Promise
+
+const output = { data: new Uint8Array(a.width * a.height * 4), width: a.width, height: a.height };
+const result = diff(a, b, { output, threshold: 0.1 });
+if (result.kind === "compared" && !result.identical) console.log(result.count);
+```
+
+### Native Node
+
+```ts
+import { diff } from "@blazediff/core-native";
+
+const result = await diff("baseline.png", "current.png", { output: "diff.png" });
+if (result.kind === "io-error") throw new Error(result.message);
+```
+
+### Rust
+
+```rust
+use blazediff::{diff, DiffOptions, DiffResult};
+
+match diff(&a, &b, Some(&mut output), &DiffOptions::default())? {
+    DiffResult::Compared { count, .. } => println!("{count} pixels differ"),
+    DiffResult::DimensionMismatch { a, b } => println!("{a:?} vs {b:?}"),
+}
+```
+
+### Python
+
+```python
+from blazediff import diff
+
+result = diff("baseline.png", "current.png", "diff.png", threshold=0.1)
+if result.kind == "compared" and not result.identical:
+    print(result.count)
+```
+
+### CLIs
+
+```bash
+blazediff baseline.png current.png -o diff.png --metric oklab --window 16 --json
+blazediff-cli core baseline.png current.png -o diff.png --no-antialiasing
+```
+
+### Matchers
+
+```ts
+await expect(screenshot).toMatchImageSnapshot({
+  method: "core",
+  diff: { threshold: 0.05 },
+});
+```
+
+### SSIM and GMSD
+
+```ts
+import ssim from "@blazediff/ssim/ssim";
+import gmsd from "@blazediff/gmsd";
+
+const structural = ssim(a, b, { windowSize: 11 });
+const gradient = gmsd(a, b, { downsample: 1 });
+```
+
+## Coming from pixelmatch
+
+`@blazediff/core/pixelmatch` has the same signature, options, errors, counts and output bytes as pixelmatch 8.0.0. Change the import and nothing else:
+
+```ts
+import pixelmatch from "@blazediff/core/pixelmatch";
+```
+
+---
+
 # Pixel-by-pixel Comparison in Vanilla JavaScript
 
 **`@blazediff/core` counts the pixels that differ between two images, in pure
@@ -4344,7 +4491,7 @@ already has: a canvas in the browser, `@blazediff/codec-pngjs` or `sharp` on the
 server.
 
 ```ts
-import blazediff from "@blazediff/core";
+import { diff } from "@blazediff/core";
 
 // loadImage can either be a browser function or a server function
 const img1 = await loadImage(
@@ -4353,16 +4500,15 @@ const img1 = await loadImage(
 const img2 = await loadImage(
   "https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3b.png"
 );
-const output = new Uint8Array(img1.width * img1.height * 4);
-const width = img1.width;
-const height = img1.height;
+const { width, height } = img1;
+const output = { data: new Uint8Array(width * height * 4), width, height };
 
-// Returns the number of differing pixels and fills `output` with the diff image.
-const diff = blazediff(img1, img2, output, width, height);
+// Fills `output` with the diff image and returns the count in `result.count`.
+const result = diff(img1, img2, { output });
 ```
 
 ```ts
-import blazediff from "@blazediff/core";
+import { diff } from "@blazediff/core";
 
 // loadImage can either be a browser function or a server function
 const img1 = await loadImage(
@@ -4371,16 +4517,15 @@ const img1 = await loadImage(
 const img2 = await loadImage(
   "https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3b.png"
 );
-const output = new Uint8Array(img1.width * img1.height * 4);
-const width = img1.width;
-const height = img1.height;
+const { width, height } = img1;
+const output = { data: new Uint8Array(width * height * 4), width, height };
 
 // threshold is a per-pixel color distance from 0 (exact) to 1 (anything goes).
-const diff = blazediff(img1, img2, output, width, height, { threshold: 0.5 });
+const result = diff(img1, img2, { output, threshold: 0.5 });
 ```
 
 ```ts
-import blazediff from "@blazediff/core";
+import { diff } from "@blazediff/core";
 
 // loadImage can either be a browser function or a server function
 const img1 = await loadImage(
@@ -4389,19 +4534,18 @@ const img1 = await loadImage(
 const img2 = await loadImage(
   "https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3b.png"
 );
-const output = new Uint8Array(img1.width * img1.height * 4);
-const width = img1.width;
-const height = img1.height;
+const { width, height } = img1;
+const output = { data: new Uint8Array(width * height * 4), width, height };
 
 // Recolor the diff output: anti-aliased pixels red, real differences green.
-const diff = blazediff(img1, img2, output, width, height, {
-  aaColor: [255, 0, 0],
-  diffColor: [0, 255, 0],
+const result = diff(img1, img2, {
+  output,
+  render: { aaColor: [255, 0, 0], diffColor: [0, 255, 0] },
 });
 ```
 
-Pass `null` instead of an output buffer when you only need the count. That skips
-writing the diff image, which is the more expensive half of the work.
+Leave out `output` when you only need the count. That skips writing the diff
+image, which is the more expensive half of the work.
 
 ## What it costs
 
@@ -4471,9 +4615,9 @@ await initBlazediff(); // loads the sibling .wasm; call once
 
 const a = await loadRgba("3a.png");
 const b = await loadRgba("3b.png");
-const output = new Uint8Array(a.width * a.height * 4);
+const output = { data: new Uint8Array(a.width * a.height * 4), width: a.width, height: a.height };
 
-const diffCount = await diff(a.data, b.data, a.width, a.height, output);
+const result = await diff(a, b, { output });
 ```
 
 ```ts
@@ -4483,11 +4627,9 @@ await initBlazediff();
 
 const a = await loadRgba("3a.png");
 const b = await loadRgba("3b.png");
-const output = new Uint8Array(a.width * a.height * 4);
+const output = { data: new Uint8Array(a.width * a.height * 4), width: a.width, height: a.height };
 
-const diffCount = await diff(a.data, b.data, a.width, a.height, output, {
-  threshold: 0.5,
-});
+const result = await diff(a, b, { output, threshold: 0.5 });
 ```
 
 ```ts
@@ -4497,12 +4639,10 @@ await initBlazediff();
 
 const a = await loadRgba("3a.png");
 const b = await loadRgba("3b.png");
-const output = new Uint8Array(a.width * a.height * 4);
+const output = { data: new Uint8Array(a.width * a.height * 4), width: a.width, height: a.height };
 
-// diffMask renders changes on a transparent background instead of grayscale
-const diffCount = await diff(a.data, b.data, a.width, a.height, output, {
-  diffMask: true,
-});
+// A transparent background shows the changes alone, without the gray copy of a.
+const result = await diff(a, b, { output, render: { background: "transparent" } });
 ```
 
 `initBlazediff` resolves the sibling `.wasm` by default. Loading it from a CDN, a
@@ -4561,22 +4701,21 @@ x64 and arm64. There is no build step and no `node-gyp`.
 ## Examples
 
 ```ts
-import { compare } from "@blazediff/core-native";
+import { diff } from "@blazediff/core-native";
 
-const result = await compare("3a.png", "3b.png");
+const result = await diff("3a.png", "3b.png");
 
-if (result.match) {
-  console.log("identical");
-} else if (result.reason === "pixel-diff") {
-  console.log(`${result.diffCount} pixels differ (${result.diffPercentage.toFixed(2)}%)`);
-} else if (result.reason === "layout-diff") {
+if (result.kind === "compared") {
+  if (result.identical) console.log("identical");
+  else console.log(`${result.count} pixels differ (${result.percentage.toFixed(2)}%)`);
+} else if (result.kind === "dimension-mismatch") {
   console.log("dimensions differ");
 }
 ```
 
 ```ts
 import { readFile } from "node:fs/promises";
-import { compare } from "@blazediff/core-native";
+import { diff } from "@blazediff/core-native";
 
 const [expected, actual] = await Promise.all([
   readFile("3a.png"),
@@ -4584,25 +4723,22 @@ const [expected, actual] = await Promise.all([
 ]);
 
 // The native binding borrows these Buffer allocations without copying them.
-const result = await compare(expected, actual);
+const result = await diff(expected, actual);
 ```
 
 ```ts
-import { compare } from "@blazediff/core-native";
+import { diff } from "@blazediff/core-native";
 
-// Third argument is the diff output path; pass undefined to skip writing one.
-const result = await compare("3a.png", "3b.png", undefined, {
-  threshold: 0.5,
-  antialiasing: true,
-});
+// Anti-aliased pixels are detected and left out by default.
+const result = await diff("3a.png", "3b.png", { threshold: 0.5 });
 ```
 
 ```ts
-import { compare } from "@blazediff/core-native";
+import { diff } from "@blazediff/core-native";
 
 // Pass an output path to render the diff visualization to disk.
 // Format is inferred from the extension (PNG, JPEG, QOI).
-const result = await compare("3a.png", "3b.png", "diff.png");
+const result = await diff("3a.png", "3b.png", { output: "diff.png" });
 ```
 
 Encoded inputs are borrowed directly for each native call, so the JavaScript bytes
@@ -4673,9 +4809,7 @@ better**, typically in the `0` to `0.35` range.
     const img2 = await loadImage(
       "https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3b.png"
     );
-    const width = img1.width;
-    const height = img1.height;
-    const score = gmsd(img1, img2, undefined, width, height);
+    const result = gmsd(img1, img2); // { kind: "compared", score }
     ```
 
     ```ts
@@ -4686,14 +4820,11 @@ better**, typically in the `0` to `0.35` range.
     const img2 = await loadImage(
       "https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3b.png"
     );
-    const width = img1.width;
-    const height = img1.height;
-
     // Raising c makes the metric more forgiving in low-contrast areas.
-    const score = gmsd(img1, img2, undefined, width, height, { c: 100 });
+    const result = gmsd(img1, img2, { c: 100 });
     ```
 
-Pass an output buffer as the third argument to get the similarity map back as a
+Pass an `output` image in the options to get the similarity map back as a
 grayscale image, which shows which edges disagreed.
 [GMSD reference](/apis/gmsd).
 
@@ -4713,11 +4844,10 @@ const img1 = await loadImage(
 const img2 = await loadImage(
   "https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3b.png"
 );
-const output = new Uint8Array(img1.width * img1.height * 4);
-const width = img1.width;
-const height = img1.height;
+const { width, height } = img1;
+const output = { data: new Uint8Array(width * height * 4), width, height };
 
-const score = ssim(img1, img2, output, width, height);
+const result = ssim(img1, img2, { output });
 ```
 
 ```ts
@@ -4729,14 +4859,13 @@ const img1 = await loadImage(
 const img2 = await loadImage(
   "https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3b.png"
 );
-const output = new Uint8Array(img1.width * img1.height * 4);
-const width = img1.width;
-const height = img1.height;
+const { width, height } = img1;
+const output = { data: new Uint8Array(width * height * 4), width, height };
 
-const score = hitchhikersSSIM(img1, img2, output, width, height);
+const result = hitchhikersSSIM(img1, img2, { output });
 ```
 
-The output buffer here receives the SSIM map: dark areas are where the two images
+The `output` image here receives the SSIM map: dark areas are where the two images
 disagree. `@blazediff/ssim` also ships MS-SSIM, which scores at five scales for
 images that get viewed at more than one size.
 [SSIM reference](/apis/ssim).
@@ -4816,19 +4945,19 @@ threshold cannot express.
 The practical setup for a noisy pipeline:
 
 ```ts
-import { compare } from "@blazediff/core-native";
+import { diff } from "@blazediff/core-native";
 import gmsd from "@blazediff/gmsd";
 
 // 1. Cheap exact gate. Most runs stop here.
-const result = await compare("baseline.png", "current.png", "diff.png", {
+const result = await diff("baseline.png", "current.png", {
+  output: "diff.png",
   threshold: 0.1,
-  antialiasing: true,
 });
-if (result.match) return "pass";
+if (result.kind === "compared" && result.identical) return "pass";
 
 // 2. Something changed. Is it perceptible?
-const score = gmsd(baselinePixels, currentPixels, undefined, width, height);
-if (score < 0.05) return "pass-with-noise";
+const similarity = gmsd(baselineImage, currentImage);
+if (similarity.kind === "compared" && similarity.score < 0.05) return "pass-with-noise";
 
 return "fail";
 ```
@@ -5006,12 +5135,13 @@ npm install @blazediff/ssim
 ```ts
 import ssim from "@blazediff/ssim/ssim";
 
-const score = ssim(image1, image2, undefined, width, height);
-if (score < 0.98) throw new Error(`too different: ${score}`);
+const result = ssim(image1, image2);
+if (result.kind === "compared" && result.score < 0.98)
+  throw new Error(`too different: ${result.score}`);
 ```
 
-Pass an output buffer as the third argument to get the SSIM map back as a
-grayscale image - dark areas are where the two images disagree.
+Pass an `output` image in the options to get the SSIM map back as a grayscale
+image - dark areas are where the two images disagree.
 
 From the CLI:
 
@@ -5160,11 +5290,12 @@ npm install @blazediff/gmsd
 ```ts
 import gmsd from "@blazediff/gmsd";
 
-const score = gmsd(image1, image2, undefined, width, height);
-if (score > 0.05) throw new Error(`too different: ${score}`);
+const result = gmsd(image1, image2);
+if (result.kind === "compared" && result.score > 0.05)
+  throw new Error(`too different: ${result.score}`);
 ```
 
-Pass an output buffer as the third argument to get the GMS map back as a grayscale
+Pass an `output` image in the options to get the GMS map back as a grayscale
 image, which shows exactly which edges disagreed.
 
 From the CLI:
@@ -5304,15 +5435,15 @@ Keep a pixel diff as the first gate. Most runs stop there, and MILO's cost only
 matters on the ones that do not.
 
 ```ts
-import { compare as pixelDiff } from "@blazediff/core-native";
+import { diff } from "@blazediff/core-native";
 import { compare as milo } from "@blazediff/milo-native";
 
 // 1. Cheap exact gate. Most runs stop here.
-const exact = await pixelDiff("baseline.png", "current.png", "diff.png", {
+const exact = await diff("baseline.png", "current.png", {
+  output: "diff.png",
   threshold: 0.1,
-  antialiasing: true,
 });
-if (exact.match) return "pass";
+if (exact.kind === "compared" && exact.identical) return "pass";
 
 // 2. Something changed. Would anyone see it?
 const perceived = await milo("baseline.png", "current.png", "map.png", {
@@ -6820,37 +6951,36 @@ without loosening anything else. That alone clears most of the churn teams get
 after a CSS framework upgrade. What is left - a block of text that actually moved
 one pixel - is a different problem, and thresholds are the wrong fix for it.
 
-## The defaults are inverted between cores
+## One option, on by default
 
-This trips people up, so check which one you are using:
+Every diff surface uses the same option name and the same default, so a count
+from one core means the same thing as a count from another:
 
-| Package                                | Option          | Default | Anti-aliased pixels are |
-| -------------------------------------- | --------------- | ------- | ----------------------- |
-| `@blazediff/core` (JS)                 | `includeAA`     | `false` | **ignored**             |
-| `@blazediff/core-native` (Rust, N-API) | `antialiasing`  | `false` | **counted**             |
-| `blazediff-cli core-native`            | `-a, --antialiasing` | off | **counted**             |
-| `blazediff` (Python)                   | `antialiasing`  | `False` | **counted**             |
-| `@blazediff/agent`                     | -               | on      | **ignored**             |
+| Package                                | Option              | Default | Anti-aliased pixels are |
+| -------------------------------------- | ------------------- | ------- | ----------------------- |
+| `@blazediff/core` (JS)                 | `antialiasing`      | `true`  | **ignored**             |
+| `@blazediff/core-wasm`                 | `antialiasing`      | `true`  | **ignored**             |
+| `@blazediff/core-native` (Rust, N-API) | `antialiasing`      | `true`  | **ignored**             |
+| `blazediff-cli`, `blazediff` (CLI)     | `--no-antialiasing` | off     | **ignored**             |
+| `blazediff` (Python)                   | `antialiasing`      | `True`  | **ignored**             |
+| `@blazediff/agent`                     | -                   | on      | **ignored**             |
 
-The two options are named for opposite things. `includeAA: true` means "count
-them". `antialiasing: true` means "detect them, so they can be skipped". Both
-default to `false`, which is why the JS core ignores AA out of the box and the
-native core does not.
+`antialiasing: true` means "detect them, so they can be skipped". Set it to
+`false` only when you want every changed pixel counted.
 
 ```ts
-// JS core - already ignoring AA
-import diff from "@blazediff/core";
-const changed = diff(img1, img2, output, width, height);
+// JS core
+import { diff } from "@blazediff/core";
+const result = diff(img1, img2, { output });
 
-// Native core - opt in
-import { compare } from "@blazediff/core-native";
-const result = await compare("baseline.png", "current.png", "diff.png", {
-  antialiasing: true,
-});
+// Native core: the same option and the same default
+import { diff as nativeDiff } from "@blazediff/core-native";
+const native = await nativeDiff("baseline.png", "current.png", { output: "diff.png" });
 ```
 
 ```bash
-blazediff-cli baseline.png current.png diff.png --antialiasing
+# Detection is on by default; this counts anti-aliased pixels too
+blazediff-cli baseline.png current.png -o diff.png --no-antialiasing
 ```
 
 ## What detection actually does
@@ -7431,22 +7561,22 @@ test is the usual mistake.
 | `@blazediff/core-wasm`   | Anywhere wasm runs  | Decoded RGBA              | You already have pixels in memory          |
 | `@blazediff/core`        | Node, browser       | Decoded RGBA              | No native dependency allowed               |
 
-If you are on `pixelmatch` today, `@blazediff/core` is a drop-in replacement with
-an identical API, about 1.5x faster. `core-native` is the bigger jump but takes
-file paths.
+If you are on `pixelmatch` today, `@blazediff/core/pixelmatch` is a drop-in
+replacement with an identical API, about 1.5x faster. `core-native` is the bigger
+jump, and it decodes file paths or encoded buffers in Rust.
 
 ```ts
-import { compare } from "@blazediff/core-native";
+import { diff } from "@blazediff/core-native";
 
-const result = await compare("baseline.png", "current.png", "diff.png", {
+const result = await diff("baseline.png", "current.png", {
+  output: "diff.png",
   threshold: 0.1,
-  antialiasing: true,
 });
 ```
 
 ## 2. Stop writing diff images you do not read
 
-This is the single biggest easy win in JS. Passing an output buffer forces the
+This is the single biggest easy win in JS. Passing an `output` image forces the
 diff to paint every pixel, not just count them:
 
 | Mode                  | Average improvement over pixelmatch |
@@ -7454,10 +7584,10 @@ diff to paint every pixel, not just count them:
 | No output buffer      | ~62%                                |
 | With output buffer    | ~28%                                |
 
-So pass `undefined` when a green run does not need a picture:
+So leave out `output` when a green run does not need a picture:
 
 ```ts
-const changed = diff(img1, img2, undefined, width, height);
+const result = diff(img1, img2);
 ```
 
 With the agent, same idea:
@@ -7470,12 +7600,9 @@ Generate the diff image only on failure, in a second pass.
 
 ## 3. Let identical pairs short-circuit
 
-Most snapshots in a healthy suite do not change. `@blazediff/core` has
-`fastBufferCheck` on by default, which detects byte-identical inputs before doing
-any per-pixel work. On identical 4K pairs that is 2.5-3.8ms against pixelmatch's
-24-28ms - roughly 88% faster.
-
-Do not disable it unless you are benchmarking.
+Most snapshots in a healthy suite do not change. `@blazediff/core` always checks
+for byte-identical inputs before doing any per-pixel work. On identical 4K pairs
+that is 2.5-3.8ms against pixelmatch's 24-28ms - roughly 88% faster.
 
 ## 4. Parallelize, but cap it
 
@@ -7584,8 +7711,8 @@ competing with your test runner for the same budget and are freed as soon as the
 call returns.
 
 ```ts
-import { compare } from "@blazediff/core-native";
-await compare("baseline.png", "current.png", "diff.png");
+import { diff } from "@blazediff/core-native";
+await diff("baseline.png", "current.png", { output: "diff.png" });
 ```
 
 > **Info:** Encoded buffers are passed across the N-API boundary by reference - Rust borrows the JavaScript backing memory instead of copying it. Decoding still allocates native RGBA buffers, so the saving is the copy and the heap pressure, not the pixels themselves.
@@ -7826,27 +7953,27 @@ counted against it. "BlazeDiff Next" is the same binary with the
 
 ## Switching
 
-The result is a discriminated union in both libraries: `match`, then a `reason`
-of `layout-diff`, `pixel-diff` or `file-not-exists`, with `diffCount` and
-`diffPercentage` on a pixel diff.
+Both libraries return a discriminated union. odiff uses `match` and a `reason`.
+BlazeDiff uses a `kind` of `compared`, `dimension-mismatch` or `io-error`, with
+`count`, `percentage` and `identical` when the images were compared.
 
 ```ts
 // Before
 import { compare } from "odiff-bin";
 // After
-import { compare } from "@blazediff/core-native";
+import { diff } from "@blazediff/core-native";
 
-const result = await compare("baseline.png", "current.png", "diff.png", {
+const result = await diff("baseline.png", "current.png", {
+  output: "diff.png",
   threshold: 0.1,
-  antialiasing: true,
 });
 
-if (!result.match && result.reason === "pixel-diff") {
-  console.log(`${result.diffCount} pixels differ`);
+if (result.kind === "compared" && !result.identical) {
+  console.log(`${result.count} pixels differ`);
 }
 ```
 
-> **Info:** odiff options such as `ignoreRegions`, `captureDiffLines` and `reduceRamUsage` have no direct counterpart. Remove them, or mask the regions before the diff.
+> **Info:** For odiff's `ignoreRegions`, pass a `mask`: one byte per pixel, non-zero pixels are skipped. `captureDiffLines` and `reduceRamUsage` have no direct counterpart, so remove them.
 
 ## When to keep odiff
 
@@ -7901,7 +8028,7 @@ speed, not identical output.
 ## Switching
 
 honeydiff returns `different` and a `pixels.changed.total` count. BlazeDiff
-returns `match`, a `reason`, and a `diffCount`.
+returns a `kind`, `identical`, and a `count`.
 
 ```ts
 // Before
@@ -7913,13 +8040,11 @@ if (before.different) console.log(`${before.pixels.changed.total} pixels differ`
 
 ```ts
 // After
-import { compare } from "@blazediff/core-native";
+import { diff } from "@blazediff/core-native";
 
-const after = await compare("baseline.png", "current.png", "diff.png", {
-  antialiasing: true,
-});
-if (!after.match && after.reason === "pixel-diff") {
-  console.log(`${after.diffCount} pixels differ`);
+const after = await diff("baseline.png", "current.png", { output: "diff.png" });
+if (after.kind === "compared" && !after.identical) {
+  console.log(`${after.count} pixels differ`);
 }
 ```
 
@@ -7981,8 +8106,8 @@ than ssim.js `weber` in JavaScript.
 
 ## Switching
 
-ssim.js takes two image objects. `@blazediff/ssim` takes the two pixel buffers
-and the size, in the same order as a pixel diff.
+Both take two image objects with `data`, `width` and `height`. `@blazediff/ssim`
+returns a result object with the score.
 
 ```ts
 // Before
@@ -7991,7 +8116,8 @@ const { mssim } = ssim(img1, img2);
 
 // After
 import ssim from "@blazediff/ssim/ssim";
-const score = ssim(img1.data, img2.data, undefined, img1.width, img1.height);
+const result = ssim(img1, img2);
+const score = result.kind === "compared" ? result.score : 0;
 ```
 
 > **Info:** Scores from different SSIM variants are not interchangeable. If you gated tests on an ssim.js `weber` score, measure your fixtures again before you copy the threshold.
@@ -8177,15 +8303,15 @@ b = cv2.imread("current.png", cv2.IMREAD_GRAYSCALE)
 changed = np.count_nonzero(cv2.absdiff(a, b))
 
 # After
-from blazediff import compare
+from blazediff import diff
 
-result = compare("baseline.png", "current.png", "diff.png", threshold=0.1, antialiasing=True)
-if not result.match and result.reason == "pixel-diff":
-    print(f"{result.diff_count} pixels differ")
+result = diff("baseline.png", "current.png", "diff.png", threshold=0.1)
+if result.kind == "compared" and not result.identical:
+    print(f"{result.count} pixels differ")
 ```
 
-`compare` returns `reason == "layout-diff"` when the two images differ in size,
-where `cv2.absdiff` raises an error.
+`diff` returns `kind == "dimension-mismatch"` when the two images differ in
+size, where `cv2.absdiff` raises an error.
 
 ## When to keep OpenCV
 

@@ -1,14 +1,15 @@
 {
 	"name": "@blazediff/core-native",
-	"version": "4.2.0",
+	"version": "7.0.0",
 	"exports": "./src/index.ts",
 	"imports": {
-		"@blazediff/core-native-darwin-arm64": "npm:@blazediff/core-native-darwin-arm64@4.2.0",
-		"@blazediff/core-native-darwin-x64": "npm:@blazediff/core-native-darwin-x64@4.2.0",
-		"@blazediff/core-native-linux-arm64": "npm:@blazediff/core-native-linux-arm64@4.2.0",
-		"@blazediff/core-native-linux-x64": "npm:@blazediff/core-native-linux-x64@4.2.0",
-		"@blazediff/core-native-win32-arm64": "npm:@blazediff/core-native-win32-arm64@4.2.0",
-		"@blazediff/core-native-win32-x64": "npm:@blazediff/core-native-win32-x64@4.2.0"
+		"@blazediff/core": "jsr:@blazediff/core@^2.0.0",
+		"@blazediff/core-native-darwin-arm64": "npm:@blazediff/core-native-darwin-arm64@7.0.0",
+		"@blazediff/core-native-darwin-x64": "npm:@blazediff/core-native-darwin-x64@7.0.0",
+		"@blazediff/core-native-linux-arm64": "npm:@blazediff/core-native-linux-arm64@7.0.0",
+		"@blazediff/core-native-linux-x64": "npm:@blazediff/core-native-linux-x64@7.0.0",
+		"@blazediff/core-native-win32-arm64": "npm:@blazediff/core-native-win32-arm64@7.0.0",
+		"@blazediff/core-native-win32-x64": "npm:@blazediff/core-native-win32-x64@7.0.0"
 	},
 	"publish": {
 		"include": ["src/**/*.ts", "README.md"],

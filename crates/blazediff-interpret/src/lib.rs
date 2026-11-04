@@ -335,9 +335,12 @@ const MASK_AA_COLOR: [u8; 3] = [255, 255, 0];
 /// threshold and anti-aliasing behave exactly as the caller asked.
 pub fn mask_options(options: &DiffOptions) -> DiffOptions {
     DiffOptions {
-        aa_color: MASK_AA_COLOR,
-        diff_color: MASK_DIFF_COLOR,
-        diff_color_alt: Some(MASK_DIFF_COLOR_ALT),
+        render: blazediff::RenderOptions {
+            aa_color: MASK_AA_COLOR,
+            diff_color: MASK_DIFF_COLOR,
+            diff_color_alt: Some(MASK_DIFF_COLOR_ALT),
+            ..options.render.clone()
+        },
         ..options.clone()
     }
 }
@@ -346,13 +349,14 @@ pub fn mask_options(options: &DiffOptions) -> DiffOptions {
 ///
 /// Call it after [`interpret`] has read the mask, never before.
 pub fn recolor_output(output: &mut Image, options: &DiffOptions) {
-    let diff_color_alt = options.diff_color_alt.unwrap_or(options.diff_color);
+    let render = &options.render;
+    let diff_color_alt = render.diff_color_alt.unwrap_or(render.diff_color);
 
     for pixel in output.data.chunks_exact_mut(4) {
         let color = match [pixel[0], pixel[1], pixel[2]] {
-            MASK_DIFF_COLOR => options.diff_color,
+            MASK_DIFF_COLOR => render.diff_color,
             MASK_DIFF_COLOR_ALT => diff_color_alt,
-            MASK_AA_COLOR => options.aa_color,
+            MASK_AA_COLOR => render.aa_color,
             _ => continue,
         };
         pixel[..3].copy_from_slice(&color);
@@ -428,7 +432,7 @@ pub fn interpret(
     // A diff that found nothing may leave its output buffer *uninitialized* —
     // see `Image::new_uninit` — so the mask must not be read in that case.
     if let ChangeSource::Diff { result, .. } = &source {
-        if result.identical {
+        if result.is_identical() {
             return Ok(InterpretResult {
                 summary: "Images are identical".to_string(),
                 diff_count: 0,
@@ -484,11 +488,13 @@ pub fn interpret(
                     region
                 })
                 .collect::<Vec<_>>();
-            (
-                regions,
-                mask,
-                Some((result.diff_count, result.diff_percentage)),
-            )
+            let counts = match result {
+                DiffResult::Compared {
+                    count, percentage, ..
+                } => Some((*count, *percentage)),
+                DiffResult::DimensionMismatch { .. } => None,
+            };
+            (regions, mask, counts)
         }
         ChangeSource::Ssim { outcome, floor } => {
             let boxes = regions_from_score_map(
@@ -1047,8 +1053,11 @@ mod diff_source_tests {
         let img1 = make_solid_image(32, 32, 200, 200, 200);
         let img2 = make_solid_image(32, 32, 50, 50, 50);
         let options = DiffOptions {
-            include_aa: true,
-            diff_color_alt: Some([0, 128, 255]),
+            antialiasing: false,
+            render: blazediff::RenderOptions {
+                diff_color_alt: Some([0, 128, 255]),
+                ..Default::default()
+            },
             ..Default::default()
         };
         let mut expected = Image::new(32, 32);
@@ -1057,7 +1066,7 @@ mod diff_source_tests {
 
         let interpretation = interpret_diff(&img1, &img2, Some(&mut actual), &options).unwrap();
 
-        assert_eq!(interpretation.diff_count, diff_result.diff_count);
+        assert_eq!(Some(interpretation.diff_count), diff_result.count());
         assert_eq!(actual.data, expected.data);
     }
 
@@ -1066,8 +1075,11 @@ mod diff_source_tests {
         let img1 = make_solid_image(32, 32, 200, 200, 200);
         let img2 = make_solid_image(32, 32, 50, 50, 50);
         let options = DiffOptions {
-            include_aa: true,
-            diff_color_alt: Some([32, 32, 32]),
+            antialiasing: false,
+            render: blazediff::RenderOptions {
+                diff_color_alt: Some([32, 32, 32]),
+                ..Default::default()
+            },
             ..Default::default()
         };
         let mut output = Image::new(32, 32);

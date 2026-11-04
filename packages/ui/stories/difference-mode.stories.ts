@@ -11,7 +11,7 @@ const meta: Meta = {
 			src2: args.src2,
 			canvasClassName: "w-80",
 			threshold: args.threshold,
-			includeAA: args.includeAA,
+			antialiasing: args.antialiasing,
 			alpha: args.alpha,
 		});
 		return element;

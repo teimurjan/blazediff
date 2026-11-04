@@ -39,15 +39,14 @@ x64 and arm64. There is no build step and no `node-gyp`.
     />
 
 ```ts
-import { compare } from "@blazediff/core-native";
+import { diff } from "@blazediff/core-native";
 
-const result = await compare("3a.png", "3b.png");
+const result = await diff("3a.png", "3b.png");
 
-if (result.match) {
-  console.log("identical");
-} else if (result.reason === "pixel-diff") {
-  console.log(`${result.diffCount} pixels differ (${result.diffPercentage.toFixed(2)}%)`);
-} else if (result.reason === "layout-diff") {
+if (result.kind === "compared") {
+  if (result.identical) console.log("identical");
+  else console.log(`${result.count} pixels differ (${result.percentage.toFixed(2)}%)`);
+} else if (result.kind === "dimension-mismatch") {
   console.log("dimensions differ");
 }
 ```
@@ -58,7 +57,7 @@ if (result.match) {
 
 ```ts
 import { readFile } from "node:fs/promises";
-import { compare } from "@blazediff/core-native";
+import { diff } from "@blazediff/core-native";
 
 const [expected, actual] = await Promise.all([
   readFile("3a.png"),
@@ -66,7 +65,7 @@ const [expected, actual] = await Promise.all([
 ]);
 
 // The native binding borrows these Buffer allocations without copying them.
-const result = await compare(expected, actual);
+const result = await diff(expected, actual);
 ```
 
   </Tabs.Tab>
@@ -80,13 +79,10 @@ const result = await compare(expected, actual);
     />
 
 ```ts
-import { compare } from "@blazediff/core-native";
+import { diff } from "@blazediff/core-native";
 
-// Third argument is the diff output path; pass undefined to skip writing one.
-const result = await compare("3a.png", "3b.png", undefined, {
-  threshold: 0.5,
-  antialiasing: true,
-});
+// Anti-aliased pixels are detected and left out by default.
+const result = await diff("3a.png", "3b.png", { threshold: 0.5 });
 ```
 
   </Tabs.Tab>
@@ -99,11 +95,11 @@ const result = await compare("3a.png", "3b.png", undefined, {
     />
 
 ```ts
-import { compare } from "@blazediff/core-native";
+import { diff } from "@blazediff/core-native";
 
 // Pass an output path to render the diff visualization to disk.
 // Format is inferred from the extension (PNG, JPEG, QOI).
-const result = await compare("3a.png", "3b.png", "diff.png");
+const result = await diff("3a.png", "3b.png", { output: "diff.png" });
 ```
 
   </Tabs.Tab>

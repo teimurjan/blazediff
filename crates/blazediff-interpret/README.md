@@ -7,10 +7,10 @@ says *what* changed in each one — not just where.
 use blazediff_interpret::{interpret, ChangeSource};
 
 // From a pixel diff — what `blazediff` does.
+// `diff` is the `DiffResult` that `blazediff::diff` returned.
 let result = interpret(&expected, &actual, ChangeSource::Diff {
-    output: &diff_image.data,
-    diff_count: diff.diff_count,
-    diff_percentage: diff.diff_percentage,
+    result: &diff,
+    output: &diff_image,
 })?;
 
 // From a similarity map — what `blazediff-ssim` does.

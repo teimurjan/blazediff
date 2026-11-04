@@ -1,4 +1,4 @@
-import { isFilePath, isImageData, normalizeImageInput } from "../image-io";
+import { isImageData, normalizeImageInput } from "../image-io";
 import type {
 	ComparisonMethod,
 	ImageData,
@@ -26,21 +26,6 @@ export interface RunComparisonResult {
 }
 
 /**
- * Validate that the comparison method supports the given input type
- */
-export function validateMethodSupportsInput(
-	method: ComparisonMethod,
-	input: ImageInput,
-): void {
-	if (method === "core-native" && !isFilePath(input)) {
-		throw new Error(
-			`Method 'core-native' only supports file paths, but received a buffer. ` +
-				`Use method 'core', 'ssim', or 'gmsd' for buffer inputs.`,
-		);
-	}
-}
-
-/**
  * Run comparison using the specified method
  */
 export async function runComparison(
@@ -50,11 +35,7 @@ export async function runComparison(
 	options: MatcherOptions,
 	diffOutputPath?: string,
 ): Promise<RunComparisonResult> {
-	// Validate input types for the method
-	validateMethodSupportsInput(method, received);
-	validateMethodSupportsInput(method, baseline);
-
-	// Handle core-native method separately (file paths only)
+	// core-native decodes paths and PNG buffers itself and writes the diff file.
 	if (method === "core-native") {
 		const result = await compareCoreNative(
 			received,

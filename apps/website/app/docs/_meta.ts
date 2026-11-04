@@ -6,6 +6,9 @@ export default {
 	index: {
 		title: "Overview",
 	},
+	migrating: {
+		title: "Migrating",
+	},
 	"what-separator": {
 		type: "separator",
 		title: "What to diff",

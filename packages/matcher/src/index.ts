@@ -1,10 +1,7 @@
 // Types
 
 // Comparators
-export {
-	runComparison,
-	validateMethodSupportsInput,
-} from "./comparators";
+export { runComparison } from "./comparators";
 
 // Image I/O utilities
 export {

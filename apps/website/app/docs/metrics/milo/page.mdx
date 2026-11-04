@@ -110,15 +110,15 @@ Keep a pixel diff as the first gate. Most runs stop there, and MILO's cost only
 matters on the ones that do not.
 
 ```ts
-import { compare as pixelDiff } from "@blazediff/core-native";
+import { diff } from "@blazediff/core-native";
 import { compare as milo } from "@blazediff/milo-native";
 
 // 1. Cheap exact gate. Most runs stop here.
-const exact = await pixelDiff("baseline.png", "current.png", "diff.png", {
+const exact = await diff("baseline.png", "current.png", {
+  output: "diff.png",
   threshold: 0.1,
-  antialiasing: true,
 });
-if (exact.match) return "pass";
+if (exact.kind === "compared" && exact.identical) return "pass";
 
 // 2. Something changed. Would anyone see it?
 const perceived = await milo("baseline.png", "current.png", "map.png", {

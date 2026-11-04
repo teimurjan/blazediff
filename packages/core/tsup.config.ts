@@ -2,7 +2,7 @@ import { defineConfig } from "tsup";
 
 export default defineConfig([
 	{
-		entry: ["src/index.ts"],
+		entry: ["src/index.ts", "src/pixelmatch.ts"],
 		format: ["cjs", "esm"],
 		dts: false,
 		splitting: false,
@@ -13,7 +13,7 @@ export default defineConfig([
 		shims: false,
 	},
 	{
-		entry: ["src/index.ts"],
+		entry: ["src/index.ts", "src/pixelmatch.ts"],
 		format: ["cjs"],
 		dts: { only: true },
 	},

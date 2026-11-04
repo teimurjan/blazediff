@@ -26,15 +26,11 @@ async function main() {
 		const { a, b } = pair;
 
 		bench.add(`gmsd (full-res) - ${pairs[i].name}`, () => {
-			gmsd(a.data, b.data, undefined, a.width, a.height, {
-				downsample: 0,
-			});
+			gmsd(a, b, { downsample: 0 });
 		});
 
 		bench.add(`gmsd (2x downsample) - ${pairs[i].name}`, () => {
-			gmsd(a.data, b.data, undefined, a.width, a.height, {
-				downsample: 1,
-			});
+			gmsd(a, b, { downsample: 1 });
 		});
 	}
 

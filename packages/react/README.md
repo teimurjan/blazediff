@@ -27,7 +27,7 @@ import { DifferenceMode, SwipeMode, TwoUpMode, OnionSkinMode } from '@blazediff/
   src1="image1.png"
   src2="image2.png"
   threshold={0.1}
-  includeAA={false}
+  antialiasing={true}
   alpha={0.1}
   onDiffComplete={(detail) => console.log('Diff:', detail)}
 />
@@ -69,7 +69,7 @@ Highlights pixel differences between two images using the blazediff algorithm. P
 - `src2` (`string | Uint8Array`): URL or encoded bytes for the second image
 - `diff` (`Uint8Array`, optional): Encoded precomputed diff image bytes
 - `threshold` (number): Matching threshold (0-1, default: 0.1)
-- `includeAA` (boolean): Include anti-aliasing in diff (default: false)
+- `antialiasing` (boolean): Detect anti-aliased pixels and leave them out of the count (default: true)
 - `alpha` (number): Blending factor for unchanged pixels (0-1, default: 0.1)
 - `onDiffComplete` (function): Callback when diff calculation completes
 - `onDiffError` (function): Callback when an error occurs

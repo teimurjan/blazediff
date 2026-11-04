@@ -28,51 +28,37 @@ npm install @blazediff/ssim
 
 ## API
 
-### `ssim(image1, image2, output, width, height, options?)`
+All three functions take two images of the same size and one options object:
 
-Compares two images using the standard SSIM algorithm with automatic downsampling and returns a similarity score.
+```typescript
+interface Image {
+  data: Uint8Array | Uint8ClampedArray; // RGBA, width * height * 4 bytes. Buffer works too.
+  width: number;
+  height: number;
+}
 
-<table>
-  <tr>
-    <th width="500">Parameter</th>
-    <th width="500">Type</th>
-    <th width="500">Description</th>
-  </tr>
-  <tr>
-    <td><code>image1</code></td>
-    <td>Uint8Array, Uint8ClampedArray, or Buffer</td>
-    <td>First image data (RGBA format, 4 bytes per pixel)</td>
-  </tr>
-  <tr>
-    <td><code>image2</code></td>
-    <td>Uint8Array, Uint8ClampedArray, or Buffer</td>
-    <td>Second image data (RGBA format, 4 bytes per pixel)</td>
-  </tr>
-  <tr>
-    <td><code>output</code></td>
-    <td>Uint8Array, Uint8ClampedArray, Buffer, or undefined</td>
-    <td>Optional output buffer for SSIM map visualization (RGBA format)</td>
-  </tr>
-  <tr>
-    <td><code>width</code></td>
-    <td>number</td>
-    <td>Image width in pixels</td>
-  </tr>
-  <tr>
-    <td><code>height</code></td>
-    <td>number</td>
-    <td>Image height in pixels</td>
-  </tr>
-  <tr>
-    <td><code>options</code></td>
-    <td>SsimOptionsExtended</td>
-    <td>SSIM computation options (optional)</td>
-  </tr>
-</table>
+type SsimResult =
+  | { kind: "compared"; score: number } // 0-1, 1 when identical
+  | { kind: "dimension-mismatch"; a: Size; b: Size };
+```
 
-**Returns:** `number` - SSIM score (0-1, where 1 is identical)
+Images of different sizes return `kind: "dimension-mismatch"`. A buffer that does not hold `width * height * 4` bytes, or an `output` of the wrong size, throws.
 
-#### Options
+### `ssim(a, b, options?)`
+
+Standard SSIM with a Gaussian window and automatic downsampling to about 256px on the short edge, like MATLAB's `ssim.m`.
+
+### `msssim(a, b, options?)`
+
+SSIM pooled across a dyadic pyramid, like `msssim.m`. The default five scales need at least 176px on the short edge.
+
+### `hitchhikersSSIM(a, b, options?)`
+
+Box windows over integral images, pooled by coefficient of variation (Venkataramanan et al. 2021). It is about 4x faster than standard SSIM.
+
+### Options
+
+`SsimOptions` is one type for all three functions. Its field names match `@blazediff/ssim-native`. Each function reads the shared fields and its own block, and ignores the other blocks.
 
 <table>
   <tr>
@@ -85,161 +71,55 @@ Compares two images using the standard SSIM algorithm with automatic downsamplin
     <td><code>windowSize</code></td>
     <td>number</td>
     <td>11</td>
-    <td>Size of the Gaussian window</td>
+    <td>Side of the local window</td>
   </tr>
   <tr>
     <td><code>k1</code></td>
     <td>number</td>
     <td>0.01</td>
-    <td>Algorithm parameter for luminance</td>
+    <td>Luminance stability constant: <code>c1 = (k1·L)²</code></td>
   </tr>
   <tr>
     <td><code>k2</code></td>
     <td>number</td>
     <td>0.03</td>
-    <td>Algorithm parameter for contrast</td>
+    <td>Contrast stability constant: <code>c2 = (k2·L)²</code></td>
   </tr>
   <tr>
-    <td><code>L</code></td>
+    <td><code>bitDepth</code></td>
     <td>number</td>
-    <td>255</td>
-    <td>Dynamic range of pixel values</td>
-  </tr>
-</table>
-
-### `msssim(image1, image2, output, width, height, options?)`
-
-Compares two images using the Multi-Scale SSIM (MS-SSIM) algorithm and returns a similarity score.
-
-Same parameters as `ssim()`, but analyzes images at multiple scales (default: 5 levels) for better perceptual accuracy.
-
-**Returns:** `number` - MS-SSIM score (0-1, where 1 is identical)
-
-#### Options
-
-<table>
-  <tr>
-    <th width="500">Option</th>
-    <th width="500">Type</th>
-    <th width="500">Default</th>
-    <th width="500">Description</th>
+    <td>8</td>
+    <td>Sample bit depth, setting <code>L = 2^bitDepth - 1</code></td>
   </tr>
   <tr>
-    <td><code>windowSize</code></td>
-    <td>number</td>
-    <td>11</td>
-    <td>Size of the Gaussian window</td>
+    <td><code>output</code></td>
+    <td>Image</td>
+    <td>none</td>
+    <td>Draws the local score map as grayscale: white is similar, black is different</td>
   </tr>
   <tr>
-    <td><code>scales</code></td>
-    <td>number</td>
-    <td>5</td>
-    <td>Number of scales to use</td>
-  </tr>
-  <tr>
-    <td><code>weights</code></td>
+    <td><code>msSsim.weights</code></td>
     <td>number[]</td>
     <td>[0.0448, 0.2856, 0.3001, 0.2363, 0.1333]</td>
-    <td>Weights for each scale</td>
+    <td><code>msssim</code> only. Per-scale weights. The length sets the number of scales.</td>
   </tr>
   <tr>
-    <td><code>method</code></td>
-    <td>'product' or 'sum'</td>
+    <td><code>msSsim.method</code></td>
+    <td>'product' or 'weighted-sum'</td>
     <td>'product'</td>
-    <td>Aggregation method</td>
-  </tr>
-</table>
-
-### `hitchhikersSSIM(image1, image2, output, width, height, options?)`
-
-Compares two images using Hitchhiker's SSIM (fast rectangular-window version with integral images).
-
-**Performance:** ~4x faster than standard SSIM using integral images for O(1) window computation.
-
-<table>
-  <tr>
-    <th width="500">Parameter</th>
-    <th width="500">Type</th>
-    <th width="500">Description</th>
+    <td><code>msssim</code> only. How the per-scale scores combine.</td>
   </tr>
   <tr>
-    <td><code>image1</code></td>
-    <td>Uint8Array, Uint8ClampedArray, or Buffer</td>
-    <td>First image data (RGBA format, 4 bytes per pixel)</td>
-  </tr>
-  <tr>
-    <td><code>image2</code></td>
-    <td>Uint8Array, Uint8ClampedArray, or Buffer</td>
-    <td>Second image data (RGBA format, 4 bytes per pixel)</td>
-  </tr>
-  <tr>
-    <td><code>output</code></td>
-    <td>Uint8Array, Uint8ClampedArray, Buffer, or undefined</td>
-    <td>Optional output buffer for SSIM map</td>
-  </tr>
-  <tr>
-    <td><code>width</code></td>
-    <td>number</td>
-    <td>Image width in pixels</td>
-  </tr>
-  <tr>
-    <td><code>height</code></td>
-    <td>number</td>
-    <td>Image height in pixels</td>
-  </tr>
-  <tr>
-    <td><code>options</code></td>
-    <td>HitchhikersSsimOptions</td>
-    <td>SSIM computation options (optional)</td>
-  </tr>
-</table>
-
-**Returns:** `number` - SSIM score (0-1, where 1 is identical)
-
-#### Options
-
-<table>
-  <tr>
-    <th width="500">Option</th>
-    <th width="500">Type</th>
-    <th width="500">Default</th>
-    <th width="500">Description</th>
-  </tr>
-  <tr>
-    <td><code>windowSize</code></td>
-    <td>number</td>
-    <td>11</td>
-    <td>Size of the rectangular window</td>
-  </tr>
-  <tr>
-    <td><code>windowStride</code></td>
+    <td><code>hitchhikers.windowStride</code></td>
     <td>number</td>
     <td>windowSize</td>
-    <td>Stride for window sliding (non-overlapping by default)</td>
+    <td><code>hitchhikersSSIM</code> only. Distance between window origins. The default gives non-overlapping windows.</td>
   </tr>
   <tr>
-    <td><code>covPooling</code></td>
+    <td><code>hitchhikers.covPooling</code></td>
     <td>boolean</td>
     <td>true</td>
-    <td>Use Coefficient of Variation pooling (recommended)</td>
-  </tr>
-  <tr>
-    <td><code>k1</code></td>
-    <td>number</td>
-    <td>0.01</td>
-    <td>Algorithm parameter for luminance</td>
-  </tr>
-  <tr>
-    <td><code>k2</code></td>
-    <td>number</td>
-    <td>0.03</td>
-    <td>Algorithm parameter for contrast</td>
-  </tr>
-  <tr>
-    <td><code>L</code></td>
-    <td>number</td>
-    <td>255</td>
-    <td>Dynamic range of pixel values</td>
+    <td><code>hitchhikersSSIM</code> only. Pool with <code>1 - stddev/mean</code> instead of the plain mean.</td>
   </tr>
 </table>
 
@@ -250,13 +130,10 @@ Compares two images using Hitchhiker's SSIM (fast rectangular-window version wit
 ```typescript
 import ssim from '@blazediff/ssim/ssim';
 
-const score = ssim(image1.data, image2.data, undefined, width, height);
+const result = ssim(image1, image2);
 
-console.log(`Similarity: ${score.toFixed(4)}`); // e.g., "Similarity: 0.9823"
-
-// Use in tests
-if (score < 0.95) {
-  throw new Error(`Images differ too much: ${score}`);
+if (result.kind === 'compared' && result.score < 0.95) {
+  throw new Error(`Images differ too much: ${result.score}`);
 }
 ```
 
@@ -265,10 +142,9 @@ if (score < 0.95) {
 ```typescript
 import msssim from '@blazediff/ssim/msssim';
 
-// MS-SSIM provides better perceptual accuracy by analyzing at multiple scales
-const score = msssim(image1.data, image2.data, undefined, width, height);
-
-console.log(`MS-SSIM: ${score.toFixed(4)}`);
+const result = msssim(image1, image2, {
+  msSsim: { method: 'weighted-sum' },
+});
 ```
 
 ### Hitchhiker's SSIM (Fast)
@@ -276,58 +152,34 @@ console.log(`MS-SSIM: ${score.toFixed(4)}`);
 ```typescript
 import hitchhikersSSIM from '@blazediff/ssim/hitchhikers-ssim';
 
-// ~4x faster than standard SSIM
-const score = hitchhikersSSIM(image1.data, image2.data, undefined, width, height);
-
-console.log(`Hitchhiker's SSIM: ${score.toFixed(4)}`);
-
-// With custom options
-const scoreCustom = hitchhikersSSIM(image1.data, image2.data, undefined, width, height, {
+const result = hitchhikersSSIM(image1, image2, {
   windowSize: 16,
-  windowStride: 8,  // Overlapping windows
-  covPooling: true, // CoV pooling (recommended)
-});
-```
-
-### Custom Options
-
-```typescript
-import ssim from '@blazediff/ssim/ssim';
-
-// Basic SSIM with custom window size
-const score = ssim(image1, image2, undefined, width, height, {
-  windowSize: 7,  // Smaller window for more local detail
-  k1: 0.01,
-  k2: 0.03,
-  L: 255
-});
-
-// MS-SSIM with custom scales and method
-import msssim from '@blazediff/ssim/msssim';
-
-const msScore = msssim(image1, image2, undefined, width, height, {
-  scales: 5,           // Number of scales (default: 5)
-  method: 'product',   // 'product' or 'sum'
-  windowSize: 11
+  hitchhikers: { windowStride: 8, covPooling: true }, // overlapping windows
 });
 ```
 
 ### SSIM Map Visualization
 
-The SSIM map shows local similarity values as a grayscale image:
-
 ```typescript
 import ssim from '@blazediff/ssim/ssim';
 
-// Create output buffer for SSIM map
-const output = new Uint8ClampedArray(width * height * 4);
+const output = { data: new Uint8ClampedArray(width * height * 4), width, height };
+const result = ssim(image1, image2, { output });
 
-const score = ssim(image1, image2, output, width, height);
-
-// output now contains grayscale SSIM map
-// White (255) = high similarity, Black (0) = low similarity
-// Can be saved as PNG or displayed for debugging
+// output.data now holds the grayscale SSIM map.
+// White (255) is high similarity, black (0) is low similarity.
 ```
+
+### Migrating from 1.x
+
+| 1.x | Now |
+| --- | --- |
+| `ssim(a.data, b.data, out, width, height, options)` | `ssim(a, b, { ...options, output: { data: out, width, height } })` |
+| returns `number` | returns `{ kind: "compared", score }` |
+| `L: 255` | `bitDepth: 8` |
+| `msssim(..., { weight, level })` | `msssim(a, b, { msSsim: { weights } })`; the scale count is `weights.length` |
+| `method: "wtd_sum"` | `msSsim: { method: "weighted-sum" }` |
+| `hitchhikersSSIM(..., { windowStride, covPooling })` | `hitchhikersSSIM(a, b, { hitchhikers: { windowStride, covPooling } })` |
 
 ## When to Use Each Variant
 

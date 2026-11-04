@@ -5,97 +5,100 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
+import {
+	assertImage,
+	assertOptions,
+	BlazeDiffError,
+	type BlazeDiffErrorCode,
+	type DiffOptions,
+	type DiffResult,
+	type Image,
+	type Rgb,
+} from "@blazediff/core";
 
 const execFileAsync = promisify(execFile);
 
-export interface BlazeDiffOptions {
-	/** Color difference threshold (0.0-1.0). Lower = more strict. Default: 0.1 */
-	threshold?: number;
-	/** Enable anti-aliasing detection to exclude AA pixels from diff count */
-	antialiasing?: boolean;
-	/** Output only differences with transparent background */
-	diffMask?: boolean;
-	/** Alternative RGB color for darkening differences. Default: diff color */
-	diffColorAlt?: [number, number, number];
-	/** PNG compression level (0-9, 0=fastest/largest, 9=slowest/smallest) */
+export type { DiffOptions, DiffResult, Image } from "@blazediff/core";
+export { BlazeDiffError } from "@blazediff/core";
+
+/** A file path, encoded PNG, JPEG or QOI bytes, or raw RGBA pixels. */
+export type NativeInput = Image | string | Uint8Array;
+
+/** Raw pixels drawn in place, a file path, or a file path with encoder settings. */
+export type NativeOutput =
+	| Image
+	| string
+	| {
+			path: string;
+			/** PNG compression level (0-9, 0=fastest/largest). Default: 0 */
+			compression?: number;
+			/** JPEG quality (1-100). Default: 90 */
+			quality?: number;
+	  };
+
+export type NativeDiffOptions = Omit<DiffOptions, "output"> & {
+	/** Draw the diff here. A file is only written when the images differ. */
+	output?: NativeOutput;
+};
+
+export type NativeDiffResult =
+	| DiffResult
+	| { kind: "io-error"; path?: string; message: string };
+
+interface NapiImage {
+	data: Uint8Array;
+	width: number;
+	height: number;
+}
+
+interface NapiInput {
+	path?: string;
+	encoded?: Uint8Array;
+	image?: NapiImage;
+}
+
+interface NapiOutput {
+	path?: string;
 	compression?: number;
-	/** JPEG quality (1-100). Default: 90 */
 	quality?: number;
+	image?: Uint8Array;
 }
 
-/** File path or encoded PNG, JPEG, or QOI bytes. */
-export type BlazeDiffInput = string | Uint8Array;
-
-export type BlazeDiffResult =
-	| {
-			match: true;
-	  }
-	| { match: false; reason: "layout-diff" }
-	| {
-			match: false;
-			reason: "pixel-diff";
-			/** Differing pixels. */
-			diffCount: number;
-			diffPercentage: number;
-	  }
-	| { match: false; reason: "file-not-exists"; file: string };
-
-interface JsonOutput {
-	diffCount: number;
-	diffPercentage: number;
-	identical: boolean;
-	error?: string;
-}
-
-/** N-API binding result structure */
-interface NapiDiffResult {
-	matchResult: boolean;
-	reason: string | null;
-	diffCount: number | null;
-	diffPercentage: number | null;
-}
-
-/** N-API binding options structure */
 interface NapiDiffOptions {
 	threshold?: number;
 	antialiasing?: boolean;
-	diffMask?: boolean;
-	diffColorAlt?: [number, number, number];
-	compression?: number;
-	quality?: number;
+	metric?: string;
+	mask?: Uint8Array;
+	window?: number;
+	render?: {
+		alpha?: number;
+		diffColor?: Rgb;
+		diffColorAlt?: Rgb;
+		aaColor?: Rgb;
+		background?: string;
+	};
+}
+
+interface NapiDiffResult {
+	kind: "compared" | "dimension-mismatch" | "io-error";
+	count?: number;
+	percentage?: number;
+	identical?: boolean;
+	window?: { x: number; y: number; count: number };
+	a?: { width: number; height: number };
+	b?: { width: number; height: number };
+	path?: string;
+	message?: string;
 }
 
 /** Native binding interface */
 interface NativeBinding {
-	compare(
-		basePath: string,
-		comparePath: string,
-		diffOutput: string | null,
+	diff(
+		a: NapiInput,
+		b: NapiInput,
+		output: NapiOutput | null,
 		options: NapiDiffOptions | null,
 	): NapiDiffResult;
-	compareBuffers(
-		base: Uint8Array,
-		comparison: Uint8Array,
-		diffOutput: string | null,
-		options: NapiDiffOptions | null,
-	): NapiDiffResult;
-}
-
-function validateRgb(
-	color: [number, number, number] | undefined,
-): [number, number, number] | undefined {
-	if (!color) return undefined;
-	if (
-		color.length !== 3 ||
-		color.some(
-			(channel) => !Number.isInteger(channel) || channel < 0 || channel > 255,
-		)
-	) {
-		throw new RangeError(
-			"diffColorAlt must contain three integer RGB channels",
-		);
-	}
-	return color;
 }
 
 const PLATFORM_PACKAGES: Record<
@@ -155,7 +158,7 @@ function tryLoadNativeBinding(): NativeBinding | null {
 		const require = createRequire(import.meta.url);
 		// Try to require the native .node file from the platform package
 		const binding = require(platformInfo.packageName) as NativeBinding;
-		if (typeof binding?.compare === "function") {
+		if (typeof binding?.diff === "function") {
 			nativeBinding = binding;
 			return binding;
 		}
@@ -175,7 +178,7 @@ function tryLoadNativeBinding(): NativeBinding | null {
 		if (existsSync(nodePath)) {
 			const require = createRequire(import.meta.url);
 			const binding = require(nodePath) as NativeBinding;
-			if (typeof binding?.compare === "function") {
+			if (typeof binding?.diff === "function") {
 				nativeBinding = binding;
 				return binding;
 			}
@@ -185,40 +188,6 @@ function tryLoadNativeBinding(): NativeBinding | null {
 	}
 
 	return null;
-}
-
-/**
- * Convert N-API result to BlazeDiffResult
- */
-function convertNapiResult(result: NapiDiffResult): BlazeDiffResult {
-	if (result.matchResult) {
-		return { match: true };
-	}
-
-	if (result.reason === "layout-diff") {
-		return { match: false, reason: "layout-diff" };
-	}
-
-	return {
-		match: false,
-		reason: "pixel-diff",
-		diffCount: result.diffCount ?? 0,
-		diffPercentage: result.diffPercentage ?? 0,
-	};
-}
-
-/**
- * Convert BlazeDiffOptions to NapiDiffOptions
- */
-function convertToNapiOptions(options?: BlazeDiffOptions): NapiDiffOptions {
-	return {
-		threshold: options?.threshold,
-		antialiasing: options?.antialiasing,
-		diffMask: options?.diffMask,
-		diffColorAlt: validateRgb(options?.diffColorAlt),
-		compression: options?.compression,
-		quality: options?.quality,
-	};
 }
 
 function resolveBinaryPath(): string {
@@ -279,182 +248,207 @@ function getBinaryPathInternal(): string {
 	return cachedBinaryPath;
 }
 
-function buildArgs(diffOutput?: string, options?: BlazeDiffOptions): string[] {
+function isBytes(value: unknown): value is Uint8Array | Uint8ClampedArray {
+	return (
+		ArrayBuffer.isView(value) && (value as Uint8Array).BYTES_PER_ELEMENT === 1
+	);
+}
+
+/** A Uint8Array view of the same memory, so the binding writes back into it. */
+function asBytes(data: Uint8Array | Uint8ClampedArray): Uint8Array {
+	return data instanceof Uint8Array
+		? data
+		: new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
+}
+
+/** Validates in TS what can be checked without decoding. */
+function toNapiOptions(options: NativeDiffOptions): NapiDiffOptions {
+	assertOptions(options);
+	const { threshold, antialiasing, metric, mask, window, render } = options;
+	return {
+		threshold,
+		antialiasing,
+		metric,
+		mask: mask && asBytes(mask),
+		// Floored to >= 1 like @blazediff/core; the binding clamps to the image size.
+		window:
+			window === undefined || !Number.isFinite(window)
+				? undefined
+				: Math.max(1, Math.floor(window)),
+		render,
+	};
+}
+
+function toNapiInput(input: NativeInput, name: string): NapiInput {
+	if (typeof input === "string") return { path: input };
+	if (isBytes(input)) return { encoded: asBytes(input) };
+	assertImage(input, name, "invalid-image");
+	return {
+		image: {
+			data: asBytes(input.data),
+			width: input.width,
+			height: input.height,
+		},
+	};
+}
+
+function toNapiOutput(output: NativeOutput | undefined): NapiOutput | null {
+	if (output === undefined) return null;
+	if (typeof output === "string") return { path: output };
+	if ("path" in output) return output;
+	assertImage(output, "output", "invalid-output");
+	return { image: asBytes(output.data) };
+}
+
+/** Maps the binding's InvalidArg errors onto BlazeDiffError codes. */
+function errorCode(message: string): BlazeDiffErrorCode {
+	if (/mask/i.test(message)) return "invalid-mask";
+	if (/^output/.test(message)) return "invalid-output";
+	if (/^[ab][.:]|data size/i.test(message)) return "invalid-image";
+	return "invalid-option";
+}
+
+function fromNapiResult(result: NapiDiffResult): NativeDiffResult {
+	switch (result.kind) {
+		case "dimension-mismatch":
+			return {
+				kind: "dimension-mismatch",
+				a: result.a as { width: number; height: number },
+				b: result.b as { width: number; height: number },
+			};
+		case "io-error":
+			return {
+				kind: "io-error",
+				...(result.path !== undefined &&
+					result.path !== null && { path: result.path }),
+				message: result.message ?? "",
+			};
+		default:
+			return {
+				kind: "compared",
+				count: result.count ?? 0,
+				percentage: result.percentage ?? 0,
+				identical: result.identical ?? false,
+				...(result.window && { window: result.window }),
+			};
+	}
+}
+
+function buildArgs(
+	output: string | undefined,
+	options: NapiDiffOptions,
+): string[] {
 	const args: string[] = [];
-
-	if (diffOutput) args.push(diffOutput);
-	args.push("--output-format=json");
-
-	if (!options) return args;
-
-	if (options.threshold !== undefined)
-		args.push(`--threshold=${options.threshold}`);
-	if (options.antialiasing) args.push("--antialiasing");
-	if (options.diffMask) args.push("--diff-mask");
-	const diffColorAlt = validateRgb(options.diffColorAlt);
-	if (diffColorAlt) args.push(`--diff-color-alt=${diffColorAlt.join(",")}`);
-	if (options.compression !== undefined)
-		args.push(`--compression=${options.compression}`);
-	if (options.quality !== undefined) args.push(`--quality=${options.quality}`);
-
+	if (output) args.push("--output", output);
+	args.push("--json");
+	const { threshold, antialiasing, metric, window, render } = options;
+	if (threshold !== undefined) args.push("--threshold", String(threshold));
+	if (antialiasing === false) args.push("--no-antialiasing");
+	if (metric) args.push("--metric", metric);
+	if (window !== undefined) args.push("--window", String(window));
+	if (render?.alpha !== undefined) args.push("--alpha", String(render.alpha));
+	if (render?.diffColor) args.push("--diff-color", render.diffColor.join(","));
+	if (render?.diffColorAlt)
+		args.push("--diff-color-alt", render.diffColorAlt.join(","));
+	if (render?.aaColor) args.push("--aa-color", render.aaColor.join(","));
+	if (render?.background) args.push("--background", render.background);
 	return args;
 }
 
-function parseJsonOutput(text: string): JsonOutput | null {
+function parseJson(text: string | undefined): Record<string, unknown> | null {
 	try {
-		return JSON.parse(text);
+		return JSON.parse(text ?? "");
 	} catch {
 		return null;
 	}
 }
 
-function detectMissingFile(
-	error: string,
-	basePath: string,
-	comparePath: string,
-): string | null {
-	if (!/Failed to load images:.*(?:No such file|not found)/i.test(error)) {
-		return null;
-	}
-	if (error.includes(basePath)) return basePath;
-	if (error.includes(comparePath)) return comparePath;
-	return basePath; // default to base if can't determine
-}
+/** Runs the `blazediff` CLI when the N-API binding is unavailable. Paths only. */
+async function execFileDiff(
+	a: string,
+	b: string,
+	output: NapiOutput | null,
+	options: NapiDiffOptions,
+): Promise<NativeDiffResult> {
+	const args = [a, b, ...buildArgs(output?.path, options)];
+	if (output?.compression !== undefined)
+		args.push("--compression", String(output.compression));
+	if (output?.quality !== undefined)
+		args.push("--quality", String(output.quality));
 
-/**
- * Compare using execFile (fallback when native binding is unavailable)
- */
-async function execFileCompare(
-	basePath: string,
-	comparePath: string,
-	diffOutput?: string,
-	options?: BlazeDiffOptions,
-): Promise<BlazeDiffResult> {
-	const binaryPath = getBinaryPathInternal();
-	const args = [basePath, comparePath, ...buildArgs(diffOutput, options)];
-
+	let stdout: string | undefined;
 	try {
-		// Exit code 0 means identical; the JSON carries nothing else worth
-		// reading on that path.
-		await execFileAsync(binaryPath, args);
-		return { match: true };
+		({ stdout } = await execFileAsync(getBinaryPathInternal(), args));
 	} catch (err) {
-		const { code, stdout, stderr } = err as {
-			code?: number;
-			stdout?: string;
-			stderr?: string;
-		};
-		const output = stdout || stderr || "";
-
-		// Exit code 1: images differ (pixel diff or layout diff)
-		if (code === 1) {
-			const json = parseJsonOutput(output);
-			if (json?.error?.includes("Layout differs")) {
-				return { match: false, reason: "layout-diff" };
-			}
-			if (json) {
-				return {
-					match: false,
-					reason: "pixel-diff",
-					diffCount: json.diffCount,
-					diffPercentage: json.diffPercentage,
-				};
-			}
-			// Fallback for non-JSON output
-			if (output.includes("Layout differs")) {
-				return { match: false, reason: "layout-diff" };
-			}
+		const failure = err as { code?: number; stdout?: string; stderr?: string };
+		// Exit code 1: the images differ or their dimensions do not.
+		if (failure.code !== 1) {
+			const json = parseJson(failure.stderr);
+			if (json?.kind === "io-error") return fromNapiResult(json as never);
+			throw new Error(
+				(json?.message as string | undefined) ??
+					(failure.stderr || `blazediff exited with code ${failure.code}`),
+			);
 		}
-
-		// Exit code 2: error (file not found, invalid format, etc.)
-		if (code === 2) {
-			const missingFile = detectMissingFile(output, basePath, comparePath);
-			if (missingFile) {
-				return { match: false, reason: "file-not-exists", file: missingFile };
-			}
-		}
-
-		throw new Error(output || `blazediff exited with code ${code}`);
+		stdout = failure.stdout;
 	}
+	const json = parseJson(stdout);
+	if (!json) throw new Error(`blazediff printed invalid JSON: ${stdout}`);
+	return fromNapiResult(json as never);
 }
 
 /**
- * Compare two encoded images (PNG, JPEG, or QOI) and optionally generate a diff image.
+ * Compares two images with the native Rust engine.
  *
- * Inputs must both be file paths or both be encoded byte arrays. Node.js Buffer
- * values are Uint8Array instances and can be passed directly.
+ * Inputs may be file paths, encoded PNG, JPEG or QOI bytes (a Node.js Buffer
+ * works), or raw RGBA `Image`s, mixed freely. Uses the N-API binding when it
+ * loads; otherwise falls back to the `blazediff` CLI, which supports path
+ * inputs, a path output and no mask.
  *
- * Uses native N-API bindings when available for ~10-100x better performance
- * on small images (no process spawn overhead). Path inputs fall back to
- * execFile if native bindings are unavailable.
+ * Unreadable inputs return `kind: "io-error"`; invalid options throw a
+ * {@link BlazeDiffError}.
  *
  * @example
  * ```ts
- * // With file paths and diff output
- * const result = await compare('expected.png', 'actual.png', 'diff.png');
- *
- * // With encoded image buffers
- * const result = await compare(expectedPngBuffer, actualPngBuffer);
- *
- * if (result.match) {
- *   console.log('Images identical');
- * } else if (result.reason === 'pixel-diff') {
- *   console.log(`${result.diffCount} pixels differ`);
+ * const result = await diff("expected.png", "actual.png", { output: "diff.png" });
+ * if (result.kind === "compared" && !result.identical) {
+ *   console.log(`${result.count} pixels differ`);
  * }
  * ```
  */
-export async function compare(
-	base: BlazeDiffInput,
-	comparison: BlazeDiffInput,
-	diffOutput?: string,
-	options?: BlazeDiffOptions,
-): Promise<BlazeDiffResult> {
-	const baseIsPath = typeof base === "string";
-	const comparisonIsPath = typeof comparison === "string";
-	if (baseIsPath !== comparisonIsPath) {
-		throw new TypeError(
-			"Image inputs must both be file paths or both be encoded byte arrays",
-		);
-	}
+export async function diff(
+	a: NativeInput,
+	b: NativeInput,
+	options: NativeDiffOptions = {},
+): Promise<NativeDiffResult> {
+	const napiOptions = toNapiOptions(options);
+	const napiA = toNapiInput(a, "a");
+	const napiB = toNapiInput(b, "b");
+	const napiOutput = toNapiOutput(options.output);
 
 	const binding = tryLoadNativeBinding();
 	if (binding) {
 		try {
-			const result =
-				baseIsPath && comparisonIsPath
-					? binding.compare(
-							base,
-							comparison,
-							diffOutput ?? null,
-							convertToNapiOptions(options),
-						)
-					: binding.compareBuffers(
-							base as Uint8Array,
-							comparison as Uint8Array,
-							diffOutput ?? null,
-							convertToNapiOptions(options),
-						);
-			return convertNapiResult(result);
+			return fromNapiResult(
+				binding.diff(napiA, napiB, napiOutput, napiOptions),
+			);
 		} catch (err) {
-			if (baseIsPath && comparisonIsPath) {
-				const message = err instanceof Error ? err.message : String(err);
-				const missingFile = detectMissingFile(message, base, comparison);
-				if (missingFile) {
-					return {
-						match: false,
-						reason: "file-not-exists",
-						file: missingFile,
-					};
-				}
-			}
+			const { code, message } = err as { code?: string; message?: string };
+			if (code === "InvalidArg" && message)
+				throw new BlazeDiffError(errorCode(message), message);
 			throw err;
 		}
 	}
 
-	if (!baseIsPath || !comparisonIsPath) {
-		throw new Error("Encoded image inputs require the native N-API binding");
-	}
-	return execFileCompare(base, comparison, diffOutput, options);
+	if (napiA.path === undefined || napiB.path === undefined)
+		throw new Error(
+			"Encoded and raw image inputs require the native N-API binding",
+		);
+	if (napiOutput?.image)
+		throw new Error("An Image output requires the native N-API binding");
+	if (napiOptions.mask)
+		throw new Error("mask requires the native N-API binding");
+	return execFileDiff(napiA.path, napiB.path, napiOutput, napiOptions);
 }
 
 /** Get the path to the blazediff binary for direct CLI usage. */
@@ -469,5 +463,3 @@ export function getBinaryPath(): string {
 export function hasNativeBinding(): boolean {
 	return tryLoadNativeBinding() !== null;
 }
-
-// ─── Interpret ───────────────────────────────────────────────────────────────

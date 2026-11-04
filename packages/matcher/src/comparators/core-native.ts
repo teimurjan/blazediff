@@ -1,59 +1,27 @@
-import { compare } from "@blazediff/core-native";
-import { isFilePath } from "../image-io";
+import { diff } from "@blazediff/core-native";
 import type { ImageInput, MatcherOptions } from "../types";
-
-export interface BinComparisonResult {
-	diffCount: number;
-	diffPercentage: number;
-}
+import { type PixelComparisonResult, toPixelResult } from "./pixel-result";
 
 /**
- * Compare images using @blazediff/core-native (Rust N-API)
- * Only supports file paths - throws if buffer is provided
+ * Compare images using @blazediff/core-native (Rust N-API). Takes paths,
+ * encoded PNG buffers and raw RGBA images, and writes the diff PNG itself.
  */
 export async function compareCoreNative(
 	received: ImageInput,
 	baseline: ImageInput,
 	diffOutputPath: string | undefined,
 	options: MatcherOptions,
-): Promise<BinComparisonResult> {
-	if (!isFilePath(received)) {
-		throw new Error(
-			"Method 'core-native' only supports file paths, but received a buffer. " +
-				"Use method 'core', 'ssim', or 'gmsd' for buffer inputs.",
-		);
-	}
-
-	if (!isFilePath(baseline)) {
-		throw new Error(
-			"Method 'core-native' only supports file paths for baseline, but received a buffer. " +
-				"Use method 'core', 'ssim', or 'gmsd' for buffer inputs.",
-		);
-	}
-
-	const result = await compare(received, baseline, diffOutputPath, {
-		threshold: options.threshold,
-		antialiasing: options.antialiasing,
+): Promise<PixelComparisonResult> {
+	const result = await diff(received, baseline, {
+		...options.diff,
+		output: diffOutputPath,
 	});
-
-	if (result.match) {
-		return { diffCount: 0, diffPercentage: 0 };
+	if (result.kind === "io-error") {
+		throw new Error(
+			result.path
+				? `Image file not found or unreadable: ${result.path}. ${result.message}`
+				: result.message,
+		);
 	}
-
-	if (result.reason === "layout-diff") {
-		return { diffCount: Number.MAX_SAFE_INTEGER, diffPercentage: 100 };
-	}
-
-	if (result.reason === "pixel-diff") {
-		return {
-			diffCount: result.diffCount,
-			diffPercentage: result.diffPercentage,
-		};
-	}
-
-	if (result.reason === "file-not-exists") {
-		throw new Error(`Image file not found: ${result.file}`);
-	}
-
-	return { diffCount: 0, diffPercentage: 0 };
+	return toPixelResult(result);
 }

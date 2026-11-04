@@ -1,7 +1,7 @@
 import { readdirSync } from "node:fs";
 import hitchhikersSSIM from "@blazediff/ssim/hitchhikers-ssim";
 import msssim from "@blazediff/ssim/msssim";
-import ssimJs from "@blazediff/ssim/ssim";
+import ssimJs, { type SsimResult as JsResult } from "@blazediff/ssim/ssim";
 import { describe, expect, it } from "vitest";
 import { hitchhikersSsim, msSsim, ssim } from "./index";
 import {
@@ -49,6 +49,11 @@ function pairs(): Pair[] {
 
 const PAIRS = pairs();
 
+function jsScore(result: JsResult): number {
+	if (result.kind !== "compared") throw new Error("Image sizes differ");
+	return result.score;
+}
+
 describe("parity with @blazediff/ssim", () => {
 	it("finds fixture pairs to compare", () => {
 		expect(PAIRS.length).toBeGreaterThan(0);
@@ -56,27 +61,21 @@ describe("parity with @blazediff/ssim", () => {
 
 	for (const { stem, a, b } of PAIRS) {
 		it(`ssim agrees on ${stem}`, () => {
-			const expected = ssimJs(a.data, b.data, undefined, a.width, a.height);
+			const expected = jsScore(ssimJs(a, b));
 			const actual = scored(ssim(a.data, b.data, a.width, a.height));
 			expect(actual).toBeCloseTo(expected, 6);
 			expect(Math.abs(actual - expected)).toBeLessThan(PORT_TOLERANCE);
 		});
 
 		it(`hitchhikers-ssim agrees on ${stem}`, () => {
-			const expected = hitchhikersSSIM(
-				a.data,
-				b.data,
-				undefined,
-				a.width,
-				a.height,
-			);
+			const expected = jsScore(hitchhikersSSIM(a, b));
 			const actual = scored(hitchhikersSsim(a.data, b.data, a.width, a.height));
 			expect(Math.abs(actual - expected)).toBeLessThan(PORT_TOLERANCE);
 		});
 
 		const shortEdge = Math.min(a.width, a.height);
 		it.skipIf(shortEdge < MS_SSIM_MINIMUM)(`ms-ssim agrees on ${stem}`, () => {
-			const expected = msssim(a.data, b.data, undefined, a.width, a.height);
+			const expected = jsScore(msssim(a, b));
 			const actual = scored(msSsim(a.data, b.data, a.width, a.height));
 			expect(Math.abs(actual - expected)).toBeLessThan(PORT_TOLERANCE);
 		});

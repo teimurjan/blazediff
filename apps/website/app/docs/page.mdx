@@ -63,21 +63,20 @@ npm install @blazediff/core-native
 ```
 
 ```ts
-import { compare } from "@blazediff/core-native";
+import { diff } from "@blazediff/core-native";
 
-const result = await compare("baseline.png", "current.png", "diff.png");
+const result = await diff("baseline.png", "current.png", { output: "diff.png" });
 
-if (result.match) {
-  console.log("identical");
-} else if (result.reason === "layout-diff") {
+if (result.kind === "dimension-mismatch") {
   console.log("dimensions differ");
-} else {
-  console.log(`${result.diffCount} pixels differ (${result.diffPercentage.toFixed(2)}%)`);
+} else if (result.kind === "compared") {
+  if (result.identical) console.log("identical");
+  else console.log(`${result.count} pixels differ (${result.percentage.toFixed(2)}%)`);
 }
 ```
 
-`compare` takes file paths or encoded buffers, decodes PNG, JPEG and QOI itself,
-and writes the diff image when you pass an output path. The same call in the
+`diff` takes file paths, encoded buffers or raw RGBA images, decodes PNG, JPEG
+and QOI itself, and writes the diff image when you pass an output path. The same call in the
 browser is [WebAssembly](/docs/pixel-comparison/rust-wasm); the same call with no
 binary at all is [Vanilla JavaScript](/docs/pixel-comparison/vanilla-javascript).
 

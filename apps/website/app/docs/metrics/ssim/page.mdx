@@ -116,12 +116,13 @@ npm install @blazediff/ssim
 ```ts
 import ssim from "@blazediff/ssim/ssim";
 
-const score = ssim(image1, image2, undefined, width, height);
-if (score < 0.98) throw new Error(`too different: ${score}`);
+const result = ssim(image1, image2);
+if (result.kind === "compared" && result.score < 0.98)
+  throw new Error(`too different: ${result.score}`);
 ```
 
-Pass an output buffer as the third argument to get the SSIM map back as a
-grayscale image - dark areas are where the two images disagree.
+Pass an `output` image in the options to get the SSIM map back as a grayscale
+image - dark areas are where the two images disagree.
 
 From the CLI:
 

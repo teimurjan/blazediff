@@ -56,14 +56,11 @@ export default function GmsdImageComparison({
 
 			const diffData = diffCtx.createImageData(canvas1.width, canvas1.height);
 
-			const score = gmsd(
-				data1.data,
-				data2.data,
-				diffData.data,
-				canvas1.width,
-				canvas1.height,
-				options,
-			);
+			const result = gmsd(data1, data2, { ...options, output: diffData });
+			if (result.kind !== "compared") {
+				throw new Error("Images have different dimensions");
+			}
+			const { score } = result;
 
 			diffCtx.putImageData(diffData, 0, 0);
 			setDiffImageUrl(diffCanvas.toDataURL());

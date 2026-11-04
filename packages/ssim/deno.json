@@ -1,6 +1,6 @@
 {
 	"name": "@blazediff/ssim",
-	"version": "1.7.1",
+	"version": "2.0.0",
 	"exports": {
 		".": "./src/ssim.ts",
 		"./ssim": "./src/ssim.ts",
@@ -9,7 +9,12 @@
 	},
 	"publish": {
 		"include": ["src/**/*.ts", "README.md"],
-		"exclude": ["src/**/*.test.ts", "src/**/*.spec.ts", "src/**/*.deno.test.ts"]
+		"exclude": [
+			"src/**/*.test.ts",
+			"src/**/*.spec.ts",
+			"src/**/*.deno.test.ts",
+			"src/test-helpers.ts"
+		]
 	},
 	"test": {
 		"include": ["src/**/*.deno.test.ts"]

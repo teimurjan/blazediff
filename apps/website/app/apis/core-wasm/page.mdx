@@ -18,7 +18,7 @@ Ships ~32 KB of optimized wasm + ~10 KB of JS glue. No native binaries, no posti
 
 - **Same algorithm as `@blazediff/core-native`**: YIQ perceptual delta + block-based cold/hot pass
 - **wasm32 v128 SIMD** (`+simd128`): 4-lane vectorized cold and hot loops; up to ~16× faster than pixelmatch on 4K
-- **Buffers-only API**: caller decodes images, hands in `Uint8Array`. No PNG/JPEG codecs bundled
+- **Same API as `@blazediff/core`**: caller decodes images and hands in `{ data, width, height }`. No PNG/JPEG codecs bundled
 - **Runs anywhere wasm runs**: browsers (`fetch()` of the .wasm), Node (`fs.readFileSync` + bytes), Cloudflare Workers, Deno, Bun
 
 ## API Reference
@@ -45,12 +45,12 @@ import { initBlazediff } from '@blazediff/core-wasm';
 
 await initBlazediff(
   new URL(
-    'https://cdn.jsdelivr.net/npm/@blazediff/core-wasm@4.2.0/wasm/blazediff_bg.wasm',
+    'https://cdn.jsdelivr.net/npm/@blazediff/core-wasm@7.0.0/wasm/blazediff_bg.wasm',
   ),
 );
 ```
 
-Pin the version (`@4.2.0`) for reproducibility. `unpkg.com/@blazediff/core-wasm@4.2.0/wasm/blazediff_bg.wasm` works identically.
+Pin the version (`@7.0.0`). It must match the installed package, because the JS glue and the `.wasm` change together. `unpkg.com/@blazediff/core-wasm@7.0.0/wasm/blazediff_bg.wasm` works identically.
 
 **Bundlers (Vite, Webpack 5+, esbuild, Rollup with plugin)**. The `new URL(asset, import.meta.url)` pattern is bundler-aware: the asset is emitted into the build output and the URL is rewritten at build time:
 
@@ -89,39 +89,22 @@ const wasmPath = require.resolve(
 await initBlazediff(readFileSync(wasmPath));
 ```
 
-### `diff(a, b, width, height, output?, options?)`
+### `diff(a, b, options?)`
 
-Compares two RGBA pixel buffers and returns the number of differing pixels.
+Compares two RGBA images and resolves to a result object. The images, options, result and errors are the same as in [`@blazediff/core`](/apis/core): `threshold`, `antialiasing` (default `true`), `metric`, `mask`, `window`, `output` and `render`.
 
-#### Parameters
+```typescript
+const result = await diff(a, b, {
+  output: { data: out, width: a.width, height: a.height },
+  render: { diffColorAlt: [0, 128, 255] },
+});
 
-| Parameter | Type                  | Description                                              |
-| --------- | --------------------- | -------------------------------------------------------- |
-| `a`       | `Uint8Array`          | First image in RGBA8 order (`width * height * 4` bytes)  |
-| `b`       | `Uint8Array`          | Second image in RGBA8 order (same length)                |
-| `width`   | `number`              | Image width in pixels                                    |
-| `height`  | `number`              | Image height in pixels                                   |
-| `output`  | `Uint8Array \| undefined` | Optional diff visualization output (same length). Written in place |
-| `options` | `DiffOptions`         | Comparison options (optional)                            |
-
-##### Options
-
-| Option       | Type      | Default | Description                                              |
-| ------------ | --------- | ------- | -------------------------------------------------------- |
-| `threshold`  | `number`  | `0.1`   | Color difference threshold (0.0-1.0). Lower = more strict |
-| `includeAA`  | `boolean` | `false` | Count anti-aliased pixels as differences                 |
-| `diffMask`   | `boolean` | `false` | Render diff with transparent background instead of grayscale base |
-| `diffColorAlt` | `[number, number, number]` | diff color | Alternative RGB color for darkening differences |
+if (result.kind === 'compared') console.log(result.count, result.percentage);
+```
 
 <Callout type="info">
   **Threshold Guidelines:** `0.0` exact match · `0.05` strict · `0.1` default · `0.2` lenient
 </Callout>
-
-```typescript
-const diffCount = await diff(a, b, width, height, output, {
-  diffColorAlt: [0, 128, 255],
-});
-```
 
 <Callout type="info">
   Region analysis — *what* changed rather than where — is not part of this
@@ -153,11 +136,12 @@ const a = await toRgba('/baseline.png');
 const b = await toRgba('/current.png');
 const out = new Uint8Array(a.width * a.height * 4);
 
-const diffCount = await diff(a.data, b.data, a.width, a.height, out, {
+const result = await diff(a, b, {
   threshold: 0.1,
+  output: { data: out, width: a.width, height: a.height },
 });
 
-console.log(`${diffCount} pixels differ`);
+if (result.kind === 'compared') console.log(`${result.count} pixels differ`);
 ```
 
 ### Node
@@ -171,18 +155,13 @@ import { PNG } from 'pngjs';
 
 await initBlazediff(
   new URL(
-    'https://cdn.jsdelivr.net/npm/@blazediff/core-wasm@4.2.0/wasm/blazediff_bg.wasm',
+    'https://cdn.jsdelivr.net/npm/@blazediff/core-wasm@7.0.0/wasm/blazediff_bg.wasm',
   ),
 );
 
 const a = PNG.sync.read(readFileSync('baseline.png'));
 const b = PNG.sync.read(readFileSync('current.png'));
-const diffCount = await diff(
-  new Uint8Array(a.data),
-  new Uint8Array(b.data),
-  a.width,
-  a.height,
-);
+const result = await diff(a, b);
 ```
 
 ## Performance

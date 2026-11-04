@@ -1,38 +1,21 @@
 import { gmsd } from "@blazediff/gmsd";
 import type { ImageData, MatcherOptions } from "../types";
+import { blankLike } from "./pixel-result";
 
 export interface GmsdComparisonResult {
 	score: number;
 	diffOutput?: Uint8Array;
 }
 
-/**
- * Compare images using @blazediff/gmsd (Gradient Magnitude Similarity Deviation)
- * Returns GMSD score (0 = identical, higher = more different)
- */
+/** GMSD score (0 = identical, higher = more different); a size change scores 1. */
 export function compareGmsd(
 	received: ImageData,
 	baseline: ImageData,
 	generateDiff: boolean,
 	options: MatcherOptions,
 ): GmsdComparisonResult {
-	const { width, height } = received;
-	const totalPixels = width * height;
-
-	// Validate dimensions match
-	if (
-		received.width !== baseline.width ||
-		received.height !== baseline.height
-	) {
-		// Return high score indicating major difference
-		return { score: 1 };
-	}
-
-	const output = generateDiff ? new Uint8Array(totalPixels * 4) : undefined;
-
-	const score = gmsd(received.data, baseline.data, output, width, height, {
-		downsample: options.downsample,
-	});
-
-	return { score, diffOutput: output };
+	const output = generateDiff ? blankLike(received) : undefined;
+	const result = gmsd(received, baseline, { ...options.gmsd, output });
+	if (result.kind === "dimension-mismatch") return { score: 1 };
+	return { score: result.score, diffOutput: output?.data };
 }

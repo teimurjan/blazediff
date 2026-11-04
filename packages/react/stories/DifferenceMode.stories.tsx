@@ -18,7 +18,7 @@ const meta: Meta<typeof DifferenceMode> = {
 		alpha: {
 			control: { type: "range", min: 0, max: 1, step: 0.1 },
 		},
-		includeAA: {
+		antialiasing: {
 			control: "boolean",
 		},
 	},
@@ -32,7 +32,7 @@ export const Default: Story = {
 		src1: FIXTURE_1_A,
 		src2: FIXTURE_1_B,
 		threshold: 0.1,
-		includeAA: false,
+		antialiasing: true,
 		alpha: 0.1,
 	},
 };
@@ -42,7 +42,7 @@ export const WithEventHandlers: Story = {
 		src1: FIXTURE_1_A,
 		src2: FIXTURE_1_B,
 		threshold: 0.1,
-		includeAA: false,
+		antialiasing: true,
 		alpha: 0.1,
 		onDiffComplete: (detail) => {
 			console.log("Diff complete:", detail);

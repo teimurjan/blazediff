@@ -45,7 +45,7 @@ speed, not identical output.
 ## Switching
 
 honeydiff returns `different` and a `pixels.changed.total` count. BlazeDiff
-returns `match`, a `reason`, and a `diffCount`.
+returns a `kind`, `identical`, and a `count`.
 
 ```ts
 // Before
@@ -57,13 +57,11 @@ if (before.different) console.log(`${before.pixels.changed.total} pixels differ`
 
 ```ts
 // After
-import { compare } from "@blazediff/core-native";
+import { diff } from "@blazediff/core-native";
 
-const after = await compare("baseline.png", "current.png", "diff.png", {
-  antialiasing: true,
-});
-if (!after.match && after.reason === "pixel-diff") {
-  console.log(`${after.diffCount} pixels differ`);
+const after = await diff("baseline.png", "current.png", { output: "diff.png" });
+if (after.kind === "compared" && !after.identical) {
+  console.log(`${after.count} pixels differ`);
 }
 ```
 

@@ -41,7 +41,7 @@ async function loadRgba(url: string) {
 
 ## Examples
 
-<Tabs items={['Basic Comparison', 'Custom Threshold', 'Diff Mask']}>
+<Tabs items={['Basic Comparison', 'Custom Threshold', 'Transparent Background']}>
   <Tabs.Tab>
 
     <DiffImageComparison
@@ -56,9 +56,9 @@ await initBlazediff(); // loads the sibling .wasm; call once
 
 const a = await loadRgba("3a.png");
 const b = await loadRgba("3b.png");
-const output = new Uint8Array(a.width * a.height * 4);
+const output = { data: new Uint8Array(a.width * a.height * 4), width: a.width, height: a.height };
 
-const diffCount = await diff(a.data, b.data, a.width, a.height, output);
+const result = await diff(a, b, { output });
 ```
 
   </Tabs.Tab>
@@ -78,11 +78,9 @@ await initBlazediff();
 
 const a = await loadRgba("3a.png");
 const b = await loadRgba("3b.png");
-const output = new Uint8Array(a.width * a.height * 4);
+const output = { data: new Uint8Array(a.width * a.height * 4), width: a.width, height: a.height };
 
-const diffCount = await diff(a.data, b.data, a.width, a.height, output, {
-  threshold: 0.5,
-});
+const result = await diff(a, b, { output, threshold: 0.5 });
 ```
 
   </Tabs.Tab>
@@ -92,6 +90,7 @@ const diffCount = await diff(a.data, b.data, a.width, a.height, output, {
     <DiffImageComparison
       fixtureA="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3a.png"
       fixtureB="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3b.png"
+      options={{ render: { background: "transparent" } }}
     />
 
 ```ts
@@ -101,12 +100,10 @@ await initBlazediff();
 
 const a = await loadRgba("3a.png");
 const b = await loadRgba("3b.png");
-const output = new Uint8Array(a.width * a.height * 4);
+const output = { data: new Uint8Array(a.width * a.height * 4), width: a.width, height: a.height };
 
-// diffMask renders changes on a transparent background instead of grayscale
-const diffCount = await diff(a.data, b.data, a.width, a.height, output, {
-  diffMask: true,
-});
+// A transparent background shows the changes alone, without the gray copy of a.
+const result = await diff(a, b, { output, render: { background: "transparent" } });
 ```
 
   </Tabs.Tab>

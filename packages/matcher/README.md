@@ -124,46 +124,22 @@ Main function for snapshot comparison.
     <td>Force update snapshots (like running with -u flag)</td>
   </tr>
   <tr>
-    <td><code>threshold</code></td>
-    <td>number</td>
-    <td>0.1</td>
-    <td>Color difference threshold for core/core-native methods (0-1)</td>
+    <td><code>diff</code></td>
+    <td>Omit&lt;DiffOptions, "output"&gt;</td>
+    <td>-</td>
+    <td><code>threshold</code>, <code>antialiasing</code> (default true), <code>metric</code>, <code>mask</code>, <code>window</code> and <code>render</code>. See <code>@blazediff/core</code>. Used by core, core-wasm and core-native.</td>
   </tr>
   <tr>
-    <td><code>antialiasing</code></td>
-    <td>boolean</td>
-    <td>false</td>
-    <td>Enable anti-aliasing detection (core-native method)</td>
+    <td><code>ssim</code></td>
+    <td>Omit&lt;SsimOptions, "output"&gt;</td>
+    <td>-</td>
+    <td><code>windowSize</code>, <code>k1</code>, <code>k2</code>, <code>bitDepth</code>, <code>msSsim</code> and <code>hitchhikers</code>. See <code>@blazediff/ssim</code>. Used by ssim, msssim and hitchhikers-ssim.</td>
   </tr>
   <tr>
-    <td><code>includeAA</code></td>
-    <td>boolean</td>
-    <td>false</td>
-    <td>Include anti-aliased pixels in diff count (core method)</td>
-  </tr>
-  <tr>
-    <td><code>windowSize</code></td>
-    <td>number</td>
-    <td>11</td>
-    <td>Window size for SSIM variants</td>
-  </tr>
-  <tr>
-    <td><code>k1</code></td>
-    <td>number</td>
-    <td>0.01</td>
-    <td>k1 constant for SSIM</td>
-  </tr>
-  <tr>
-    <td><code>k2</code></td>
-    <td>number</td>
-    <td>0.03</td>
-    <td>k2 constant for SSIM</td>
-  </tr>
-  <tr>
-    <td><code>downsample</code></td>
-    <td>0 | 1</td>
-    <td>0</td>
-    <td>Downsample factor for GMSD</td>
+    <td><code>gmsd</code></td>
+    <td>Omit&lt;GmsdOptions, "output"&gt;</td>
+    <td>-</td>
+    <td><code>downsample</code> and <code>c</code>. See <code>@blazediff/gmsd</code>. Used by gmsd.</td>
   </tr>
   <tr>
     <td><code>runInWorker</code></td>
@@ -233,6 +209,7 @@ Main function for snapshot comparison.
 ```typescript
 type ImageInput =
   | string // File path
+  | Uint8Array // Encoded PNG bytes (a Buffer works)
   | {
       data: Uint8Array | Uint8ClampedArray | Buffer;
       width: number;
@@ -244,9 +221,13 @@ type ImageInput =
 
 ### `core-native`
 Rust-native comparison via N-API bindings. **Fastest method** with native performance.
-- **Input**: File paths only
+- **Input**: File paths, PNG buffers or raw RGBA images
 - **Algorithm**: YIQ color space with block-based optimization
 - **Best for**: Production testing, large images
+
+### `core-wasm`
+The `core-native` algorithm compiled to WebAssembly. Same results, no native binaries.
+- **Input**: File paths or buffers
 
 ### `core`
 Pixel-by-pixel comparison in JavaScript. Pure JS implementation with no native dependencies.
@@ -317,6 +298,7 @@ const result = await getOrCreateSnapshot(
     method: 'core',
     failureThreshold: 0.1,
     failureThresholdType: 'percent', // Allow 0.1% difference
+    diff: { threshold: 0.05 }, // Stricter per-pixel color threshold
   },
   { testPath: __filename, testName: 'test name' }
 );
@@ -325,7 +307,7 @@ const result = await getOrCreateSnapshot(
 ### Different Comparison Methods
 
 ```typescript
-// Fastest - Rust native (file paths only)
+// Fastest - Rust native (paths, PNG buffers or raw images)
 await getOrCreateSnapshot(imagePath, { method: 'core-native' }, context);
 
 // Pure JavaScript

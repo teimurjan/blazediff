@@ -47,7 +47,7 @@ async function main() {
 		const { a, b } = pair;
 
 		bench.add(`core-wasm - ${pairs[i].name}`, async () => {
-			await coreWasmDiff(a.data, b.data, a.width, a.height);
+			await coreWasmDiff(a, b);
 		});
 
 		bench.add(`pixelmatch - ${pairs[i].name}`, () => {

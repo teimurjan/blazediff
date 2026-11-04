@@ -5,12 +5,6 @@
     "jsr:@std/internal@^1.0.12": "1.0.12",
     "jsr:@std/path@*": "1.1.4",
     "npm:@biomejs/biome@2.2.4": "2.2.4",
-    "npm:@blazediff/core-native-darwin-arm64@4.2.0": "4.2.0",
-    "npm:@blazediff/core-native-darwin-x64@4.2.0": "4.2.0",
-    "npm:@blazediff/core-native-linux-arm64@4.2.0": "4.2.0",
-    "npm:@blazediff/core-native-linux-x64@4.2.0": "4.2.0",
-    "npm:@blazediff/core-native-win32-arm64@4.2.0": "4.2.0",
-    "npm:@blazediff/core-native-win32-x64@4.2.0": "4.2.0",
     "npm:@changesets/changelog-git@~0.2.1": "0.2.1",
     "npm:@changesets/cli@^2.29.6": "2.31.0_@types+node@24.13.2",
     "npm:@huggingface/transformers@^4.2.0": "4.2.0",
@@ -9942,6 +9936,7 @@
       "apps/image-benchmark": {
         "packageJson": {
           "dependencies": [
+            "npm:@jsquash/png@3.1.1",
             "npm:@types/node@^24.3.0",
             "npm:@vizzly-testing/honeydiff@0.17",
             "npm:odiff-bin@^4.3.8",
@@ -10092,11 +10087,11 @@
           "jsr:@blazediff/codec-jsquash-png@^0.0.1",
           "jsr:@blazediff/codec-pngjs@4",
           "jsr:@blazediff/codec-sharp@4",
-          "jsr:@blazediff/core-native@^4.2.0",
-          "jsr:@blazediff/core@^1.9.1",
-          "jsr:@blazediff/gmsd@^1.7.1",
-          "jsr:@blazediff/ssim@^1.7.1",
-          "npm:@blazediff/interpret-native@^5.4.0"
+          "jsr:@blazediff/core-native@7",
+          "jsr:@blazediff/core@2",
+          "jsr:@blazediff/gmsd@2",
+          "jsr:@blazediff/ssim@2",
+          "npm:@blazediff/interpret-native@7"
         ],
         "packageJson": {
           "dependencies": [
@@ -10183,6 +10178,7 @@
             "npm:@types/node@^24.3.0",
             "npm:@types/pngjs@^6.0.5",
             "npm:@vitest/coverage-v8@^3.2.4",
+            "npm:pixelmatch@8.0.0",
             "npm:pngjs@7",
             "npm:tsup@8.5.0",
             "npm:typescript@5.9.2",
@@ -10192,12 +10188,13 @@
       },
       "packages/core-native/core-native": {
         "dependencies": [
-          "npm:@blazediff/core-native-darwin-arm64@4.2.0",
-          "npm:@blazediff/core-native-darwin-x64@4.2.0",
-          "npm:@blazediff/core-native-linux-arm64@4.2.0",
-          "npm:@blazediff/core-native-linux-x64@4.2.0",
-          "npm:@blazediff/core-native-win32-arm64@4.2.0",
-          "npm:@blazediff/core-native-win32-x64@4.2.0"
+          "jsr:@blazediff/core@2",
+          "npm:@blazediff/core-native-darwin-arm64@7.0.0",
+          "npm:@blazediff/core-native-darwin-x64@7.0.0",
+          "npm:@blazediff/core-native-linux-arm64@7.0.0",
+          "npm:@blazediff/core-native-linux-x64@7.0.0",
+          "npm:@blazediff/core-native-win32-arm64@7.0.0",
+          "npm:@blazediff/core-native-win32-x64@7.0.0"
         ],
         "packageJson": {
           "dependencies": [
@@ -10211,6 +10208,9 @@
         }
       },
       "packages/core-wasm": {
+        "dependencies": [
+          "jsr:@blazediff/core@2"
+        ],
         "packageJson": {
           "dependencies": [
             "npm:@types/node@^24.3.0",
@@ -10236,12 +10236,12 @@
       },
       "packages/interpret-native/interpret-native": {
         "dependencies": [
-          "npm:@blazediff/interpret-native-darwin-arm64@5.4.0",
-          "npm:@blazediff/interpret-native-darwin-x64@5.4.0",
-          "npm:@blazediff/interpret-native-linux-arm64@5.4.0",
-          "npm:@blazediff/interpret-native-linux-x64@5.4.0",
-          "npm:@blazediff/interpret-native-win32-arm64@5.4.0",
-          "npm:@blazediff/interpret-native-win32-x64@5.4.0"
+          "npm:@blazediff/interpret-native-darwin-arm64@7.0.0",
+          "npm:@blazediff/interpret-native-darwin-x64@7.0.0",
+          "npm:@blazediff/interpret-native-linux-arm64@7.0.0",
+          "npm:@blazediff/interpret-native-linux-x64@7.0.0",
+          "npm:@blazediff/interpret-native-win32-arm64@7.0.0",
+          "npm:@blazediff/interpret-native-win32-x64@7.0.0"
         ],
         "packageJson": {
           "dependencies": [
@@ -10281,10 +10281,10 @@
       "packages/matcher": {
         "dependencies": [
           "jsr:@blazediff/codec-pngjs@4",
-          "jsr:@blazediff/core-native@^4.2.0",
-          "jsr:@blazediff/core@^1.9.1",
-          "jsr:@blazediff/gmsd@^1.7.1",
-          "jsr:@blazediff/ssim@^1.7.1",
+          "jsr:@blazediff/core-native@7",
+          "jsr:@blazediff/core@2",
+          "jsr:@blazediff/gmsd@2",
+          "jsr:@blazediff/ssim@2",
           "npm:picocolors@^1.1.1"
         ],
         "packageJson": {

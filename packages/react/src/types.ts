@@ -10,7 +10,7 @@ export interface BaseBlazeDiffProps {
 export interface DifferenceModeProps extends BaseBlazeDiffProps {
 	diff?: Uint8Array;
 	threshold?: number;
-	includeAA?: boolean;
+	antialiasing?: boolean;
 	alpha?: number;
 	canvasClassName?: string;
 	onDiffComplete?: (detail: {

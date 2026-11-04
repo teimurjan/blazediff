@@ -26,6 +26,9 @@
 		"test": "vitest run",
 		"test:watch": "vitest"
 	},
+	"dependencies": {
+		"@blazediff/core": "workspace:*"
+	},
 	"optionalDependencies": {
 		"@blazediff/core-native-darwin-arm64": "6.0.2",
 		"@blazediff/core-native-darwin-x64": "6.0.2",
@@ -52,7 +55,6 @@
 	"homepage": "https://blazediff.dev",
 	"license": "MIT",
 	"devDependencies": {
-		"@blazediff/core": "workspace:*",
 		"@types/node": "^24.3.0",
 		"@types/pngjs": "^6.0.5",
 		"pngjs": "^7.0.0",

@@ -11,7 +11,6 @@ import {
 	normalizeImageInput,
 	runComparison,
 	savePNG,
-	validateMethodSupportsInput,
 } from "./index";
 import type { ImageData, MatcherOptions } from "./types";
 
@@ -170,31 +169,6 @@ describe("image-io", () => {
 	});
 });
 
-describe("validateMethodSupportsInput", () => {
-	it("should not throw for bin method with file path", () => {
-		expect(() =>
-			validateMethodSupportsInput("core-native", "/path/to/image.png"),
-		).not.toThrow();
-	});
-
-	it("should throw for bin method with buffer", () => {
-		const img = createTestImage(10, 10);
-		expect(() => validateMethodSupportsInput("core-native", img)).toThrow(
-			"Method 'core-native' only supports file paths",
-		);
-	});
-
-	it("should not throw for core method with buffer", () => {
-		const img = createTestImage(10, 10);
-		expect(() => validateMethodSupportsInput("core", img)).not.toThrow();
-	});
-
-	it("should not throw for ssim method with buffer", () => {
-		const img = createTestImage(10, 10);
-		expect(() => validateMethodSupportsInput("ssim", img)).not.toThrow();
-	});
-});
-
 describe("runComparison", () => {
 	describe("core method", () => {
 		it("should return 0 diff for identical images", async () => {
@@ -290,7 +264,7 @@ describe("runComparison", () => {
 		});
 	});
 
-	describe("bin method", () => {
+	describe("core-native method", () => {
 		beforeEach(() => {
 			if (!existsSync(TEMP_DIR)) {
 				mkdirSync(TEMP_DIR, { recursive: true });
@@ -320,28 +294,68 @@ describe("runComparison", () => {
 			expect(result.diffCount).toBeGreaterThan(0);
 		});
 
-		it("should throw for buffer input", async () => {
-			const img = createTestImage(10, 10);
-			await expect(
-				runComparison(img, img, "core-native", { method: "core-native" }),
-			).rejects.toThrow("Method 'core-native' only supports file paths");
+		it("should compare raw RGBA images", async () => {
+			const img1 = createTestImage(100, 100, [0, 0, 0, 255]);
+			const img2 = createTestImage(100, 100, [255, 255, 255, 255]);
+			const same = await runComparison(img1, img1, "core-native", {
+				method: "core-native",
+			});
+			const different = await runComparison(img1, img2, "core-native", {
+				method: "core-native",
+			});
+			expect(same.diffCount).toBe(0);
+			expect(different.diffCount).toBe(10000);
 		});
 
-		it("should throw for raw PNG buffer input", async () => {
-			const pngBuffer = readFileSync(join(FIXTURES_PATH, "same/1a.png"));
+		it("should compare encoded PNG buffers and mixed inputs", async () => {
+			const path1 = join(FIXTURES_PATH, "pixelmatch/1a.png");
+			const path2 = join(FIXTURES_PATH, "pixelmatch/1b.png");
+			const options: MatcherOptions = { method: "core-native" };
+			const fromPaths = await runComparison(
+				path1,
+				path2,
+				"core-native",
+				options,
+			);
+			const fromBuffers = await runComparison(
+				readFileSync(path1),
+				readFileSync(path2),
+				"core-native",
+				options,
+			);
+			const mixed = await runComparison(
+				await loadPNG(path1),
+				path2,
+				"core-native",
+				options,
+			);
+			expect(fromBuffers.diffCount).toBe(fromPaths.diffCount);
+			expect(mixed.diffCount).toBe(fromPaths.diffCount);
+		});
+
+		it("should match the core method with the same options", async () => {
+			const a = await loadPNG(join(FIXTURES_PATH, "pixelmatch/1a.png"));
+			const b = await loadPNG(join(FIXTURES_PATH, "pixelmatch/1b.png"));
+			for (const diff of [{}, { metric: "oklab" as const }]) {
+				const core = await runComparison(a, b, "core", {
+					method: "core",
+					diff,
+				});
+				const native = await runComparison(a, b, "core-native", {
+					method: "core-native",
+					diff,
+				});
+				expect(native.diffCount).toBe(core.diffCount);
+			}
+		});
+
+		it("should throw for a missing file", async () => {
+			const missing = join(TEMP_DIR, "missing.png");
 			await expect(
-				runComparison(pngBuffer, pngBuffer, "core-native", {
+				runComparison(missing, missing, "core-native", {
 					method: "core-native",
 				}),
-			).rejects.toThrow("Method 'core-native' only supports file paths");
-		});
-
-		it("should throw when mixing buffer and file path", async () => {
-			const img = createTestImage(10, 10);
-			const filePath = join(FIXTURES_PATH, "same/1a.png");
-			await expect(
-				runComparison(img, filePath, "core-native", { method: "core-native" }),
-			).rejects.toThrow("Method 'core-native' only supports file paths");
+			).rejects.toThrow(missing);
 		});
 	});
 
@@ -411,22 +425,22 @@ describe("runComparison", () => {
 	});
 
 	describe("method options", () => {
-		it("should pass threshold option to core method", async () => {
+		it("should pass diff options to the core method", async () => {
 			const img1 = createTestImage(100, 100, [100, 100, 100, 255]);
 			const img2 = createTestImage(100, 100, [110, 100, 100, 255]);
 
 			const result = await runComparison(img1, img2, "core", {
 				method: "core",
-				threshold: 0.5,
+				diff: { threshold: 0.5 },
 			});
 			expect(result.diffCount).toBe(0);
 		});
 
-		it("should pass windowSize option to ssim method", async () => {
+		it("should pass ssim options to the ssim method", async () => {
 			const img = createTestImage(100, 100);
 			const result = await runComparison(img, img, "ssim", {
 				method: "ssim",
-				windowSize: 7,
+				ssim: { windowSize: 7 },
 			});
 			expect(result.score).toBeCloseTo(1, 2);
 		});

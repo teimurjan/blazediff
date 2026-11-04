@@ -53,15 +53,15 @@ b = cv2.imread("current.png", cv2.IMREAD_GRAYSCALE)
 changed = np.count_nonzero(cv2.absdiff(a, b))
 
 # After
-from blazediff import compare
+from blazediff import diff
 
-result = compare("baseline.png", "current.png", "diff.png", threshold=0.1, antialiasing=True)
-if not result.match and result.reason == "pixel-diff":
-    print(f"{result.diff_count} pixels differ")
+result = diff("baseline.png", "current.png", "diff.png", threshold=0.1)
+if result.kind == "compared" and not result.identical:
+    print(f"{result.count} pixels differ")
 ```
 
-`compare` returns `reason == "layout-diff"` when the two images differ in size,
-where `cv2.absdiff` raises an error.
+`diff` returns `kind == "dimension-mismatch"` when the two images differ in
+size, where `cv2.absdiff` raises an error.
 
 ## When to keep OpenCV
 

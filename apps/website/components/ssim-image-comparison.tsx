@@ -57,22 +57,15 @@ export default function SsimImageComparison({
 
 			const diffData = diffCtx.createImageData(canvas1.width, canvas1.height);
 
-			const score =
-				variant === "ssim"
-					? ssim(
-							data1.data,
-							data2.data,
-							diffData.data,
-							canvas1.width,
-							canvas1.height,
-						)
-					: hitchhikersSSIM(
-							data1.data,
-							data2.data,
-							diffData.data,
-							canvas1.width,
-							canvas1.height,
-						);
+			const result = (variant === "ssim" ? ssim : hitchhikersSSIM)(
+				data1,
+				data2,
+				{ output: diffData },
+			);
+			if (result.kind !== "compared") {
+				throw new Error("Images have different dimensions");
+			}
+			const { score } = result;
 
 			diffCtx.putImageData(diffData, 0, 0);
 			setDiffImageUrl(diffCanvas.toDataURL());

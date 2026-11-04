@@ -36,16 +36,19 @@ Pre-built binaries (via `cargo install`) and crate sources are available on [cra
 
 ```sh
 # Basic diff
-blazediff image1.png image2.png diff.png
+blazediff image1.png image2.png -o diff.png
 
 # Custom threshold (0.0 - 1.0)
-blazediff image1.png image2.png diff.png -t 0.05
+blazediff image1.png image2.png -o diff.png -t 0.05
 
 # JPEG comparison
-blazediff a.jpg b.jpg diff.jpg -q 85
+blazediff a.jpg b.jpg -o diff.jpg -q 85
 
 # QOI diff output (12x smaller than PNG, faster encode)
-blazediff a.png b.png diff.qoi
+blazediff a.png b.png -o diff.qoi
+
+# pixelmatch 8 metric and the busiest 16×16 window, as JSON
+blazediff a.png b.png --metric oklab --window 16 --json
 
 # Structured interpretation (separate crate and binary)
 blazediff-interpret a.png b.png --json
@@ -54,29 +57,32 @@ blazediff-interpret a.png b.png --json
 ### CLI Options
 
 ```sh
-blazediff [OPTIONS] <IMAGE1> <IMAGE2> [OUTPUT]
-
-Arguments:
-  <IMAGE1>  First image path (PNG, JPEG, or QOI)
-  <IMAGE2>  Second image path (PNG, JPEG, or QOI)
-  [OUTPUT]  Output diff image path (optional, format detected from extension)
+Usage: blazediff [OPTIONS] <A> <B>
 
 Options:
-  -t, --threshold <THRESHOLD>  Color difference threshold (0.0-1.0) [default: 0.1]
-  -a, --antialiasing           Enable anti-aliasing detection
-      --diff-mask              Output only differences (transparent background)
-      --diff-color-alt <R,G,B> Alternative RGB color for darkening differences
-  -c, --compression <LEVEL>    PNG compression level (0-9) [default: 0]
-  -q, --quality <QUALITY>      JPEG quality (1-100) [default: 90]
-      --output-format <FORMAT> Output format (json or text) [default: json]
-  -h, --help                   Print help
-  -V, --version                Print version
+  -o, --output <OUTPUT>            Write the diff image here (only when the images differ)
+  -t, --threshold <THRESHOLD>      Color difference threshold (0.0-1.0) [default: 0.1]
+      --antialiasing               Detect anti-aliased pixels and leave them out of the count (default)
+      --no-antialiasing            Count anti-aliased pixels as differences
+      --metric <METRIC>            Color difference metric: yiq or oklab (pixelmatch 8) [default: yiq]
+      --mask <MASK>                Image the size of the inputs; its non-black pixels are skipped
+      --window <WINDOW>            Also report the N×N window with the most diff pixels
+  -a, --alpha <ALPHA>              Opacity of the faded background (0.0-1.0) [default: 0.1]
+      --diff-color <R,G,B>         RGB color for differing pixels
+      --diff-color-alt <R,G,B>     RGB color for pixels that get darker in the second image
+      --aa-color <R,G,B>           RGB color for anti-aliased pixels
+      --background <BACKGROUND>    faded or transparent [default: faded]
+  -c, --compression <COMPRESSION>  PNG compression level (0-9) [default: 0]
+  -q, --quality <QUALITY>          JPEG quality (1-100) [default: 90]
+      --json                       Print the result as JSON
+  -h, --help                       Print help
+  -V, --version                    Print version
 ```
 
 ### Exit Codes
 
 - `0` - Images are identical
-- `1` - Images differ (includes layout/size mismatch)
+- `1` - Images differ (includes a dimension mismatch)
 - `2` - Error (file not found, invalid format, etc.)
 
 ## Library Usage
@@ -84,22 +90,25 @@ Options:
 The crate exposes `diff()` plus codec helpers for PNG, JPEG, and QOI. Decode once, diff in memory, encode if you want a diff image.
 
 ```rust
-use blazediff::{diff, load_pngs, save_png, DiffOptions, Image};
+use blazediff::{diff, load_pngs, save_png, DiffOptions, DiffResult, Image};
 
 let (img1, img2) = load_pngs("expected.png", "actual.png")?;
 
 let options = DiffOptions {
     threshold: 0.1,
-    include_aa: true,
+    antialiasing: false, // count anti-aliased pixels too
     ..Default::default()
 };
 
-let mut output = Image::new_uninit(img1.width, img1.height);
-let result = diff(&img1, &img2, Some(&mut output), &options)?;
-
-println!("{} pixels differ ({:.2}%)", result.diff_count, result.diff_percentage);
-if !result.identical {
-    save_png(&output, "diff.png")?;
+let mut output = Image::new(img1.width, img1.height);
+match diff(&img1, &img2, Some(&mut output), &options)? {
+    DiffResult::Compared { count, percentage, identical, .. } => {
+        println!("{count} pixels differ ({percentage:.2}%)");
+        if !identical {
+            save_png(&output, "diff.png")?;
+        }
+    }
+    DiffResult::DimensionMismatch { a, b } => println!("Sizes differ: {a:?} vs {b:?}"),
 }
 ```
 
@@ -107,22 +116,31 @@ if !result.identical {
 
 ```rust
 pub struct DiffOptions {
-    pub threshold: f64,           // 0.0-1.0, default 0.1
-    pub include_aa: bool,         // count anti-aliased pixels as diffs
-    pub alpha: f64,               // background opacity, default 0.1
-    pub aa_color: [u8; 3],        // default yellow [255, 255, 0]
-    pub diff_color: [u8; 3],      // default red   [255, 0, 0]
-    pub diff_color_alt: Option<[u8; 3]>,
-    pub diff_mask: bool,          // transparent background mode
-    pub compression: u8,          // PNG compression 0-9 (0 = fastest)
+    pub threshold: f64,         // 0.0-1.0, default 0.1
+    pub antialiasing: bool,     // detect and exclude anti-aliased pixels, default true
+    pub metric: Metric,         // Yiq (default) or Oklab (pixelmatch 8)
+    pub mask: Option<Vec<u8>>,  // one byte per pixel; non-zero is skipped
+    pub window: Option<u32>,    // also report the busiest N×N window
+    pub render: RenderOptions,
 }
 
-pub struct DiffResult {
-    pub diff_count: u32,
-    pub diff_percentage: f64,
-    pub identical: bool,
+pub struct RenderOptions {
+    pub alpha: f64,                      // background opacity, default 0.1
+    pub diff_color: [u8; 3],             // default red    [255, 0, 0]
+    pub diff_color_alt: Option<[u8; 3]>, // pixels that get darker in the second image
+    pub aa_color: [u8; 3],               // default yellow [255, 255, 0]
+    pub background: Background,          // Faded (default) or Transparent
 }
+
+pub enum DiffResult {
+    Compared { count: u32, percentage: f64, identical: bool, window: Option<WindowHit> },
+    DimensionMismatch { a: Size, b: Size },
+}
+
+pub struct WindowHit { pub x: u32, pub y: u32, pub count: u32 } // top-left corner and count
 ```
+
+`diff` returns `Err` only for buffers that do not match their size and masks of the wrong length. PNG compression is an argument of `save_png_with_compression`, not a diff option.
 
 ### Codec helpers
 

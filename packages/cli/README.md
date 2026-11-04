@@ -29,36 +29,37 @@ BlazeDiff supports multiple comparison algorithms, each optimized for different 
 The fastest option. Uses the native Rust binary with SIMD optimization for maximum performance.
 
 ```bash
-blazediff-cli image1.png image2.png diff.png [options]
+blazediff-cli image1.png image2.png -o diff.png [options]
 # Or explicitly:
-blazediff-cli core-native image1.png image2.png diff.png [options]
+blazediff-cli core-native image1.png image2.png -o diff.png [options]
 ```
 
-**Options:**
-- `-t, --threshold <num>` - Color difference threshold (0 to 1, default: 0.1)
-- `-a, --antialiasing` - Enable anti-aliasing detection
-- `--diff-mask` - Output only differences (transparent background)
-- `-c, --compression <num>` - PNG compression level (0-9, default: 0)
-- `-h, --help` - Show help message
+`core-native`, `core` and `core-wasm` take the same flags as the Rust `blazediff` CLI:
 
-### `core` - JavaScript pixel comparison
-Pure JavaScript implementation. Slower than `core-native` but offers more customization options.
+- `-o, --output <path>` - Output path for the diff image
+- `-t, --threshold <num>` - Matching threshold (0 to 1, default: 0.1)
+- `--no-antialiasing` - Count anti-aliased pixels as differences (detection is on by default)
+- `--metric <name>` - Color metric: yiq (default) or oklab (pixelmatch 8)
+- `--mask <path>` - Image whose non-black pixels are skipped
+- `--window <n>` - Also report the n×n window with the most differences
+- `-a, --alpha <num>` - Opacity of the original image in the diff (default: 0.1)
+- `--diff-color <r,g,b>` - Color for different pixels (default: 255,0,0)
+- `--diff-color-alt <r,g,b>` - Color for pixels that get darker (default: diff color)
+- `--aa-color <r,g,b>` - Color for anti-aliased pixels (default: 255,255,0)
+- `--background <faded|transparent>` - What the diff image shows under the diff (default: faded)
+- `--json` - Print the result object as JSON
+
+`core-native` also takes `--compression <0-9>` and `--quality <1-100>`. `core` and `core-wasm` also take `--codec <pngjs|sharp|jsquash-png>`.
+
+Exit codes: 0 identical, 1 the images differ or their dimensions do not match, 2 error.
+
+### `core` and `core-wasm` - JavaScript and WebAssembly pixel comparison
+No native dependencies. `core-wasm` runs the same Rust algorithm as `core-native`.
 
 ```bash
 blazediff-cli core image1.png image2.png [options]
+blazediff-cli core-wasm image1.png image2.png [options]
 ```
-
-**Options:**
-- `-o, --output <path>` - Output path for the diff image
-- `-t, --threshold <num>` - Matching threshold (0 to 1, default: 0.1)
-- `-a, --alpha <num>` - Opacity of original image in diff (default: 0.1)
-- `--aa-color <r,g,b>` - Color for anti-aliased pixels (default: 255,255,0)
-- `--diff-color <r,g,b>` - Color for different pixels (default: 255,0,0)
-- `--diff-color-alt <r,g,b>` - Alternative color for dark differences
-- `--include-aa` - Include anti-aliasing detection
-- `--diff-mask` - Draw diff over transparent background
-- `--codec <name>` - Specify codec to use (pngjs, sharp, jsquash-png)
-- `-h, --help` - Show help message
 
 ### `gmsd` - Gradient Magnitude Similarity Deviation
 Perceptual quality metric based on gradient similarity.

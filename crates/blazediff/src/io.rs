@@ -41,3 +41,11 @@ pub fn save_png_with_compression<P: AsRef<Path>>(
 pub fn encode_png(image: &Image, compression_level: i32) -> Result<Vec<u8>, DiffError> {
     Ok(blazediff_shared::encode_png(image, compression_level)?)
 }
+
+/// The first of `paths` that fails to load on its own, to name the culprit
+/// after a paired load fails. `None` when both load.
+pub fn failing_path(paths: [&str; 2]) -> Option<&str> {
+    paths
+        .into_iter()
+        .find(|path| blazediff_shared::load_image(path).is_err())
+}
