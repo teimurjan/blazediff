@@ -1,12 +1,5 @@
 # @blazediff/ui
 
-## 2.2.1
-
-### Patch Changes
-
-- Updated dependencies [ff5b3d2]
-  - @blazediff/core@2.0.0
-
 ## 2.2.0
 
 ### Minor Changes
