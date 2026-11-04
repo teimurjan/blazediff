@@ -45,30 +45,30 @@ counted against it. "BlazeDiff Next" is the same binary with the
 
 ## Switching
 
-The result is a discriminated union in both libraries: `match`, then a `reason`
-of `layout-diff`, `pixel-diff` or `file-not-exists`, with `diffCount` and
-`diffPercentage` on a pixel diff.
+Both libraries return a discriminated union. odiff uses `match` and a `reason`.
+BlazeDiff uses a `kind` of `compared`, `dimension-mismatch` or `io-error`, with
+`count`, `percentage` and `identical` when the images were compared.
 
 ```ts
 // Before
 import { compare } from "odiff-bin";
 // After
-import { compare } from "@blazediff/core-native";
+import { diff } from "@blazediff/core-native";
 
-const result = await compare("baseline.png", "current.png", "diff.png", {
+const result = await diff("baseline.png", "current.png", {
+  output: "diff.png",
   threshold: 0.1,
-  antialiasing: true,
 });
 
-if (!result.match && result.reason === "pixel-diff") {
-  console.log(`${result.diffCount} pixels differ`);
+if (result.kind === "compared" && !result.identical) {
+  console.log(`${result.count} pixels differ`);
 }
 ```
 
 <Callout type="info">
-  odiff options such as `ignoreRegions`, `captureDiffLines` and
-  `reduceRamUsage` have no direct counterpart. Remove them, or mask the
-  regions before the diff.
+  For odiff's `ignoreRegions`, pass a `mask`: one byte per pixel, non-zero
+  pixels are skipped. `captureDiffLines` and `reduceRamUsage` have no direct
+  counterpart, so remove them.
 </Callout>
 
 ## When to keep odiff

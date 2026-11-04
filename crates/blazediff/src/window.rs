@@ -1,25 +1,32 @@
-//! `window_size`: the largest diff count in any N×N window (pixelmatch 8).
+//! `window`: the N×N window with the most diff pixels (pixelmatch 8's `windowSize`).
 
-/// Window side for `window_size`, clamped to [1, min(width, height)].
-pub(crate) fn window_side(window_size: Option<u32>, width: u32, height: u32) -> Option<u32> {
-    window_size.map(|n| n.max(1).min(width).min(height))
+use crate::types::WindowHit;
+
+/// Window side for `window`, clamped to [1, min(width, height)].
+pub(crate) fn window_side(window: Option<u32>, width: u32, height: u32) -> Option<u32> {
+    window.map(|n| n.max(1).min(width).min(height))
 }
 
-/// Largest number of counted diff pixels (`diff_map[i] == 1`) in any n×n
-/// window. Only rows `min_y..=max_y` hold diffs, so the scan stays in the
+/// The n×n window with the most counted diff pixels (`diff_map[i] == 1`):
+/// its top-left corner and count. Ties keep the first window in row-major
+/// order. Only rows `min_y..=max_y` hold diffs, so the scan stays in the
 /// bands that can be non-zero.
-pub(crate) fn max_window_count(
+pub(crate) fn max_window(
     diff_map: &[u8],
     width: u32,
     height: u32,
     n: u32,
     min_y: u32,
     max_y: u32,
-) -> u32 {
+) -> WindowHit {
     let (width, n) = (width as usize, n as usize);
     let mut col_sum = vec![0u32; width];
     let y_end = (height as usize - 1).min(max_y as usize + n - 1);
-    let mut max_count = 0u32;
+    let mut best = WindowHit {
+        x: 0,
+        y: 0,
+        count: 0,
+    };
     // Diff pixels in the current n-row band: an upper bound for every window in it.
     let mut band_total = 0u32;
 
@@ -41,28 +48,38 @@ pub(crate) fn max_window_count(
             }
         }
 
-        if band_total <= max_count {
+        if band_total <= best.count {
             continue;
         }
 
         let mut window_sum: u32 = col_sum[..n - 1].iter().sum();
         for x in n - 1..width {
             window_sum += col_sum[x];
-            max_count = max_count.max(window_sum);
+            if window_sum > best.count {
+                best = WindowHit {
+                    x: (x + 1 - n) as u32,
+                    y: (y + 1 - n) as u32,
+                    count: window_sum,
+                };
+            }
             window_sum -= col_sum[x + 1 - n];
         }
     }
 
-    max_count
+    best
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    fn brute(map: &[u8], width: u32, height: u32, n: u32) -> u32 {
+    fn brute(map: &[u8], width: u32, height: u32, n: u32) -> WindowHit {
         let (w, h, n) = (width as usize, height as usize, n as usize);
-        let mut best = 0;
+        let mut best = WindowHit {
+            x: 0,
+            y: 0,
+            count: 0,
+        };
         for y in 0..=h - n {
             for x in 0..=w - n {
                 let count: u32 = (0..n)
@@ -73,7 +90,13 @@ mod tests {
                             .sum::<u32>()
                     })
                     .sum();
-                best = best.max(count);
+                if count > best.count {
+                    best = WindowHit {
+                        x: x as u32,
+                        y: y as u32,
+                        count,
+                    };
+                }
             }
         }
         best
@@ -95,7 +118,7 @@ mod tests {
         let (min_y, max_y) = (rows[0], *rows.last().unwrap());
         for n in [1, 2, 5, 8, 23] {
             assert_eq!(
-                max_window_count(&map, width, height, n, min_y, max_y),
+                max_window(&map, width, height, n, min_y, max_y),
                 brute(&map, width, height, n),
                 "n={n}"
             );

@@ -25,7 +25,12 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import codec from "@blazediff/codec-pngjs";
 import { describe, expect, it } from "vitest";
-import gmsd from "./index";
+import gmsd, { type GmsdResult, type Image } from "./index";
+
+function scoreOf(result: GmsdResult): number {
+	if (result.kind !== "compared") throw new Error("Image sizes differ");
+	return result.score;
+}
 
 /**
  * Run MATLAB GMSD function and return the result
@@ -71,16 +76,11 @@ describe("GMSD - MATLAB Comparison", async () => {
 		const png2 = await codec.read(readFileSync(img2Path));
 
 		// Compute TypeScript GMSD with MATLAB-compatible settings
-		const tsResult = gmsd(
-			png1.data,
-			png2.data,
-			undefined,
-			png1.width,
-			png1.height,
-			{
+		const tsResult = scoreOf(
+			gmsd(png1, png2, {
 				downsample: 1,
 				c: 170,
-			},
+			}),
 		);
 
 		const matlabResult = runMatlabGmsd(img1Path, img2Path);
@@ -110,16 +110,11 @@ describe("GMSD - MATLAB Comparison", async () => {
 		const png1 = await codec.read(readFileSync(img1Path));
 		const png2 = await codec.read(readFileSync(img2Path));
 
-		const tsResult = gmsd(
-			png1.data,
-			png2.data,
-			undefined,
-			png1.width,
-			png1.height,
-			{
+		const tsResult = scoreOf(
+			gmsd(png1, png2, {
 				downsample: 1,
 				c: 170,
-			},
+			}),
 		);
 
 		const matlabResult = runMatlabGmsd(img1Path, img2Path);
@@ -151,16 +146,11 @@ describe("GMSD - MATLAB Comparison", async () => {
 			const png1 = await codec.read(readFileSync(img1Path));
 			const png2 = await codec.read(readFileSync(img2Path));
 
-			const tsResult = gmsd(
-				png1.data,
-				png2.data,
-				undefined,
-				png1.width,
-				png1.height,
-				{
+			const tsResult = scoreOf(
+				gmsd(png1, png2, {
 					downsample: 1,
 					c: 170,
-				},
+				}),
 			);
 
 			const matlabResult = runMatlabGmsd(img1Path, img2Path);
@@ -188,16 +178,11 @@ describe("GMSD - MATLAB Comparison", async () => {
 
 		const png1 = await codec.read(readFileSync(img1Path));
 
-		const tsResult = gmsd(
-			png1.data,
-			png1.data,
-			undefined,
-			png1.width,
-			png1.height,
-			{
+		const tsResult = scoreOf(
+			gmsd(png1, png1, {
 				downsample: 1,
 				c: 170,
-			},
+			}),
 		);
 
 		const matlabResult = runMatlabGmsd(img1Path, img1Path);
@@ -211,5 +196,54 @@ describe("GMSD - MATLAB Comparison", async () => {
 		// Both implementations: 0 = perfect match
 		expect(tsResult).toBe(0);
 		expect(matlabResult).toBeLessThan(0.01);
+	});
+});
+
+describe("GMSD - API contract", () => {
+	function noise(width: number, height: number, seed: number): Image {
+		const data = new Uint8Array(width * height * 4);
+		let state = seed;
+		for (let i = 0; i < data.length; i++) {
+			state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
+			data[i] = i % 4 === 3 ? 255 : state >>> 24;
+		}
+		return { data, width, height };
+	}
+
+	const a = noise(32, 32, 1);
+	const b = noise(32, 32, 2);
+
+	it("reports a dimension mismatch instead of a score", () => {
+		expect(gmsd(a, noise(32, 31, 3))).toEqual({
+			kind: "dimension-mismatch",
+			a: { width: 32, height: 32 },
+			b: { width: 32, height: 31 },
+		});
+	});
+
+	it("rejects a buffer that does not match its size", () => {
+		expect(() => gmsd(a, { ...b, data: b.data.subarray(4) })).toThrow(
+			"b.data is 4092 bytes, expected 4096 for 32x32.",
+		);
+	});
+
+	it("rejects an output of the wrong size", () => {
+		expect(() => gmsd(a, b, { output: noise(4, 4, 3) })).toThrow(
+			"output is 4x4, expected 32x32.",
+		);
+	});
+
+	it("fills the map white for identical images", () => {
+		const output = noise(32, 32, 4);
+		expect(gmsd(a, { ...a, data: a.data.slice() }, { output })).toEqual({
+			kind: "compared",
+			score: 0,
+		});
+		expect(output.data.every((value) => value === 255)).toBe(true);
+	});
+
+	it("scores the same with and without an output", () => {
+		const output = noise(32, 32, 5);
+		expect(scoreOf(gmsd(a, b, { output }))).toBe(scoreOf(gmsd(a, b)));
 	});
 });

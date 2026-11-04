@@ -1,9 +1,12 @@
 import type { Buffer } from "node:buffer";
+import type { DiffOptions } from "@blazediff/core";
+import type { GmsdOptions } from "@blazediff/gmsd";
+import type { SsimOptions } from "@blazediff/ssim";
 /**
  * Comparison methods available in blazediff
  */
 export type ComparisonMethod =
-	| "core-native" // @blazediff/core-native (Rust N-API, file paths only)
+	| "core-native" // @blazediff/core-native (Rust N-API)
 	| "core" // @blazediff/core (pixel-by-pixel YIQ)
 	| "core-wasm" // @blazediff/core-wasm (WebAssembly, same algo as core-native)
 	| "ssim" // @blazediff/ssim (standard SSIM)
@@ -77,50 +80,14 @@ export interface MatcherOptions {
 	 */
 	updateCommand?: string;
 
-	// Method-specific options passed through to comparators
+	/** Options for the core, core-wasm and core-native methods. The matcher manages `output`. */
+	diff?: Omit<DiffOptions, "output">;
 
-	/**
-	 * Color difference threshold for core/core-native methods (0-1)
-	 * Lower = more strict
-	 * @default 0.1
-	 */
-	threshold?: number;
+	/** Options for the ssim, msssim and hitchhikers-ssim methods. The matcher manages `output`. */
+	ssim?: Omit<SsimOptions, "output">;
 
-	/**
-	 * Enable anti-aliasing detection (core-native method)
-	 * @default false
-	 */
-	antialiasing?: boolean;
-
-	/**
-	 * Include anti-aliased pixels in diff count (core method)
-	 * @default false
-	 */
-	includeAA?: boolean;
-
-	/**
-	 * Window size for SSIM variants
-	 * @default 11
-	 */
-	windowSize?: number;
-
-	/**
-	 * k1 constant for SSIM
-	 * @default 0.01
-	 */
-	k1?: number;
-
-	/**
-	 * k2 constant for SSIM
-	 * @default 0.03
-	 */
-	k2?: number;
-
-	/**
-	 * Downsample factor for GMSD (0 or 1)
-	 * @default 0
-	 */
-	downsample?: 0 | 1;
+	/** Options for the gmsd method. The matcher manages `output`. */
+	gmsd?: Omit<GmsdOptions, "output">;
 
 	/**
 	 * Run image I/O and comparison in a worker thread

@@ -1,4 +1,3 @@
-import type { Buffer } from "node:buffer";
 /**
  * SSIM (Structural Similarity Index) with automatic downsampling
  *
@@ -10,51 +9,58 @@ import type { Buffer } from "node:buffer";
  * This implementation matches the MATLAB ssim.m reference implementation.
  */
 
+import { checkPair } from "./image";
 import rgbaToGrayscale from "./rgba-to-grayscale";
-import type { SsimOptions } from "./types";
+import type { Image, SsimOptions, SsimResult } from "./types";
 
-/**
- * SSIM options
- */
-export interface SsimOptionsExtended extends SsimOptions {
-	/** Dynamic range of the images (default: 255) */
-	L?: number;
-}
+export type {
+	HitchhikersOptions,
+	Image,
+	MsSsimOptions,
+	PoolingMethod,
+	Size,
+	SsimOptions,
+	SsimResult,
+} from "./types";
 
 /**
  * Compute SSIM between two images with automatic downsampling
  *
- * @param image1 - First image data (RGBA format, 4 bytes per pixel)
- * @param image2 - Second image data (RGBA format, 4 bytes per pixel)
- * @param output - Optional output buffer for SSIM map visualization (RGBA format)
- * @param width - Image width in pixels
- * @param height - Image height in pixels
- * @param options - SSIM computation options
- * @returns SSIM score (0-1, where 1 is identical)
+ * @param a - First image (RGBA, 4 bytes per pixel)
+ * @param b - Second image, the same size as `a`
+ * @param options - Window, stability constants, bit depth and an optional map `output`
+ * @returns The pooled score (0-1, 1 when identical), or `dimension-mismatch`
  *
  * @example
  * ```typescript
- * // Basic usage
- * const score = ssim(img1, img2, undefined, width, height);
+ * const result = ssim(a, b);
+ * if (result.kind === "compared") console.log(result.score);
  *
- * // With SSIM map output
- * const output = new Uint8ClampedArray(width * height * 4);
- * const score = ssim(img1, img2, output, width, height);
+ * // With the SSIM map drawn into an RGBA buffer
+ * const output = { data: new Uint8ClampedArray(width * height * 4), width, height };
+ * ssim(a, b, { output });
  * ```
  */
 export function ssim(
-	image1: Uint8ClampedArray | Uint8Array | Buffer,
-	image2: Uint8ClampedArray | Uint8Array | Buffer,
-	output: Uint8ClampedArray | Uint8Array | Buffer | undefined,
-	width: number,
-	height: number,
-	options: SsimOptionsExtended = {},
-): number {
-	const { windowSize = 11, k1 = 0.01, k2 = 0.03, L = 255 } = options;
+	a: Image,
+	b: Image,
+	options: SsimOptions = {},
+): SsimResult {
+	const { output } = options;
+	const mismatch = checkPair(a, b, output);
+	if (mismatch) return mismatch;
+	return { kind: "compared", score: ssimScore(a, b, options) };
+}
+
+function ssimScore(a: Image, b: Image, options: SsimOptions): number {
+	const { windowSize = 11, k1 = 0.01, k2 = 0.03, bitDepth = 8 } = options;
+	const { width, height } = a;
+	const output = options.output?.data;
+	const L = 2 ** bitDepth - 1;
 
 	// Convert RGBA to grayscale
-	let gray1 = rgbaToGrayscale(image1, width, height);
-	let gray2 = rgbaToGrayscale(image2, width, height);
+	let gray1 = rgbaToGrayscale(a.data, width, height);
+	let gray2 = rgbaToGrayscale(b.data, width, height);
 	let currentWidth = width;
 	let currentHeight = height;
 

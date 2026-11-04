@@ -1,6 +1,6 @@
 {
 	"name": "@blazediff/core-native",
-	"version": "6.0.2",
+	"version": "7.0.0",
 	"description": "Native Rust binaries for blazediff - the fastest image diff in the world",
 	"private": false,
 	"publishConfig": {
@@ -26,13 +26,16 @@
 		"test": "vitest run",
 		"test:watch": "vitest"
 	},
+	"dependencies": {
+		"@blazediff/core": "workspace:*"
+	},
 	"optionalDependencies": {
-		"@blazediff/core-native-darwin-arm64": "6.0.2",
-		"@blazediff/core-native-darwin-x64": "6.0.2",
-		"@blazediff/core-native-linux-arm64": "6.0.2",
-		"@blazediff/core-native-linux-x64": "6.0.2",
-		"@blazediff/core-native-win32-arm64": "6.0.2",
-		"@blazediff/core-native-win32-x64": "6.0.2"
+		"@blazediff/core-native-darwin-arm64": "7.0.0",
+		"@blazediff/core-native-darwin-x64": "7.0.0",
+		"@blazediff/core-native-linux-arm64": "7.0.0",
+		"@blazediff/core-native-linux-x64": "7.0.0",
+		"@blazediff/core-native-win32-arm64": "7.0.0",
+		"@blazediff/core-native-win32-x64": "7.0.0"
 	},
 	"keywords": [
 		"image",
@@ -52,7 +55,6 @@
 	"homepage": "https://blazediff.dev",
 	"license": "MIT",
 	"devDependencies": {
-		"@blazediff/core": "workspace:*",
 		"@types/node": "^24.3.0",
 		"@types/pngjs": "^6.0.5",
 		"pngjs": "^7.0.0",

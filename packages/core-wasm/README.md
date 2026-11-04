@@ -13,7 +13,7 @@ WebAssembly build of the BlazeDiff Rust algorithm for browsers, edge runtimes, a
 **Features:**
 - Same Rust algorithm as `@blazediff/core-native` (YIQ perceptual delta + block-based cold/hot pass)
 - `wasm32` v128 SIMD: 4-lane vectorized cold and hot loops; up to ~16x faster than pixelmatch on 4K
-- Buffers-only API: caller decodes images, hands in `Uint8Array`. No PNG/JPEG codecs bundled
+- Same `Image`, `DiffOptions` and `DiffResult` as `@blazediff/core`. Caller decodes images; no PNG/JPEG codecs bundled
 - ~32 KB optimized wasm + ~10 KB JS glue. No native binaries, no postinstall, no platform packages
 - Runs anywhere wasm runs: browsers, Node 18+, Cloudflare Workers, Deno, Bun
 
@@ -45,12 +45,12 @@ import { initBlazediff } from '@blazediff/core-wasm';
 
 await initBlazediff(
   new URL(
-    'https://cdn.jsdelivr.net/npm/@blazediff/core-wasm@4.2.0/wasm/blazediff_bg.wasm',
+    'https://cdn.jsdelivr.net/npm/@blazediff/core-wasm@7.0.0/wasm/blazediff_bg.wasm',
   ),
 );
 ```
 
-Pin the version (`@4.2.0`) for reproducibility. `unpkg.com/@blazediff/core-wasm@4.2.0/wasm/blazediff_bg.wasm` works identically.
+Pin the version (`@7.0.0`). It must match the installed package, because the JS glue and the `.wasm` change together. `unpkg.com/@blazediff/core-wasm@7.0.0/wasm/blazediff_bg.wasm` works identically.
 
 ### Bundlers (Vite, Webpack 5+, esbuild, Rollup with plugin)
 
@@ -101,9 +101,9 @@ Initializes the wasm module. Safe to call multiple times; subsequent calls retur
 
 **Returns:** `Promise<void>`
 
-### `diff(a, b, width, height, output?, options?)`
+### `diff(a, b, options?)`
 
-Compares two RGBA pixel buffers and returns the number of differing pixels.
+Compares two RGBA images. Takes and returns the same types as [`@blazediff/core`](https://www.npmjs.com/package/@blazediff/core)'s `diff`, which they are imported from.
 
 <table>
   <tr>
@@ -112,29 +112,9 @@ Compares two RGBA pixel buffers and returns the number of differing pixels.
     <th width="500">Description</th>
   </tr>
   <tr>
-    <td><code>a</code></td>
-    <td>Uint8Array</td>
-    <td>First image in RGBA8 order (<code>width * height * 4</code> bytes)</td>
-  </tr>
-  <tr>
-    <td><code>b</code></td>
-    <td>Uint8Array</td>
-    <td>Second image in RGBA8 order (same length)</td>
-  </tr>
-  <tr>
-    <td><code>width</code></td>
-    <td>number</td>
-    <td>Image width in pixels</td>
-  </tr>
-  <tr>
-    <td><code>height</code></td>
-    <td>number</td>
-    <td>Image height in pixels</td>
-  </tr>
-  <tr>
-    <td><code>output</code></td>
-    <td>Uint8Array | undefined</td>
-    <td>Optional diff visualization buffer (same length). Written in place</td>
+    <td><code>a</code>, <code>b</code></td>
+    <td>Image</td>
+    <td><code>{ data, width, height }</code> with RGBA8 pixels (<code>width * height * 4</code> bytes). Browser <code>ImageData</code> fits as is</td>
   </tr>
   <tr>
     <td><code>options</code></td>
@@ -143,7 +123,7 @@ Compares two RGBA pixel buffers and returns the number of differing pixels.
   </tr>
 </table>
 
-**Returns:** `Promise<number>`
+**Returns:** `Promise<DiffResult>`
 
 <table>
   <tr>
@@ -156,49 +136,65 @@ Compares two RGBA pixel buffers and returns the number of differing pixels.
     <td><code>threshold</code></td>
     <td>number</td>
     <td>0.1</td>
-    <td>Color difference threshold (0.0-1.0). Lower = more strict</td>
+    <td>Color difference threshold (0-1). Lower is stricter</td>
   </tr>
   <tr>
-    <td><code>includeAA</code></td>
+    <td><code>antialiasing</code></td>
     <td>boolean</td>
-    <td>false</td>
-    <td>Count anti-aliased pixels as differences</td>
+    <td>true</td>
+    <td>Detect anti-aliased pixels and leave them out of the count</td>
   </tr>
   <tr>
-    <td><code>diffMask</code></td>
-    <td>boolean</td>
-    <td>false</td>
-    <td>Render diff with transparent background instead of grayscale base</td>
-  </tr>
-  <tr>
-    <td><code>diffColorAlt</code></td>
-    <td>[number, number, number]</td>
-    <td>diff color</td>
-    <td>Alternative RGB color for darkening differences</td>
-  </tr>
-  <tr>
-    <td><code>colorSpace</code></td>
+    <td><code>metric</code></td>
     <td>"yiq" | "oklab"</td>
     <td>"yiq"</td>
-    <td>Color difference metric. "oklab" gives the same counts as pixelmatch 8</td>
+    <td>Color difference metric. <code>oklab</code> gives the same counts as pixelmatch 8</td>
   </tr>
   <tr>
-    <td><code>ignoreMask</code></td>
+    <td><code>mask</code></td>
     <td>Uint8Array</td>
     <td>-</td>
     <td>One byte per pixel (width × height). Non-zero pixels are skipped</td>
   </tr>
   <tr>
-    <td><code>windowSize</code></td>
+    <td><code>window</code></td>
     <td>number</td>
     <td>-</td>
-    <td>Return the largest diff count in any N×N window instead of the total</td>
+    <td>Also report the N×N window with the most diff pixels</td>
+  </tr>
+  <tr>
+    <td><code>output</code></td>
+    <td>Image</td>
+    <td>-</td>
+    <td>Draw the diff into this image in place. Identical images leave it unwritten</td>
+  </tr>
+  <tr>
+    <td><code>render</code></td>
+    <td>{ alpha?, diffColor?, diffColorAlt?, aaColor?, background? }</td>
+    <td>-</td>
+    <td>Output styling. <code>background: "transparent"</code> draws the diff alone</td>
   </tr>
 </table>
 
 ```typescript
-const diffCount = await diff(a, b, width, height, output, {
-  diffColorAlt: [0, 128, 255],
+type DiffResult =
+  | {
+      kind: "compared";
+      count: number;
+      percentage: number;
+      identical: boolean;
+      /** Top-left corner and count of the busiest window, when `window` is set. */
+      window?: { x: number; y: number; count: number };
+    }
+  | { kind: "dimension-mismatch"; a: Size; b: Size };
+```
+
+Invalid options or buffers reject with a `BlazeDiffError` that has a `code`: `invalid-image`, `invalid-output`, `invalid-mask` or `invalid-option`.
+
+```typescript
+const result = await diff(a, b, {
+  output: { data: out, width, height },
+  render: { diffColorAlt: [0, 128, 255] },
 });
 ```
 
@@ -223,19 +219,16 @@ async function toRgba(url: string) {
   const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
   const ctx = canvas.getContext('2d')!;
   ctx.drawImage(bitmap, 0, 0);
-  const { data } = ctx.getImageData(0, 0, bitmap.width, bitmap.height);
-  return { data: new Uint8Array(data.buffer), width: bitmap.width, height: bitmap.height };
+  return ctx.getImageData(0, 0, bitmap.width, bitmap.height);
 }
 
 const a = await toRgba('/baseline.png');
 const b = await toRgba('/current.png');
-const out = new Uint8Array(a.width * a.height * 4);
+const output = new ImageData(a.width, a.height);
 
-const diffCount = await diff(a.data, b.data, a.width, a.height, out, {
-  threshold: 0.1,
-});
+const result = await diff(a, b, { output, threshold: 0.1 });
 
-console.log(`${diffCount} pixels differ`);
+if (result.kind === 'compared') console.log(`${result.count} pixels differ`);
 ```
 
 ### Node
@@ -247,18 +240,13 @@ import { PNG } from 'pngjs';
 
 await initBlazediff(
   new URL(
-    'https://cdn.jsdelivr.net/npm/@blazediff/core-wasm@4.2.0/wasm/blazediff_bg.wasm',
+    'https://cdn.jsdelivr.net/npm/@blazediff/core-wasm@7.0.0/wasm/blazediff_bg.wasm',
   ),
 );
 
 const a = PNG.sync.read(readFileSync('baseline.png'));
 const b = PNG.sync.read(readFileSync('current.png'));
-const diffCount = await diff(
-  new Uint8Array(a.data),
-  new Uint8Array(b.data),
-  a.width,
-  a.height,
-);
+const result = await diff(a, b);
 ```
 
 ## Performance

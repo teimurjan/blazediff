@@ -206,19 +206,25 @@ function opaqueDelta(av: number, bv: number, maxDelta: number): number {
 
 /**
  * {@link hyab} verdict for two different pixel words where at least one is
- * semi-transparent. Both are blended over one of 8 dark/light backgrounds
- * picked by a Fibonacci hash of the pixel index.
+ * semi-transparent. Both are blended over white, or with `checkerboard` over
+ * one of 8 dark/light backgrounds picked by a Fibonacci hash of the index.
  */
 function transparentDelta(
 	av: number,
 	bv: number,
 	index: number,
 	maxDelta: number,
+	checkerboard: boolean,
 ): number {
-	const h = Math.imul(index, 0x9e3779b1);
-	const rb = 48 + 159 * (h >>> 31);
-	const gb = 48 + 159 * ((h >>> 30) & 1);
-	const bb = 48 + 159 * ((h >>> 29) & 1);
+	let rb = 255;
+	let gb = 255;
+	let bb = 255;
+	if (checkerboard) {
+		const h = Math.imul(index, 0x9e3779b1);
+		rb = 48 + 159 * (h >>> 31);
+		gb = 48 + 159 * ((h >>> 30) & 1);
+		bb = 48 + 159 * ((h >>> 29) & 1);
+	}
 	const a1 = (av >>> SHIFT_A) & 0xff;
 	const a2 = (bv >>> SHIFT_A) & 0xff;
 	const r1 = (((av >>> SHIFT_R) & 0xff) * a1 + rb * (255 - a1)) / 255;
@@ -272,7 +278,21 @@ export function oklabDelta(
 	limits: Int32Array,
 ): number {
 	if ((((av & bv) >>> SHIFT_A) & 0xff) !== 0xff)
-		return transparentDelta(av, bv, index, maxDelta);
+		return transparentDelta(av, bv, index, maxDelta, true);
+	if (withinStepBound(av, bv, limits)) return 0;
+	return opaqueDelta(av, bv, maxDelta);
+}
+
+/** {@link oklabDelta} with semi-transparent pixels blended over white. */
+export function oklabDeltaOverWhite(
+	av: number,
+	bv: number,
+	index: number,
+	maxDelta: number,
+	limits: Int32Array,
+): number {
+	if ((((av & bv) >>> SHIFT_A) & 0xff) !== 0xff)
+		return transparentDelta(av, bv, index, maxDelta, false);
 	if (withinStepBound(av, bv, limits)) return 0;
 	return opaqueDelta(av, bv, maxDelta);
 }

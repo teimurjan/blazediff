@@ -54,9 +54,7 @@ better**, typically in the `0` to `0.35` range.
     const img2 = await loadImage(
       "https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3b.png"
     );
-    const width = img1.width;
-    const height = img1.height;
-    const score = gmsd(img1, img2, undefined, width, height);
+    const result = gmsd(img1, img2); // { kind: "compared", score }
     ```
 
   </Tabs.Tab>
@@ -78,17 +76,14 @@ better**, typically in the `0` to `0.35` range.
     const img2 = await loadImage(
       "https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3b.png"
     );
-    const width = img1.width;
-    const height = img1.height;
-
     // Raising c makes the metric more forgiving in low-contrast areas.
-    const score = gmsd(img1, img2, undefined, width, height, { c: 100 });
+    const result = gmsd(img1, img2, { c: 100 });
     ```
 
   </Tabs.Tab>
 </Tabs>
 
-Pass an output buffer as the third argument to get the similarity map back as a
+Pass an `output` image in the options to get the similarity map back as a
 grayscale image, which shows which edges disagreed.
 [GMSD reference](/apis/gmsd).
 
@@ -117,11 +112,10 @@ const img1 = await loadImage(
 const img2 = await loadImage(
   "https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3b.png"
 );
-const output = new Uint8Array(img1.width * img1.height * 4);
-const width = img1.width;
-const height = img1.height;
+const { width, height } = img1;
+const output = { data: new Uint8Array(width * height * 4), width, height };
 
-const score = ssim(img1, img2, output, width, height);
+const result = ssim(img1, img2, { output });
 ```
 
   </Tabs.Tab>
@@ -143,17 +137,16 @@ const img1 = await loadImage(
 const img2 = await loadImage(
   "https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3b.png"
 );
-const output = new Uint8Array(img1.width * img1.height * 4);
-const width = img1.width;
-const height = img1.height;
+const { width, height } = img1;
+const output = { data: new Uint8Array(width * height * 4), width, height };
 
-const score = hitchhikersSSIM(img1, img2, output, width, height);
+const result = hitchhikersSSIM(img1, img2, { output });
 ```
 
   </Tabs.Tab>
 </Tabs>
 
-The output buffer here receives the SSIM map: dark areas are where the two images
+The `output` image here receives the SSIM map: dark areas are where the two images
 disagree. `@blazediff/ssim` also ships MS-SSIM, which scores at five scales for
 images that get viewed at more than one size.
 [SSIM reference](/apis/ssim).

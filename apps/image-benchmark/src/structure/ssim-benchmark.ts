@@ -33,7 +33,7 @@ async function main() {
 		const { a, b } = pair;
 
 		bench.add(`ssim - ${pairs[i].name}`, () => {
-			ssim(a.data, b.data, undefined, a.width, a.height);
+			ssim(a, b);
 		});
 
 		if (native) {

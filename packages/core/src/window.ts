@@ -1,32 +1,38 @@
+import type { WindowHit } from "./types";
+
 /**
- * Window side for the `windowSize` option, or 0 when windowing is off.
+ * Window side for the `window` option, or 0 when windowing is off.
  * Floored and clamped to [1, min(width, height)] like pixelmatch.
  */
 export function windowSide(
-	windowSize: number,
+	window: number | undefined,
 	width: number,
 	height: number,
 ): number {
-	if (!Number.isFinite(windowSize)) return 0;
-	return Math.min(Math.max(Math.floor(windowSize), 1), width, height);
+	if (window === undefined || !Number.isFinite(window)) return 0;
+	return Math.min(Math.max(Math.floor(window), 1), width, height);
 }
 
 /**
- * Largest number of counted diff pixels (`diffMap[i] === 1`) in any n×n
- * window. Only rows [minY, maxY] hold diffs, so the scan is bounded to the
- * bands that can be non-zero.
+ * Writes the n×n window with the most counted diff pixels (`diffMap[i] === 1`)
+ * into `hit`: its top-left corner and count. Ties keep the first window in
+ * row-major order. Only rows [minY, maxY] hold diffs, so the scan is bounded
+ * to the bands that can be non-zero.
  */
-export function maxWindowCount(
+export function findMaxWindow(
 	diffMap: Uint8Array,
 	width: number,
 	height: number,
 	n: number,
 	minY: number,
 	maxY: number,
-): number {
+	hit: WindowHit,
+): void {
 	const colSum = new Uint32Array(width);
 	const yEnd = Math.min(height - 1, maxY + n - 1);
 	let maxCount = 0;
+	let bestX = 0;
+	let bestY = 0;
 	// Diff pixels in the current n-row band: an upper bound for every window in it.
 	let bandTotal = 0;
 
@@ -55,10 +61,16 @@ export function maxWindowCount(
 		for (let x = 0; x < n - 1; x++) windowSum += colSum[x];
 		for (let x = n - 1; x < width; x++) {
 			windowSum += colSum[x];
-			if (windowSum > maxCount) maxCount = windowSum;
+			if (windowSum > maxCount) {
+				maxCount = windowSum;
+				bestX = x - n + 1;
+				bestY = y - n + 1;
+			}
 			windowSum -= colSum[x - n + 1];
 		}
 	}
 
-	return maxCount;
+	hit.x = bestX;
+	hit.y = bestY;
+	hit.count = maxCount;
 }

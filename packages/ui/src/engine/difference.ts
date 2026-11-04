@@ -1,4 +1,4 @@
-import blazediff, { type CoreOptions } from "@blazediff/core";
+import { diff } from "@blazediff/core";
 import { getImageData, loadImageElement } from "./image";
 import { createStore } from "./store";
 import type {
@@ -11,7 +11,7 @@ const LOAD_RELEVANT: (keyof DifferenceConfig)[] = [
 	"src1",
 	"src2",
 	"threshold",
-	"includeAA",
+	"antialiasing",
 	"alpha",
 	"crossOrigin",
 	"enabled",
@@ -31,7 +31,7 @@ export function createDifferenceEngine(
 			src1,
 			src2,
 			threshold = 0.1,
-			includeAA = false,
+			antialiasing = true,
 			alpha = 0.1,
 			enabled = true,
 		} = current;
@@ -50,25 +50,24 @@ export function createDifferenceEngine(
 			]);
 			if (destroyed || my !== generation) return;
 
-			if (
-				img1.naturalWidth !== img2.naturalWidth ||
-				img1.naturalHeight !== img2.naturalHeight
-			) {
+			const a = getImageData(img1);
+			const b = getImageData(img2);
+			if (destroyed || my !== generation) return;
+
+			const { width, height } = a;
+			const output = new Uint8ClampedArray(width * height * 4);
+			const result = diff(a, b, {
+				threshold,
+				antialiasing,
+				output: { data: output, width, height },
+				render: { alpha },
+			});
+			if (destroyed || my !== generation) return;
+			if (result.kind === "dimension-mismatch") {
 				throw new Error(
-					`Image dimensions do not match. Image 1: ${img1.naturalWidth}x${img1.naturalHeight}, Image 2: ${img2.naturalWidth}x${img2.naturalHeight}`,
+					`Image dimensions do not match. Image 1: ${result.a.width}x${result.a.height}, Image 2: ${result.b.width}x${result.b.height}`,
 				);
 			}
-
-			const width = img1.naturalWidth;
-			const height = img1.naturalHeight;
-			const data1 = getImageData(img1).data;
-			const data2 = getImageData(img2).data;
-			if (destroyed || my !== generation) return;
-
-			const output = new Uint8ClampedArray(width * height * 4);
-			const options: CoreOptions = { threshold, includeAA, alpha };
-			const diffCount = blazediff(data1, data2, output, width, height, options);
-			if (destroyed || my !== generation) return;
 
 			const totalPixels = width * height;
 			store.set({
@@ -77,9 +76,9 @@ export function createDifferenceEngine(
 					output,
 					width,
 					height,
-					diffCount,
+					diffCount: result.count,
 					totalPixels,
-					percentage: (diffCount / totalPixels) * 100,
+					percentage: result.percentage,
 				},
 			});
 		} catch (error) {

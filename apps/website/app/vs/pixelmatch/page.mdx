@@ -26,9 +26,9 @@ it runs the per-pixel delta, so unchanged areas cost almost nothing.
 | --------------------- | ---------------------------------- | ----------------------------------------------------------------- |
 | License               | ISC                                | MIT                                                               |
 | Implementations       | JavaScript (plus a C++ port)       | JavaScript, WebAssembly, native Node, Python, Rust                 |
-| Input                 | Raw RGBA buffers                   | Raw RGBA (`core`, `core-wasm`), or file paths and encoded bytes (`core-native`) |
+| Input                 | Raw RGBA buffers                   | Raw RGBA everywhere, plus file paths and encoded bytes in `core-native` |
 | Decodes images itself | No (CLI reads PNG through pngjs)   | `core-native` and Python decode PNG, JPEG and QOI                  |
-| Color metric          | YIQ in 7.x, OKLab + HyAB in 8.0    | YIQ                                                               |
+| Color metric          | YIQ in 7.x, OKLab + HyAB in 8.0    | YIQ by default, OKLab + HyAB with `metric: "oklab"`               |
 | Anti-aliasing         | Detected (Vyšniauskas 2009)        | Detected, same method                                             |
 | Output                | Diff pixel count, diff image       | Diff pixel count, diff image                                      |
 | Beyond pixel counts   | No                                 | SSIM, GMSD, MILO scores and region analysis in sibling packages   |
@@ -42,33 +42,44 @@ diff kernel only. The charts use pixelmatch 7.2.0.
 
 ## Switching
 
-The arguments, the options and the return value are the same as pixelmatch 7.x.
+`@blazediff/core/pixelmatch` has the same arguments, options, errors, counts and
+output bytes as pixelmatch 8.0.0, so you change the import and nothing else:
 
 ```ts
 // Before
 import pixelmatch from "pixelmatch";
 // After
-import pixelmatch from "@blazediff/core";
+import pixelmatch from "@blazediff/core/pixelmatch";
 
 const diffCount = pixelmatch(img1, img2, diff, width, height, { threshold: 0.1 });
+```
+
+For new code, `diff` from `@blazediff/core` returns a result object and uses the
+YIQ metric of pixelmatch 7.x by default. Pass `metric: "oklab"` for the 8.0
+metric:
+
+```ts
+import { diff } from "@blazediff/core";
+
+const result = diff(img1, img2, { output, metric: "oklab", window: 16 });
 ```
 
 If your images come from files, `@blazediff/core-native` also decodes them, so the
 pngjs step goes away:
 
 ```ts
-import { compare } from "@blazediff/core-native";
+import { diff } from "@blazediff/core-native";
 
-const result = await compare("baseline.png", "current.png", "diff.png", {
+const result = await diff("baseline.png", "current.png", {
+  output: "diff.png",
   threshold: 0.1,
-  antialiasing: true,
 });
 ```
 
 <Callout type="info">
   pixelmatch 8.0 changed its color metric to OKLab + HyAB, so its diff counts
-  differ from 7.x. BlazeDiff matches the 7.x counts. If you upgraded to 8.0 and
-  depend on its exact counts, re-baseline your thresholds after you switch.
+  differ from 7.x. The `@blazediff/core/pixelmatch` adapter matches 8.0 exactly.
+  `diff` matches 7.x by default and 8.0 with `metric: "oklab"`.
 </Callout>
 
 ## Python
@@ -80,17 +91,14 @@ includes image decode for both sides.
 <BenchmarkCharts cards={["python-pixelmatch"]} />
 
 ```python
-from blazediff import compare
+from blazediff import diff
 
-result = compare("baseline.png", "current.png", "diff.png", threshold=0.1)
+result = diff("baseline.png", "current.png", "diff.png", threshold=0.1)
 ```
 
 ## When to keep pixelmatch
 
-- You need the pixelmatch 8.0 features: `windowSize` noise filtering or
-  `ignoreMask`.
 - You want the smallest possible dependency and diff speed does not matter.
-- Your project depends on pixelmatch 8.0 diff counts exactly.
 
 ## Related
 

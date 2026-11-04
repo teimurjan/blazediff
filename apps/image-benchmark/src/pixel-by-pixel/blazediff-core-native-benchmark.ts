@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { readFile } from "node:fs/promises";
-import { compare, hasNativeBinding } from "@blazediff/core-native";
+import { diff, hasNativeBinding } from "@blazediff/core-native";
 import { Bench, hrtimeNow } from "tinybench";
 import { getBenchmarkImagePairs, parseBenchmarkArgs } from "../utils";
 
@@ -43,9 +43,7 @@ async function main() {
 		const label = useBuffers ? "blazediff buffers" : "blazediff";
 
 		bench.add(`${label} - ${pair.name}`, async () => {
-			await compare(base, comparison, "/tmp/test.png", {
-				antialiasing: true,
-			});
+			await diff(base, comparison, { output: "/tmp/test.png" });
 		});
 	}
 

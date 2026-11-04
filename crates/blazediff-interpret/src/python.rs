@@ -29,20 +29,13 @@ impl From<crate::InterpretError> for PyErr {
     }
 }
 
-/// The knobs for the diff-driven path.
-///
-/// `antialiasing` is the inverse of the core's `include_aa`, matching
-/// `@blazediff/interpret-native` and `blazediff.compare`.
-fn diff_options(
-    threshold: Option<f64>,
-    antialiasing: Option<bool>,
-    compression: Option<u8>,
-) -> DiffOptions {
+/// The knobs for the diff-driven path. Interpret keeps its own default: AA
+/// pixels count unless `antialiasing` is set, matching `@blazediff/interpret-native`.
+fn diff_options(threshold: Option<f64>, antialiasing: Option<bool>) -> DiffOptions {
     let defaults = DiffOptions::default();
     DiffOptions {
         threshold: threshold.unwrap_or(defaults.threshold),
-        include_aa: !antialiasing.unwrap_or(false),
-        compression: compression.unwrap_or(defaults.compression),
+        antialiasing: antialiasing.unwrap_or(false),
         ..defaults
     }
 }
@@ -115,15 +108,20 @@ fn interpret_images(
     quality: Option<u8>,
 ) -> PyResult<PyObject> {
     let (image1, image2) = load(base_path, compare_path)?;
-    let options = diff_options(threshold, antialiasing, compression);
+    let options = diff_options(threshold, antialiasing);
 
     let mut output = diff_output.map(|_| Image::new_uninit(image1.width, image1.height));
     let result = interpret_diff(&image1, &image2, output.as_mut(), &options)?;
 
     if let (Some(path), Some(image)) = (diff_output, &output) {
         if result.diff_count > 0 {
-            blazediff_shared::save_image(image, path, options.compression, quality.unwrap_or(90))
-                .map_err(|e| invalid(format!("Failed to save diff: {e}")))?;
+            blazediff_shared::save_image(
+                image,
+                path,
+                compression.unwrap_or(0),
+                quality.unwrap_or(90),
+            )
+            .map_err(|e| invalid(format!("Failed to save diff: {e}")))?;
         }
     }
 
@@ -148,13 +146,15 @@ fn interpret_buffers(
     antialiasing: Option<bool>,
     compression: Option<u8>,
 ) -> PyResult<PyObject> {
+    // Kept so existing callers still bind; no image is written here.
+    let _ = compression;
     let (image1, image2) = blazediff_shared::decode_image_pair(base, comparison)
         .map_err(|e| invalid(format!("Failed to load images: {e}")))?;
     let result = interpret_diff(
         &image1,
         &image2,
         None,
-        &diff_options(threshold, antialiasing, compression),
+        &diff_options(threshold, antialiasing),
     )?;
     to_dict(py, result)
 }

@@ -1,4 +1,4 @@
-import blazediff from "@blazediff/core";
+import { diff } from "@blazediff/core";
 import { useEffect, useState } from "react";
 import { continueRender, delayRender, staticFile } from "remotion";
 
@@ -55,13 +55,10 @@ export function useDiffComputation(
 			if (!outputCtx) throw new Error("Failed to get 2d context");
 			const output = outputCtx.createImageData(img1.width, img1.height);
 
-			const diffPixels = blazediff(
-				data1.data,
-				data2.data,
-				output.data,
-				img1.width,
-				img1.height,
-			);
+			const comparison = diff(data1, data2, { output });
+			if (comparison.kind !== "compared")
+				throw new Error("Fixture images differ in size");
+			const diffPixels = comparison.count;
 
 			outputCtx.putImageData(output, 0, 0);
 			const totalPixels = img1.width * img1.height;

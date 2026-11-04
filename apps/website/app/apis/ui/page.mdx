@@ -124,7 +124,7 @@ Show pixel differences using the BlazeDiff algorithm, or render a precomputed di
 | `src2`               | `string \| Uint8Array`      | -       | URL or encoded bytes for the second image |
 | `diff`               | `Uint8Array`                | -       | Encoded precomputed diff image bytes |
 | `threshold`          | `number`                   | `0.1`   | Difference threshold (0–1)  |
-| `includeAA`          | `boolean`                  | `false` | Include anti-aliased pixels |
+| `antialiasing`       | `boolean`                  | `true`  | Detect anti-aliased pixels and leave them out of the count |
 | `alpha`              | `number`                   | `0.1`   | Opacity of the original     |
 | `crossOrigin`        | `string \| null`           | `"anonymous"` | `crossOrigin` for loads |
 | `className`          | `string`                   | -       | Class for the root element  |

@@ -17,7 +17,7 @@ export interface DifferenceMountOptions {
 	src2: ImageSource;
 	diff?: Uint8Array;
 	threshold?: number;
-	includeAA?: boolean;
+	antialiasing?: boolean;
 	alpha?: number;
 	crossOrigin?: string | null;
 	className?: string;

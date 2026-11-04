@@ -67,19 +67,19 @@ threshold cannot express.
 The practical setup for a noisy pipeline:
 
 ```ts
-import { compare } from "@blazediff/core-native";
+import { diff } from "@blazediff/core-native";
 import gmsd from "@blazediff/gmsd";
 
 // 1. Cheap exact gate. Most runs stop here.
-const result = await compare("baseline.png", "current.png", "diff.png", {
+const result = await diff("baseline.png", "current.png", {
+  output: "diff.png",
   threshold: 0.1,
-  antialiasing: true,
 });
-if (result.match) return "pass";
+if (result.kind === "compared" && result.identical) return "pass";
 
 // 2. Something changed. Is it perceptible?
-const score = gmsd(baselinePixels, currentPixels, undefined, width, height);
-if (score < 0.05) return "pass-with-noise";
+const similarity = gmsd(baselineImage, currentImage);
+if (similarity.kind === "compared" && similarity.score < 0.05) return "pass-with-noise";
 
 return "fail";
 ```

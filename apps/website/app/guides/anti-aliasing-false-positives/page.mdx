@@ -13,37 +13,36 @@ without loosening anything else. That alone clears most of the churn teams get
 after a CSS framework upgrade. What is left - a block of text that actually moved
 one pixel - is a different problem, and thresholds are the wrong fix for it.
 
-## The defaults are inverted between cores
+## One option, on by default
 
-This trips people up, so check which one you are using:
+Every diff surface uses the same option name and the same default, so a count
+from one core means the same thing as a count from another:
 
-| Package                                | Option          | Default | Anti-aliased pixels are |
-| -------------------------------------- | --------------- | ------- | ----------------------- |
-| `@blazediff/core` (JS)                 | `includeAA`     | `false` | **ignored**             |
-| `@blazediff/core-native` (Rust, N-API) | `antialiasing`  | `false` | **counted**             |
-| `blazediff-cli core-native`            | `-a, --antialiasing` | off | **counted**             |
-| `blazediff` (Python)                   | `antialiasing`  | `False` | **counted**             |
-| `@blazediff/agent`                     | -               | on      | **ignored**             |
+| Package                                | Option              | Default | Anti-aliased pixels are |
+| -------------------------------------- | ------------------- | ------- | ----------------------- |
+| `@blazediff/core` (JS)                 | `antialiasing`      | `true`  | **ignored**             |
+| `@blazediff/core-wasm`                 | `antialiasing`      | `true`  | **ignored**             |
+| `@blazediff/core-native` (Rust, N-API) | `antialiasing`      | `true`  | **ignored**             |
+| `blazediff-cli`, `blazediff` (CLI)     | `--no-antialiasing` | off     | **ignored**             |
+| `blazediff` (Python)                   | `antialiasing`      | `True`  | **ignored**             |
+| `@blazediff/agent`                     | -                   | on      | **ignored**             |
 
-The two options are named for opposite things. `includeAA: true` means "count
-them". `antialiasing: true` means "detect them, so they can be skipped". Both
-default to `false`, which is why the JS core ignores AA out of the box and the
-native core does not.
+`antialiasing: true` means "detect them, so they can be skipped". Set it to
+`false` only when you want every changed pixel counted.
 
 ```ts
-// JS core - already ignoring AA
-import diff from "@blazediff/core";
-const changed = diff(img1, img2, output, width, height);
+// JS core
+import { diff } from "@blazediff/core";
+const result = diff(img1, img2, { output });
 
-// Native core - opt in
-import { compare } from "@blazediff/core-native";
-const result = await compare("baseline.png", "current.png", "diff.png", {
-  antialiasing: true,
-});
+// Native core: the same option and the same default
+import { diff as nativeDiff } from "@blazediff/core-native";
+const native = await nativeDiff("baseline.png", "current.png", { output: "diff.png" });
 ```
 
 ```bash
-blazediff-cli baseline.png current.png diff.png --antialiasing
+# Detection is on by default; this counts anti-aliased pixels too
+blazediff-cli baseline.png current.png -o diff.png --no-antialiasing
 ```
 
 ## What detection actually does

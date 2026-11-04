@@ -23,7 +23,7 @@ npm install --save-dev @blazediff/cli
 ### Using npx
 
 ```sh npm2yarn
-npx blazediff-cli image1.png image2.png diff.png
+npx blazediff-cli image1.png image2.png -o diff.png
 ```
 
 ## Available Commands
@@ -39,39 +39,53 @@ Native Rust binary with SIMD optimization. The fastest option - **3-4x faster** 
 
 ```bash
 # Default command (core-native)
-blazediff-cli image1.png image2.png diff.png
+blazediff-cli image1.png image2.png -o diff.png
 
 # Or explicitly
-blazediff-cli core-native image1.png image2.png diff.png
+blazediff-cli core-native image1.png image2.png -o diff.png
 ```
 
 #### With Options
 
 ```bash
-blazediff-cli image1.png image2.png diff.png --threshold 0.05 --antialiasing
+blazediff-cli image1.png image2.png -o diff.png --threshold 0.05 --no-antialiasing
 ```
 
 #### Options
 
+`core-native`, `core` and `core-wasm` take the same flags as the Rust `blazediff` CLI. Anti-aliased pixels are detected and left out of the count unless you pass `--no-antialiasing`.
+
 ```bash
-blazediff-cli core-native <image1> <image2> [output] [options]
+blazediff-cli core-native <image1> <image2> [options]
 
 Options:
-  -t, --threshold <n>        Color difference threshold (0-1, default: 0.1)
-  -a, --antialiasing         Enable anti-aliasing detection
-  --diff-mask                Output only differences (transparent background)
-  -c, --compression <n>      PNG compression level (0-9, default: 0)
-  -h, --help                 Display help
+  -o, --output <path>       Output path for the diff image
+  -t, --threshold <num>     Matching threshold (0 to 1, default: 0.1)
+  --no-antialiasing         Count anti-aliased pixels as differences
+  --metric <name>           Color metric: yiq (default) or oklab (pixelmatch 8)
+  --mask <path>             Image whose non-black pixels are skipped
+  --window <n>              Also report the n×n window with the most differences
+  -a, --alpha <num>         Opacity of the original image in the diff (default: 0.1)
+  --diff-color <r,g,b>      Color for different pixels (default: 255,0,0)
+  --diff-color-alt <r,g,b>  Color for pixels that get darker (default: diff color)
+  --aa-color <r,g,b>        Color for anti-aliased pixels (default: 255,255,0)
+  --background <name>       faded (default) or transparent
+  --json                    Print the result as JSON
+  --compression <num>       PNG compression level (0-9, default: 0)
+  --quality <num>           JPEG quality (1-100, default: 90)
+  -h, --help                Show this help message
 ```
+
+`--json` prints the result object, for example `{"kind":"compared","count":121,"percentage":0.09,"identical":false}`.
 
 #### Exit Codes
 
 - `0` - Images are identical
-- `1` - Images have differences
+- `1` - Images differ, or their dimensions do not match
 - `2` - Error (file not found, invalid format, etc.)
 
 ```bash
-blazediff-cli image1.png image2.png diff.png
+blazediff-cli image1.png image2.png -o diff.png
 if [ $? -eq 0 ]; then
   echo "Images match!"
 else
@@ -138,7 +152,7 @@ $ blazediff-cli interpret image1.png image2.png --json
 
 ### `blazediff-cli core`
 
-Pure JavaScript pixel-by-pixel comparison. Slower than `core-native` but offers more customization options like custom diff colors and color spaces.
+Pure JavaScript pixel-by-pixel comparison. Slower than `core-native`, with no native dependencies. `core-wasm` takes the same flags.
 
 #### Basic Usage
 
@@ -158,21 +172,27 @@ blazediff-cli core image1.png image2.png --output diff.png
 blazediff-cli core <image1> <image2> [options]
 
 Options:
-  -o, --output <path>      Output diff image path
-  -t, --threshold <n>      Matching threshold (0-1, default: 0.1)
-  -a, --alpha <n>          Opacity of original in diff (0-1, default: 0.1)
-  --diff-color <r,g,b>     Color for different pixels (default: 255,0,0)
-  --aa-color <r,g,b>       Color for anti-aliased pixels (default: 255,255,0)
-  --include-aa             Include anti-aliased pixels in diff count
-  --diff-mask              Output diff mask with transparent background
-  --codec <name>           Image codec (pngjs, sharp, jsquash-png)
-  -h, --help               Display help
+  -o, --output <path>       Output path for the diff image
+  -t, --threshold <num>     Matching threshold (0 to 1, default: 0.1)
+  --no-antialiasing         Count anti-aliased pixels as differences
+  --metric <name>           Color metric: yiq (default) or oklab (pixelmatch 8)
+  --mask <path>             Image whose non-black pixels are skipped
+  --window <n>              Also report the n×n window with the most differences
+  -a, --alpha <num>         Opacity of the original image in the diff (default: 0.1)
+  --diff-color <r,g,b>      Color for different pixels (default: 255,0,0)
+  --diff-color-alt <r,g,b>  Color for pixels that get darker (default: diff color)
+  --aa-color <r,g,b>        Color for anti-aliased pixels (default: 255,255,0)
+  --background <name>       faded (default) or transparent
+  --json                    Print the result as JSON
+  --codec <name>            Codec to use (pngjs, sharp, jsquash-png)
+  -h, --help                Show this help message
 ```
 
 #### Exit Codes
 
 - `0` - Images are identical or within threshold
-- `1` - Images have differences beyond threshold
+- `1` - Images differ beyond threshold, or their dimensions do not match
+- `2` - Error
 
 ```bash
 blazediff-cli core image1.png image2.png
@@ -378,7 +398,7 @@ SSIM: 0.9597
 | Algorithm | Best for |
 |-----------|----------|
 | `core-native` (default) | Maximum speed, CI/CD, large images |
-| `core` | Custom diff colors, color space control, no native deps |
+| `core` | No native dependencies, runs anywhere Node runs |
 | `gmsd` | Similarity score, compression-tolerant |
 | `ssim` | MATLAB-compatible, research |
 | `msssim` | Multi-scale, varying resolutions |

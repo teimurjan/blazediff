@@ -114,34 +114,33 @@ export default async function main(): Promise<void> {
 			codec.read(image2),
 		]);
 
-		if (img1.width !== img2.width || img1.height !== img2.height) {
-			throw new Error(
-				`Image dimensions do not match: ${img1.width}x${img1.height} vs ${img2.width}x${img2.height}`,
-			);
-		}
-
 		// Prepare output buffer if needed
 		let outputData: Uint8Array | undefined;
 		if (options.outputPath) {
 			outputData = new Uint8Array(img1.data.length);
 		}
+		const output = outputData && {
+			data: outputData,
+			width: img1.width,
+			height: img1.height,
+		};
 
 		// Run GMSD
 		const gmsdOptions: GmsdOptions = {
 			downsample: (options.downsample as 0 | 1) || 0,
 			c: options.gmsdC as number | undefined,
+			output,
 		};
 
 		const startTime = performance.now();
-		const score = gmsd(
-			img1.data,
-			img2.data,
-			outputData,
-			img1.width,
-			img1.height,
-			gmsdOptions,
-		);
+		const comparison = gmsd(img1, img2, gmsdOptions);
 		const duration = performance.now() - startTime;
+		if (comparison.kind === "dimension-mismatch") {
+			throw new Error(
+				`Image dimensions do not match: ${img1.width}x${img1.height} vs ${img2.width}x${img2.height}`,
+			);
+		}
+		const score = comparison.score;
 
 		// Write output if needed
 		if (options.outputPath && outputData) {

@@ -1,6 +1,11 @@
-import type { Buffer } from "node:buffer";
+/** RGBA8 pixels, `width * height * 4` bytes. Same shape as `@blazediff/core`'s `Image`. */
 export interface Image {
-	data: Buffer | Uint8Array | Uint8ClampedArray;
+	data: Uint8Array | Uint8ClampedArray;
+	width: number;
+	height: number;
+}
+
+export interface Size {
 	width: number;
 	height: number;
 }
@@ -23,7 +28,18 @@ export interface GmsdOptions {
 	 * @default 170 (from original GMSD MATLAB implementation)
 	 */
 	c?: number;
+
+	/** Draw the gradient similarity map here as grayscale, white where gradients match. */
+	output?: Image;
 }
+
+export type GmsdResult =
+	| {
+			kind: "compared";
+			/** Deviation of gradient similarity: 0 when identical, higher is more different. */
+			score: number;
+	  }
+	| { kind: "dimension-mismatch"; a: Size; b: Size };
 
 /**
  * GMSD (Gradient Magnitude Similarity Deviation) perceptual image quality metric.
@@ -34,63 +50,76 @@ export interface GmsdOptions {
  * Uses Prewitt gradients on luma channel to compute gradient magnitude similarity,
  * then returns the standard deviation of the similarity map.
  *
- * @param image1 - First image data (RGBA or grayscale)
- * @param image2 - Second image data (RGBA or grayscale)
- * @param output - Optional RGBA output buffer for GMS map visualization (width * height * 4 bytes)
- * @param width - Image width in pixels
- * @param height - Image height in pixels
- * @param opts - GMSD options
- * @returns GMSD score where 0 = identical, higher = more different (typically 0-0.35 range)
+ * @param a - First image (RGBA, 4 bytes per pixel)
+ * @param b - Second image, the same size as `a`
+ * @param options - Downsampling, stability constant and an optional map `output`
+ * @returns The score (typically 0-0.35), or `dimension-mismatch`
+ *
+ * @example
+ * ```ts
+ * const result = gmsd(a, b, { downsample: 1 });
+ * if (result.kind === "compared") console.log(result.score);
+ * ```
  */
 export function gmsd(
-	image1: Image["data"],
-	image2: Image["data"],
-	output: Image["data"] | undefined,
-	width: number,
-	height: number,
-	opts: GmsdOptions = {},
-): number {
-	const { downsample = 0, c = 170 } = opts;
+	a: Image,
+	b: Image,
+	options: GmsdOptions = {},
+): GmsdResult {
+	assertImage(a, "a");
+	assertImage(b, "b");
+	if (a.width !== b.width || a.height !== b.height)
+		return {
+			kind: "dimension-mismatch",
+			a: { width: a.width, height: a.height },
+			b: { width: b.width, height: b.height },
+		};
+	if (options.output) {
+		assertImage(options.output, "output");
+		if (options.output.width !== a.width || options.output.height !== a.height)
+			throw new RangeError(
+				`output is ${options.output.width}x${options.output.height}, expected ${a.width}x${a.height}.`,
+			);
+	}
+	return { kind: "compared", score: gmsdScore(a, b, options) };
+}
 
-	// Fast path: if buffers are identical, fill output with white if provided and return 0
-	// (GMSD = 0 means perfect match - no deviation in gradient similarity)
-	if (buffersEqual(image1, image2)) {
-		if (output) {
-			// Fill with white (GMS = 1.0 everywhere for identical images)
-			for (let i = 0; i < width * height * 4; i += 4) {
-				output[i] = 255; // R
-				output[i + 1] = 255; // G
-				output[i + 2] = 255; // B
-				output[i + 3] = 255; // A
-			}
-		}
+function assertImage(image: Image, name: string): void {
+	const { data, width, height } = image ?? {};
+	if (!ArrayBuffer.isView(data) || (data as Uint8Array).BYTES_PER_ELEMENT !== 1)
+		throw new TypeError(
+			`${name}.data must be a Uint8Array, Uint8ClampedArray or Buffer.`,
+		);
+	if (
+		!Number.isInteger(width) ||
+		!Number.isInteger(height) ||
+		width < 1 ||
+		height < 1
+	)
+		throw new RangeError(`${name} has an invalid size: ${width}x${height}.`);
+	if (data.length !== width * height * 4)
+		throw new RangeError(
+			`${name}.data is ${data.length} bytes, expected ${width * height * 4} for ${width}x${height}.`,
+		);
+}
+
+function gmsdScore(a: Image, b: Image, options: GmsdOptions): number {
+	const { downsample = 0, c = 170 } = options;
+	const { width, height } = a;
+	const output = options.output?.data;
+
+	// Fast path: identical buffers have GMSD 0 and an all-white GMS map.
+	if (buffersEqual(a.data, b.data)) {
+		output?.fill(255);
 		return 0;
 	}
 
-	// Determine if images are RGBA (4 channels) or grayscale (1 channel)
-	const bytesPerPixel = image1.length / (width * height);
-	const isRGBA = bytesPerPixel === 4;
-
-	// Convert to luma if RGBA, otherwise use as-is
-	let luma1: Float32Array;
-	let luma2: Float32Array;
+	let luma1 = new Float32Array(width * height);
+	let luma2 = new Float32Array(width * height);
 	let processWidth = width;
 	let processHeight = height;
-
-	if (isRGBA) {
-		luma1 = new Float32Array(width * height);
-		luma2 = new Float32Array(width * height);
-		rgbaToLuma(image1, luma1, width, height);
-		rgbaToLuma(image2, luma2, width, height);
-	} else {
-		// Convert Uint8Array to Float32Array for consistency
-		luma1 = new Float32Array(width * height);
-		luma2 = new Float32Array(width * height);
-		for (let i = 0; i < width * height; i++) {
-			luma1[i] = image1[i];
-			luma2[i] = image2[i];
-		}
-	}
+	rgbaToLuma(a.data, luma1, width, height);
+	rgbaToLuma(b.data, luma2, width, height);
 
 	// Apply 2x downsampling if requested (MATLAB-compatible: conv2 + subsample)
 	if (downsample === 1) {

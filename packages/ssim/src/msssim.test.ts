@@ -4,6 +4,7 @@ import { join } from "node:path";
 import codec from "@blazediff/codec-pngjs";
 import { describe, expect, it } from "vitest";
 import { msssim } from "./msssim";
+import { scoreOf } from "./test-helpers";
 
 /**
  * Run MATLAB msssim function and return the result
@@ -49,13 +50,7 @@ describe("MS-SSIM - MATLAB Comparison", () => {
 		const png2 = await codec.read(readFileSync(img2Path));
 
 		// Compute TypeScript MS-SSIM
-		const tsResult = msssim(
-			png1.data,
-			png2.data,
-			undefined,
-			png1.width,
-			png1.height,
-		);
+		const tsResult = scoreOf(msssim(png1, png2));
 
 		const matlabResult = runMatlabMsssim(img1Path, img2Path);
 
@@ -78,13 +73,7 @@ describe("MS-SSIM - MATLAB Comparison", () => {
 		const png1 = await codec.read(readFileSync(img1Path));
 		const png2 = await codec.read(readFileSync(img2Path));
 
-		const tsResult = msssim(
-			png1.data,
-			png2.data,
-			undefined,
-			png1.width,
-			png1.height,
-		);
+		const tsResult = scoreOf(msssim(png1, png2));
 
 		const matlabResult = runMatlabMsssim(img1Path, img2Path);
 
@@ -110,13 +99,7 @@ describe("MS-SSIM - MATLAB Comparison", () => {
 			const png1 = await codec.read(readFileSync(img1Path));
 			const png2 = await codec.read(readFileSync(img2Path));
 
-			const tsResult = msssim(
-				png1.data,
-				png2.data,
-				undefined,
-				png1.width,
-				png1.height,
-			);
+			const tsResult = scoreOf(msssim(png1, png2));
 
 			const matlabResult = runMatlabMsssim(img1Path, img2Path);
 
@@ -140,13 +123,7 @@ describe("MS-SSIM - MATLAB Comparison", () => {
 		const png1 = await codec.read(readFileSync(img1Path));
 		const png2 = await codec.read(readFileSync(img2Path));
 
-		const tsResult = msssim(
-			png1.data,
-			png2.data,
-			undefined,
-			png1.width,
-			png1.height,
-		);
+		const tsResult = scoreOf(msssim(png1, png2));
 
 		const matlabResult = runMatlabMsssim(img1Path, img2Path);
 
@@ -167,12 +144,10 @@ describe("MS-SSIM - MATLAB Comparison", () => {
 		const png2 = await codec.read(readFileSync(img2Path));
 
 		const output = new Uint8ClampedArray(png1.width * png1.height * 4);
-		const result = msssim(
-			png1.data,
-			png2.data,
-			output,
-			png1.width,
-			png1.height,
+		const result = scoreOf(
+			msssim(png1, png2, {
+				output: { data: output, width: png1.width, height: png1.height },
+			}),
 		);
 
 		// Check that output was filled
@@ -196,22 +171,12 @@ describe("MS-SSIM - MATLAB Comparison", () => {
 		const png1 = await codec.read(readFileSync(img1Path));
 		const png2 = await codec.read(readFileSync(img2Path));
 
-		const resultProduct = msssim(
-			png1.data,
-			png2.data,
-			undefined,
-			png1.width,
-			png1.height,
-			{ method: "product" },
+		const resultProduct = scoreOf(
+			msssim(png1, png2, { msSsim: { method: "product" } }),
 		);
 
-		const resultWtdSum = msssim(
-			png1.data,
-			png2.data,
-			undefined,
-			png1.width,
-			png1.height,
-			{ method: "wtd_sum" },
+		const resultWtdSum = scoreOf(
+			msssim(png1, png2, { msSsim: { method: "weighted-sum" } }),
 		);
 
 		// Both methods should return valid results

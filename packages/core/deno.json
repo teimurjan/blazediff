@@ -1,7 +1,10 @@
 {
 	"name": "@blazediff/core",
-	"version": "1.9.1",
-	"exports": "./src/index.ts",
+	"version": "2.0.0",
+	"exports": {
+		".": "./src/index.ts",
+		"./pixelmatch": "./src/pixelmatch.ts"
+	},
 	"publish": {
 		"include": ["src/**/*.ts", "README.md"],
 		"exclude": ["src/**/*.test.ts", "src/**/*.spec.ts", "src/**/*.deno.test.ts"]

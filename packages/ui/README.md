@@ -67,7 +67,7 @@ mountDifference(document.getElementById("app")!, {
   src1: "before.png",
   src2: "after.png",
   threshold: 0.1,
-  includeAA: false,
+  antialiasing: true,
   alpha: 0.1,
   onDiffComplete: ({ diffCount, totalPixels, percentage }) =>
     console.log(diffCount, percentage),
@@ -75,7 +75,7 @@ mountDifference(document.getElementById("app")!, {
 });
 ```
 
-**Options:** `src1`, `src2`, `diff` (encoded diff image `Uint8Array`), `threshold` (`0.1`), `includeAA` (`false`), `alpha` (`0.1`), `crossOrigin` (`"anonymous"`), `className`, `containerClassName`, `canvasClassName`, `onDiffComplete({ diffCount, totalPixels, percentage })`, `onDiffError(error)`.
+**Options:** `src1`, `src2`, `diff` (encoded diff image `Uint8Array`), `threshold` (`0.1`), `antialiasing` (`true`), `alpha` (`0.1`), `crossOrigin` (`"anonymous"`), `className`, `containerClassName`, `canvasClassName`, `onDiffComplete({ diffCount, totalPixels, percentage })`, `onDiffError(error)`.
 
 ### Two-Up Mode
 

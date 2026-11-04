@@ -11,7 +11,7 @@ export const DifferenceMode: React.FC<DifferenceModeProps> = ({
 	src2,
 	diff,
 	threshold = 0.1,
-	includeAA = false,
+	antialiasing = true,
 	alpha = 0.1,
 	className,
 	containerClassName,
@@ -25,7 +25,7 @@ export const DifferenceMode: React.FC<DifferenceModeProps> = ({
 			src1,
 			src2,
 			threshold,
-			includeAA,
+			antialiasing,
 			alpha,
 			enabled: diff === undefined,
 		}),
@@ -39,11 +39,11 @@ export const DifferenceMode: React.FC<DifferenceModeProps> = ({
 			src1,
 			src2,
 			threshold,
-			includeAA,
+			antialiasing,
 			alpha,
 			enabled: diff === undefined,
 		});
-	}, [engine, src1, src2, threshold, includeAA, alpha, diff]);
+	}, [engine, src1, src2, threshold, antialiasing, alpha, diff]);
 
 	useEffect(() => {
 		const canvas = canvasRef.current;

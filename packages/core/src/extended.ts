@@ -6,7 +6,7 @@
  * V8's code (inlining budget, unfolded constants).
  */
 import { antialiased } from "./antialiasing";
-import { oklabDelta, stepLimits } from "./oklab";
+import { oklabDelta, oklabDeltaOverWhite, stepLimits } from "./oklab";
 import {
 	LITTLE_ENDIAN,
 	type PixelData,
@@ -28,7 +28,8 @@ import {
 	YIQ_Y_G,
 	YIQ_Y_R,
 } from "./pixel";
-import { maxWindowCount } from "./window";
+import type { Rgb, WindowHit } from "./types";
+import { findMaxWindow } from "./window";
 
 /**
  * YIQ verdict for two different pixel words, matching the default loops:
@@ -117,6 +118,11 @@ function nextDiff(
 		i += 4;
 	while (i < end && a32[i] === b32[i]) i++;
 	return i;
+}
+
+function pickDelta(oklab: boolean, checkerboard: boolean): DeltaFn {
+	if (!oklab) return yiqDelta;
+	return checkerboard ? oklabDelta : oklabDeltaOverWhite;
 }
 
 type ExcludedAAFn = (
@@ -213,19 +219,22 @@ export function diffExtendedCountOnly(
 	width: number,
 	height: number,
 	oklab: boolean,
+	checkerboard: boolean,
 	maxDelta: number,
 	excludeAA: boolean,
 	ignoreMask: PixelData | undefined,
 	window: number,
+	hit: WindowHit | null,
 ): number {
-	const delta: DeltaFn = oklab ? oklabDelta : yiqDelta;
+	const delta = pickDelta(oklab, checkerboard);
 	const isExcludedAA: ExcludedAAFn = oklab
 		? isExcludedAAOverWhite
 		: isExcludedAACheckerboard;
 	const limits = stepLimits(maxDelta);
 	const reject = maxDelta / YIQ_LAMBDA_MAX;
 	const sparse = isSparseDiff(a32, b32);
-	const diffMap = window > 0 ? new Uint8Array(width * height) : null;
+	const diffMap =
+		window > 0 && hit !== null ? new Uint8Array(width * height) : null;
 	let minY = height;
 	let maxY = -1;
 	let diff = 0;
@@ -254,9 +263,9 @@ export function diffExtendedCountOnly(
 		}
 	}
 
-	return diffMap === null || diff === 0
-		? diff
-		: maxWindowCount(diffMap, width, height, window, minY, maxY);
+	if (diffMap !== null && hit !== null && diff > 0)
+		findMaxWindow(diffMap, width, height, window, minY, maxY, hit);
+	return diff;
 }
 
 /**
@@ -273,16 +282,18 @@ export function diffExtendedWithOutput(
 	width: number,
 	height: number,
 	oklab: boolean,
+	checkerboard: boolean,
 	maxDelta: number,
 	blockSize: number,
 	alpha: number,
-	aaColor: [number, number, number],
-	diffColor: [number, number, number],
-	diffColorAlt: [number, number, number],
+	aaColor: Rgb,
+	diffColor: Rgb,
+	diffColorAlt: Rgb,
 	excludeAA: boolean,
 	diffMask: boolean,
 	ignoreMask: PixelData | undefined,
 	window: number,
+	hit: WindowHit | null,
 ): number {
 	const len = width * height;
 	if ((output.byteOffset & 3) !== 0) {
@@ -296,6 +307,7 @@ export function diffExtendedWithOutput(
 			width,
 			height,
 			oklab,
+			checkerboard,
 			maxDelta,
 			blockSize,
 			alpha,
@@ -306,13 +318,14 @@ export function diffExtendedWithOutput(
 			diffMask,
 			ignoreMask,
 			window,
+			hit,
 		);
 		output.set(aligned);
 		return diff;
 	}
 
 	const out32 = new Uint32Array(output.buffer, output.byteOffset, len);
-	const delta: DeltaFn = oklab ? oklabDelta : yiqDelta;
+	const delta = pickDelta(oklab, checkerboard);
 	const isExcludedAA: ExcludedAAFn = oklab
 		? isExcludedAAOverWhite
 		: isExcludedAACheckerboard;
@@ -362,7 +375,7 @@ export function diffExtendedWithOutput(
 
 	if (changedBlocksCount === 0) return 0;
 
-	const diffMap = window > 0 ? new Uint8Array(len) : null;
+	const diffMap = window > 0 && hit !== null ? new Uint8Array(len) : null;
 	let minY = height;
 	let maxY = -1;
 	let diff = 0;
@@ -409,9 +422,9 @@ export function diffExtendedWithOutput(
 		}
 	}
 
-	return diffMap === null || diff === 0
-		? diff
-		: maxWindowCount(diffMap, width, height, window, minY, maxY);
+	if (diffMap !== null && hit !== null && diff > 0)
+		findMaxWindow(diffMap, width, height, window, minY, maxY, hit);
+	return diff;
 }
 
 /** Pass 1: whether a block holds at least one above-threshold, unmasked pixel. */

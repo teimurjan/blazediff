@@ -23,55 +23,51 @@ A single `abi3-py38` wheel per platform serves every CPython ≥ 3.8 - no separa
 ## Features
 
 - **PNG, JPEG & QOI support** - auto-detected by file extension
-- **Path-based** - pass file paths in, blazediff handles decode + compare + encode
+- **Paths or bytes** - pass file paths or encoded bytes in, blazediff handles decode + compare + encode
 - **SIMD-accelerated** - NEON on ARM, SSE4.1 on x86
 - **Block-based optimization** - skips unchanged regions
 - **Interpret mode** - region detection, classification, severity scoring, human-readable summaries
 
 ## API Reference
 
-### `compare(base_path, compare_path, diff_output=None, *, ...)`
+### `diff(a, b, output=None, *, ...)`
 
-Compares two images and optionally writes a diff image. All keyword arguments are optional.
+Compares two images and optionally writes a diff image. It has the same options and result as every other BlazeDiff surface, in snake_case. All keyword arguments are optional.
 
 ```python
-from blazediff import compare
+from blazediff import diff
 
-result = compare(
-    "expected.png",
-    "actual.png",
-    "diff.png",
-    threshold=0.1,
-    antialiasing=True,
-)
+result = diff("expected.png", "actual.png", "diff.png", threshold=0.1)
 ```
 
 #### Parameters
 
-| Parameter        | Type            | Default | Description                                                            |
-| ---------------- | --------------- | ------- | ---------------------------------------------------------------------- |
-| `base_path`      | `str`           | -       | Path to the base/expected image                                        |
-| `compare_path`   | `str`           | -       | Path to the comparison/actual image                                    |
-| `diff_output`    | `str \| None`   | `None`  | Path where the diff image (or HTML report) will be written             |
-| `threshold`      | `float`         | `0.1`   | Color difference threshold (0.0-1.0). Lower = stricter                 |
-| `antialiasing`   | `bool`          | `False` | Enable anti-aliasing detection                                         |
-| `diff_mask`      | `bool`          | `False` | Output only differences with a transparent background                  |
-| `compression`    | `int`           | `0`     | PNG compression level (0-9, 0 = fastest, 9 = smallest)                 |
-| `quality`        | `int`           | `90`    | JPEG quality (1-100)                                                   |
-| `color_space`    | `str \| None`   | `"yiq"` | Color metric: `"yiq"` or `"oklab"` (same counts as pixelmatch 8)       |
-| `ignore_mask`    | `bytes \| None` | `None`  | One byte per pixel (width × height). Non-zero pixels are skipped       |
-| `window_size`    | `int \| None`   | `None`  | Report the largest diff count in any N×N window instead of the total   |
+| Parameter        | Type                   | Default   | Description |
+| ---------------- | ---------------------- | --------- | ----------- |
+| `a`, `b`         | `str \| bytes`         | -         | A file path or encoded PNG, JPEG or QOI bytes |
+| `output`         | `str \| None`          | `None`    | Path for the diff image. It is written only when the images differ |
+| `threshold`      | `float`                | `0.1`     | Color difference threshold (0.0-1.0). Lower is stricter |
+| `antialiasing`   | `bool`                 | `True`    | Detect anti-aliased pixels and leave them out of the count |
+| `metric`         | `str \| None`          | `"yiq"`   | Color metric: `"yiq"` or `"oklab"` (same counts as pixelmatch 8) |
+| `mask`           | `bytes \| None`        | `None`    | One byte per pixel (width × height). Non-zero pixels are skipped |
+| `window`         | `int \| None`          | `None`    | Also report the N×N window with the most diff pixels |
+| `alpha`          | `float`                | `0.1`     | Opacity of the faded background in the diff image |
+| `diff_color`, `diff_color_alt`, `aa_color` | `tuple[int, int, int] \| None` | red, `diff_color`, yellow | Colors of different, darker and anti-aliased pixels |
+| `background`     | `str \| None`          | `"faded"` | `"faded"` or `"transparent"` |
+| `compression`    | `int`                  | `0`       | PNG compression level (0-9, 0 = fastest, 9 = smallest) |
+| `quality`        | `int`                  | `90`      | JPEG quality (1-100) |
 
 #### Return value
 
-`compare()` returns a `DiffResult` object with:
+`diff()` returns a `DiffResult`. Its `kind` decides which fields are set:
 
-| Field            | Type                       | Description                                                  |
-| ---------------- | -------------------------- | ------------------------------------------------------------ |
-| `match`          | `bool`                     | `True` when images are identical (within threshold)          |
-| `reason`         | `str \| None`              | `"layout-diff"` or `"pixel-diff"` when `match` is `False`    |
-| `diff_count`     | `int \| None`              | Number of differing pixels (pixel-diff only)                 |
-| `diff_percentage`| `float \| None`            | Percentage of differing pixels (pixel-diff only)             |
+| `kind`                 | Fields |
+| ---------------------- | ------ |
+| `"compared"`           | `count`, `percentage`, `identical`, and `window` (`x`, `y`, `count`) when `window` is set |
+| `"dimension-mismatch"` | `a` and `b`, each with `width` and `height` |
+| `"io-error"`           | `path` (when known) and `message` |
+
+Invalid options raise `ValueError`.
 
 <Callout type="info">
   **Threshold guidelines:**
@@ -86,40 +82,43 @@ result = compare(
 ### Basic comparison
 
 ```python
-from blazediff import compare
+from blazediff import diff
 
-result = compare("expected.png", "actual.png", "diff.png", threshold=0.1)
+result = diff("expected.png", "actual.png", "diff.png", threshold=0.1)
 
-if result.match:
-    print("Images are identical!")
-elif result.reason == "pixel-diff":
-    print(f"{result.diff_count} pixels differ ({result.diff_percentage:.2f}%)")
-elif result.reason == "layout-diff":
+if result.kind == "compared":
+    if result.identical:
+        print("Images are identical!")
+    else:
+        print(f"{result.count} pixels differ ({result.percentage:.2f}%)")
+elif result.kind == "dimension-mismatch":
     print("Images have different dimensions")
+else:
+    print(f"Could not read {result.path}: {result.message}")
 ```
 
 ### pytest assertion
 
 ```python
-from blazediff import compare
+from blazediff import diff
 
 def test_homepage_matches_baseline():
-    result = compare("baseline.png", "rendered.png", "diff.png", threshold=0.05)
-    assert result.match, (
-        f"{result.diff_count} pixels differ ({result.diff_percentage:.2f}%)"
+    result = diff("baseline.png", "rendered.png", "diff.png", threshold=0.05)
+    assert result.kind == "compared" and result.identical, (
+        f"{result.count} pixels differ ({result.percentage:.2f}%)"
     )
 ```
 
 ### Mixed formats
 
-`compare()` infers format from the file extension. Inputs and outputs can mix freely:
+`diff()` infers format from the file extension. Inputs and outputs can mix freely:
 
 ```python
 # PNG inputs, QOI diff output (12x smaller diff files)
-compare("expected.png", "actual.png", "diff.qoi")
+diff("expected.png", "actual.png", "diff.qoi")
 
 # JPEG comparison
-compare("expected.jpg", "actual.jpg", "diff.jpg", quality=85)
+diff("expected.jpg", "actual.jpg", "diff.jpg", quality=85)
 ```
 
 | Format | Extensions       | Notes                                                              |

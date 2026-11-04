@@ -62,7 +62,7 @@ fn run(args: &Args) -> Result<InterpretResult, String> {
     if args.source == "pixel" {
         let options = DiffOptions {
             threshold: args.threshold,
-            include_aa: !args.antialiasing,
+            antialiasing: args.antialiasing,
             ..Default::default()
         };
         let mut output = args
@@ -74,7 +74,7 @@ fn run(args: &Args) -> Result<InterpretResult, String> {
 
         if let (Some(path), Some(image)) = (&args.output, &output) {
             if result.diff_count > 0 {
-                blazediff_shared::save_image(image, Path::new(path), options.compression, 90)
+                blazediff_shared::save_image(image, Path::new(path), 0, 90)
                     .map_err(|e| format!("Failed to save {path}: {e}"))?;
             }
         }

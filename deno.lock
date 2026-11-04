@@ -10194,6 +10194,7 @@
       },
       "packages/core-native/core-native": {
         "dependencies": [
+          "jsr:@blazediff/core@^1.9.1",
           "npm:@blazediff/core-native-darwin-arm64@4.2.0",
           "npm:@blazediff/core-native-darwin-x64@4.2.0",
           "npm:@blazediff/core-native-linux-arm64@4.2.0",
@@ -10213,6 +10214,9 @@
         }
       },
       "packages/core-wasm": {
+        "dependencies": [
+          "jsr:@blazediff/core@^1.9.1"
+        ],
         "packageJson": {
           "dependencies": [
             "npm:@types/node@^24.3.0",

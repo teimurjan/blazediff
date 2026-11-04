@@ -1,34 +1,30 @@
 #!/usr/bin/env node
 
-import { type BlazeDiffOptions, compare } from "@blazediff/core-native";
+import { diff } from "@blazediff/core-native";
 import {
-	loadIgnoreMask,
-	parseColorSpace,
-	parseWindowSize,
+	loadMask,
+	parseCoreArgs,
+	reportResult,
+	SHARED_FLAGS,
 } from "./_core-shared";
 
 function printUsage(): void {
 	console.log(`
-Usage: blazediff-cli core-native <image1> <image2> [output] [options]
+Usage: blazediff-cli core-native <image1> <image2> [options]
 
 Arguments:
   image1    Path to the first image
   image2    Path to the second image
-  output    Path for the diff output (optional)
 
 Options:
-  -t, --threshold <num>     Color difference threshold (0 to 1, default: 0.1)
-  -a, --antialiasing        Enable anti-aliasing detection
-  --diff-mask               Output only differences (transparent background)
-  -c, --compression <num>   PNG compression level (0-9, default: 0)
-  --color-space <name>      Color metric: yiq (default) or oklab (pixelmatch 8)
-  --ignore-mask <path>      Image whose non-black pixels are skipped
-  --window-size <n>         Report the largest diff count in any n×n window
+${SHARED_FLAGS}
+  --compression <num>       PNG compression level (0-9, default: 0)
+  --quality <num>           JPEG quality (1-100, default: 90)
   -h, --help                Show this help message
 
 Examples:
-  blazediff-cli core-native image1.png image2.png diff.png
-  blazediff-cli core-native image1.png image2.png diff.png -t 0.05 -a
+  blazediff-cli core-native image1.png image2.png -o diff.png
+  blazediff-cli core-native image1.png image2.png -o diff.png -t 0.05 --no-antialiasing
 
 For region analysis of what changed, use the interpret command:
   blazediff-cli interpret image1.png image2.png
@@ -44,127 +40,30 @@ export default async function main(): Promise<void> {
 			process.exit(0);
 		}
 
-		if (args.length < 2) {
-			console.error("Error: Two image paths are required");
-			printUsage();
-			process.exit(1);
-		}
-
-		const image1 = args[0];
-		const image2 = args[1];
-		const options: BlazeDiffOptions = {};
-		let output: string | undefined;
-
-		// Third positional arg is output path (if not a flag)
-		let optStart = 2;
-		if (args.length > 2 && !args[2].startsWith("-")) {
-			output = args[2];
-			optStart = 3;
-		}
-
-		for (let i = optStart; i < args.length; i++) {
-			const arg = args[i];
-			const nextArg = args[i + 1];
-
-			switch (arg) {
-				case "-t":
-				case "--threshold":
-					if (nextArg) {
-						const threshold = parseFloat(nextArg);
-						if (Number.isNaN(threshold) || threshold < 0 || threshold > 1) {
-							throw new Error(
-								`Invalid threshold: ${nextArg}. Must be between 0 and 1`,
-							);
-						}
-						options.threshold = threshold;
-						i++;
-					}
-					break;
-				case "-a":
-				case "--antialiasing":
-					options.antialiasing = true;
-					break;
-				case "--diff-mask":
-					options.diffMask = true;
-					break;
-				case "-c":
-				case "--compression":
-					if (nextArg) {
-						const compression = parseInt(nextArg, 10);
-						if (
-							Number.isNaN(compression) ||
-							compression < 0 ||
-							compression > 9
-						) {
-							throw new Error(
-								`Invalid compression: ${nextArg}. Must be between 0 and 9`,
-							);
-						}
-						options.compression = compression;
-						i++;
-					}
-					break;
-				case "--color-space":
-					if (nextArg) {
-						options.colorSpace = parseColorSpace(nextArg);
-						i++;
-					}
-					break;
-				case "--ignore-mask":
-					if (nextArg) {
-						options.ignoreMask = await loadIgnoreMask(nextArg);
-						i++;
-					}
-					break;
-				case "--window-size":
-					if (nextArg) {
-						options.windowSize = parseWindowSize(nextArg);
-						i++;
-					}
-					break;
-				default:
-					console.error(`Unknown option: ${arg}`);
-					printUsage();
-					process.exit(1);
-			}
-		}
+		const parsed = parseCoreArgs(args, printUsage, { native: true });
+		const { outputPath, compression, quality } = parsed;
 
 		const startTime = performance.now();
-
-		const result = await compare(image1, image2, output, options);
+		const result = await diff(parsed.image1, parsed.image2, {
+			...parsed.options,
+			mask: parsed.maskPath ? await loadMask(parsed.maskPath) : undefined,
+			output: outputPath
+				? { path: outputPath, compression, quality }
+				: undefined,
+		});
 		const duration = performance.now() - startTime;
 
-		console.log(`completed in: ${duration.toFixed(2)}ms`);
-
-		if (result.match) {
-			console.log("Images are identical!");
-			process.exit(0);
-		}
-
-		if (result.reason === "layout-diff") {
-			console.log("Images have different dimensions");
-			process.exit(1);
-		}
-
-		if (result.reason === "file-not-exists") {
-			console.error(`File not found: ${result.file}`);
+		if (result.kind === "io-error") {
+			console.error(`Error: ${result.message}`);
 			process.exit(2);
 		}
-
-		if (result.reason === "pixel-diff") {
-			console.log(`different pixels: ${result.diffCount}`);
-			console.log(`error: ${result.diffPercentage.toFixed(2)}%`);
-			if (output) {
-				console.log(`diff output: ${output}`);
-			}
-			process.exit(1);
-		}
+		reportResult(result, { json: parsed.json, outputPath, duration });
 	} catch (error) {
 		console.error(
 			"Error:",
 			error instanceof Error ? error.message : String(error),
 		);
-		process.exit(1);
+		process.exit(2);
 	}
 }
 

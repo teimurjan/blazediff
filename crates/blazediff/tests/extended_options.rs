@@ -1,7 +1,10 @@
-//! `color_space`, `ignore_mask` and `window_size` against pixelmatch 8 and
-//! against the default YIQ path.
+//! `metric`, `mask` and `window` against pixelmatch 8 and against the
+//! default YIQ path.
 
-use blazediff::{diff, load_png, ColorSpace, DiffError, DiffOptions, Image};
+use blazediff::{
+    diff, load_png, Background, DiffError, DiffOptions, DiffResult, Image, Metric, RenderOptions,
+    WindowHit,
+};
 use std::path::PathBuf;
 
 fn fixture(name: &str) -> (Image, Image) {
@@ -20,6 +23,7 @@ fn stripe_mask(image: &Image) -> Vec<u8> {
 
 /// pixelmatch 8.0.0 counts for: defaults, includeAA, threshold 0.05,
 /// windowSize 16, stripe mask, stripe mask + windowSize 8 + includeAA.
+/// With a window, pixelmatch returns the busiest window's count.
 const PIXELMATCH_8: [(&str, [u32; 6]); 12] = [
     ("pixelmatch/1", [121, 187, 152, 118, 104, 41]),
     ("pixelmatch/2", [10424, 10756, 12821, 256, 8934, 55]),
@@ -35,18 +39,29 @@ const PIXELMATCH_8: [(&str, [u32; 6]); 12] = [
     ("alpha/1", [53, 567, 64, 12, 49, 16]),
 ];
 
+/// What pixelmatch 8 returns: the window count with a window, else the total.
+fn pixelmatch_count(result: &DiffResult) -> u32 {
+    match result {
+        DiffResult::Compared {
+            window: Some(hit), ..
+        } => hit.count,
+        DiffResult::Compared { count, .. } => *count,
+        DiffResult::DimensionMismatch { .. } => panic!("unexpected dimension mismatch"),
+    }
+}
+
 #[test]
 fn oklab_matches_pixelmatch_8() {
     for (name, expected) in PIXELMATCH_8 {
         let (a, b) = fixture(name);
         let oklab = DiffOptions {
-            color_space: ColorSpace::Oklab,
+            metric: Metric::Oklab,
             ..Default::default()
         };
         let cases = [
             oklab.clone(),
             DiffOptions {
-                include_aa: true,
+                antialiasing: false,
                 ..oklab.clone()
             },
             DiffOptions {
@@ -54,25 +69,25 @@ fn oklab_matches_pixelmatch_8() {
                 ..oklab.clone()
             },
             DiffOptions {
-                window_size: Some(16),
+                window: Some(16),
                 ..oklab.clone()
             },
             DiffOptions {
-                ignore_mask: Some(stripe_mask(&a)),
+                mask: Some(stripe_mask(&a)),
                 ..oklab.clone()
             },
             DiffOptions {
-                ignore_mask: Some(stripe_mask(&a)),
-                window_size: Some(8),
-                include_aa: true,
+                mask: Some(stripe_mask(&a)),
+                window: Some(8),
+                antialiasing: false,
                 ..oklab.clone()
             },
         ];
         for (case, (options, want)) in cases.iter().zip(expected).enumerate() {
-            let counted = diff(&a, &b, None, options).unwrap().diff_count;
+            let counted = pixelmatch_count(&diff(&a, &b, None, options).unwrap());
             assert_eq!(counted, want, "{name} case {case} without output");
             let mut output = Image::new(a.width, a.height);
-            let drawn = diff(&a, &b, Some(&mut output), options).unwrap().diff_count;
+            let drawn = pixelmatch_count(&diff(&a, &b, Some(&mut output), options).unwrap());
             assert_eq!(drawn, want, "{name} case {case} with output");
         }
     }
@@ -85,45 +100,47 @@ fn all_zero_mask_keeps_the_default_yiq_result() {
         for base in [
             DiffOptions::default(),
             DiffOptions {
-                include_aa: true,
+                antialiasing: false,
                 ..Default::default()
             },
             DiffOptions {
-                diff_mask: true,
+                render: RenderOptions {
+                    background: Background::Transparent,
+                    ..Default::default()
+                },
                 ..Default::default()
             },
         ] {
             let masked = DiffOptions {
-                ignore_mask: Some(vec![0; (a.width * a.height) as usize]),
+                mask: Some(vec![0; (a.width * a.height) as usize]),
                 ..base.clone()
             };
             let mut plain_out = Image::new(a.width, a.height);
             let mut masked_out = Image::new(a.width, a.height);
             let plain = diff(&a, &b, Some(&mut plain_out), &base).unwrap();
             let with_mask = diff(&a, &b, Some(&mut masked_out), &masked).unwrap();
-            assert_eq!(with_mask.diff_count, plain.diff_count, "{name}");
-            if !plain.identical {
+            assert_eq!(with_mask, plain, "{name}");
+            if !plain.is_identical() {
                 assert!(masked_out.data == plain_out.data, "{name} output differs");
             }
-            assert_eq!(
-                diff(&a, &b, None, &masked).unwrap().diff_count,
-                plain.diff_count,
-                "{name}"
-            );
+            assert_eq!(diff(&a, &b, None, &masked).unwrap(), plain, "{name}");
         }
     }
 }
 
-/// Counted diff pixels as a 0/1 map, read from a diff_mask render.
+/// Counted diff pixels as a 0/1 map, read from a transparent-background render.
 fn counted_map(a: &Image, b: &Image, options: &DiffOptions) -> Vec<u8> {
     let mut output = Image::new(a.width, a.height);
     let render = DiffOptions {
-        diff_mask: true,
-        diff_color: [255, 0, 0],
-        diff_color_alt: None,
-        aa_color: [0, 0, 255],
-        ignore_mask: None,
-        window_size: None,
+        render: RenderOptions {
+            background: Background::Transparent,
+            diff_color: [255, 0, 0],
+            diff_color_alt: None,
+            aa_color: [0, 0, 255],
+            ..Default::default()
+        },
+        mask: None,
+        window: None,
         ..options.clone()
     };
     diff(a, b, Some(&mut output), &render).unwrap();
@@ -134,9 +151,14 @@ fn counted_map(a: &Image, b: &Image, options: &DiffOptions) -> Vec<u8> {
         .collect()
 }
 
-fn brute_window_max(map: &[u8], width: u32, height: u32, n: u32) -> u32 {
+/// The first busiest window in row-major order.
+fn brute_window_max(map: &[u8], width: u32, height: u32, n: u32) -> WindowHit {
     let (w, h, n) = (width as usize, height as usize, n as usize);
-    let mut best = 0;
+    let mut best = WindowHit {
+        x: 0,
+        y: 0,
+        count: 0,
+    };
     for y in 0..=h - n {
         for x in 0..=w - n {
             let count: u32 = (y..y + n)
@@ -147,38 +169,76 @@ fn brute_window_max(map: &[u8], width: u32, height: u32, n: u32) -> u32 {
                         .sum::<u32>()
                 })
                 .sum();
-            best = best.max(count);
+            if count > best.count {
+                best = WindowHit {
+                    x: x as u32,
+                    y: y as u32,
+                    count,
+                };
+            }
         }
     }
     best
 }
 
 #[test]
-fn window_size_matches_a_brute_force_maximum() {
+fn window_matches_a_brute_force_maximum() {
     let (a, b) = fixture("pixelmatch/3");
-    for color_space in [ColorSpace::Yiq, ColorSpace::Oklab] {
+    for metric in [Metric::Yiq, Metric::Oklab] {
         let options = DiffOptions {
-            color_space,
+            metric,
             ..Default::default()
         };
+        let total = diff(&a, &b, None, &options).unwrap();
         let map = counted_map(&a, &b, &options);
         for n in [1, 4, 16, 64] {
             let windowed = DiffOptions {
-                window_size: Some(n),
+                window: Some(n),
                 ..options.clone()
             };
-            let result = diff(&a, &b, None, &windowed).unwrap();
+            let DiffResult::Compared {
+                count,
+                percentage,
+                window,
+                ..
+            } = diff(&a, &b, None, &windowed).unwrap()
+            else {
+                panic!("unexpected dimension mismatch");
+            };
             assert_eq!(
-                result.diff_count,
-                brute_window_max(&map, a.width, a.height, n),
-                "{color_space:?} n={n}"
+                window,
+                Some(brute_window_max(&map, a.width, a.height, n)),
+                "{metric:?} n={n}"
             );
+            assert_eq!(Some(count), total.count(), "{metric:?} n={n} total");
             assert_eq!(
-                result.diff_percentage,
-                100.0 * result.diff_count as f64 / (n * n) as f64
+                percentage,
+                100.0 * count as f64 / (a.width * a.height) as f64
             );
         }
     }
+}
+
+#[test]
+fn window_reports_an_empty_hit_for_identical_images() {
+    let (a, _) = fixture("pixelmatch/3");
+    let options = DiffOptions {
+        window: Some(8),
+        ..Default::default()
+    };
+    assert_eq!(
+        diff(&a, &a, None, &options).unwrap(),
+        DiffResult::Compared {
+            count: 0,
+            percentage: 0.0,
+            identical: true,
+            window: Some(WindowHit {
+                x: 0,
+                y: 0,
+                count: 0
+            }),
+        }
+    );
 }
 
 #[test]
@@ -192,19 +252,19 @@ fn ignore_mask_skips_pixels() {
     b.data[7] = 255;
     let mut mask = vec![0u8; 16];
     mask[0] = 1;
-    for color_space in [ColorSpace::Yiq, ColorSpace::Oklab] {
+    for metric in [Metric::Yiq, Metric::Oklab] {
         let options = DiffOptions {
-            color_space,
-            include_aa: true,
-            ignore_mask: Some(mask.clone()),
+            metric,
+            antialiasing: false,
+            mask: Some(mask.clone()),
             ..Default::default()
         };
-        assert_eq!(diff(&a, &b, None, &options).unwrap().diff_count, 1);
+        assert_eq!(diff(&a, &b, None, &options).unwrap().count(), Some(1));
         let all = DiffOptions {
-            ignore_mask: Some(vec![1; 16]),
+            mask: Some(vec![1; 16]),
             ..options
         };
-        assert!(diff(&a, &b, None, &all).unwrap().identical);
+        assert!(diff(&a, &b, None, &all).unwrap().is_identical());
     }
 }
 
@@ -212,7 +272,7 @@ fn ignore_mask_skips_pixels() {
 fn rejects_a_mask_of_the_wrong_size() {
     let image = Image::new(2, 2);
     let options = DiffOptions {
-        ignore_mask: Some(vec![0; 3]),
+        mask: Some(vec![0; 3]),
         ..Default::default()
     };
     assert!(matches!(
@@ -225,8 +285,48 @@ fn rejects_a_mask_of_the_wrong_size() {
 }
 
 #[test]
-fn parses_color_spaces() {
-    assert_eq!("oklab".parse::<ColorSpace>(), Ok(ColorSpace::Oklab));
-    assert_eq!("yiq".parse::<ColorSpace>(), Ok(ColorSpace::Yiq));
-    assert!("lab".parse::<ColorSpace>().is_err());
+fn rejects_a_buffer_that_does_not_match_its_size() {
+    let mut image = Image::new(2, 2);
+    image.data.pop();
+    assert!(matches!(
+        diff(&image, &image, None, &DiffOptions::default()),
+        Err(DiffError::InvalidDataSize {
+            expected: 16,
+            actual: 15
+        })
+    ));
+}
+
+#[test]
+fn parses_metrics_and_backgrounds() {
+    assert_eq!("oklab".parse::<Metric>(), Ok(Metric::Oklab));
+    assert_eq!("yiq".parse::<Metric>(), Ok(Metric::Yiq));
+    assert_eq!(
+        "lab".parse::<Metric>(),
+        Err("Unknown metric: lab. Expected \"yiq\" or \"oklab\".".to_string())
+    );
+    assert_eq!(
+        "transparent".parse::<Background>(),
+        Ok(Background::Transparent)
+    );
+    assert!("none".parse::<Background>().is_err());
+}
+
+#[test]
+fn identical_images_fill_the_output_gray() {
+    let (a, b) = fixture("pixelmatch/1");
+    let mut copy = Image::new(a.width, a.height);
+    copy.data.copy_from_slice(&a.data);
+    let mut same_buffer = Image::new(a.width, a.height);
+    diff(&a, &a, Some(&mut same_buffer), &DiffOptions::default()).unwrap();
+    for (second, threshold) in [(&copy, 0.1), (&b, 1.0)] {
+        let mut output = Image::new(a.width, a.height);
+        let options = DiffOptions {
+            threshold,
+            ..Default::default()
+        };
+        let result = diff(&a, second, Some(&mut output), &options).unwrap();
+        assert!(result.is_identical());
+        assert!(output.data == same_buffer.data);
+    }
 }

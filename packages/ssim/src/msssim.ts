@@ -1,4 +1,3 @@
-import type { Buffer } from "node:buffer";
 /**
  * MS-SSIM (Multi-Scale Structural Similarity Index)
  *
@@ -10,25 +9,24 @@ import type { Buffer } from "node:buffer";
  * This implementation matches the original MATLAB implementation exactly.
  */
 
+import { checkPair } from "./image";
 import rgbaToGrayscale from "./rgba-to-grayscale";
-import type { SsimOptions } from "./types";
+import type { Image, SsimOptions, SsimResult } from "./types";
 
-/**
- * MS-SSIM options extending base SSIM options
- */
-export interface MsssimOptions extends SsimOptions {
-	/** Number of scales (default: 5) */
-	level?: number;
-	/** Weights for each scale (default: [0.0448, 0.2856, 0.3001, 0.2363, 0.1333]) */
-	weight?: number[];
-	/** Combination method: 'product' or 'wtd_sum' (default: 'product') */
-	method?: "product" | "wtd_sum";
-}
+export type {
+	HitchhikersOptions,
+	Image,
+	MsSsimOptions,
+	PoolingMethod,
+	Size,
+	SsimOptions,
+	SsimResult,
+} from "./types";
 
-/**
- * SSIM computation result for a single scale
- */
-interface SsimResult {
+const DEFAULT_WEIGHTS = [0.0448, 0.2856, 0.3001, 0.2363, 0.1333];
+
+/** SSIM statistics for a single scale. */
+interface ScaleResult {
 	/** Mean SSIM (luminance × contrast × structure) */
 	mssim: number;
 	/** Contrast-structure component only (for MS-SSIM) */
@@ -40,46 +38,42 @@ interface SsimResult {
 /**
  * Compute MS-SSIM between two images
  *
- * @param image1 - First image data (RGBA format, 4 bytes per pixel)
- * @param image2 - Second image data (RGBA format, 4 bytes per pixel)
- * @param output - Optional output buffer for SSIM map visualization at finest scale (RGBA format)
- * @param width - Image width in pixels
- * @param height - Image height in pixels
- * @param options - MS-SSIM computation options
- * @returns MS-SSIM score (0-1, where 1 is identical)
+ * @param a - First image (RGBA, 4 bytes per pixel)
+ * @param b - Second image, the same size as `a`
+ * @param options - Shared SSIM knobs, `msSsim` weights and pooling, and an optional map `output`
+ * @returns The pooled score (0-1, 1 when identical), or `dimension-mismatch`
  *
  * @example
  * ```typescript
- * // Basic usage
- * const score = mssim(img1, img2, undefined, width, height);
- *
- * // With SSIM map output
- * const output = new Uint8ClampedArray(width * height * 4);
- * const score = mssim(img1, img2, output, width, height);
- * // output now contains grayscale SSIM map at the finest scale
+ * const result = msssim(a, b, { msSsim: { method: "weighted-sum" } });
+ * if (result.kind === "compared") console.log(result.score);
  * ```
  */
 export function msssim(
-	image1: Uint8ClampedArray | Uint8Array | Buffer,
-	image2: Uint8ClampedArray | Uint8Array | Buffer,
-	output: Uint8ClampedArray | Uint8Array | Buffer | undefined,
-	width: number,
-	height: number,
-	options: MsssimOptions = {},
-): number {
-	const {
-		windowSize = 11,
-		k1 = 0.01,
-		k2 = 0.03,
-		bitDepth = 8,
-		level = 5,
-		weight = [0.0448, 0.2856, 0.3001, 0.2363, 0.1333],
-		method = "product",
-	} = options;
+	a: Image,
+	b: Image,
+	options: SsimOptions = {},
+): SsimResult {
+	const mismatch = checkPair(a, b, options.output);
+	if (mismatch) return mismatch;
+	return { kind: "compared", score: msssimScore(a, b, options) };
+}
+
+function msssimScore(a: Image, b: Image, options: SsimOptions): number {
+	const { windowSize = 11, k1 = 0.01, k2 = 0.03, bitDepth = 8 } = options;
+	const { weights: weight = DEFAULT_WEIGHTS, method = "product" } =
+		options.msSsim ?? {};
+	if (method !== "product" && method !== "weighted-sum")
+		throw new RangeError(
+			`Unknown msSsim.method: ${method}. Expected "product" or "weighted-sum".`,
+		);
+	const level = weight.length;
+	const { width, height } = a;
+	const output = options.output?.data;
 
 	// Convert RGBA to grayscale
-	let gray1 = rgbaToGrayscale(image1, width, height);
-	let gray2 = rgbaToGrayscale(image2, width, height);
+	let gray1 = rgbaToGrayscale(a.data, width, height);
+	let gray2 = rgbaToGrayscale(b.data, width, height);
 	let currentWidth = width;
 	let currentHeight = height;
 
@@ -187,7 +181,7 @@ function computeSsimAtScale(
 	k1: number,
 	k2: number,
 	bitDepth: number,
-): SsimResult {
+): ScaleResult {
 	const L = 2 ** bitDepth - 1;
 	const c1 = (k1 * L) ** 2;
 	const c2 = (k2 * L) ** 2;

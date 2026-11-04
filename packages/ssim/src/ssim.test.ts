@@ -20,6 +20,7 @@ import { join } from "node:path";
 import codec from "@blazediff/codec-pngjs";
 import { describe, expect, it } from "vitest";
 import { ssim } from "./ssim";
+import { scoreOf } from "./test-helpers";
 
 /**
  * Run MATLAB ssim function and return the result
@@ -64,13 +65,7 @@ describe("SSIM - MATLAB Comparison", () => {
 		const png2 = await codec.read(readFileSync(img2Path));
 
 		// Compute TypeScript SSIM
-		const tsResult = ssim(
-			png1.data,
-			png2.data,
-			undefined,
-			png1.width,
-			png1.height,
-		);
+		const tsResult = scoreOf(ssim(png1, png2));
 
 		const matlabResult = runMatlabSsim(img1Path, img2Path);
 
@@ -99,13 +94,7 @@ describe("SSIM - MATLAB Comparison", () => {
 		const png1 = await codec.read(readFileSync(img1Path));
 		const png2 = await codec.read(readFileSync(img2Path));
 
-		const tsResult = ssim(
-			png1.data,
-			png2.data,
-			undefined,
-			png1.width,
-			png1.height,
-		);
+		const tsResult = scoreOf(ssim(png1, png2));
 
 		const matlabResult = runMatlabSsim(img1Path, img2Path);
 
@@ -134,13 +123,7 @@ describe("SSIM - MATLAB Comparison", () => {
 			const png1 = await codec.read(readFileSync(img1Path));
 			const png2 = await codec.read(readFileSync(img2Path));
 
-			const tsResult = ssim(
-				png1.data,
-				png2.data,
-				undefined,
-				png1.width,
-				png1.height,
-			);
+			const tsResult = scoreOf(ssim(png1, png2));
 
 			const matlabResult = runMatlabSsim(img1Path, img2Path);
 
@@ -170,13 +153,7 @@ describe("SSIM - MATLAB Comparison", () => {
 		const png1 = await codec.read(readFileSync(img1Path));
 		const png2 = await codec.read(readFileSync(img2Path));
 
-		const tsResult = ssim(
-			png1.data,
-			png2.data,
-			undefined,
-			png1.width,
-			png1.height,
-		);
+		const tsResult = scoreOf(ssim(png1, png2));
 
 		const matlabResult = runMatlabSsim(img1Path, img2Path);
 
@@ -197,7 +174,11 @@ describe("SSIM - MATLAB Comparison", () => {
 		const png2 = await codec.read(readFileSync(img2Path));
 
 		const output = new Uint8ClampedArray(png1.width * png1.height * 4);
-		const result = ssim(png1.data, png2.data, output, png1.width, png1.height);
+		const result = scoreOf(
+			ssim(png1, png2, {
+				output: { data: output, width: png1.width, height: png1.height },
+			}),
+		);
 
 		// Check that output was filled
 		let hasNonZeroValues = false;
@@ -220,14 +201,7 @@ describe("SSIM - MATLAB Comparison", () => {
 		const png1 = await codec.read(readFileSync(img1Path));
 		const png2 = await codec.read(readFileSync(img2Path));
 
-		const result = ssim(
-			png1.data,
-			png2.data,
-			undefined,
-			png1.width,
-			png1.height,
-			{ windowSize: 8 },
-		);
+		const result = scoreOf(ssim(png1, png2, { windowSize: 8 }));
 
 		expect(result).toBeGreaterThan(0.9);
 		expect(result).toBeLessThan(1.0);

@@ -34,11 +34,15 @@ npm install @blazediff/core-native
 N-API bindings shipped as pre-built `.node` binaries for macOS, Linux, and Windows (arm64 + x64). Built from this crate's `napi` Cargo feature.
 
 ```ts
-import { compare } from "@blazediff/core-native";
+import { diff } from "@blazediff/core-native";
 
-const result = await compare("expected.png", "actual.png", "diff.png", {
+const result = await diff("expected.png", "actual.png", {
+  output: "diff.png",
   threshold: 0.1,
 });
+if (result.kind === "compared" && !result.identical) {
+  console.log(`${result.count} pixels differ`);
+}
 ```
 
 ### Python - `blazediff`
@@ -50,14 +54,22 @@ pip install blazediff
 PyO3 bindings shipped as `abi3-py38` wheels for CPython ≥ 3.8 (macOS, Linux manylinux, Windows; arm64 + x86_64). Built from this crate's `python` Cargo feature.
 
 ```python
-from blazediff import compare
+from blazediff import diff
 
-result = compare("expected.png", "actual.png", "diff.png", threshold=0.1)
-if result.match_result:
-    print("identical")
-else:
-    print(f"{result.diff_count} pixels differ ({result.diff_percentage:.2f}%)")
+result = diff("expected.png", "actual.png", "diff.png", threshold=0.1)
+if result.kind == "compared" and not result.identical:
+    print(f"{result.count} pixels differ ({result.percentage:.2f}%)")
 ```
+
+`diff(a, b, output=None, *, threshold=0.1, antialiasing=True, metric="yiq", mask=None, window=None, alpha=0.1, diff_color=None, diff_color_alt=None, aa_color=None, background="faded", compression=0, quality=90)` takes file paths or encoded bytes. The result has a `kind`:
+
+| `kind` | Fields |
+| --- | --- |
+| `"compared"` | `count`, `percentage`, `identical`, and `window` (`x`, `y`, `count`) when `window` is set |
+| `"dimension-mismatch"` | `a` and `b`, each with `width` and `height` |
+| `"io-error"` | `path` (when known) and `message` |
+
+Invalid options raise `ValueError`.
 
 ## CLI Usage
 
@@ -68,24 +80,51 @@ blazediff image1.png image2.png -o diff.png
 # With custom threshold (0.0 - 1.0)
 blazediff image1.png image2.png -o diff.png -t 0.1
 
-# JSON output for scripting
-blazediff image1.png image2.png --json
+# pixelmatch 8 metric, a mask, and the busiest 16×16 window, as JSON
+blazediff image1.png image2.png --metric oklab --mask mask.png --window 16 --json
 ```
+
+| Flag | Meaning |
+| --- | --- |
+| `-o, --output <path>` | Write the diff image (only when the images differ) |
+| `-t, --threshold <n>` | Color difference threshold (0-1). Default: 0.1 |
+| `--antialiasing`, `--no-antialiasing` | Detect anti-aliased pixels and leave them out of the count. Default: on |
+| `--metric <yiq\|oklab>` | Color metric. `oklab` is pixelmatch 8's. Default: `yiq` |
+| `--mask <path>` | Image the size of the inputs; its non-black pixels are skipped |
+| `--window <n>` | Also report the N×N window with the most diff pixels |
+| `-a, --alpha <n>` | Opacity of the faded background. Default: 0.1 |
+| `--diff-color`, `--diff-color-alt`, `--aa-color <r,g,b>` | Output colors |
+| `--background <faded\|transparent>` | What the diff image shows under the diff. Default: `faded` |
+| `-c, --compression <0-9>`, `-q, --quality <1-100>` | PNG and JPEG encoder settings |
+| `--json` | Print the result object as JSON |
+
+Exit codes: 0 identical, 1 the images differ or their dimensions do not match, 2 error. With `--json`, a result prints to stdout (`{"kind":"compared","count":..,"percentage":..,"identical":..}`, or `{"kind":"dimension-mismatch","a":{..},"b":{..}}`) and an error prints to stderr (`{"kind":"io-error","path":..,"message":..}`).
 
 ## Library Usage
 
 ```rust
-use blazediff::{diff, DiffOptions};
+use blazediff::{diff, load_png, save_png, DiffOptions, DiffResult, Image, Metric};
 
+let a = load_png("image1.png")?;
+let b = load_png("image2.png")?;
+let mut output = Image::new(a.width, a.height);
 let options = DiffOptions {
     threshold: 0.1,
-    include_anti_aliased: false,
+    metric: Metric::Oklab,
+    window: Some(16),
     ..Default::default()
 };
 
-let result = diff("image1.png", "image2.png", Some("diff.png"), &options)?;
-println!("Different pixels: {}", result.diff_count);
+match diff(&a, &b, Some(&mut output), &options)? {
+    DiffResult::Compared { count, window, .. } => {
+        println!("Different pixels: {count}, busiest window: {window:?}");
+        save_png(&output, "diff.png")?;
+    }
+    DiffResult::DimensionMismatch { a, b } => println!("Sizes differ: {a:?} vs {b:?}"),
+}
 ```
+
+`DiffOptions` holds `threshold`, `antialiasing` (default `true`), `metric` (`Yiq` or `Oklab`), `mask` (one byte per pixel, non-zero is skipped), `window`, and `render` (`alpha`, `diff_color`, `diff_color_alt`, `aa_color`, `background`). `diff` returns `Err` only for buffers that do not match their size and masks of the wrong length.
 
 ## Structural similarity
 

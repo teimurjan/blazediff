@@ -1,6 +1,6 @@
 {
 	"name": "@blazediff/core-wasm",
-	"version": "6.0.2",
+	"version": "7.0.0",
 	"description": "WebAssembly build of blazediff for browsers, edge runtimes, and any wasm host. Same algorithm as @blazediff/core-native.",
 	"private": false,
 	"publishConfig": {
@@ -45,8 +45,10 @@
 	"repository": "https://github.com/teimurjan/blazediff",
 	"homepage": "https://blazediff.dev",
 	"license": "MIT",
+	"dependencies": {
+		"@blazediff/core": "workspace:*"
+	},
 	"devDependencies": {
-		"@blazediff/core": "workspace:*",
 		"@blazediff/core-native": "workspace:*",
 		"@types/node": "^24.3.0",
 		"@types/pngjs": "^6.0.5",

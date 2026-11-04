@@ -37,22 +37,22 @@ test is the usual mistake.
 | `@blazediff/core-wasm`   | Anywhere wasm runs  | Decoded RGBA              | You already have pixels in memory          |
 | `@blazediff/core`        | Node, browser       | Decoded RGBA              | No native dependency allowed               |
 
-If you are on `pixelmatch` today, `@blazediff/core` is a drop-in replacement with
-an identical API, about 1.5x faster. `core-native` is the bigger jump but takes
-file paths.
+If you are on `pixelmatch` today, `@blazediff/core/pixelmatch` is a drop-in
+replacement with an identical API, about 1.5x faster. `core-native` is the bigger
+jump, and it decodes file paths or encoded buffers in Rust.
 
 ```ts
-import { compare } from "@blazediff/core-native";
+import { diff } from "@blazediff/core-native";
 
-const result = await compare("baseline.png", "current.png", "diff.png", {
+const result = await diff("baseline.png", "current.png", {
+  output: "diff.png",
   threshold: 0.1,
-  antialiasing: true,
 });
 ```
 
 ## 2. Stop writing diff images you do not read
 
-This is the single biggest easy win in JS. Passing an output buffer forces the
+This is the single biggest easy win in JS. Passing an `output` image forces the
 diff to paint every pixel, not just count them:
 
 | Mode                  | Average improvement over pixelmatch |
@@ -60,10 +60,10 @@ diff to paint every pixel, not just count them:
 | No output buffer      | ~62%                                |
 | With output buffer    | ~28%                                |
 
-So pass `undefined` when a green run does not need a picture:
+So leave out `output` when a green run does not need a picture:
 
 ```ts
-const changed = diff(img1, img2, undefined, width, height);
+const result = diff(img1, img2);
 ```
 
 With the agent, same idea:
@@ -76,12 +76,9 @@ Generate the diff image only on failure, in a second pass.
 
 ## 3. Let identical pairs short-circuit
 
-Most snapshots in a healthy suite do not change. `@blazediff/core` has
-`fastBufferCheck` on by default, which detects byte-identical inputs before doing
-any per-pixel work. On identical 4K pairs that is 2.5-3.8ms against pixelmatch's
-24-28ms - roughly 88% faster.
-
-Do not disable it unless you are benchmarking.
+Most snapshots in a healthy suite do not change. `@blazediff/core` always checks
+for byte-identical inputs before doing any per-pixel work. On identical 4K pairs
+that is 2.5-3.8ms against pixelmatch's 24-28ms - roughly 88% faster.
 
 ## 4. Parallelize, but cap it
 

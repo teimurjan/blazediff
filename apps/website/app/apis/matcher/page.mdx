@@ -43,7 +43,7 @@ Main function for snapshot comparison and management.
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `received` | `ImageInput` | Image to compare (file path or buffer with dimensions) |
+| `received` | `ImageInput` | Image to compare: a file path, encoded PNG bytes, or raw RGBA pixels with dimensions |
 | `options` | `MatcherOptions` | Comparison options |
 | `testContext` | `TestContext` | Test information (testPath, testName) |
 
@@ -62,18 +62,23 @@ Core comparison options:
 | `snapshotIdentifier` | `string` | auto-generated | Custom identifier for the snapshot file |
 | `updateSnapshots` | `boolean` | `false` | Force update snapshots |
 
-Method-specific options:
+Method options sit in one namespace per method family. The matcher manages `output` itself:
 
-| Option | Type | Default | Description |
+| Option | Type | Used by | Description |
 |--------|------|---------|-------------|
-| `threshold` | `number` | `0.1` | Color difference threshold (0-1) for `core`/`core-native` methods |
-| `antialiasing` | `boolean` | `false` | Enable anti-aliasing detection (`core-native` method) |
-| `includeAA` | `boolean` | `false` | Include anti-aliased pixels in diff count (`core` method) |
-| `windowSize` | `number` | `11` | Window size for SSIM variants |
-| `k1` | `number` | `0.01` | k1 constant for SSIM |
-| `k2` | `number` | `0.03` | k2 constant for SSIM |
-| `downsample` | `0 \| 1` | `0` | Downsample factor for GMSD |
-| `runInWorker` | `boolean` | `true` | Run image I/O and comparison in a worker thread for better performance |
+| `diff` | `Omit<DiffOptions, "output">` | `core`, `core-wasm`, `core-native` | `threshold`, `antialiasing` (default `true`), `metric`, `mask`, `window`, `render`. See [@blazediff/core](/apis/core) |
+| `ssim` | `Omit<SsimOptions, "output">` | `ssim`, `msssim`, `hitchhikers-ssim` | `windowSize`, `k1`, `k2`, `bitDepth`, `msSsim`, `hitchhikers`. See [@blazediff/ssim](/apis/ssim) |
+| `gmsd` | `Omit<GmsdOptions, "output">` | `gmsd` | `downsample`, `c`. See [@blazediff/gmsd](/apis/gmsd) |
+| `runInWorker` | `boolean` | all | Run image I/O and comparison in a worker thread for better performance. Default: `true` |
+
+```typescript
+await getOrCreateSnapshot(screenshot, {
+  method: 'core',
+  failureThreshold: 0.1,
+  failureThresholdType: 'percent',
+  diff: { threshold: 0.05, metric: 'oklab' },
+}, testContext);
+```
 
 ### ComparisonResult
 
@@ -96,6 +101,7 @@ Result object returned by `getOrCreateSnapshot`:
 ```typescript
 type ImageInput =
   | string // File path
+  | Uint8Array // Encoded PNG bytes (a Buffer works)
   | {
       data: Uint8Array | Uint8ClampedArray | Buffer;
       width: number;
@@ -105,7 +111,7 @@ type ImageInput =
 
 ## Comparison Methods
 
-Available methods: `core`, `core-native`, `ssim`, `msssim`, `hitchhikers-ssim`, `gmsd`. See [@blazediff/core](/apis/core), [@blazediff/core-native](/apis/core-native), [@blazediff/ssim](/apis/ssim), and [@blazediff/gmsd](/apis/gmsd) for algorithm details.
+Available methods: `core`, `core-wasm`, `core-native`, `ssim`, `msssim`, `hitchhikers-ssim`, `gmsd`. See [@blazediff/core](/apis/core), [@blazediff/core-native](/apis/core-native), [@blazediff/ssim](/apis/ssim), and [@blazediff/gmsd](/apis/gmsd) for algorithm details.
 
 ## Links
 

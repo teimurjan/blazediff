@@ -15,41 +15,54 @@ npm install @blazediff/core
 ## Features
 
 - **1.5x faster** than pixelmatch on average, **88% faster** on identical images
-- **100% API compatible** with pixelmatch - drop-in replacement
+- **pixelmatch 8 adapter**: `@blazediff/core/pixelmatch` is a drop-in replacement
 - **Zero dependencies**
 
 ## API Reference
 
-### `blazediff(image1, image2, output, width, height, options?)`
+### `diff(a, b, options?)`
 
-Compares two images pixel by pixel and returns the number of different pixels.
+Compares two RGBA images pixel by pixel. `a` and `b` are `{ data, width, height }`, and browser `ImageData` fits as is. The same call, options and result exist in [`@blazediff/core-wasm`](/apis/core-wasm) and [`@blazediff/core-native`](/apis/core-native).
 
-#### Parameters
+```ts
+import { diff } from "@blazediff/core";
 
-| Parameter | Type                                                | Description                                 |
-| --------- | --------------------------------------------------- | ------------------------------------------- |
-| `image1`  | `Buffer \| Uint8Array \| Uint8ClampedArray`         | Image data of the first image               |
-| `image2`  | `Buffer \| Uint8Array \| Uint8ClampedArray`         | Image data of the second image              |
-| `output`  | `Buffer \| Uint8Array \| Uint8ClampedArray \| null` | Output buffer for the diff image (optional) |
-| `width`   | `number`                                            | Width of the images in pixels               |
-| `height`  | `number`                                            | Height of the images in pixels              |
-| `options` | `Options`                                       | Comparison options (optional)               |
+const output = { data: new Uint8Array(width * height * 4), width, height };
+const result = diff(a, b, { output });
+
+if (result.kind === "compared" && !result.identical) {
+  console.log(result.count, result.percentage);
+}
+```
 
 ##### Options
 
-| Option            | Type      | Default       | Description                                      |
-| ----------------- | --------- | ------------- | ------------------------------------------------ |
-| `threshold`       | `number`  | `0.1`         | Matching threshold (0-1). Lower = more sensitive |
-| `includeAA`       | `boolean` | `false`       | Include anti-aliased pixels in diff count        |
-| `alpha`           | `number`  | `0.1`         | Opacity of original image in diff output         |
-| `aaColor`         | `[R,G,B]` | `[255,255,0]` | Color of anti-aliased pixels (yellow)            |
-| `diffColor`       | `[R,G,B]` | `[255,0,0]`   | Color of different pixels (red)                  |
-| `diffColorAlt`    | `[R,G,B]` | `null`        | Alternative color for dark differences           |
-| `diffMask`        | `boolean` | `false`       | Draw diff as a mask with transparent background  |
-| `fastBufferCheck` | `boolean` | `true`        | Use fast buffer comparison for identical images  |
-| `colorSpace`      | `"yiq" \| "oklab"` | `"yiq"` | Color metric. `"oklab"` gives the same counts as pixelmatch 8 |
-| `ignoreMask`      | `Uint8Array` | -          | One byte per pixel (width × height). Non-zero pixels are skipped |
-| `windowSize`      | `number`  | `Infinity`    | Return the largest diff count in any N×N window instead of the total |
+| Option                | Type                         | Default       | Description |
+| --------------------- | ---------------------------- | ------------- | ----------- |
+| `threshold`           | `number`                     | `0.1`         | Matching threshold (0-1). Lower is stricter |
+| `antialiasing`        | `boolean`                    | `true`        | Detect anti-aliased pixels and leave them out of the count |
+| `metric`              | `"yiq" \| "oklab"`           | `"yiq"`       | Color metric. `"oklab"` is the metric of pixelmatch 8 |
+| `mask`                | `Uint8Array`                 | -             | One byte per pixel (width × height). Non-zero pixels are skipped |
+| `window`              | `number`                     | -             | Also report the N×N window with the most diff pixels |
+| `output`              | `Image`                      | -             | Draw the diff here. Omit for a count-only comparison |
+| `render.alpha`        | `number`                     | `0.1`         | Opacity of the original image in the output |
+| `render.diffColor`    | `[R,G,B]`                    | `[255,0,0]`   | Color of different pixels |
+| `render.diffColorAlt` | `[R,G,B]`                    | `diffColor`   | Color of pixels that get darker in `b` |
+| `render.aaColor`      | `[R,G,B]`                    | `[255,255,0]` | Color of anti-aliased pixels |
+| `render.background`   | `"faded" \| "transparent"`   | `"faded"`     | `transparent` draws the diff without the gray copy of `a` |
+
+##### Result
+
+| Kind                 | Fields |
+| -------------------- | ------ |
+| `compared`           | `count`, `percentage`, `identical`, and `window: { x, y, count }` when the `window` option is set |
+| `dimension-mismatch` | `a` and `b`, each `{ width, height }` |
+
+Invalid buffers or options throw a `BlazeDiffError` with a `code`: `invalid-image`, `invalid-output`, `invalid-mask` or `invalid-option`.
+
+### `pixelmatch(img1, img2, output, width, height, options?)`
+
+`import pixelmatch from "@blazediff/core/pixelmatch"` has the same signature, options, errors, counts and output bytes as pixelmatch 8.0.0, so you change the import and nothing else.
 
 <Callout type="info">
   **Threshold Guidelines:** - `0.0` - Exact match only - `0.05` - Strict

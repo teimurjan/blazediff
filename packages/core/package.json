@@ -1,6 +1,6 @@
 {
 	"name": "@blazediff/core",
-	"version": "1.10.0",
+	"version": "2.0.0",
 	"description": "Blazing-fast pixel-by-pixel image comparison with block-based optimization. 1.5x times faster than pixelmatch",
 	"private": false,
 	"publishConfig": {
@@ -14,6 +14,11 @@
 			"types": "./dist/index.d.ts",
 			"import": "./dist/index.mjs",
 			"require": "./dist/index.js"
+		},
+		"./pixelmatch": {
+			"types": "./dist/pixelmatch.d.ts",
+			"import": "./dist/pixelmatch.mjs",
+			"require": "./dist/pixelmatch.js"
 		}
 	},
 	"files": [

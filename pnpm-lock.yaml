@@ -626,10 +626,11 @@ importers:
         version: 3.2.4(@types/debug@4.1.12)(@types/node@24.3.0)(@vitest/ui@3.2.4)(happy-dom@18.0.1)(jiti@2.6.0)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.20.6)(yaml@2.8.1)
 
   packages/core-native/core-native:
-    devDependencies:
+    dependencies:
       '@blazediff/core':
         specifier: workspace:*
         version: link:../../core
+    devDependencies:
       '@types/node':
         specifier: ^24.3.0
         version: 24.3.0
@@ -662,10 +663,11 @@ importers:
   packages/core-native/core-native-win32-x64: {}
 
   packages/core-wasm:
-    devDependencies:
+    dependencies:
       '@blazediff/core':
         specifier: workspace:*
         version: link:../core
+    devDependencies:
       '@blazediff/core-native':
         specifier: workspace:*
         version: link:../core-native/core-native

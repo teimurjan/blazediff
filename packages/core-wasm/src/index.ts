@@ -1,38 +1,17 @@
-import init, { diffRgba as wasmDiffRgba } from "../wasm/blazediff.js";
+import {
+	assertImage,
+	assertOptions,
+	assertTargets,
+	type DiffOptions,
+	type DiffResult,
+	type Image,
+	type Rgb,
+	windowSide,
+} from "@blazediff/core";
+import init, { diffRgba } from "../wasm/blazediff.js";
 
-// Generated bindings are updated in version bump PRs, so keep the source-side
-// ABI explicit while this wrapper targets the next generated artifact.
-type WasmDiffRgba = (
-	rgbaA: Uint8Array,
-	rgbaB: Uint8Array,
-	width: number,
-	height: number,
-	threshold: number,
-	includeAA: boolean,
-	diffMask: boolean,
-	diffColorAlt: Uint8Array | undefined,
-	outDiff: Uint8Array | undefined,
-	colorSpace: string | undefined,
-	ignoreMask: Uint8Array | undefined,
-	windowSize: number | undefined,
-) => number;
-
-export interface DiffOptions {
-	/** Color difference threshold (0-1). Lower = stricter. Default: 0.1 */
-	threshold?: number;
-	/** Count anti-aliased pixels as differences. Default: false */
-	includeAA?: boolean;
-	/** Render output with transparent background instead of grayscale base. Default: false */
-	diffMask?: boolean;
-	/** Alternative RGB color for darkening differences. Default: diff color */
-	diffColorAlt?: [number, number, number];
-	/** Color difference metric: "yiq" (default) or "oklab", which matches pixelmatch 8 */
-	colorSpace?: "yiq" | "oklab";
-	/** One byte per pixel (width × height); non-zero pixels are skipped */
-	ignoreMask?: Uint8Array;
-	/** Return the largest diff count in any N×N window instead of the total */
-	windowSize?: number;
-}
+export type { DiffOptions, DiffResult, Image } from "@blazediff/core";
+export { BlazeDiffError } from "@blazediff/core";
 
 export type WasmInput =
 	| RequestInfo
@@ -42,23 +21,6 @@ export type WasmInput =
 	| WebAssembly.Module;
 
 let initPromise: Promise<unknown> | undefined;
-
-function toWasmRgb(
-	color: [number, number, number] | undefined,
-): Uint8Array | undefined {
-	if (!color) return undefined;
-	if (
-		color.length !== 3 ||
-		color.some(
-			(channel) => !Number.isInteger(channel) || channel < 0 || channel > 255,
-		)
-	) {
-		throw new RangeError(
-			"diffColorAlt must contain three integer RGB channels",
-		);
-	}
-	return Uint8Array.from(color);
-}
 
 /**
  * Initialize the wasm module. Safe to call multiple times - subsequent calls
@@ -75,53 +37,80 @@ export function initBlazediff(input?: WasmInput): Promise<void> {
 	return initPromise as Promise<void>;
 }
 
-/**
- * Compare two RGBA pixel buffers and return the number of differing pixels.
- *
- * Both buffers must be `width * height * 4` bytes in RGBA8 order. Decode
- * PNG/JPEG with `createImageBitmap` + `OffscreenCanvas.getImageData()` (or
- * the `ImageDecoder` API) and pass the resulting `Uint8Array` here.
- *
- * If `output` is provided it must be `width * height * 4` bytes long and the
- * diff visualization is written into it in place. With `windowSize` the result
- * is the largest N×N window count instead of the total.
- */
-export function diff(
-	a: Uint8Array,
-	b: Uint8Array,
-	width: number,
-	height: number,
-	output?: Uint8Array,
-	options?: DiffOptions,
-): Promise<number>;
-export async function diff(
-	a: Uint8Array,
-	b: Uint8Array,
-	width: number,
-	height: number,
-	output?: Uint8Array,
-	options: DiffOptions = {},
-): Promise<number> {
-	await initBlazediff();
-	return (wasmDiffRgba as unknown as WasmDiffRgba)(
-		a,
-		b,
-		width,
-		height,
-		options.threshold ?? 0.1,
-		options.includeAA ?? false,
-		options.diffMask ?? false,
-		toWasmRgb(options.diffColorAlt),
-		output,
-		options.colorSpace,
-		options.ignoreMask,
-		windowSide(options.windowSize),
-	);
+function toWasmRgb(color: Rgb | undefined): Uint8Array | undefined {
+	return color && Uint8Array.from(color);
 }
 
-/** Floors a finite window size to >= 1 like @blazediff/core; Infinity turns windowing off. */
-function windowSide(windowSize: number | undefined): number | undefined {
-	if (windowSize === undefined || !Number.isFinite(windowSize))
-		return undefined;
-	return Math.max(1, Math.floor(windowSize));
+/**
+ * Compares two RGBA images with the same algorithm as `@blazediff/core-native`.
+ *
+ * Takes and returns the `@blazediff/core` types. Decode PNG or JPEG with
+ * `createImageBitmap` + `OffscreenCanvas.getImageData()` (or `ImageDecoder`)
+ * and pass the pixels here. With `output`, the diff is drawn into its buffer.
+ */
+export async function diff(
+	a: Image,
+	b: Image,
+	options: DiffOptions = {},
+): Promise<DiffResult> {
+	assertImage(a, "a", "invalid-image");
+	assertImage(b, "b", "invalid-image");
+	if (a.width !== b.width || a.height !== b.height) {
+		return {
+			kind: "dimension-mismatch",
+			a: { width: a.width, height: a.height },
+			b: { width: b.width, height: b.height },
+		};
+	}
+
+	const {
+		threshold = 0.1,
+		antialiasing = true,
+		metric = "yiq",
+		mask,
+		window,
+		output,
+		render = {},
+	} = options;
+	const { width, height } = a;
+	const pixels = width * height;
+
+	assertOptions(options);
+	assertTargets(options, width, height);
+	const background = render.background ?? "faded";
+
+	await initBlazediff();
+	const side = windowSide(window, width, height);
+	const [count, hasWindow, x, y, windowCount] = diffRgba(
+		asBytes(a.data),
+		asBytes(b.data),
+		width,
+		height,
+		threshold,
+		antialiasing,
+		metric,
+		mask && asBytes(mask),
+		side || undefined,
+		render.alpha ?? 0.1,
+		toWasmRgb(render.diffColor),
+		toWasmRgb(render.diffColorAlt),
+		toWasmRgb(render.aaColor),
+		background === "transparent",
+		output && asBytes(output.data),
+	);
+
+	return {
+		kind: "compared",
+		count,
+		percentage: pixels > 0 ? (100 * count) / pixels : 0,
+		identical: count === 0,
+		...(hasWindow === 1 && { window: { x, y, count: windowCount } }),
+	};
+}
+
+/** A Uint8Array view of the same memory, so wasm-bindgen writes back into it. */
+function asBytes(data: Uint8Array | Uint8ClampedArray): Uint8Array {
+	return data instanceof Uint8Array
+		? data
+		: new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
 }

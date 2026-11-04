@@ -1,7 +1,7 @@
 //! Scalar diff path for the non-default options: the OKLab metric,
-//! `ignore_mask` and `window_size`. The default YIQ SIMD path in `diff.rs`
+//! `mask` and `window`. The default YIQ SIMD path in `diff.rs`
 //! stays free of these checks. Both metrics share one loop, monomorphised per
-//! [`Metric`], and the same two-pass block structure as `diff.rs`.
+//! [`Kernel`], and the same two-pass block structure as `diff.rs`.
 
 use crate::antialiasing::{is_antialiased, is_antialiased_over_white};
 use crate::diff::{
@@ -10,13 +10,13 @@ use crate::diff::{
 };
 use crate::oklab::Oklab;
 use crate::output::fill_block_gray_optimized;
-use crate::types::{ColorSpace, DiffOptions, DiffResult, Image};
-use crate::window::{max_window_count, window_side};
+use crate::types::{Background, DiffOptions, DiffResult, Image, Metric};
+use crate::window::{max_window, window_side};
 use crate::yiq::threshold_to_max_delta_f32;
 
 /// Color metric verdict for two different pixels: 0 within threshold, -1 when
 /// the second is darker, 1 when not.
-trait Metric {
+trait Kernel {
     fn delta(&self, pa: u32, pb: u32, index: usize) -> i32;
     fn is_antialiased(&self, image1: &Image, image2: &Image, x: u32, y: u32) -> bool;
 }
@@ -28,7 +28,7 @@ struct Yiq {
     reject: u32,
 }
 
-impl Metric for Yiq {
+impl Kernel for Yiq {
     #[inline(always)]
     fn delta(&self, pa: u32, pb: u32, index: usize) -> i32 {
         if (pa & pb) >> 24 == 0xFF {
@@ -55,7 +55,7 @@ impl Metric for Yiq {
     }
 }
 
-impl Metric for Oklab {
+impl Kernel for Oklab {
     #[inline(always)]
     fn delta(&self, pa: u32, pb: u32, index: usize) -> i32 {
         Oklab::delta(self, pa, pb, index)
@@ -68,16 +68,15 @@ impl Metric for Oklab {
     }
 }
 
-/// Diffs `image1` against `image2` honouring `color_space`, `ignore_mask`
-/// and `window_size`. Sizes and the mask length are checked by the caller.
+/// Diffs `image1` against `image2` honouring `metric`, `mask` and `window`. Sizes and the mask length are checked by the caller.
 pub(crate) fn diff_extended(
     image1: &Image,
     image2: &Image,
     output: Option<&mut Image>,
     options: &DiffOptions,
 ) -> DiffResult {
-    match options.color_space {
-        ColorSpace::Yiq => {
+    match options.metric {
+        Metric::Yiq => {
             let max_delta = threshold_to_max_delta_f32(options.threshold);
             let metric = Yiq {
                 max_delta,
@@ -85,7 +84,7 @@ pub(crate) fn diff_extended(
             };
             run(&metric, image1, image2, output, options)
         }
-        ColorSpace::Oklab => run(
+        Metric::Oklab => run(
             &Oklab::new(options.threshold),
             image1,
             image2,
@@ -102,7 +101,7 @@ struct Block {
     end_y: u32,
 }
 
-fn run<M: Metric>(
+fn run<M: Kernel>(
     metric: &M,
     image1: &Image,
     image2: &Image,
@@ -113,7 +112,9 @@ fn run<M: Metric>(
     let total_pixels = width * height;
     let a32 = image1.as_u32();
     let b32 = image2.as_u32();
-    let mask = options.ignore_mask.as_deref();
+    let mask = options.mask.as_deref();
+    let render = &options.render;
+    let transparent = render.background == Background::Transparent;
     let ignored = |i: usize| mask.is_some_and(|m| m[i] != 0);
     let block_size = calculate_block_size(width, height);
 
@@ -144,11 +145,11 @@ fn run<M: Metric>(
             if has_diff {
                 changed.push(block);
             } else if let Some(out) = output.as_deref_mut() {
-                if !options.diff_mask {
+                if !transparent {
                     fill_block_gray_optimized(
                         image1,
                         out,
-                        options.alpha,
+                        render.alpha,
                         block.start_x,
                         block.start_y,
                         block.end_x,
@@ -159,19 +160,15 @@ fn run<M: Metric>(
         }
     }
 
-    let window = window_side(options.window_size, width, height);
+    let window = window_side(options.window, width, height);
     let mut diff_map = window.map(|_| vec![0u8; total_pixels as usize]);
     let mut out32 = output.map(|out| out.as_u32_mut());
-    let alpha_scaled = options.alpha as f32 / 255.0;
-    let diff_color = pack_color_pixel(&options.diff_color);
-    let diff_color_alt = pack_color_pixel(
-        options
-            .diff_color_alt
-            .as_ref()
-            .unwrap_or(&options.diff_color),
-    );
-    let aa_color = pack_color_pixel(&options.aa_color);
-    let draw_background = !options.diff_mask;
+    let alpha_scaled = render.alpha as f32 / 255.0;
+    let diff_color = pack_color_pixel(&render.diff_color);
+    let diff_color_alt =
+        pack_color_pixel(render.diff_color_alt.as_ref().unwrap_or(&render.diff_color));
+    let aa_color = pack_color_pixel(&render.aa_color);
+    let draw_background = !transparent;
     // Equal pixels need visiting only to paint the gray background.
     let skip_equal = out32.is_none() || !draw_background;
     let (mut min_y, mut max_y) = (height, 0);
@@ -205,7 +202,7 @@ fn run<M: Metric>(
                         continue;
                     }
                     pack_gray_pixel(compute_gray_pixel_f32(pa, alpha_scaled))
-                } else if !options.include_aa && metric.is_antialiased(image1, image2, column, y) {
+                } else if options.antialiasing && metric.is_antialiased(image1, image2, column, y) {
                     aa_color
                 } else {
                     diff_count += 1;
@@ -229,13 +226,18 @@ fn run<M: Metric>(
         }
     }
 
-    match (window, diff_map) {
-        (Some(n), Some(map)) if diff_count > 0 => DiffResult::new(
-            max_window_count(&map, width, height, n, min_y, max_y),
-            n * n,
-        ),
-        _ => DiffResult::new(diff_count, total_pixels),
-    }
+    let hit = match (window, diff_map) {
+        (Some(n), Some(map)) if diff_count > 0 => {
+            Some(max_window(&map, width, height, n, min_y, max_y))
+        }
+        (Some(_), _) => Some(crate::types::WindowHit {
+            x: 0,
+            y: 0,
+            count: 0,
+        }),
+        _ => None,
+    };
+    DiffResult::compared(diff_count, total_pixels, hit)
 }
 
 /// First index at or after `i` where `a` and `b` differ, or `a.len()`.

@@ -78,6 +78,17 @@ function paintErrorMap(errorMap: Float32Array, output: Uint8ClampedArray) {
 	}
 }
 
+/** Sizes are checked before measuring, so a mismatch here is a bug. */
+function measuredValue(
+	result:
+		| { kind: "compared"; count: number }
+		| { kind: "compared"; score: number }
+		| { kind: "dimension-mismatch" },
+): number {
+	if (result.kind !== "compared") throw new Error("Image sizes differ");
+	return "count" in result ? result.count : result.score;
+}
+
 async function measure(
 	request: CompareRequest,
 	a: DecodedImage,
@@ -85,29 +96,23 @@ async function measure(
 	output: Uint8ClampedArray<ArrayBuffer>,
 ): Promise<Measurement> {
 	const { width, height } = a;
+	const image = { data: output, width, height };
 	switch (request.algorithm) {
 		case "pixel":
 			await initBlazediff(await fetchWasm(request.wasmUrls.core));
 			return {
-				value: await diff(
-					a.data,
-					b.data,
-					width,
-					height,
-					new Uint8Array(output.buffer),
-					{
-						threshold: request.threshold,
-					},
+				value: measuredValue(
+					await diff(a, b, { threshold: request.threshold, output: image }),
 				),
 			};
 		case "ssim":
-			return { value: ssim(a.data, b.data, output, width, height) };
+			return { value: measuredValue(ssim(a, b, { output: image })) };
 		case "msssim":
-			return { value: msssim(a.data, b.data, output, width, height) };
+			return { value: measuredValue(msssim(a, b, { output: image })) };
 		case "hitchhikers-ssim":
-			return { value: hitchhikersSSIM(a.data, b.data, output, width, height) };
+			return { value: measuredValue(hitchhikersSSIM(a, b, { output: image })) };
 		case "gmsd":
-			return { value: gmsd(a.data, b.data, output, width, height) };
+			return { value: measuredValue(gmsd(a, b, { output: image })) };
 		case "milo": {
 			await initMilo(await fetchWasm(request.wasmUrls.milo));
 			const result = await milo(a.data, b.data, width, height, {

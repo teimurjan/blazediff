@@ -106,10 +106,10 @@ Vitest matcher for image snapshot comparison.
     <td>Force update snapshots</td>
   </tr>
   <tr>
-    <td><code>threshold</code></td>
-    <td>number</td>
-    <td>0.1</td>
-    <td>Color difference threshold (0-1) for core/core-native methods</td>
+    <td><code>diff</code></td>
+    <td>object</td>
+    <td>-</td>
+    <td>Options for core, core-wasm and core-native, such as <code>{ threshold: 0.1, antialiasing: true }</code>. <code>ssim</code> and <code>gmsd</code> hold the options of those methods. See @blazediff/matcher</td>
   </tr>
   <tr>
     <td><code>runInWorker</code></td>
@@ -141,7 +141,7 @@ it('renders correctly', async () => {
 ### Different Comparison Methods
 
 ```typescript
-// Fast Rust-native comparison (file paths only)
+// Fast Rust-native comparison (paths, PNG buffers or raw images)
 await expect('/path/to/image.png').toMatchImageSnapshot({
   method: 'core-native',
 });

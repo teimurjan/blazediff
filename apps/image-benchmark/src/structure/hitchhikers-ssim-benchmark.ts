@@ -36,7 +36,7 @@ async function main() {
 		const { a, b } = pair;
 
 		bench.add(`hitchhikers-ssim - ${pairs[i].name}`, () => {
-			hitchhikersSsim(a.data, b.data, undefined, a.width, a.height);
+			hitchhikersSsim(a, b);
 		});
 
 		if (native) {

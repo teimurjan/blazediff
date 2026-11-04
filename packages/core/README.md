@@ -25,49 +25,9 @@ npm install @blazediff/core
 
 ## API
 
-### blazediff(image1, image2, output, width, height, options)
+### diff(a, b, options?)
 
-Compare two images and return the number of different pixels.
-
-<table>
-  <tr>
-    <th width="500">Parameter</th>
-    <th width="500">Type</th>
-    <th width="500">Description</th>
-  </tr>
-  <tr>
-    <td><code>image1</code></td>
-    <td>Uint8Array | Uint8ClampedArray</td>
-    <td>First image data</td>
-  </tr>
-  <tr>
-    <td><code>image2</code></td>
-    <td>Uint8Array | Uint8ClampedArray</td>
-    <td>Second image data</td>
-  </tr>
-  <tr>
-    <td><code>output</code></td>
-    <td>Uint8Array | Uint8ClampedArray</td>
-    <td>Optional output buffer for diff visualization</td>
-  </tr>
-  <tr>
-    <td><code>width</code></td>
-    <td>number</td>
-    <td>Image width in pixels</td>
-  </tr>
-  <tr>
-    <td><code>height</code></td>
-    <td>number</td>
-    <td>Image height in pixels</td>
-  </tr>
-  <tr>
-    <td><code>options</code></td>
-    <td>object</td>
-    <td>Comparison options (optional)</td>
-  </tr>
-</table>
-
-<strong>Returns:</strong> Number of different pixels
+Compares two RGBA images and returns a result object. `a` and `b` are `{ data, width, height }`, where `data` is a `Uint8Array`, `Uint8ClampedArray` or `Buffer` of `width * height * 4` bytes. Browser `ImageData` has this shape.
 
 <table>
   <tr>
@@ -75,116 +35,111 @@ Compare two images and return the number of different pixels.
     <th width="500">Type</th>
     <th width="500">Default</th>
     <th width="500">Description</th>
-    <th width="500">Hint</th>
   </tr>
   <tr>
     <td><code>threshold</code></td>
     <td>number</td>
     <td>0.1</td>
-    <td>Color difference threshold (0-1)</td>
-    <td>Lower values = more sensitive. 0.05 for strict comparison, 0.2+ for loose comparison</td>
+    <td>Color difference threshold (0-1). Lower is stricter. With <code>yiq</code> it scales a squared distance. With <code>oklab</code>, 1 is black against white.</td>
   </tr>
   <tr>
-    <td><code>alpha</code></td>
-    <td>number</td>
-    <td>0.1</td>
-    <td>Background image opacity</td>
-    <td>Controls how faded unchanged pixels appear in diff output</td>
-  </tr>
-  <tr>
-    <td><code>aaColor</code></td>
-    <td>[number, number, number]</td>
-    <td>[255,255,0]</td>
-    <td>Anti-aliasing pixel color</td>
-    <td>Yellow by default. Set to red [255,0,0] to highlight anti-aliasing</td>
-  </tr>
-  <tr>
-    <td><code>diffColor</code></td>
-    <td>[number, number, number]</td>
-    <td>[255,0,0]</td>
-    <td>Different pixel color</td>
-    <td>Red by default. Use contrasting colors for better visibility</td>
-  </tr>
-  <tr>
-    <td><code>diffColorAlt</code></td>
-    <td>[number, number, number]</td>
-    <td>-</td>
-    <td>Alternative color for dark differences</td>
-    <td>Helps distinguish light vs dark pixel changes</td>
-  </tr>
-  <tr>
-    <td><code>includeAA</code></td>
-    <td>boolean</td>
-    <td>false</td>
-    <td>Include anti-aliasing in diff count</td>
-    <td>Set true to count anti-aliasing pixels as actual differences</td>
-  </tr>
-  <tr>
-    <td><code>diffMask</code></td>
-    <td>boolean</td>
-    <td>false</td>
-    <td>Output only differences (transparent background)</td>
-    <td>Useful for creating overlay masks or highlighting changes only</td>
-  </tr>
-  <tr>
-    <td><code>fastBufferCheck</code></td>
+    <td><code>antialiasing</code></td>
     <td>boolean</td>
     <td>true</td>
-    <td>Use fast buffer check using Buffer.compare</td>
-    <td>Set to false if images are processed differently, but look similiar</td>
+    <td>Detect anti-aliased pixels and leave them out of the count.</td>
   </tr>
   <tr>
-    <td><code>colorSpace</code></td>
+    <td><code>metric</code></td>
     <td>"yiq" | "oklab"</td>
     <td>"yiq"</td>
-    <td>Color difference metric</td>
-    <td>"oklab" gives the same counts as pixelmatch 8 (OKLab HyAB, threshold 1 is black vs white)</td>
+    <td>Color difference metric. <code>oklab</code> is the OKLab HyAB metric of pixelmatch 8.</td>
   </tr>
   <tr>
-    <td><code>ignoreMask</code></td>
+    <td><code>mask</code></td>
     <td>Uint8Array</td>
     <td>-</td>
-    <td>Pixels to skip, one byte per pixel (width × height)</td>
-    <td>Non-zero bytes are skipped. Use it for timestamps, ads or animations</td>
+    <td>One byte per pixel (<code>width * height</code>). Pixels with a non-zero byte are skipped.</td>
   </tr>
   <tr>
-    <td><code>windowSize</code></td>
+    <td><code>window</code></td>
     <td>number</td>
-    <td>Infinity</td>
-    <td>Return the largest diff count in any N×N window instead of the total</td>
-    <td>Scattered noise, such as GPU dithering, stays low and compact changes stand out</td>
+    <td>-</td>
+    <td>Also report the N×N window with the most diff pixels. N is clamped to [1, min(width, height)].</td>
+  </tr>
+  <tr>
+    <td><code>output</code></td>
+    <td>Image</td>
+    <td>-</td>
+    <td>Draw the diff into this image. Omit it for a count-only comparison.</td>
+  </tr>
+  <tr>
+    <td><code>render.alpha</code></td>
+    <td>number</td>
+    <td>0.1</td>
+    <td>Opacity of the unchanged image in the output.</td>
+  </tr>
+  <tr>
+    <td><code>render.diffColor</code></td>
+    <td>[r, g, b]</td>
+    <td>[255, 0, 0]</td>
+    <td>Color of different pixels.</td>
+  </tr>
+  <tr>
+    <td><code>render.diffColorAlt</code></td>
+    <td>[r, g, b]</td>
+    <td><code>diffColor</code></td>
+    <td>Color of pixels that get darker in <code>b</code>.</td>
+  </tr>
+  <tr>
+    <td><code>render.aaColor</code></td>
+    <td>[r, g, b]</td>
+    <td>[255, 255, 0]</td>
+    <td>Color of detected anti-aliased pixels.</td>
+  </tr>
+  <tr>
+    <td><code>render.background</code></td>
+    <td>"faded" | "transparent"</td>
+    <td>"faded"</td>
+    <td><code>faded</code> draws a gray copy of <code>a</code> under the diff. <code>transparent</code> draws the diff alone.</td>
   </tr>
 </table>
+
+The result is one of two kinds:
+
+```typescript
+type DiffResult =
+  | { kind: "compared"; count: number; percentage: number; identical: boolean;
+      window?: { x: number; y: number; count: number } }
+  | { kind: "dimension-mismatch"; a: Size; b: Size };
+```
+
+`count` is the number of pixels that differ beyond `threshold`, after the mask and the anti-aliasing exclusion. With `window`, `count` stays the total and `window` gives the top-left corner and count of the busiest window. Images of different sizes return `dimension-mismatch`. Invalid buffers or options throw a `BlazeDiffError` with a `code`: `invalid-image`, `invalid-output`, `invalid-mask` or `invalid-option`.
 
 ## Usage
 
 ```typescript
-import { diff } from '@blazediff/core';
+import { diff } from "@blazediff/core";
 
-const diffCount = diff(
-  image1.data,
-  image2.data,
-  outputData,
-  width,
-  height,
-  {
-    threshold: 0.1,
-    alpha: 0.1,
-    aaColor: [255, 255, 0],
-    diffColor: [255, 0, 0],
-    includeAA: false,
-    diffMask: false,
-    fastBufferCheck: true,
-  }
-);
+const output = { data: new Uint8Array(width * height * 4), width, height };
+const result = diff(a, b, { threshold: 0.1, output });
 
-// pixelmatch 8 semantics: OKLab metric, a skipped region and an N×N window.
-const ignoreMask = new Uint8Array(width * height); // 1 = skip this pixel
-const worstWindow = diff(image1.data, image2.data, undefined, width, height, {
-  colorSpace: 'oklab',
-  ignoreMask,
-  windowSize: 16,
-});
+if (result.kind === "compared" && !result.identical) {
+  console.log(`${result.count} pixels differ (${result.percentage.toFixed(2)}%)`);
+}
+
+// OKLab metric, a skipped region and the busiest 16×16 window.
+const mask = new Uint8Array(width * height); // 1 = skip this pixel
+const worst = diff(a, b, { metric: "oklab", mask, window: 16 });
+```
+
+## Coming from pixelmatch
+
+`@blazediff/core/pixelmatch` has the same signature, options, errors, counts and output bytes as pixelmatch 8.0.0. Change the import and nothing else:
+
+```typescript
+import pixelmatch from "@blazediff/core/pixelmatch";
+
+const count = pixelmatch(img1.data, img2.data, output, width, height, { threshold: 0.1 });
 ```
 
 ## Algorithm

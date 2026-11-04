@@ -1,4 +1,3 @@
-import type { Buffer } from "node:buffer";
 /**
  * Hitchhiker's SSIM (Structural Similarity Index)
  *
@@ -22,61 +21,58 @@ import type { Buffer } from "node:buffer";
  * 5. Significantly faster than Gaussian-based SSIM (~4x speedup)
  */
 
+import { checkPair } from "./image";
 import rgbaToGrayscale from "./rgba-to-grayscale";
-import type { SsimOptions } from "./types";
+import type { Image, SsimOptions, SsimResult } from "./types";
 
-/**
- * Hitchhiker's SSIM options
- */
-export interface HitchhikersSsimOptions extends SsimOptions {
-	/** Dynamic range of the images (default: 255) */
-	L?: number;
-	/** Window stride for non-overlapping windows (default: windowSize for non-overlapping) */
-	windowStride?: number;
-	/** Use Coefficient of Variation pooling instead of mean (default: true) */
-	covPooling?: boolean;
-}
+export type {
+	HitchhikersOptions,
+	Image,
+	MsSsimOptions,
+	PoolingMethod,
+	Size,
+	SsimOptions,
+	SsimResult,
+} from "./types";
 
 /**
  * Compute Hitchhiker's SSIM between two images using integral images
  *
- * @param image1 - First image data (RGBA format, 4 bytes per pixel)
- * @param image2 - Second image data (RGBA format, 4 bytes per pixel)
- * @param output - Optional output buffer for SSIM map visualization (RGBA format)
- * @param width - Image width in pixels
- * @param height - Image height in pixels
- * @param options - SSIM computation options
- * @returns SSIM score (0-1, where 1 is identical)
+ * @param a - First image (RGBA, 4 bytes per pixel)
+ * @param b - Second image, the same size as `a`
+ * @param options - Shared SSIM knobs, `hitchhikers` stride and pooling, and an optional map `output`
+ * @returns The pooled score (0-1, 1 when identical), or `dimension-mismatch`
  *
  * @example
  * ```typescript
- * // Basic usage with default CoV pooling
- * const score = hitchhikersSSIM(img1, img2, undefined, width, height);
+ * // Default CoV pooling
+ * const result = hitchhikersSSIM(a, b);
  *
- * // With mean pooling (traditional)
- * const score = hitchhikersSSIM(img1, img2, undefined, width, height, { covPooling: false });
+ * // Mean pooling (traditional)
+ * hitchhikersSSIM(a, b, { hitchhikers: { covPooling: false } });
  * ```
  */
 export function hitchhikersSSIM(
-	image1: Uint8ClampedArray | Uint8Array | Buffer,
-	image2: Uint8ClampedArray | Uint8Array | Buffer,
-	output: Uint8ClampedArray | Uint8Array | Buffer | undefined,
-	width: number,
-	height: number,
-	options: HitchhikersSsimOptions = {},
-): number {
-	const {
-		windowSize = 11,
-		windowStride = windowSize, // Non-overlapping windows by default
-		k1 = 0.01,
-		k2 = 0.03,
-		L = 255,
-		covPooling = true,
-	} = options;
+	a: Image,
+	b: Image,
+	options: SsimOptions = {},
+): SsimResult {
+	const mismatch = checkPair(a, b, options.output);
+	if (mismatch) return mismatch;
+	return { kind: "compared", score: hitchhikersScore(a, b, options) };
+}
+
+function hitchhikersScore(a: Image, b: Image, options: SsimOptions): number {
+	const { windowSize = 11, k1 = 0.01, k2 = 0.03, bitDepth = 8 } = options;
+	const { windowStride = windowSize, covPooling = true } =
+		options.hitchhikers ?? {};
+	const { width, height } = a;
+	const output = options.output?.data;
+	const L = 2 ** bitDepth - 1;
 
 	// Convert RGBA to grayscale
-	const gray1 = rgbaToGrayscale(image1, width, height);
-	const gray2 = rgbaToGrayscale(image2, width, height);
+	const gray1 = rgbaToGrayscale(a.data, width, height);
+	const gray2 = rgbaToGrayscale(b.data, width, height);
 
 	// Compute SSIM using integral images
 	const c1 = (k1 * L) ** 2;
@@ -264,7 +260,7 @@ function covPoolingScore(ssimMap: Float32Array): number {
  * Fill output buffer with SSIM map as grayscale image
  */
 function fillSsimMap(
-	output: Uint8ClampedArray | Uint8Array | Buffer,
+	output: Uint8ClampedArray | Uint8Array,
 	ssimMap: Float32Array,
 	mapWidth: number,
 	mapHeight: number,

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import blazediff from "@blazediff/core";
+import { diff } from "@blazediff/core";
 import { Bench, hrtimeNow } from "tinybench";
 import {
 	getBenchmarkImagePairs,
@@ -26,11 +26,11 @@ async function main() {
 		const { a, b } = pair;
 
 		bench.add(`blazediff - ${pairs[i].name}`, () => {
-			blazediff(a.data, b.data, undefined, a.width, a.height);
+			diff(a, b);
 		});
-		const output = new Uint8Array(a.width * a.height * 4);
+		const output = { ...a, data: new Uint8Array(a.width * a.height * 4) };
 		bench.add(`blazediff (w\\ output) - ${pairs[i].name}`, () => {
-			blazediff(a.data, b.data, output, a.width, a.height);
+			diff(a, b, { output });
 		});
 	}
 

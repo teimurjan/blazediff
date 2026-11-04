@@ -8,7 +8,9 @@
 use crate::antialiasing::is_antialiased;
 use crate::extended::diff_extended;
 use crate::output::{clear_transparent, fill_block_gray_optimized};
-use crate::types::{ColorSpace, DiffError, DiffOptions, DiffResult, Image};
+use crate::types::{
+    Background, DiffError, DiffOptions, DiffResult, Image, Metric, Size, WindowHit,
+};
 use crate::yiq::threshold_to_max_delta_f32;
 
 /// Cached CPU feature detection for x86_64
@@ -2700,25 +2702,59 @@ fn process_diff_pixel(
         }
     }
 }
+/// Compares two RGBA images pixel by pixel.
+///
+/// Images of different sizes return [`DiffResult::DimensionMismatch`]. Errors
+/// are reserved for invalid buffers and masks.
 pub fn diff(
+    image1: &Image,
+    image2: &Image,
+    output: Option<&mut Image>,
+    options: &DiffOptions,
+) -> Result<DiffResult, DiffError> {
+    diff_with(image1, image2, output, options, true)
+}
+
+/// [`diff`] that, with `fill_identical` false, leaves `output` unwritten when
+/// nothing differs. Callers that only save the output for differing images
+/// (the CLI, N-API and Python file outputs) skip that fill.
+#[doc(hidden)]
+pub fn diff_with(
     image1: &Image,
     image2: &Image,
     mut output: Option<&mut Image>,
     options: &DiffOptions,
+    fill_identical: bool,
 ) -> Result<DiffResult, DiffError> {
+    for image in [image1, image2] {
+        check_data_size(image)?;
+    }
     if image1.width != image2.width || image1.height != image2.height {
-        return Err(DiffError::SizeMismatch {
-            img1_width: image1.width,
-            img1_height: image1.height,
-            img2_width: image2.width,
-            img2_height: image2.height,
+        return Ok(DiffResult::DimensionMismatch {
+            a: Size {
+                width: image1.width,
+                height: image1.height,
+            },
+            b: Size {
+                width: image2.width,
+                height: image2.height,
+            },
         });
     }
 
     let (width, height) = (image1.width, image1.height);
     let total_pixels = width * height;
+    if let Some(out) = output.as_deref() {
+        check_data_size(out)?;
+        if out.width != width || out.height != height {
+            return Err(DiffError::InvalidDataSize {
+                expected: total_pixels as usize * 4,
+                actual: out.data.len(),
+            });
+        }
+    }
 
-    if let Some(mask) = options.ignore_mask.as_deref() {
+    if let Some(mask) = options.mask.as_deref() {
         if mask.len() != total_pixels as usize {
             return Err(DiffError::InvalidMaskSize {
                 expected: total_pixels as usize,
@@ -2727,26 +2763,34 @@ pub fn diff(
         }
     }
 
+    let render = &options.render;
+    let transparent = render.background == Background::Transparent;
+    // An empty window hit, reported when nothing differs.
+    let no_hit = crate::window::window_side(options.window, width, height).map(|_| WindowHit {
+        x: 0,
+        y: 0,
+        count: 0,
+    });
+
     if let Some(ref mut out) = output {
-        if options.diff_mask {
+        if transparent {
             clear_transparent(out);
         }
     }
 
     if image1.data.as_ptr() == image2.data.as_ptr() {
         if let Some(ref mut out) = output {
-            if !options.diff_mask {
-                fill_block_gray_optimized(image1, out, options.alpha, 0, 0, width, height);
+            if !transparent {
+                fill_block_gray_optimized(image1, out, render.alpha, 0, 0, width, height);
             }
         }
-        return Ok(DiffResult::new(0, total_pixels));
+        return Ok(DiffResult::compared(0, total_pixels, no_hit));
     }
 
-    // Fast path on *decoded* RGBA equality (parity with `@blazediff/core`'s
-    // `fastBufferCheck`). Two PNGs that round-trip to the same pixel buffer
-    // — e.g. an artifact and its lossless re-encoding, or a snapshot test
-    // comparing an actual against an expected that happen to differ only
-    // in PNG metadata — finish here with zero per-block work.
+    // Fast path on *decoded* RGBA equality. Two PNGs that round-trip to the
+    // same pixel buffer (an artifact and its lossless re-encoding, or two
+    // files that differ only in PNG metadata) finish here with zero
+    // per-block work.
     //
     // The comparison is `==` on `Vec<u8>`, which lowers to a vectorized
     // memcmp with early exit on first mismatch. For non-identical images
@@ -2762,13 +2806,15 @@ pub fn diff(
     // so the shortcut is a pessimization there rather than an optimization.
     #[cfg(not(target_arch = "wasm32"))]
     if image1.data == image2.data {
-        return Ok(DiffResult::new(0, total_pixels));
+        if fill_identical && !transparent {
+            if let Some(ref mut out) = output {
+                fill_block_gray_optimized(image1, out, render.alpha, 0, 0, width, height);
+            }
+        }
+        return Ok(DiffResult::compared(0, total_pixels, no_hit));
     }
 
-    if options.color_space != ColorSpace::Yiq
-        || options.ignore_mask.is_some()
-        || options.window_size.is_some()
-    {
+    if options.metric != Metric::Yiq || options.mask.is_some() || options.window.is_some() {
         return Ok(diff_extended(image1, image2, output, options));
     }
 
@@ -2779,18 +2825,14 @@ pub fn diff(
     let a32 = image1.as_u32();
     let b32 = image2.as_u32();
     let max_delta = threshold_to_max_delta_f32(options.threshold);
-    let draw_background = output.is_some() && !options.diff_mask;
-    let include_aa = options.include_aa;
-    let alpha_f32 = options.alpha as f32;
+    let draw_background = output.is_some() && !transparent;
+    let include_aa = !options.antialiasing;
+    let alpha_f32 = render.alpha as f32;
 
-    let diff_color = pack_color_pixel(&options.diff_color);
-    let diff_color_alt = pack_color_pixel(
-        options
-            .diff_color_alt
-            .as_ref()
-            .unwrap_or(&options.diff_color),
-    );
-    let aa_color = pack_color_pixel(&options.aa_color);
+    let diff_color = pack_color_pixel(&render.diff_color);
+    let diff_color_alt =
+        pack_color_pixel(render.diff_color_alt.as_ref().unwrap_or(&render.diff_color));
+    let aa_color = pack_color_pixel(&render.aa_color);
 
     let estimated_changed_blocks = ((blocks_x * blocks_y) as usize / 8).max(16);
     let mut changed_blocks: Vec<(u32, u32, u32, u32)> =
@@ -2835,12 +2877,14 @@ pub fn diff(
     }
 
     if changed_blocks.is_empty() {
-        // Identical (within threshold) — the output buffer is intentionally
-        // left in its initial state. Callers that care about gray-fill
-        // visualization should also check `result.identical` and either skip
-        // saving or fill explicitly; the napi binding already skips the save
-        // path on identical, which is the case this short-circuit targets.
-        return Ok(DiffResult::new(0, total_pixels));
+        // Identical within threshold: the gray fill is skipped unless the
+        // caller keeps the output (see `diff_with`).
+        if fill_identical && draw_background {
+            if let Some(ref mut out) = output {
+                fill_block_gray_optimized(image1, out, render.alpha, 0, 0, width, height);
+            }
+        }
+        return Ok(DiffResult::compared(0, total_pixels, None));
     }
 
     // Second pass: fill unchanged blocks with gray. We re-walk every block
@@ -2848,7 +2892,7 @@ pub fn diff(
     // up in `changed_blocks` (which is naturally row-major), so the skip
     // check is a single comparison per block — no hash set needed.
     if let Some(ref mut out) = output {
-        if !options.diff_mask {
+        if !transparent {
             let mut next_changed = 0usize;
             for by in 0..blocks_y {
                 for bx in 0..blocks_x {
@@ -2867,7 +2911,7 @@ pub fn diff(
                     fill_block_gray_optimized(
                         image1,
                         out,
-                        options.alpha,
+                        render.alpha,
                         start_x,
                         start_y,
                         end_x,
@@ -2989,7 +3033,18 @@ pub fn diff(
             .sum()
     };
 
-    Ok(DiffResult::new(diff_count, total_pixels))
+    Ok(DiffResult::compared(diff_count, total_pixels, None))
+}
+
+fn check_data_size(image: &Image) -> Result<(), DiffError> {
+    let expected = image.width as usize * image.height as usize * 4;
+    if image.data.len() != expected {
+        return Err(DiffError::InvalidDataSize {
+            expected,
+            actual: image.data.len(),
+        });
+    }
+    Ok(())
 }
 
 #[inline(always)]
@@ -3033,8 +3088,8 @@ mod tests {
         let img1 = create_solid_image(100, 100, pack_pixel(255, 255, 255, 255));
         let img2 = create_solid_image(100, 100, pack_pixel(255, 255, 255, 255));
         let result = diff(&img1, &img2, None, &DiffOptions::default()).unwrap();
-        assert_eq!(result.diff_count, 0);
-        assert!(result.identical);
+        assert_eq!(result.count(), Some(0));
+        assert!(result.is_identical());
     }
 
     #[test]
@@ -3042,20 +3097,32 @@ mod tests {
         let img1 = create_solid_image(100, 100, pack_pixel(0, 0, 0, 255));
         let img2 = create_solid_image(100, 100, pack_pixel(255, 255, 255, 255));
         let options = DiffOptions {
-            include_aa: true,
+            antialiasing: false,
             ..Default::default()
         };
         let result = diff(&img1, &img2, None, &options).unwrap();
-        assert_eq!(result.diff_count, 10000);
-        assert!(!result.identical);
+        assert_eq!(result.count(), Some(10000));
+        assert!(!result.is_identical());
     }
 
     #[test]
     fn test_size_mismatch() {
         let img1 = create_solid_image(100, 100, pack_pixel(0, 0, 0, 255));
         let img2 = create_solid_image(50, 50, pack_pixel(0, 0, 0, 255));
-        let result = diff(&img1, &img2, None, &DiffOptions::default());
-        assert!(matches!(result, Err(DiffError::SizeMismatch { .. })));
+        let result = diff(&img1, &img2, None, &DiffOptions::default()).unwrap();
+        assert_eq!(
+            result,
+            DiffResult::DimensionMismatch {
+                a: Size {
+                    width: 100,
+                    height: 100
+                },
+                b: Size {
+                    width: 50,
+                    height: 50
+                },
+            }
+        );
     }
 
     #[test]
@@ -3067,16 +3134,16 @@ mod tests {
         img2.as_u32_mut()[1] = pack_pixel(100, 101, 100, 255);
 
         let options_no_aa = DiffOptions {
-            include_aa: false,
+            antialiasing: true,
             threshold: 0.1,
             ..Default::default()
         };
 
         let result = diff(&img1, &img2, None, &options_no_aa).unwrap();
         assert!(
-            result.diff_count < 2,
+            result.count().unwrap() < 2,
             "AA pixels should be excluded from count, got {}",
-            result.diff_count
+            result.count().unwrap()
         );
     }
 
@@ -3086,13 +3153,13 @@ mod tests {
         let img2 = create_solid_image(10, 10, pack_pixel(255, 255, 255, 255));
 
         let options_with_aa = DiffOptions {
-            include_aa: true,
+            antialiasing: false,
             threshold: 0.1,
             ..Default::default()
         };
 
         let options_without_aa = DiffOptions {
-            include_aa: false,
+            antialiasing: true,
             threshold: 0.1,
             ..Default::default()
         };
@@ -3101,9 +3168,9 @@ mod tests {
         let result_without = diff(&img1, &img2, None, &options_without_aa).unwrap();
 
         assert_eq!(
-            result_with.diff_count,
-            result_without.diff_count,
-            "With same threshold, include_aa should not affect diff count (it only affects output coloring)"
+            result_with.count(),
+            result_without.count(),
+            "With same threshold, antialiasing should not affect diff count (it only affects output coloring)"
         );
     }
 }

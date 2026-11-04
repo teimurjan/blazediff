@@ -19,6 +19,12 @@ import { codecPngjs } from "@blazediff/codec-pngjs";
 import ssimjs from "ssim.js";
 import { hitchhikersSSIM } from "../src/hitchhikers-ssim";
 import { ssim } from "../src/ssim";
+import type { SsimResult } from "../src/types";
+
+function scoreOf(result: SsimResult): number {
+	if (result.kind !== "compared") throw new Error("Image sizes differ");
+	return result.score;
+}
 
 const fixturesDir = join(__dirname, "../fixtures/imgdiff");
 const matlabPath = join(__dirname, "../matlab");
@@ -477,38 +483,21 @@ async function main() {
 
 		// Hitchhiker's SSIM (CoV)
 		const hitchCovStart = performance.now();
-		const hitchhikersCov = hitchhikersSSIM(
-			image1.data,
-			image2.data,
-			undefined,
-			image1.width,
-			image1.height,
-			{ covPooling: true },
+		const hitchhikersCov = scoreOf(
+			hitchhikersSSIM(image1, image2, { hitchhikers: { covPooling: true } }),
 		);
 		const hitchCovTime = performance.now() - hitchCovStart;
 
 		// Hitchhiker's SSIM (mean)
 		const hitchMeanStart = performance.now();
-		const hitchhikersMean = hitchhikersSSIM(
-			image1.data,
-			image2.data,
-			undefined,
-			image1.width,
-			image1.height,
-			{ covPooling: false },
+		const hitchhikersMean = scoreOf(
+			hitchhikersSSIM(image1, image2, { hitchhikers: { covPooling: false } }),
 		);
 		const hitchMeanTime = performance.now() - hitchMeanStart;
 
 		// SSIM (Gaussian)
 		const ssimStart = performance.now();
-		const ssimScore = ssim(
-			image1.data,
-			image2.data,
-			undefined,
-			image1.width,
-			image1.height,
-			{},
-		);
+		const ssimScore = scoreOf(ssim(image1, image2));
 		const ssimTime = performance.now() - ssimStart;
 
 		// ssim.js

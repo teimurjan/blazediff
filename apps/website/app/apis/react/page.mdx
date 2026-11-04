@@ -115,7 +115,7 @@ Shows pixel differences using the BlazeDiff comparison algorithm. Pass encoded d
 | `src2`              | `string \| Uint8Array` (required)                                | -       | URL or encoded bytes for the second image |
 | `diff`              | `Uint8Array`                                                     | -       | Encoded precomputed diff image bytes |
 | `threshold`         | `number`                                                          | -       | Difference threshold (0-1)      |
-| `includeAA`         | `boolean`                                                         | -       | Include anti-aliased pixels     |
+| `antialiasing`      | `boolean`                                                         | `true`  | Detect anti-aliased pixels and leave them out of the count |
 | `alpha`             | `number`                                                          | -       | Opacity of original image       |
 | `className`         | `string`                                                          | -       | CSS class for the root element  |
 | `containerClassName`| `string`                                                          | -       | CSS class for the container     |

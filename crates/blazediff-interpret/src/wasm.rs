@@ -88,10 +88,8 @@ pub fn interpret_rgba(
     let defaults = DiffOptions::default();
     let opts = DiffOptions {
         threshold,
-        // Mirrors the N-API surface, which calls it `antialiasing` where the
-        // core calls the inverse `include_aa`. Keeping the two front-ends
-        // identical is what lets the same options object drive either.
-        include_aa: !antialiasing,
+        // Mirrors the N-API surface, so the same options object drives either.
+        antialiasing,
         ..defaults
     };
 

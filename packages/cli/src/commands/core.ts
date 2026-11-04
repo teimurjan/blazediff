@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
-import blazediff from "@blazediff/core";
-import { parseCoreArgs, runCoreDiff } from "./_core-shared";
+import { diff } from "@blazediff/core";
+import { parseCoreArgs, runCoreDiff, SHARED_FLAGS } from "./_core-shared";
 
 function printUsage(): void {
 	console.log(`
@@ -12,24 +12,14 @@ Arguments:
   image2    Path to the second image
 
 Options:
-  -o, --output <path>       Output path for the diff image
-  -t, --threshold <num>     Matching threshold (0 to 1, default: 0.1)
-  -a, --alpha <num>         Opacity of original image in diff (default: 0.1)
-  --aa-color <r,g,b>        Color for anti-aliased pixels (default: 255,255,0)
-  --diff-color <r,g,b>      Color for different pixels (default: 255,0,0)
-  --diff-color-alt <r,g,b>  Alternative color for dark differences (default: same as diff-color)
-  --include-aa              Include anti-aliasing detection
-  --diff-mask               Draw diff over transparent background
-  --codec <name>            Specify codec to use (pngjs, sharp, jsquash-png)
-  --color-space <name>      Color metric: yiq (default) or oklab (pixelmatch 8)
-  --ignore-mask <path>      Image whose non-black pixels are skipped
-  --window-size <n>         Report the largest diff count in any n×n window
+${SHARED_FLAGS}
+  --codec <name>            Codec to use (pngjs, sharp, jsquash-png)
   -h, --help                Show this help message
 
 Examples:
   blazediff-cli core image1.png image2.png
   blazediff-cli core image1.png image2.png -o diff.png -t 0.05
-  blazediff-cli core image1.png image2.png --threshold 0.2 --alpha 0.3
+  blazediff-cli core image1.png image2.png --metric oklab --window 16 --json
 `);
 }
 
@@ -44,15 +34,13 @@ export default async function main(): Promise<void> {
 
 		const parsed = parseCoreArgs(args, printUsage);
 
-		await runCoreDiff(parsed, (a, b, width, height, output, options) =>
-			blazediff(a, b, output, width, height, options),
-		);
+		await runCoreDiff(parsed, diff);
 	} catch (error) {
 		console.error(
 			"Error:",
 			error instanceof Error ? error.message : String(error),
 		);
-		process.exit(1);
+		process.exit(2);
 	}
 }
 

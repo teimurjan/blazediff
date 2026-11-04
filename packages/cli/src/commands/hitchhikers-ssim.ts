@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 
-import hitchhikersSSIM from "@blazediff/ssim/hitchhikers-ssim";
+import hitchhikersSSIM, {
+	type SsimOptions,
+} from "@blazediff/ssim/hitchhikers-ssim";
 
 function printUsage(): void {
 	console.log(`
@@ -128,46 +130,46 @@ export default async function main(): Promise<void> {
 			codec.read(image2),
 		]);
 
-		if (img1.width !== img2.width || img1.height !== img2.height) {
-			throw new Error(
-				`Image dimensions do not match: ${img1.width}x${img1.height} vs ${img2.width}x${img2.height}`,
-			);
-		}
-
 		// Prepare output buffer if needed
 		let outputData: Uint8Array | undefined;
 		if (options.outputPath) {
 			outputData = new Uint8Array(img1.data.length);
 		}
+		const output = outputData && {
+			data: outputData,
+			width: img1.width,
+			height: img1.height,
+		};
 
 		// Prepare Hitchhiker's SSIM options
-		const ssimOptions: {
-			windowSize?: number;
-			windowStride?: number;
-			covPooling?: boolean;
-		} = {};
+		const ssimOptions: SsimOptions = { hitchhikers: {}, output };
 
 		if (typeof options.windowSize === "number") {
 			ssimOptions.windowSize = options.windowSize;
 		}
 		if (typeof options.windowStride === "number") {
-			ssimOptions.windowStride = options.windowStride;
+			ssimOptions.hitchhikers = {
+				...ssimOptions.hitchhikers,
+				windowStride: options.windowStride,
+			};
 		}
 		if (typeof options.covPooling === "boolean") {
-			ssimOptions.covPooling = options.covPooling;
+			ssimOptions.hitchhikers = {
+				...ssimOptions.hitchhikers,
+				covPooling: options.covPooling,
+			};
 		}
 
 		// Run Hitchhiker's SSIM
 		const startTime = performance.now();
-		const score = hitchhikersSSIM(
-			img1.data,
-			img2.data,
-			outputData,
-			img1.width,
-			img1.height,
-			ssimOptions,
-		);
+		const comparison = hitchhikersSSIM(img1, img2, ssimOptions);
 		const duration = performance.now() - startTime;
+		if (comparison.kind === "dimension-mismatch") {
+			throw new Error(
+				`Image dimensions do not match: ${img1.width}x${img1.height} vs ${img2.width}x${img2.height}`,
+			);
+		}
+		const score = comparison.score;
 
 		// Write output if needed
 		if (options.outputPath && outputData) {
@@ -186,9 +188,11 @@ export default async function main(): Promise<void> {
 			width: img1.width,
 			height: img1.height,
 			duration,
-			poolingMethod: ssimOptions.covPooling === false ? "mean" : "CoV",
+			poolingMethod:
+				ssimOptions.hitchhikers?.covPooling === false ? "mean" : "CoV",
 			windowSize: ssimOptions.windowSize || 11,
-			windowStride: ssimOptions.windowStride || ssimOptions.windowSize || 11,
+			windowStride:
+				ssimOptions.hitchhikers?.windowStride || ssimOptions.windowSize || 11,
 		};
 
 		console.log(`completed in: ${result.duration.toFixed(2)}ms`);

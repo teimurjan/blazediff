@@ -41,7 +41,7 @@ server.
     />
 
 ```ts
-import blazediff from "@blazediff/core";
+import { diff } from "@blazediff/core";
 
 // loadImage can either be a browser function or a server function
 const img1 = await loadImage(
@@ -50,12 +50,11 @@ const img1 = await loadImage(
 const img2 = await loadImage(
   "https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3b.png"
 );
-const output = new Uint8Array(img1.width * img1.height * 4);
-const width = img1.width;
-const height = img1.height;
+const { width, height } = img1;
+const output = { data: new Uint8Array(width * height * 4), width, height };
 
-// Returns the number of differing pixels and fills `output` with the diff image.
-const diff = blazediff(img1, img2, output, width, height);
+// Fills `output` with the diff image and returns the count in `result.count`.
+const result = diff(img1, img2, { output });
 ```
 
   </Tabs.Tab>
@@ -69,7 +68,7 @@ const diff = blazediff(img1, img2, output, width, height);
     />
 
 ```ts
-import blazediff from "@blazediff/core";
+import { diff } from "@blazediff/core";
 
 // loadImage can either be a browser function or a server function
 const img1 = await loadImage(
@@ -78,12 +77,11 @@ const img1 = await loadImage(
 const img2 = await loadImage(
   "https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3b.png"
 );
-const output = new Uint8Array(img1.width * img1.height * 4);
-const width = img1.width;
-const height = img1.height;
+const { width, height } = img1;
+const output = { data: new Uint8Array(width * height * 4), width, height };
 
 // threshold is a per-pixel color distance from 0 (exact) to 1 (anything goes).
-const diff = blazediff(img1, img2, output, width, height, { threshold: 0.5 });
+const result = diff(img1, img2, { output, threshold: 0.5 });
 ```
 
   </Tabs.Tab>
@@ -93,11 +91,11 @@ const diff = blazediff(img1, img2, output, width, height, { threshold: 0.5 });
     <DiffImageComparison
       fixtureA="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3a.png"
       fixtureB="https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3b.png"
-      options={{ aaColor: [255, 0, 0], diffColor: [0, 255, 0] }}
+      options={{ render: { aaColor: [255, 0, 0], diffColor: [0, 255, 0] } }}
     />
 
 ```ts
-import blazediff from "@blazediff/core";
+import { diff } from "@blazediff/core";
 
 // loadImage can either be a browser function or a server function
 const img1 = await loadImage(
@@ -106,22 +104,21 @@ const img1 = await loadImage(
 const img2 = await loadImage(
   "https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3b.png"
 );
-const output = new Uint8Array(img1.width * img1.height * 4);
-const width = img1.width;
-const height = img1.height;
+const { width, height } = img1;
+const output = { data: new Uint8Array(width * height * 4), width, height };
 
 // Recolor the diff output: anti-aliased pixels red, real differences green.
-const diff = blazediff(img1, img2, output, width, height, {
-  aaColor: [255, 0, 0],
-  diffColor: [0, 255, 0],
+const result = diff(img1, img2, {
+  output,
+  render: { aaColor: [255, 0, 0], diffColor: [0, 255, 0] },
 });
 ```
 
   </Tabs.Tab>
 </Tabs>
 
-Pass `null` instead of an output buffer when you only need the count. That skips
-writing the diff image, which is the more expensive half of the work.
+Leave out `output` when you only need the count. That skips writing the diff
+image, which is the more expensive half of the work.
 
 ## What it costs
 

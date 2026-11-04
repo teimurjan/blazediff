@@ -63,7 +63,7 @@ await expect(imageInput).toMatchImageSnapshot(options?);
 | `failureThresholdType` | `'pixel' \| 'percent'` | `'pixel'` | Threshold interpretation |
 | `snapshotsDir` | `string` | `'__snapshots__'` | Snapshot directory (relative to test) |
 | `updateSnapshots` | `boolean` | `false` | Force snapshot update |
-| `threshold` | `number` | `0.1` | Color threshold for `core`/`core-native` (0-1) |
+| `diff` | `object` | - | Options for `core`, `core-wasm` and `core-native`, such as `{ threshold: 0.1, antialiasing: true }`. `ssim` and `gmsd` hold the options of those methods |
 | `runInWorker` | `boolean` | `true` | Run comparison in worker thread for better performance |
 
 See [@blazediff/matcher](/apis/matcher) for all available options.

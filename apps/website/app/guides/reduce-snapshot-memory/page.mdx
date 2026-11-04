@@ -53,8 +53,8 @@ competing with your test runner for the same budget and are freed as soon as the
 call returns.
 
 ```ts
-import { compare } from "@blazediff/core-native";
-await compare("baseline.png", "current.png", "diff.png");
+import { diff } from "@blazediff/core-native";
+await diff("baseline.png", "current.png", { output: "diff.png" });
 ```
 
 <Callout type="info">
