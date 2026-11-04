@@ -13,7 +13,7 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import blazediffCore from "@blazediff/core";
 import { PNG } from "pngjs";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { compare } from "./index";
 
 const FIXTURES_PATH = join(__dirname, "../../../../fixtures");
@@ -98,6 +98,10 @@ async function bothEngines(
 
 	return { js, native };
 }
+
+// The diffs are synchronous, so yield between tests to let the worker answer
+// vitest's RPC calls before they time out.
+beforeEach(() => new Promise((resolve) => setImmediate(resolve)));
 
 const FIXTURES = fixturePairs();
 const PAIRS = FIXTURES.map(({ name }) => name);
