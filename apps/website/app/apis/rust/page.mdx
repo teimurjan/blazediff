@@ -66,6 +66,9 @@ Options:
   -a, --antialiasing           Enable anti-aliasing detection
       --diff-mask              Output only differences (transparent background)
       --diff-color-alt <R,G,B> Alternative RGB color for darkening differences
+      --color-space <COLOR_SPACE>  Color difference metric: yiq or oklab (pixelmatch 8) [default: yiq]
+      --ignore-mask <PATH>     Image the size of the inputs; its non-black pixels are skipped
+      --window-size <N>        Report the largest diff count in any N×N window instead of the total
   -c, --compression <LEVEL>    PNG compression level (0-9) [default: 0]
   -q, --quality <QUALITY>      JPEG quality (1-100) [default: 90]
       --output-format <FORMAT> Output format (json or text) [default: json]
@@ -115,6 +118,14 @@ pub struct DiffOptions {
     pub diff_color_alt: Option<[u8; 3]>,
     pub diff_mask: bool,          // transparent background mode
     pub compression: u8,          // PNG compression 0-9 (0 = fastest)
+    pub color_space: ColorSpace,  // Yiq (default) or Oklab (pixelmatch 8)
+    pub ignore_mask: Option<Vec<u8>>, // one byte per pixel; non-zero is skipped
+    pub window_size: Option<u32>, // largest N×N window count instead of the total
+}
+
+pub enum ColorSpace {
+    Yiq,
+    Oklab,
 }
 
 pub struct DiffResult {

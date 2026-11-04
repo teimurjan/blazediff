@@ -165,3 +165,108 @@ describe("JS/native parity with AA detection", () => {
 		expect(actual.native).toBe(native);
 	});
 });
+
+/**
+ * Binaries built before `colorSpace` existed ignore the field instead of
+ * rejecting an unknown value, so this tells whether the loaded build has it.
+ */
+async function supportsExtendedOptions(): Promise<boolean> {
+	const fixture = join(FIXTURES_PATH, `${PAIRS[0]}a.png`);
+	try {
+		await compare(fixture, fixture, undefined, {
+			colorSpace: "unknown" as "oklab",
+		});
+		return false;
+	} catch {
+		return true;
+	}
+}
+
+const SMALL_PAIRS = PAIRS.filter((name) => !/^(4k|page)\//.test(name));
+
+describe.skipIf(!(await supportsExtendedOptions()))(
+	"JS/native parity for colorSpace, ignoreMask and windowSize",
+	() => {
+		// Unlike YIQ, the OKLab detector visits neighbours in pixelmatch's order
+		// in both engines, so AA detection is covered too.
+		it.each(PAIRS)("oklab agrees on %s", async (name) => {
+			const pathA = join(FIXTURES_PATH, `${name}a.png`);
+			const pathB = join(FIXTURES_PATH, `${name}b.png`);
+			const a = PNG.sync.read(readFileSync(pathA));
+			const b = PNG.sync.read(readFileSync(pathB));
+			const stripe = new Uint8Array(a.width * a.height);
+			for (let i = 0; i < stripe.length; i += 7) stripe[i] = 1;
+			const cases: Array<{
+				antialiasing: boolean;
+				threshold?: number;
+				ignoreMask?: Uint8Array;
+				windowSize?: number;
+			}> = [
+				{ antialiasing: true },
+				{ antialiasing: false },
+				{ antialiasing: true, threshold: 0.05 },
+				{ antialiasing: true, ignoreMask: stripe, windowSize: 16 },
+			];
+			for (const { antialiasing, ...rest } of cases) {
+				const js = blazediffCore(
+					new Uint8Array(a.data),
+					new Uint8Array(b.data),
+					undefined,
+					a.width,
+					a.height,
+					{ ...rest, colorSpace: "oklab", includeAA: !antialiasing },
+				);
+				const result = await compare(pathA, pathB, undefined, {
+					...rest,
+					antialiasing,
+					colorSpace: "oklab",
+				});
+				const native =
+					result.match === true
+						? 0
+						: (result as { diffCount: number }).diffCount;
+				expect(
+					native,
+					`antialiasing=${antialiasing} threshold=${rest.threshold} mask=${!!rest.ignoreMask} window=${rest.windowSize}`,
+				).toBe(js);
+			}
+		});
+
+		it.each(SMALL_PAIRS)(
+			"yiq agrees with a mask and a window on %s (AA off)",
+			async (name) => {
+				const pathA = join(FIXTURES_PATH, `${name}a.png`);
+				const pathB = join(FIXTURES_PATH, `${name}b.png`);
+				const a = PNG.sync.read(readFileSync(pathA));
+				const b = PNG.sync.read(readFileSync(pathB));
+				const stripe = new Uint8Array(a.width * a.height);
+				for (let i = 0; i < stripe.length; i += 7) stripe[i] = 1;
+				for (const rest of [{ ignoreMask: stripe }, { windowSize: 8 }]) {
+					const js = blazediffCore(
+						new Uint8Array(a.data),
+						new Uint8Array(b.data),
+						undefined,
+						a.width,
+						a.height,
+						{ ...rest, includeAA: true },
+					);
+					const result = await compare(pathA, pathB, undefined, rest);
+					const native =
+						result.match === true
+							? 0
+							: (result as { diffCount: number }).diffCount;
+					expect(native).toBe(js);
+				}
+			},
+		);
+
+		it("rejects an unknown colorSpace", async () => {
+			const fixture = join(FIXTURES_PATH, `${PAIRS[0]}a.png`);
+			await expect(
+				compare(fixture, fixture, undefined, {
+					colorSpace: "lab" as "oklab",
+				}),
+			).rejects.toThrow('Unknown color space: lab. Expected "yiq" or "oklab".');
+		});
+	},
+);

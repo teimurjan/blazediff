@@ -112,6 +112,9 @@ Compares two RGBA pixel buffers and returns the number of differing pixels.
 | `includeAA`  | `boolean` | `false` | Count anti-aliased pixels as differences                 |
 | `diffMask`   | `boolean` | `false` | Render diff with transparent background instead of grayscale base |
 | `diffColorAlt` | `[number, number, number]` | diff color | Alternative RGB color for darkening differences |
+| `colorSpace` | `"yiq" \| "oklab"` | `"yiq"` | Color metric. `"oklab"` gives the same counts as pixelmatch 8 |
+| `ignoreMask` | `Uint8Array` | - | One byte per pixel (width × height). Non-zero pixels are skipped |
+| `windowSize` | `number` | - | Return the largest diff count in any N×N window instead of the total |
 
 <Callout type="info">
   **Threshold Guidelines:** `0.0` exact match · `0.05` strict · `0.1` default · `0.2` lenient

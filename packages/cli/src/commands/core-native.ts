@@ -1,6 +1,11 @@
 #!/usr/bin/env node
 
 import { type BlazeDiffOptions, compare } from "@blazediff/core-native";
+import {
+	loadIgnoreMask,
+	parseColorSpace,
+	parseWindowSize,
+} from "./_core-shared";
 
 function printUsage(): void {
 	console.log(`
@@ -16,6 +21,9 @@ Options:
   -a, --antialiasing        Enable anti-aliasing detection
   --diff-mask               Output only differences (transparent background)
   -c, --compression <num>   PNG compression level (0-9, default: 0)
+  --color-space <name>      Color metric: yiq (default) or oklab (pixelmatch 8)
+  --ignore-mask <path>      Image whose non-black pixels are skipped
+  --window-size <n>         Report the largest diff count in any n×n window
   -h, --help                Show this help message
 
 Examples:
@@ -93,6 +101,24 @@ export default async function main(): Promise<void> {
 							);
 						}
 						options.compression = compression;
+						i++;
+					}
+					break;
+				case "--color-space":
+					if (nextArg) {
+						options.colorSpace = parseColorSpace(nextArg);
+						i++;
+					}
+					break;
+				case "--ignore-mask":
+					if (nextArg) {
+						options.ignoreMask = await loadIgnoreMask(nextArg);
+						i++;
+					}
+					break;
+				case "--window-size":
+					if (nextArg) {
+						options.windowSize = parseWindowSize(nextArg);
 						i++;
 					}
 					break;

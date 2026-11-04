@@ -12,6 +12,9 @@ type WasmDiffRgba = (
 	diffMask: boolean,
 	diffColorAlt: Uint8Array | undefined,
 	outDiff: Uint8Array | undefined,
+	colorSpace: string | undefined,
+	ignoreMask: Uint8Array | undefined,
+	windowSize: number | undefined,
 ) => number;
 
 export interface DiffOptions {
@@ -23,6 +26,12 @@ export interface DiffOptions {
 	diffMask?: boolean;
 	/** Alternative RGB color for darkening differences. Default: diff color */
 	diffColorAlt?: [number, number, number];
+	/** Color difference metric: "yiq" (default) or "oklab", which matches pixelmatch 8 */
+	colorSpace?: "yiq" | "oklab";
+	/** One byte per pixel (width × height); non-zero pixels are skipped */
+	ignoreMask?: Uint8Array;
+	/** Return the largest diff count in any N×N window instead of the total */
+	windowSize?: number;
 }
 
 export type WasmInput =
@@ -74,7 +83,8 @@ export function initBlazediff(input?: WasmInput): Promise<void> {
  * the `ImageDecoder` API) and pass the resulting `Uint8Array` here.
  *
  * If `output` is provided it must be `width * height * 4` bytes long and the
- * diff visualization is written into it in place.
+ * diff visualization is written into it in place. With `windowSize` the result
+ * is the largest N×N window count instead of the total.
  */
 export function diff(
 	a: Uint8Array,
@@ -103,5 +113,15 @@ export async function diff(
 		options.diffMask ?? false,
 		toWasmRgb(options.diffColorAlt),
 		output,
+		options.colorSpace,
+		options.ignoreMask,
+		windowSide(options.windowSize),
 	);
+}
+
+/** Floors a finite window size to >= 1 like @blazediff/core; Infinity turns windowing off. */
+function windowSide(windowSize: number | undefined): number | undefined {
+	if (windowSize === undefined || !Number.isFinite(windowSize))
+		return undefined;
+	return Math.max(1, Math.floor(windowSize));
 }

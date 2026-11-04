@@ -21,6 +21,9 @@ Options:
   --include-aa              Include anti-aliasing detection
   --diff-mask               Draw diff over transparent background
   --codec <name>            Specify codec to use (pngjs, sharp, jsquash-png)
+  --color-space <name>      Color metric: yiq (default) or oklab (pixelmatch 8)
+  --ignore-mask <path>      Image whose non-black pixels are skipped
+  --window-size <n>         Report the largest diff count in any n×n window
   -h, --help                Show this help message
 
 Examples:

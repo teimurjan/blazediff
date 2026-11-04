@@ -10,7 +10,7 @@
 //!   1 - Images differ
 //!   2 - Error
 
-use blazediff::{diff, DiffError, DiffOptions, Image};
+use blazediff::{diff, ColorSpace, DiffError, DiffOptions, Image};
 use clap::Parser;
 use serde::Serialize;
 use std::path::Path;
@@ -61,6 +61,28 @@ struct Args {
     /// JPEG quality (1-100, default 90)
     #[arg(short = 'q', long, default_value = "90")]
     quality: u8,
+
+    /// Color difference metric: yiq or oklab (pixelmatch 8)
+    #[arg(long, default_value = "yiq")]
+    color_space: ColorSpace,
+
+    /// Image the size of the inputs; its non-black pixels are skipped
+    #[arg(long)]
+    ignore_mask: Option<String>,
+
+    /// Report the largest diff count in any N×N window instead of the total
+    #[arg(long)]
+    window_size: Option<u32>,
+}
+
+/// One byte per pixel: 1 where the mask image is not black.
+fn load_ignore_mask(path: &str) -> Result<Vec<u8>, DiffError> {
+    let mask = blazediff::load_image(path)?;
+    Ok(mask
+        .as_u32()
+        .iter()
+        .map(|&pixel| u8::from(pixel & 0x00FF_FFFF != 0))
+        .collect())
 }
 
 fn parse_rgb(value: &str) -> Result<[u8; 3], String> {
@@ -131,12 +153,28 @@ fn main() -> ExitCode {
         return ExitCode::from(1);
     }
 
+    let ignore_mask = match args
+        .ignore_mask
+        .as_deref()
+        .map(load_ignore_mask)
+        .transpose()
+    {
+        Ok(mask) => mask,
+        Err(e) => {
+            output_error(&args, &format!("Failed to load ignore mask: {}", e));
+            return ExitCode::from(2);
+        }
+    };
+
     let options = DiffOptions {
         threshold: args.threshold,
         include_aa: !args.antialiasing,
         diff_mask: args.diff_mask,
         diff_color_alt: args.diff_color_alt,
         compression: args.compression,
+        color_space: args.color_space,
+        ignore_mask,
+        window_size: args.window_size,
         ..Default::default()
     };
 

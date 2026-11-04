@@ -1,4 +1,4 @@
-import type { CoreOptions, Image } from "@blazediff/core";
+import type { ColorSpace, CoreOptions, Image } from "@blazediff/core";
 
 export type DiffFn = (
 	a: Image["data"],
@@ -21,6 +21,38 @@ export interface ParsedCoreArgs {
 	diffColorAlt?: [number, number, number];
 	includeAA?: boolean;
 	diffMask?: boolean;
+	colorSpace?: ColorSpace;
+	ignoreMaskPath?: string;
+	windowSize?: number;
+}
+
+export function parseColorSpace(value: string): ColorSpace {
+	if (value === "yiq" || value === "oklab") return value;
+	throw new Error(`Invalid color space: ${value}. Expected yiq or oklab`);
+}
+
+export function parseWindowSize(value: string): number {
+	const windowSize = Number(value);
+	if (!Number.isInteger(windowSize) || windowSize < 1) {
+		throw new Error(
+			`Invalid window size: ${value}. Must be a positive integer`,
+		);
+	}
+	return windowSize;
+}
+
+/** One byte per pixel: 1 where the mask image is not black. */
+export async function loadIgnoreMask(
+	path: string,
+	codecName?: string,
+): Promise<Uint8Array> {
+	const codec = await getCodec(codecName);
+	const { data, width, height } = await codec.read(path);
+	const mask = new Uint8Array(width * height);
+	for (let i = 0; i < mask.length; i++) {
+		mask[i] = data[i * 4] | data[i * 4 + 1] | data[i * 4 + 2] ? 1 : 0;
+	}
+	return mask;
 }
 
 export function parseRGB(colorStr: string): [number, number, number] {
@@ -135,6 +167,24 @@ export function parseCoreArgs(
 					i++;
 				}
 				break;
+			case "--color-space":
+				if (nextArg) {
+					parsed.colorSpace = parseColorSpace(nextArg);
+					i++;
+				}
+				break;
+			case "--ignore-mask":
+				if (nextArg) {
+					parsed.ignoreMaskPath = nextArg;
+					i++;
+				}
+				break;
+			case "--window-size":
+				if (nextArg) {
+					parsed.windowSize = parseWindowSize(nextArg);
+					i++;
+				}
+				break;
 			default:
 				console.error(`Unknown option: ${arg}`);
 				printUsage();
@@ -175,6 +225,11 @@ export async function runCoreDiff(
 		diffColorAlt: parsed.diffColorAlt,
 		includeAA: parsed.includeAA,
 		diffMask: parsed.diffMask,
+		colorSpace: parsed.colorSpace,
+		ignoreMask: parsed.ignoreMaskPath
+			? await loadIgnoreMask(parsed.ignoreMaskPath, parsed.codec)
+			: undefined,
+		windowSize: parsed.windowSize,
 	};
 
 	const startTime = performance.now();

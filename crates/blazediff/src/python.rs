@@ -3,7 +3,7 @@
 //! Mirrors `napi.rs` - exposes a path-based `compare()`
 //! to Python via maturin-built wheels.
 
-use crate::{diff, DiffError, DiffOptions, Image};
+use crate::{diff, ColorSpace, DiffError, DiffOptions, Image};
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use std::path::Path;
@@ -84,6 +84,9 @@ impl PyDiffResult {
     diff_mask=None,
     compression=None,
     quality=None,
+    color_space=None,
+    ignore_mask=None,
+    window_size=None,
 ))]
 #[allow(clippy::too_many_arguments)]
 fn compare(
@@ -95,12 +98,20 @@ fn compare(
     diff_mask: Option<bool>,
     compression: Option<u8>,
     quality: Option<u8>,
+    color_space: Option<&str>,
+    ignore_mask: Option<&[u8]>,
+    window_size: Option<u32>,
 ) -> PyResult<PyDiffResult> {
     let threshold = threshold.unwrap_or(0.1);
     let antialiasing = antialiasing.unwrap_or(false);
     let diff_mask = diff_mask.unwrap_or(false);
     let compression = compression.unwrap_or(0);
     let quality = quality.unwrap_or(90);
+    let color_space = color_space
+        .map(str::parse::<ColorSpace>)
+        .transpose()
+        .map_err(PyValueError::new_err)?
+        .unwrap_or_default();
 
     let (img1, img2) = load_images(base_path, compare_path)
         .map_err(|e| PyValueError::new_err(format!("Failed to load images: {}", e)))?;
@@ -119,6 +130,9 @@ fn compare(
         include_aa: !antialiasing,
         diff_mask,
         compression,
+        color_space,
+        ignore_mask: ignore_mask.map(<[u8]>::to_vec),
+        window_size,
         ..Default::default()
     };
     let mut output_image = if diff_output.is_some() {

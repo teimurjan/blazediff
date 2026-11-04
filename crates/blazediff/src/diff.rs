@@ -6,8 +6,9 @@
 //! SIMD: NEON (aarch64), AVX-512/AVX2/SSE4.1 (x86_64), scalar fallback (riscv64, others).
 
 use crate::antialiasing::is_antialiased;
+use crate::extended::diff_extended;
 use crate::output::{clear_transparent, fill_block_gray_optimized};
-use crate::types::{DiffError, DiffOptions, DiffResult, Image};
+use crate::types::{ColorSpace, DiffError, DiffOptions, DiffResult, Image};
 use crate::yiq::threshold_to_max_delta_f32;
 
 /// Cached CPU feature detection for x86_64
@@ -35,7 +36,7 @@ const YIQ_Q_F32: [f32; 3] = [0.21147017, -0.52261711, 0.31114694];
 const YIQ_WEIGHTS_F32: [f32; 3] = [0.5053, 0.299, 0.1957];
 
 #[inline]
-fn calculate_block_size(width: u32, height: u32) -> u32 {
+pub(crate) fn calculate_block_size(width: u32, height: u32) -> u32 {
     let area = (width as f64) * (height as f64);
     let scale = area.sqrt() / 100.0;
     let raw_size = 16.0 * scale.sqrt();
@@ -161,7 +162,7 @@ const YIQ_LAMBDA_MAX: f64 = 0.2560782;
 /// metric in f32, so it is shaved by 1e-5 relative to keep a pixel sitting on
 /// the boundary from being rejected where the f32 metric would have counted it.
 #[inline(always)]
-fn reject_bound(max_delta: f32) -> u32 {
+pub(crate) fn reject_bound(max_delta: f32) -> u32 {
     ((max_delta as f64) / YIQ_LAMBDA_MAX * (1.0 - 1e-5)) as u32
 }
 
@@ -1020,7 +1021,7 @@ fn color_delta_opaque_f32(pixel_a: u32, pixel_b: u32) -> f32 {
 ///   * **Semi-transparent** pixels are never vectorised, so they run the
 ///     canonical f64 kernel and match `@blazediff/core` exactly.
 #[inline(always)]
-fn color_delta_scalar(pixel_a: u32, pixel_b: u32, pixel_index: usize) -> f64 {
+pub(crate) fn color_delta_scalar(pixel_a: u32, pixel_b: u32, pixel_index: usize) -> f64 {
     if pixel_a == pixel_b {
         return 0.0;
     }
@@ -2717,6 +2718,15 @@ pub fn diff(
     let (width, height) = (image1.width, image1.height);
     let total_pixels = width * height;
 
+    if let Some(mask) = options.ignore_mask.as_deref() {
+        if mask.len() != total_pixels as usize {
+            return Err(DiffError::InvalidMaskSize {
+                expected: total_pixels as usize,
+                actual: mask.len(),
+            });
+        }
+    }
+
     if let Some(ref mut out) = output {
         if options.diff_mask {
             clear_transparent(out);
@@ -2753,6 +2763,13 @@ pub fn diff(
     #[cfg(not(target_arch = "wasm32"))]
     if image1.data == image2.data {
         return Ok(DiffResult::new(0, total_pixels));
+    }
+
+    if options.color_space != ColorSpace::Yiq
+        || options.ignore_mask.is_some()
+        || options.window_size.is_some()
+    {
+        return Ok(diff_extended(image1, image2, output, options));
     }
 
     let block_size = calculate_block_size(width, height);
@@ -2976,7 +2993,7 @@ pub fn diff(
 }
 
 #[inline(always)]
-fn compute_gray_pixel_f32(pixel: u32, alpha_scaled: f32) -> u8 {
+pub(crate) fn compute_gray_pixel_f32(pixel: u32, alpha_scaled: f32) -> u8 {
     let r = (pixel & 0xFF) as f32;
     let g = ((pixel >> 8) & 0xFF) as f32;
     let b = ((pixel >> 16) & 0xFF) as f32;
@@ -2989,12 +3006,12 @@ fn compute_gray_pixel_f32(pixel: u32, alpha_scaled: f32) -> u8 {
 }
 
 #[inline(always)]
-fn pack_gray_pixel(gray: u8) -> u32 {
+pub(crate) fn pack_gray_pixel(gray: u8) -> u32 {
     (gray as u32) | ((gray as u32) << 8) | ((gray as u32) << 16) | 0xFF000000
 }
 
 #[inline(always)]
-fn pack_color_pixel(color: &[u8; 3]) -> u32 {
+pub(crate) fn pack_color_pixel(color: &[u8; 3]) -> u32 {
     (color[0] as u32) | ((color[1] as u32) << 8) | ((color[2] as u32) << 16) | 0xFF000000
 }
 

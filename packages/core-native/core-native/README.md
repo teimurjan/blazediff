@@ -148,6 +148,24 @@ The native binding borrows the existing `Buffer` or `Uint8Array` backing memory 
     <td>diff color</td>
     <td>Alternative RGB color for darkening differences</td>
   </tr>
+  <tr>
+    <td><code>colorSpace</code></td>
+    <td>"yiq" | "oklab"</td>
+    <td>"yiq"</td>
+    <td>Color difference metric. "oklab" gives the same counts as pixelmatch 8</td>
+  </tr>
+  <tr>
+    <td><code>ignoreMask</code></td>
+    <td>Uint8Array</td>
+    <td>-</td>
+    <td>One byte per pixel (width × height). Non-zero pixels are skipped. Needs the N-API binding</td>
+  </tr>
+  <tr>
+    <td><code>windowSize</code></td>
+    <td>number</td>
+    <td>-</td>
+    <td>Report the largest diff count in any N×N window instead of the total</td>
+  </tr>
 </table>
 
 ### Result Types
@@ -246,6 +264,9 @@ Options:
   -a, --antialiasing           Enable anti-aliasing detection
       --diff-mask              Output only differences (transparent background)
       --diff-color-alt <R,G,B> Alternative RGB color for darkening differences
+      --color-space <COLOR_SPACE>  Color difference metric: yiq or oklab (pixelmatch 8) [default: yiq]
+      --ignore-mask <PATH>     Image the size of the inputs; its non-black pixels are skipped
+      --window-size <N>        Report the largest diff count in any N×N window instead of the total
   -c, --compression <LEVEL>    PNG compression level (0-9, 0=fastest, 9=smallest) [default: 0]
   -q, --quality <QUALITY>      JPEG quality (1-100) [default: 90]
       --output-format <FORMAT> Output format (json or text) [default: json]

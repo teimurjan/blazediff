@@ -21,6 +21,12 @@ export interface BlazeDiffOptions {
 	compression?: number;
 	/** JPEG quality (1-100). Default: 90 */
 	quality?: number;
+	/** Color difference metric: "yiq" (default) or "oklab", which matches pixelmatch 8 */
+	colorSpace?: "yiq" | "oklab";
+	/** One byte per pixel (width × height); non-zero pixels are skipped. Needs the N-API binding. */
+	ignoreMask?: Uint8Array;
+	/** Report the largest diff count in any N×N window instead of the total */
+	windowSize?: number;
 }
 
 /** File path or encoded PNG, JPEG, or QOI bytes. */
@@ -63,6 +69,9 @@ interface NapiDiffOptions {
 	diffColorAlt?: [number, number, number];
 	compression?: number;
 	quality?: number;
+	colorSpace?: string;
+	ignoreMask?: Uint8Array;
+	windowSize?: number;
 }
 
 /** Native binding interface */
@@ -218,7 +227,17 @@ function convertToNapiOptions(options?: BlazeDiffOptions): NapiDiffOptions {
 		diffColorAlt: validateRgb(options?.diffColorAlt),
 		compression: options?.compression,
 		quality: options?.quality,
+		colorSpace: options?.colorSpace,
+		ignoreMask: options?.ignoreMask,
+		windowSize: windowSide(options?.windowSize),
 	};
+}
+
+/** Floors a finite window size to >= 1 like @blazediff/core; Infinity turns windowing off. */
+function windowSide(windowSize: number | undefined): number | undefined {
+	if (windowSize === undefined || !Number.isFinite(windowSize))
+		return undefined;
+	return Math.max(1, Math.floor(windowSize));
 }
 
 function resolveBinaryPath(): string {
@@ -296,6 +315,9 @@ function buildArgs(diffOutput?: string, options?: BlazeDiffOptions): string[] {
 	if (options.compression !== undefined)
 		args.push(`--compression=${options.compression}`);
 	if (options.quality !== undefined) args.push(`--quality=${options.quality}`);
+	if (options.colorSpace) args.push(`--color-space=${options.colorSpace}`);
+	const windowSize = windowSide(options.windowSize);
+	if (windowSize !== undefined) args.push(`--window-size=${windowSize}`);
 
 	return args;
 }
@@ -453,6 +475,9 @@ export async function compare(
 
 	if (!baseIsPath || !comparisonIsPath) {
 		throw new Error("Encoded image inputs require the native N-API binding");
+	}
+	if (options?.ignoreMask) {
+		throw new Error("ignoreMask requires the native N-API binding");
 	}
 	return execFileCompare(base, comparison, diffOutput, options);
 }

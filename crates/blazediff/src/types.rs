@@ -6,6 +6,31 @@ use serde::{Deserialize, Serialize};
 /// crate can speak it without depending on this one.
 pub use blazediff_shared::Image;
 
+/// Color difference metric.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum ColorSpace {
+    /// YIQ, the metric pixelmatch used before v8. `threshold` scales its squared distance.
+    #[default]
+    Yiq,
+    /// pixelmatch 8's OKLab HyAB distance. `threshold` 1 is black vs white.
+    Oklab,
+}
+
+impl std::str::FromStr for ColorSpace {
+    type Err = String;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        match value {
+            "yiq" => Ok(Self::Yiq),
+            "oklab" => Ok(Self::Oklab),
+            other => Err(format!(
+                "Unknown color space: {}. Expected \"yiq\" or \"oklab\".",
+                other
+            )),
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct DiffOptions {
     pub threshold: f64,      // 0.0-1.0, default 0.1
@@ -16,6 +41,12 @@ pub struct DiffOptions {
     pub diff_color_alt: Option<[u8; 3]>,
     pub diff_mask: bool, // transparent background mode
     pub compression: u8, // PNG compression level 0-9 (0=fastest, 9=smallest)
+    pub color_space: ColorSpace,
+    /// One byte per pixel (width × height); pixels with a non-zero byte are skipped.
+    pub ignore_mask: Option<Vec<u8>>,
+    /// Report the largest diff count in any N×N window instead of the total.
+    /// N is clamped to [1, min(width, height)].
+    pub window_size: Option<u32>,
 }
 
 impl Default for DiffOptions {
@@ -29,6 +60,9 @@ impl Default for DiffOptions {
             diff_color_alt: None,
             diff_mask: false,
             compression: 0, // fastest by default
+            color_space: ColorSpace::Yiq,
+            ignore_mask: None,
+            window_size: None,
         }
     }
 }
@@ -67,6 +101,10 @@ pub enum DiffError {
         expected: usize,
         actual: usize,
     },
+    InvalidMaskSize {
+        expected: usize,
+        actual: usize,
+    },
     IoError(std::io::Error),
     PngError(String),
     JpegError(String),
@@ -93,6 +131,13 @@ impl std::fmt::Display for DiffError {
                 write!(
                     f,
                     "Invalid data size: expected {}, got {}",
+                    expected, actual
+                )
+            }
+            DiffError::InvalidMaskSize { expected, actual } => {
+                write!(
+                    f,
+                    "Invalid ignore mask size: expected {}, got {}",
                     expected, actual
                 )
             }

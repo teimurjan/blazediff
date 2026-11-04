@@ -9942,6 +9942,7 @@
       "apps/image-benchmark": {
         "packageJson": {
           "dependencies": [
+            "npm:@jsquash/png@3.1.1",
             "npm:@types/node@^24.3.0",
             "npm:@vizzly-testing/honeydiff@0.17",
             "npm:odiff-bin@^4.3.8",
@@ -10183,6 +10184,7 @@
             "npm:@types/node@^24.3.0",
             "npm:@types/pngjs@^6.0.5",
             "npm:@vitest/coverage-v8@^3.2.4",
+            "npm:pixelmatch@8.0.0",
             "npm:pngjs@7",
             "npm:tsup@8.5.0",
             "npm:typescript@5.9.2",

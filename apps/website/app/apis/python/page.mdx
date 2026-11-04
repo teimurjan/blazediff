@@ -58,6 +58,9 @@ result = compare(
 | `diff_mask`      | `bool`          | `False` | Output only differences with a transparent background                  |
 | `compression`    | `int`           | `0`     | PNG compression level (0-9, 0 = fastest, 9 = smallest)                 |
 | `quality`        | `int`           | `90`    | JPEG quality (1-100)                                                   |
+| `color_space`    | `str \| None`   | `"yiq"` | Color metric: `"yiq"` or `"oklab"` (same counts as pixelmatch 8)       |
+| `ignore_mask`    | `bytes \| None` | `None`  | One byte per pixel (width × height). Non-zero pixels are skipped       |
+| `window_size`    | `int \| None`   | `None`  | Report the largest diff count in any N×N window instead of the total   |
 
 #### Return value
 

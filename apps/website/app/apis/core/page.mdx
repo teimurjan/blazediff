@@ -47,6 +47,9 @@ Compares two images pixel by pixel and returns the number of different pixels.
 | `diffColorAlt`    | `[R,G,B]` | `null`        | Alternative color for dark differences           |
 | `diffMask`        | `boolean` | `false`       | Draw diff as a mask with transparent background  |
 | `fastBufferCheck` | `boolean` | `true`        | Use fast buffer comparison for identical images  |
+| `colorSpace`      | `"yiq" \| "oklab"` | `"yiq"` | Color metric. `"oklab"` gives the same counts as pixelmatch 8 |
+| `ignoreMask`      | `Uint8Array` | -          | One byte per pixel (width × height). Non-zero pixels are skipped |
+| `windowSize`      | `number`  | `Infinity`    | Return the largest diff count in any N×N window instead of the total |
 
 <Callout type="info">
   **Threshold Guidelines:** - `0.0` - Exact match only - `0.05` - Strict

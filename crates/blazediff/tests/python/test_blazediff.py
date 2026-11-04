@@ -81,3 +81,43 @@ def test_repr_names_every_field():
         "DiffResult(match_result=True, reason=None, "
         "diff_count=None, diff_percentage=None)"
     )
+
+
+def png_size(path):
+    """Width and height from the IHDR chunk, which always follows the signature."""
+    header = Path(path).read_bytes()[16:24]
+    return int.from_bytes(header[:4], "big"), int.from_bytes(header[4:], "big")
+
+
+def test_oklab_matches_pixelmatch_8():
+    # pixelmatch 8.0.0 reports 624 differing pixels for this pair with AA detection.
+    result = blazediff.compare(BASE, CHANGED, color_space="oklab", antialiasing=True)
+
+    assert result.diff_count == 624
+
+
+def test_window_size_reports_the_densest_window():
+    result = blazediff.compare(
+        BASE, CHANGED, color_space="oklab", antialiasing=True, window_size=16
+    )
+
+    assert result.diff_count == 256
+
+
+def test_ignore_mask_skips_pixels():
+    width, height = png_size(BASE)
+
+    assert blazediff.compare(BASE, CHANGED, ignore_mask=bytes(width * height)).diff_count == (
+        blazediff.compare(BASE, CHANGED).diff_count
+    )
+    assert blazediff.compare(
+        BASE, CHANGED, ignore_mask=b"\x01" * (width * height)
+    ).match_result is True
+
+    with pytest.raises(ValueError, match="Invalid ignore mask size"):
+        blazediff.compare(BASE, CHANGED, ignore_mask=b"\x00")
+
+
+def test_unknown_color_space_raises_value_error():
+    with pytest.raises(ValueError, match="Unknown color space"):
+        blazediff.compare(BASE, CHANGED, color_space="lab")

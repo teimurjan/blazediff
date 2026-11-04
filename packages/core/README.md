@@ -133,6 +133,27 @@ Compare two images and return the number of different pixels.
     <td>Use fast buffer check using Buffer.compare</td>
     <td>Set to false if images are processed differently, but look similiar</td>
   </tr>
+  <tr>
+    <td><code>colorSpace</code></td>
+    <td>"yiq" | "oklab"</td>
+    <td>"yiq"</td>
+    <td>Color difference metric</td>
+    <td>"oklab" gives the same counts as pixelmatch 8 (OKLab HyAB, threshold 1 is black vs white)</td>
+  </tr>
+  <tr>
+    <td><code>ignoreMask</code></td>
+    <td>Uint8Array</td>
+    <td>-</td>
+    <td>Pixels to skip, one byte per pixel (width × height)</td>
+    <td>Non-zero bytes are skipped. Use it for timestamps, ads or animations</td>
+  </tr>
+  <tr>
+    <td><code>windowSize</code></td>
+    <td>number</td>
+    <td>Infinity</td>
+    <td>Return the largest diff count in any N×N window instead of the total</td>
+    <td>Scattered noise, such as GPU dithering, stays low and compact changes stand out</td>
+  </tr>
 </table>
 
 ## Usage
@@ -156,6 +177,14 @@ const diffCount = diff(
     fastBufferCheck: true,
   }
 );
+
+// pixelmatch 8 semantics: OKLab metric, a skipped region and an N×N window.
+const ignoreMask = new Uint8Array(width * height); // 1 = skip this pixel
+const worstWindow = diff(image1.data, image2.data, undefined, width, height, {
+  colorSpace: 'oklab',
+  ignoreMask,
+  windowSize: 16,
+});
 ```
 
 ## Algorithm

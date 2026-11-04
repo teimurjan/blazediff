@@ -39,6 +39,9 @@ blazediff-cli core-native image1.png image2.png diff.png [options]
 - `-a, --antialiasing` - Enable anti-aliasing detection
 - `--diff-mask` - Output only differences (transparent background)
 - `-c, --compression <num>` - PNG compression level (0-9, default: 0)
+- `--color-space <name>` - Color metric: yiq (default) or oklab (pixelmatch 8)
+- `--ignore-mask <path>` - Image whose non-black pixels are skipped
+- `--window-size <n>` - Report the largest diff count in any n×n window
 - `-h, --help` - Show help message
 
 ### `core` - JavaScript pixel comparison
@@ -58,6 +61,9 @@ blazediff-cli core image1.png image2.png [options]
 - `--include-aa` - Include anti-aliasing detection
 - `--diff-mask` - Draw diff over transparent background
 - `--codec <name>` - Specify codec to use (pngjs, sharp, jsquash-png)
+- `--color-space <name>` - Color metric: yiq (default) or oklab (pixelmatch 8)
+- `--ignore-mask <path>` - Image whose non-black pixels are skipped
+- `--window-size <n>` - Report the largest diff count in any n×n window
 - `-h, --help` - Show help message
 
 ### `gmsd` - Gradient Magnitude Similarity Deviation

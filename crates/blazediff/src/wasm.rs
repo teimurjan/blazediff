@@ -5,7 +5,7 @@
 //! PNG/JPEG decoders are bundled into the wasm artifact.
 
 use crate::diff::diff;
-use crate::types::{DiffOptions, Image};
+use crate::types::{ColorSpace, DiffOptions, Image};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen(start)]
@@ -75,7 +75,8 @@ fn copy_output(
     Ok(())
 }
 
-/// Diff two RGBA buffers. Returns the count of differing pixels.
+/// Diff two RGBA buffers. Returns the count of differing pixels, or the
+/// largest N×N window count when `window_size` is set.
 ///
 /// If `out_diff` is provided, the visualization is written into it in-place
 /// (must be width*height*4 bytes). Pass `null`/`undefined` to skip the
@@ -91,6 +92,9 @@ pub fn diff_rgba(
     diff_mask: bool,
     diff_color_alt: Option<Vec<u8>>,
     out_diff: Option<js_sys::Uint8Array>,
+    color_space: Option<String>,
+    ignore_mask: Option<Vec<u8>>,
+    window_size: Option<u32>,
 ) -> Result<u32, JsError> {
     let img1 = image_from_vec(rgba_a, width, height, "rgba_a")?;
     let img2 = image_from_vec(rgba_b, width, height, "rgba_b")?;
@@ -100,6 +104,14 @@ pub fn diff_rgba(
         include_aa,
         diff_mask,
         diff_color_alt: optional_rgb(diff_color_alt, "diff_color_alt")?,
+        color_space: color_space
+            .as_deref()
+            .map(str::parse::<ColorSpace>)
+            .transpose()
+            .map_err(|e| JsError::new(&e))?
+            .unwrap_or_default(),
+        ignore_mask,
+        window_size,
         ..Default::default()
     };
 

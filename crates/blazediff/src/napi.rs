@@ -3,7 +3,7 @@
 //! Provides native bindings via napi-rs for direct function calls from JavaScript
 //! without spawning child processes.
 
-use crate::{diff, DiffError, DiffOptions, Image};
+use crate::{diff, ColorSpace, DiffError, DiffOptions, Image};
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use std::path::Path;
@@ -54,6 +54,12 @@ pub struct NapiDiffOptions {
     pub compression: Option<u8>,
     /// JPEG quality (1-100). Default: 90
     pub quality: Option<u8>,
+    /// Color difference metric: "yiq" (default) or "oklab" (pixelmatch 8)
+    pub color_space: Option<String>,
+    /// One byte per pixel (width × height); non-zero pixels are skipped
+    pub ignore_mask: Option<Uint8Array>,
+    /// Report the largest diff count in any N×N window instead of the total
+    pub window_size: Option<u32>,
 }
 
 /// Result of image comparison
@@ -95,6 +101,9 @@ fn compare_images(
         diff_color_alt: None,
         compression: None,
         quality: None,
+        color_space: None,
+        ignore_mask: None,
+        window_size: None,
     });
 
     let threshold = opts.threshold.unwrap_or(0.1);
@@ -103,6 +112,13 @@ fn compare_images(
     let diff_color_alt = optional_rgb(opts.diff_color_alt, "diff_color_alt")?;
     let compression = opts.compression.unwrap_or(0);
     let quality = opts.quality.unwrap_or(90);
+    let color_space = opts
+        .color_space
+        .as_deref()
+        .map(str::parse::<ColorSpace>)
+        .transpose()
+        .map_err(|e| Error::new(Status::InvalidArg, e))?
+        .unwrap_or_default();
 
     // Check for size mismatch - can't diff images of different sizes
     if img1.width != img2.width || img1.height != img2.height {
@@ -120,6 +136,9 @@ fn compare_images(
         diff_mask,
         diff_color_alt,
         compression,
+        color_space,
+        ignore_mask: opts.ignore_mask.map(|mask| mask.to_vec()),
+        window_size: opts.window_size,
         ..Default::default()
     };
 

@@ -1,8 +1,36 @@
+import { antialiased } from "./antialiasing";
+import { diffExtendedCountOnly, diffExtendedWithOutput } from "./extended";
+import {
+	SHIFT_A,
+	SHIFT_B,
+	SHIFT_G,
+	SHIFT_R,
+	YIQ_COEFF_I,
+	YIQ_COEFF_Q,
+	YIQ_COEFF_Y,
+	YIQ_I_B,
+	YIQ_I_G,
+	YIQ_I_R,
+	YIQ_LAMBDA_MAX,
+	YIQ_Q_B,
+	YIQ_Q_G,
+	YIQ_Q_R,
+	YIQ_Y_B,
+	YIQ_Y_G,
+	YIQ_Y_R,
+} from "./pixel";
+import { windowSide } from "./window";
+
+export { antialiased, brightnessDelta } from "./antialiasing";
+
 export interface Image {
 	data: Buffer | Uint8Array | Uint8ClampedArray;
 	width: number;
 	height: number;
 }
+
+/** `yiq`: the YIQ metric pixelmatch used before v8. `oklab`: pixelmatch 8's OKLab HyAB metric. */
+export type ColorSpace = "yiq" | "oklab";
 
 export interface CoreOptions {
 	threshold?: number;
@@ -13,6 +41,9 @@ export interface CoreOptions {
 	diffColorAlt?: [number, number, number];
 	diffMask?: boolean;
 	fastBufferCheck?: boolean;
+	colorSpace?: ColorSpace;
+	ignoreMask?: Buffer | Uint8Array | Uint8ClampedArray;
+	windowSize?: number;
 }
 
 /**
@@ -45,7 +76,13 @@ export interface CoreOptions {
  * @param options.fastBufferCheck - Use Buffer.compare() for fast identical-buffer detection.
  *                                  Set to false if images are processed differently but look similar.
  *                                  Default: true
- * @returns The number of different pixels (excluding anti-aliased pixels unless includeAA is true)
+ * @param options.colorSpace - Color difference metric. `"yiq"` (default) or `"oklab"`, which
+ *                             matches pixelmatch 8 (OKLab HyAB, threshold 1 = black vs white).
+ * @param options.ignoreMask - One byte per pixel (width × height); non-zero pixels are skipped.
+ * @param options.windowSize - If finite, return the largest diff count in any N×N window
+ *                             instead of the total. Default: Infinity
+ * @returns The number of different pixels (excluding anti-aliased pixels unless includeAA is true),
+ *          or the largest per-window count when windowSize is finite
  *
  * @throws {Error} If image data is not Uint8Array, Uint8ClampedArray, or Buffer
  * @throws {Error} If image sizes don't match
@@ -92,15 +129,24 @@ export function diff(
 		diffColorAlt,
 		diffMask,
 		fastBufferCheck = true,
+		colorSpace = "yiq",
+		ignoreMask,
+		windowSize = Number.POSITIVE_INFINITY,
 	}: CoreOptions = {},
 ): number {
 	if (
 		!isValidImage(image1) ||
 		!isValidImage(image2) ||
-		(output && !isValidImage(output))
+		(output && !isValidImage(output)) ||
+		(ignoreMask && !isValidImage(ignoreMask))
 	)
 		throw new Error(
 			"Image data: Uint8Array, Uint8ClampedArray or Buffer expected.",
+		);
+
+	if (colorSpace !== "yiq" && colorSpace !== "oklab")
+		throw new Error(
+			`Unknown colorSpace: ${colorSpace}. Expected "yiq" or "oklab".`,
 		);
 
 	if (
@@ -119,6 +165,11 @@ export function diff(
 		);
 
 	const len = width * height;
+
+	if (ignoreMask && ignoreMask.length !== len)
+		throw new Error(
+			`Ignore mask size does not match image width/height. Expecting ${len}. Got ${ignoreMask.length}`,
+		);
 
 	// Fast buffer identical check
 	if (
@@ -141,6 +192,49 @@ export function diff(
 	// Maximum acceptable square distance between two colors;
 	// 35215 is the maximum possible value for the YIQ difference metric
 	const maxDelta = 35215 * threshold * threshold;
+
+	// OKLab, a mask or a window take the extended loops, which leave the
+	// default YIQ loops below untouched.
+	const window = windowSide(windowSize, width, height);
+	if (colorSpace === "oklab" || ignoreMask || window > 0) {
+		const oklab = colorSpace === "oklab";
+		const metricDelta = oklab ? threshold : maxDelta;
+		if (output == null) {
+			return diffExtendedCountOnly(
+				image1,
+				image2,
+				a32,
+				b32,
+				width,
+				height,
+				oklab,
+				metricDelta,
+				!includeAA,
+				ignoreMask,
+				window,
+			);
+		}
+		return diffExtendedWithOutput(
+			image1,
+			image2,
+			a32,
+			b32,
+			output,
+			width,
+			height,
+			oklab,
+			metricDelta,
+			calculateOptimalBlockSize(width, height),
+			alpha,
+			aaColor,
+			diffColor,
+			diffColorAlt || diffColor,
+			!includeAA,
+			!!diffMask,
+			ignoreMask,
+			window,
+		);
+	}
 
 	// No-output fast paths. Single-pass wins on dense-diff mid-size images
 	// (4k photo pairs) because it avoids the redundant equality scan that
@@ -606,61 +700,6 @@ export function isValidImage(arr: unknown): arr is Image["data"] {
 
 const LOG2_E = Math.LOG2E;
 
-// Pre-computed YIQ coefficients for fast access
-const YIQ_Y_R = 0.29889531;
-const YIQ_Y_G = 0.58662247;
-const YIQ_Y_B = 0.11448223;
-const YIQ_I_R = 0.59597799;
-const YIQ_I_G = -0.2741761;
-const YIQ_I_B = -0.32180189;
-const YIQ_Q_R = 0.21147017;
-const YIQ_Q_G = -0.52261711;
-const YIQ_Q_B = 0.31114694;
-const YIQ_COEFF_Y = 0.5053;
-const YIQ_COEFF_I = 0.299;
-const YIQ_COEFF_Q = 0.1957;
-// More efficient than Math.log2()
-
-/**
- * Largest eigenvalue of the YIQ metric's quadratic form.
- *
- * The metric is δ = 0.5053ΔY² + 0.299ΔI² + 0.1957ΔQ², where ΔY/ΔI/ΔQ are
- * linear in the channel deltas v = (Δr, Δg, Δb). That makes δ = vᵀMv for a
- * symmetric positive-definite M, so δ ≤ λmax·|v|² for every v. Therefore
- *
- *     Δr² + Δg² + Δb² ≤ maxDelta / λmax   ⟹   δ ≤ maxDelta
- *
- * i.e. any pixel under that bound is *provably* below threshold and can skip
- * the full metric: three integer multiplies instead of twelve float ones.
- * Deltas are integers in [-255, 255], so |v|² ≤ 195075 is computed exactly in
- * a double; the bound introduces no rounding of its own.
- *
- * The true λmax is 0.2560781412378786 and the worst ratio over all 511³
- * integer deltas is 0.2560781281866944. The value below is rounded *up* from
- * both so the one division (maxDelta / λmax) can only ever shrink the reject
- * window, never widen it past the real boundary.
- *
- * Verified exhaustively: across all 133,432,830 integer delta triples and
- * thresholds 0.001–1.0, zero pixels are rejected that the full metric would
- * have counted as different.
- */
-const YIQ_LAMBDA_MAX = 0.2560782;
-
-/**
- * RGBA bytes sit in memory in R,G,B,A order on every platform, but reading a
- * pixel as one 32-bit word puts red in the low byte on little-endian CPUs and
- * in the high byte on big-endian ones. These shifts let the hot loops pull
- * channels out of the word they already loaded for the equality test (no
- * extra memory traffic) while staying correct on both.
- *
- * They are module-level constants, so V8 hoists them out of the loops.
- */
-const LITTLE_ENDIAN = new Uint8Array(new Uint32Array([1]).buffer)[0] === 1;
-const SHIFT_R = LITTLE_ENDIAN ? 0 : 24;
-const SHIFT_G = LITTLE_ENDIAN ? 8 : 16;
-const SHIFT_B = LITTLE_ENDIAN ? 16 : 8;
-const SHIFT_A = LITTLE_ENDIAN ? 24 : 0;
-
 export function calculateOptimalBlockSize(
 	width: number,
 	height: number,
@@ -719,193 +758,6 @@ export function colorDelta(
 
 	// encode whether the pixel lightens or darkens in the sign
 	return y > 0 ? -delta : delta;
-}
-
-/**
- * Calculate brightness difference according to the paper "Measuring perceived color difference
- * using YIQ NTSC transmission color space in mobile applications" by Y. Kotsarenko and F. Ramos
- *
- * https://doaj.org/article/b2e3b5088ba943eebd9af2927fef08ad
- */
-export function brightnessDelta(
-	image1: Image["data"],
-	image2: Image["data"],
-	k: number,
-	m: number,
-): number {
-	const r1 = image1[k];
-	const g1 = image1[k + 1];
-	const b1 = image1[k + 2];
-	const a1 = image1[k + 3];
-	const r2 = image2[m];
-	const g2 = image2[m + 1];
-	const b2 = image2[m + 2];
-	const a2 = image2[m + 3];
-
-	let dr = r1 - r2;
-	let dg = g1 - g2;
-	let db = b1 - b2;
-	const da = a1 - a2;
-
-	// same as in colorDelta
-	if (!dr && !dg && !db && !da) return 0;
-
-	if (a1 < 255 || a2 < 255) {
-		// *** EXACT COPY of your alpha+bg code ***
-		const rb = 48 + 159 * (k % 2);
-		const gb = 48 + 159 * (((k / 1.618033988749895) | 0) & 1);
-		const bb = 48 + 159 * (((k / 2.618033988749895) | 0) & 1);
-		dr = (r1 * a1 - r2 * a2 - rb * da) / 255;
-		dg = (g1 * a1 - g2 * a2 - gb * da) / 255;
-		db = (b1 * a1 - b2 * a2 - bb * da) / 255;
-	}
-
-	// same y as in colorDelta
-	const y = dr * YIQ_Y_R + dg * YIQ_Y_G + db * YIQ_Y_B;
-	return y;
-}
-
-/**
- * Check if a pixel is likely a part of anti-aliasing;
- * based on "Anti-aliased Pixel and Intensity Slope Detector" paper by V. Vysniauskas, 2009
- *
- * @param a32 - Uint32 view of `image` itself, **not** of the other image. The
- *              neighbour scan reads brightness through this view, so passing a
- *              view of a different buffer yields wrong results. Call sites pair
- *              them as `(image1, …, a32, b32)` and `(image2, …, b32, a32)`.
- * @param b32 - Uint32 view of the *opposite* image; used only by the
- *              `hasManySiblings` cross-check.
- */
-export function antialiased(
-	image: Image["data"],
-	x1: number,
-	y1: number,
-	width: number,
-	height: number,
-	a32: Uint32Array,
-	b32: Uint32Array,
-): boolean {
-	const x0 = Math.max(x1 - 1, 0);
-	const y0 = Math.max(y1 - 1, 0);
-	const x2 = Math.min(x1 + 1, width - 1);
-	const y2 = Math.min(y1 + 1, height - 1);
-	const pos = y1 * width + x1;
-	const centerPixelOffset = pos * 4;
-	let zeroes = x1 === x0 || x1 === x2 || y1 === y0 || y1 === y2 ? 1 : 0;
-	let min = 0;
-	let max = 0;
-	let minX = 0;
-	let minY = 0;
-	let maxX = 0;
-	let maxY = 0;
-
-	// Center pixel hoisted out of the neighbour loop. brightnessDelta used to
-	// re-read all four of its bytes on each of the 8 iterations.
-	const centerWord = a32[pos];
-	const centerR = (centerWord >>> SHIFT_R) & 0xff;
-	const centerG = (centerWord >>> SHIFT_G) & 0xff;
-	const centerB = (centerWord >>> SHIFT_B) & 0xff;
-	const centerA = (centerWord >>> SHIFT_A) & 0xff;
-
-	// Go through 8 adjacent pixels
-	for (let x = x0; x <= x2; x++) {
-		for (let y = y0; y <= y2; y++) {
-			if (x === x1 && y === y1) continue;
-
-			// Brightness delta between the center pixel and adjacent one.
-			// When both pixels are opaque the deltas come out of the 32-bit
-			// words directly: 1 load per neighbour instead of 8. The deltas
-			// are still formed on the raw channel values in the same order, so
-			// this is bit-identical to brightnessDelta, not an approximation.
-			const neighborPos = y * width + x;
-			const neighborWord = a32[neighborPos];
-			let delta: number;
-			if (centerA === 0xff && ((neighborWord >>> SHIFT_A) & 0xff) === 0xff) {
-				delta =
-					(centerR - ((neighborWord >>> SHIFT_R) & 0xff)) * YIQ_Y_R +
-					(centerG - ((neighborWord >>> SHIFT_G) & 0xff)) * YIQ_Y_G +
-					(centerB - ((neighborWord >>> SHIFT_B) & 0xff)) * YIQ_Y_B;
-			} else {
-				delta = brightnessDelta(
-					image,
-					image,
-					centerPixelOffset,
-					neighborPos * 4,
-				);
-			}
-
-			// Count the number of equal, darker and brighter adjacent pixels
-			if (delta === 0) {
-				zeroes++;
-				// If found more than 2 equal siblings, it's definitely not anti-aliasing
-				if (zeroes > 2) return false;
-
-				// Remember the darkest pixel
-			} else if (delta < min) {
-				min = delta;
-				minX = x;
-				minY = y;
-
-				// Remember the brightest pixel
-			} else if (delta > max) {
-				max = delta;
-				maxX = x;
-				maxY = y;
-			}
-		}
-	}
-
-	// Of there are no both darker and brighter pixels among siblings, it's not anti-aliasing
-	if (min === 0 || max === 0) return false;
-
-	// If either the darkest or the brightest pixel has 3+ equal siblings in both images
-	// (definitely not anti-aliased), this pixel is anti-aliased
-	return (
-		(hasManySiblings(a32, minX, minY, width, height) &&
-			hasManySiblings(b32, minX, minY, width, height)) ||
-		(hasManySiblings(a32, maxX, maxY, width, height) &&
-			hasManySiblings(b32, maxX, maxY, width, height))
-	);
-}
-
-/**
- * Check if a pixel has 3+ adjacent pixels of the same color.
- */
-function hasManySiblings(
-	image: Uint32Array,
-	x1: number,
-	y1: number,
-	width: number,
-	height: number,
-): boolean {
-	const pos = y1 * width + x1;
-	const val = image[pos];
-	const isOnBoundary =
-		x1 === 0 || x1 === width - 1 || y1 === 0 || y1 === height - 1;
-	let count = isOnBoundary ? 1 : 0;
-
-	// Check all 8 neighbors with bounds checking
-	// Top row
-	if (y1 > 0) {
-		const topRow = pos - width;
-		if (x1 > 0 && image[topRow - 1] === val) count++;
-		if (image[topRow] === val) count++;
-		if (x1 < width - 1 && image[topRow + 1] === val) count++;
-	}
-
-	// Middle row (left and right)
-	if (x1 > 0 && image[pos - 1] === val) count++;
-	if (x1 < width - 1 && image[pos + 1] === val) count++;
-
-	// Bottom row
-	if (y1 < height - 1) {
-		const bottomRow = pos + width;
-		if (x1 > 0 && image[bottomRow - 1] === val) count++;
-		if (image[bottomRow] === val) count++;
-		if (x1 < width - 1 && image[bottomRow + 1] === val) count++;
-	}
-
-	return count > 2;
 }
 
 /**

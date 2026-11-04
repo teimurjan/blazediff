@@ -2,7 +2,7 @@
 //! by V. Vysniauskas (2009). Examines 3x3 neighborhood to find gradient patterns.
 
 use crate::types::Image;
-use crate::yiq::brightness_delta;
+use crate::yiq::{brightness_delta, unpack_pixel, YIQ_Y};
 
 /// Check if pixel has more than 2 identical neighbors (not anti-aliased edge)
 #[inline]
@@ -187,6 +187,44 @@ fn has_many_siblings_scalar(
 }
 
 pub fn is_antialiased(image1: &Image, image2: &Image, x: u32, y: u32) -> bool {
+    antialiased::<false>(image1, image2, x, y)
+}
+
+/// pixelmatch 8's detector, used with the OKLab metric: semi-transparent
+/// pixels are composited over white with an alpha tie-break, and neighbours
+/// are visited x-outer like the JS reference.
+pub fn is_antialiased_over_white(image1: &Image, image2: &Image, x: u32, y: u32) -> bool {
+    antialiased::<true>(image1, image2, x, y)
+}
+
+/// Luma delta with both pixels composited over white. When the composite luma
+/// cancels out but alpha differs, half the alpha delta gives the ramp direction.
+#[inline]
+fn brightness_delta_over_white(center: u32, neighbor: u32) -> f64 {
+    let (r1, g1, b1, a1) = unpack_pixel(center);
+    let (r2, g2, b2, a2) = unpack_pixel(neighbor);
+    let (r1, g1, b1, a1) = (r1 as f64, g1 as f64, b1 as f64, a1 as f64);
+    let (r2, g2, b2, a2) = (r2 as f64, g2 as f64, b2 as f64, a2 as f64);
+    let da = a1 - a2;
+    let (dr, dg, db) = if a1 < 255.0 || a2 < 255.0 {
+        (
+            (r1 * a1 - r2 * a2 - 255.0 * da) / 255.0,
+            (g1 * a1 - g2 * a2 - 255.0 * da) / 255.0,
+            (b1 * a1 - b2 * a2 - 255.0 * da) / 255.0,
+        )
+    } else {
+        (r1 - r2, g1 - g2, b1 - b2)
+    };
+    let delta = dr * YIQ_Y[0] + dg * YIQ_Y[1] + db * YIQ_Y[2];
+    if delta == 0.0 && da != 0.0 {
+        da / 2.0
+    } else {
+        delta
+    }
+}
+
+#[inline]
+fn antialiased<const OVER_WHITE: bool>(image1: &Image, image2: &Image, x: u32, y: u32) -> bool {
     let a32 = image1.as_u32();
     let b32 = image2.as_u32();
 
@@ -217,8 +255,13 @@ pub fn is_antialiased(image1: &Image, image2: &Image, x: u32, y: u32) -> bool {
     let mut max_y = 0u32;
 
     // Examine 8 adjacent pixels
-    for ny in y0..=y1 {
-        for nx in x0..=x1 {
+    for outer in if OVER_WHITE { x0..=x1 } else { y0..=y1 } {
+        for inner in if OVER_WHITE { y0..=y1 } else { x0..=x1 } {
+            let (nx, ny) = if OVER_WHITE {
+                (outer, inner)
+            } else {
+                (inner, outer)
+            };
             if nx == x && ny == y {
                 continue;
             }
@@ -233,6 +276,8 @@ pub fn is_antialiased(image1: &Image, image2: &Image, x: u32, y: u32) -> bool {
             // reference passes `centerPixelOffset` even for the neighbour.
             let delta = if adj_pixel == center_pixel {
                 0.0
+            } else if OVER_WHITE {
+                brightness_delta_over_white(center_pixel, adj_pixel)
             } else {
                 brightness_delta(center_pixel, adj_pixel, pos)
             };

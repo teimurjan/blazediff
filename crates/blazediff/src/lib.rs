@@ -19,12 +19,14 @@
 
 pub mod antialiasing;
 pub mod diff;
+mod extended;
 #[cfg(feature = "io")]
 pub mod io;
 #[cfg(feature = "io")]
 pub mod jpeg_io;
 #[cfg(feature = "napi")]
 mod napi;
+mod oklab;
 pub mod output;
 #[cfg(feature = "python")]
 mod python;
@@ -34,6 +36,7 @@ pub mod simd;
 pub mod types;
 #[cfg(all(feature = "wasm", target_arch = "wasm32"))]
 mod wasm;
+mod window;
 /// YIQ color math, re-exported from the crate it now lives in so
 /// `blazediff::yiq::*` keeps working.
 pub use blazediff_shared::yiq;
@@ -51,7 +54,7 @@ pub use io::{encode_png, load_png, load_pngs, save_png, save_png_with_compressio
 pub use jpeg_io::{load_jpeg, load_jpegs, save_jpeg};
 #[cfg(feature = "io")]
 pub use qoi_io::{load_qoi, load_qois, save_qoi};
-pub use types::{DiffError, DiffOptions, DiffResult, Image};
+pub use types::{ColorSpace, DiffError, DiffOptions, DiffResult, Image};
 
 /// Fuzzing-only oracle: exposes blazediff-shared's spng reference decoder so the
 /// `blazediff_png` differential tests can check their decode against it.

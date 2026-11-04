@@ -176,6 +176,24 @@ Compares two RGBA pixel buffers and returns the number of differing pixels.
     <td>diff color</td>
     <td>Alternative RGB color for darkening differences</td>
   </tr>
+  <tr>
+    <td><code>colorSpace</code></td>
+    <td>"yiq" | "oklab"</td>
+    <td>"yiq"</td>
+    <td>Color difference metric. "oklab" gives the same counts as pixelmatch 8</td>
+  </tr>
+  <tr>
+    <td><code>ignoreMask</code></td>
+    <td>Uint8Array</td>
+    <td>-</td>
+    <td>One byte per pixel (width × height). Non-zero pixels are skipped</td>
+  </tr>
+  <tr>
+    <td><code>windowSize</code></td>
+    <td>number</td>
+    <td>-</td>
+    <td>Return the largest diff count in any N×N window instead of the total</td>
+  </tr>
 </table>
 
 ```typescript
