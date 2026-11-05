@@ -258,7 +258,8 @@ unsafe fn fill_block_gray_avx2(
                 v255,
             );
             let gray_clamped = _mm256_min_ps(_mm256_max_ps(gray_f, zero), v255);
-            let gray_u32 = _mm256_cvtps_epi32(gray_clamped);
+            // Truncate like the scalar `as u8` and NEON; `cvtps` rounds.
+            let gray_u32 = _mm256_cvttps_epi32(gray_clamped);
 
             // Pack as RGBA
             let result = _mm256_or_si256(
@@ -337,7 +338,7 @@ unsafe fn fill_row_gray_sse4(
         _mm_mul_ps(_mm_sub_ps(luminance, v255), _mm_mul_ps(alpha_vec, a)),
     );
     let gray_clamped = _mm_min_ps(_mm_max_ps(gray_f, zero), v255);
-    let gray_u32 = _mm_cvtps_epi32(gray_clamped);
+    let gray_u32 = _mm_cvttps_epi32(gray_clamped);
 
     let result = _mm_or_si128(
         _mm_or_si128(
@@ -394,8 +395,8 @@ unsafe fn fill_block_gray_sse(
     }
 }
 
-/// Scalar fallback
-#[cfg(any(target_arch = "x86_64", not(target_arch = "aarch64")))]
+/// Scalar fallback, also the reference the vector fills are tested against.
+#[cfg(any(test, not(target_arch = "aarch64")))]
 fn fill_block_gray_scalar(
     source: &Image,
     output: &mut Image,
@@ -473,6 +474,25 @@ mod tests {
         assert!(output.data[0] > 250);
         assert_eq!(output.data[0], output.data[1]); // Grayscale
         assert_eq!(output.data[1], output.data[2]); // Grayscale
+    }
+
+    #[test]
+    fn vector_gray_fill_matches_scalar_at_default_alpha() {
+        // Odd width so every row also runs the vector tail.
+        let (width, height) = (257, 255);
+        let mut source = Image::new(width, height);
+        let mut seed = 0x9E37_79B9u32;
+        for byte in source.data.iter_mut() {
+            seed ^= seed << 13;
+            seed ^= seed >> 17;
+            seed ^= seed << 5;
+            *byte = seed as u8;
+        }
+        let mut vector = Image::new(width, height);
+        let mut scalar = Image::new(width, height);
+        fill_block_gray_optimized(&source, &mut vector, 0.1, 0, 0, width, height);
+        fill_block_gray_scalar(&source, &mut scalar, 0.1, 0, 0, width, height);
+        assert!(vector.data == scalar.data);
     }
 
     #[test]
