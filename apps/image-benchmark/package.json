@@ -23,7 +23,8 @@
 		"hitchhikers-ssim": "node dist/structure/hitchhikers-ssim-benchmark.js",
 		"ssim.js": "node dist/structure/external-ssim-benchmark.js",
 		"weber-ssim.js": "node dist/structure/external-ssim-weber-benchmark.js",
-		"png-wasm": "node dist/png-codec/png-wasm-benchmark.js"
+		"png-wasm": "node dist/png-codec/png-wasm-benchmark.js",
+		"gcp": "bash scripts/gcp.sh"
 	},
 	"devDependencies": {
 		"@blazediff/cli": "workspace:*",
