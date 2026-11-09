@@ -95,7 +95,7 @@ From the repo root:
    pnpm benchmark <pair> [--iterations N] [--warmup N] [--fixtures a,b] [--skip-run] [--skip-compare] [--skip-artifact] [--skip-md]
    ```
    `run.js` then does these steps in order:
-   1. It runs each benchmark command with `--format=json --output=<filename> --iterations=N` (plus `--fixtures` when given), so each writes tinybench-shaped JSON.
+   1. It runs each benchmark command with `--format=json --output=<filename> --iterations=N`, so each writes tinybench-shaped JSON. If you give `--fixtures`, it passes that flag too.
    2. It prints the comparison table, through the pair's `.github/workflows/scripts/compare-and-print-*.js` or the shared `compare-and-print.js`.
    3. It writes `benchmarks/results/<key>.json`. With `--skip-artifact` it reads the committed one instead.
    4. It patches the `<table>`, the `_<N> iterations (<M> warmup)_` line and the `> **~X%** performance improvement on average` blockquote in `pair.targetFile` from the artifact.
@@ -133,7 +133,7 @@ pnpm benchmark png-wasm --skip-run                     # reuse the last JSON
 pnpm benchmark png-wasm --fixtures fixtures/pixelmatch # a subset while iterating
 ```
 
-zune ships no wasm package, so `apps/image-benchmark/zune-png-wasm` wraps zune-png in a small C ABI. `png-wasm.js` builds it with the same `simd128` flags as the codec, builds the codec module when it is missing, and runs `apps/image-benchmark/src/png-codec/png-wasm-benchmark.ts`. The method matches `png`: best-of, iterations scaled by image size, and every PNG under `fixtures/`.
+zune ships no wasm package, so `apps/image-benchmark/zune-png-wasm` wraps zune-png in a small C ABI. `png-wasm.js` builds it with the same `simd128` flags as the codec. If the codec module is missing, it builds that too. Then it runs `apps/image-benchmark/src/png-codec/png-wasm-benchmark.ts`. The method matches `png`: best-of, iterations scaled by image size, and every PNG under `fixtures/`.
 
 Encode has two modes:
 
@@ -150,6 +150,19 @@ pnpm benchmark ssim-dssim --max-mpx 2   # small corpus while iterating
 ```
 
 It runs `blazediff-ssim-benchmark --json <tmp>` (feature `dssim`, AGPL, opt-in) and stores the time table as `benchmarks/results/ssim-dssim.json`. Scores and rank agreement stay in the binary's stdout and in the crate README.
+
+## Run on Google Cloud
+
+`apps/image-benchmark/scripts/gcp.sh` runs the image keys on a quiet Linux VM. The keys are `core`, `core-wasm`, `core-native`, `honeydiff`, `ssim`, `hitchhikers-ssim`, `png`, `png-wasm` and `ssim-dssim`. The VM benchmarks the pushed HEAD, so push first.
+
+```sh
+pnpm --filter @blazediff/image-benchmark gcp                                          # every image key
+pnpm --filter @blazediff/image-benchmark gcp --keys core,png -- --iterations 2 --fixtures=pixelmatch  # smoke run
+```
+
+The script creates a spot `c4-standard-16` VM with SMT off (8 physical cores, CPU pinned to Granite Rapids). It builds the native and wasm binaries from source as the benchmark workflows do, and runs each key with `pnpm benchmark`. Then it copies the new `benchmarks/results/<key>.json` and `benchmarks/*.md` into your checkout and deletes the VM. Arguments after `--` go to every `pnpm benchmark` call. `--on-demand` uses a standard VM, which Google cannot stop mid-run. The VM costs about $0.40 (spot) to $0.80 (on-demand) per hour.
+
+Environment variables: `GCP_PROJECT` (default: `gcloud config get project`), `GCP_ZONE` (`us-central1-b`), `GCP_MACHINE_TYPE` (`c4-standard-16`), `GCP_CPU_PLATFORM` (`Intel Granite Rapids`). If the create call fails on the CPU platform, change the zone. Do not lower the platform, because it is a minimum and a lower value lets runs land on two CPU generations.
 
 ## Things to make sure of before you finish
 
