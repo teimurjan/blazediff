@@ -127,19 +127,20 @@ Measured against pixelmatch on the same fixtures, decode excluded, M1 Max, Node 
 
 | Case                          | pixelmatch      | `@blazediff/core` |
 | ----------------------------- | --------------- | ----------------- |
-| 4K pair, count only           | 201.60-253.77ms | 96.52-135.89ms    |
-| 4K pair, identical            | 23.79-28.04ms   | 2.50-3.77ms       |
-| 4K pair, writing a diff image | 280.79-336.93ms | 151.72-205.21ms   |
+| 4K pair, count only           | 349.73-462.10ms | 41.81-60.57ms     |
+| 4K pair, identical            | 21.96-28.12ms   | 3.41-4.90ms       |
+| 4K pair, writing a diff image | 413.51-544.79ms | 98.78-126.63ms    |
 
-Averaged over the whole fixture set that is ~62% faster when counting and ~28%
-faster when also rendering a diff image. Small images narrow the gap further: the
-win comes from skipping unchanged blocks, and there are fewer of them to skip.
+Over the whole fixture set that is ~7x faster in total time when counting
+(~78% per fixture on average) and ~3x faster when also rendering a diff image
+(~52%). Small images narrow the gap: the win comes from skipping identical and
+sub-threshold pixels, and small images with dense diffs have fewer of them.
 [Full tables](/benchmarks/pixel-by-pixel).
 
 ## Next
 
-- Same algorithm, 5x to 10x faster on 4K:
-  [WebAssembly](/docs/pixel-comparison/rust-wasm) or
-  [Node native](/docs/pixel-comparison/rust-napi)
+- The Rust engine, compiled:
+  [WebAssembly](/docs/pixel-comparison/rust-wasm) for the browser and the edge, or
+  [Node native](/docs/pixel-comparison/rust-napi), which also decodes the PNGs
 - Exact matching too strict? [Structural comparison](/docs/structural-comparison)
 - Every option and its default: [`@blazediff/core` reference](/apis/core)

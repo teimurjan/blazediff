@@ -80,6 +80,10 @@ export async function diff(
 	const background = render.background ?? "faded";
 
 	await initBlazediff();
+	// Identical bytes count 0 under every option; skip copying them into wasm.
+	if (!output && window === undefined && sameBytes(a.data, b.data)) {
+		return { kind: "compared", count: 0, percentage: 0, identical: true };
+	}
 	const side = windowSide(window, width, height);
 	const [count, hasWindow, x, y, windowCount] = diffRgba(
 		asBytes(a.data),
@@ -106,6 +110,19 @@ export async function diff(
 		identical: count === 0,
 		...(hasWindow === 1 && { window: { x, y, count: windowCount } }),
 	};
+}
+
+type NodeBuffer = {
+	compare(a: Uint8Array, b: Uint8Array): number;
+};
+
+/** Native memcmp through Node's `Buffer`; false where there is none. */
+function sameBytes(
+	a: Uint8Array | Uint8ClampedArray,
+	b: Uint8Array | Uint8ClampedArray,
+): boolean {
+	const buffer = (globalThis as { Buffer?: NodeBuffer }).Buffer;
+	return buffer !== undefined && buffer.compare(asBytes(a), asBytes(b)) === 0;
 }
 
 /** A Uint8Array view of the same memory, so wasm-bindgen writes back into it. */

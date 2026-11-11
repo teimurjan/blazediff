@@ -1,15 +1,16 @@
-//! Two-pass block-based image diff with SIMD acceleration.
+//! Block-based image diff with SIMD acceleration, walked one block row at a time.
 //!
-//! Cold pass: SIMD byte comparison to identify changed blocks, draw unchanged immediately.
-//! Hot pass: YIQ perceptual delta with anti-aliasing detection on changed blocks only.
+//! Cold pass: a row-order SIMD scan of the band flags blocks with a pixel over the threshold.
+//! Hot pass: YIQ perceptual delta with anti-aliasing detection on flagged blocks only,
+//! while the band is still in cache. The other blocks get the gray background.
 //!
 //! SIMD: NEON (aarch64), AVX-512/AVX2/SSE4.1 (x86_64), scalar fallback (riscv64, others).
 
-use crate::antialiasing::is_antialiased;
+use crate::antialiasing::is_antialiased_px;
 use crate::extended::diff_extended;
-use crate::output::{clear_transparent, fill_block_gray_optimized};
+use crate::output::fill_gray_rect;
 use crate::types::{
-    Background, DiffError, DiffOptions, DiffResult, Image, Metric, Size, WindowHit,
+    Background, DiffError, DiffOptions, DiffResult, Image, Metric, Px, Size, WindowHit,
 };
 use crate::yiq::threshold_to_max_delta_f32;
 
@@ -47,12 +48,16 @@ pub(crate) fn calculate_block_size(width: u32, height: u32) -> u32 {
 }
 
 // =============================================================================
-// Block perceptual diff detection (cold pass)
+// Perceptual diff detection (cold pass)
+//
+// Each returns the column of the first chunk (or remainder pixel) over the
+// threshold, scanning rows in order. The band scan passes one row at a time,
+// so the column names the block to flag.
 // =============================================================================
 
 #[cfg(target_arch = "aarch64")]
 #[inline]
-fn block_has_perceptual_diff(
+fn first_perceptual_diff(
     a32: &[u32],
     b32: &[u32],
     width: u32,
@@ -61,13 +66,13 @@ fn block_has_perceptual_diff(
     end_x: u32,
     end_y: u32,
     max_delta: f32,
-) -> bool {
-    block_has_perceptual_diff_neon(a32, b32, width, start_x, start_y, end_x, end_y, max_delta)
+) -> Option<u32> {
+    first_perceptual_diff_neon(a32, b32, width, start_x, start_y, end_x, end_y, max_delta)
 }
 
 #[cfg(target_arch = "x86_64")]
 #[inline]
-fn block_has_perceptual_diff_with_features(
+fn first_perceptual_diff_with_features(
     a32: &[u32],
     b32: &[u32],
     width: u32,
@@ -77,27 +82,23 @@ fn block_has_perceptual_diff_with_features(
     end_y: u32,
     max_delta: f32,
     features: X86Features,
-) -> bool {
+) -> Option<u32> {
     if features.has_avx2_fma {
         unsafe {
-            block_has_perceptual_diff_avx2(
-                a32, b32, width, start_x, start_y, end_x, end_y, max_delta,
-            )
+            first_perceptual_diff_avx2(a32, b32, width, start_x, start_y, end_x, end_y, max_delta)
         }
     } else if features.has_sse41 {
         unsafe {
-            block_has_perceptual_diff_sse(
-                a32, b32, width, start_x, start_y, end_x, end_y, max_delta,
-            )
+            first_perceptual_diff_sse(a32, b32, width, start_x, start_y, end_x, end_y, max_delta)
         }
     } else {
-        block_has_perceptual_diff_scalar(a32, b32, width, start_x, start_y, end_x, end_y, max_delta)
+        first_perceptual_diff_scalar(a32, b32, width, start_x, start_y, end_x, end_y, max_delta)
     }
 }
 
 #[cfg(target_arch = "riscv64")]
 #[inline]
-fn block_has_perceptual_diff(
+fn first_perceptual_diff(
     a32: &[u32],
     b32: &[u32],
     width: u32,
@@ -106,13 +107,13 @@ fn block_has_perceptual_diff(
     end_x: u32,
     end_y: u32,
     max_delta: f32,
-) -> bool {
-    block_has_perceptual_diff_scalar(a32, b32, width, start_x, start_y, end_x, end_y, max_delta)
+) -> Option<u32> {
+    first_perceptual_diff_scalar(a32, b32, width, start_x, start_y, end_x, end_y, max_delta)
 }
 
 #[cfg(all(target_arch = "wasm32", target_feature = "simd128"))]
 #[inline]
-fn block_has_perceptual_diff(
+fn first_perceptual_diff(
     a32: &[u32],
     b32: &[u32],
     width: u32,
@@ -121,8 +122,8 @@ fn block_has_perceptual_diff(
     end_x: u32,
     end_y: u32,
     max_delta: f32,
-) -> bool {
-    block_has_perceptual_diff_wasm(a32, b32, width, start_x, start_y, end_x, end_y, max_delta)
+) -> Option<u32> {
+    first_perceptual_diff_wasm(a32, b32, width, start_x, start_y, end_x, end_y, max_delta)
 }
 
 #[cfg(not(any(
@@ -132,7 +133,7 @@ fn block_has_perceptual_diff(
     all(target_arch = "wasm32", target_feature = "simd128"),
 )))]
 #[inline]
-fn block_has_perceptual_diff(
+fn first_perceptual_diff(
     a32: &[u32],
     b32: &[u32],
     width: u32,
@@ -141,8 +142,8 @@ fn block_has_perceptual_diff(
     end_x: u32,
     end_y: u32,
     max_delta: f32,
-) -> bool {
-    block_has_perceptual_diff_scalar(a32, b32, width, start_x, start_y, end_x, end_y, max_delta)
+) -> Option<u32> {
+    first_perceptual_diff_scalar(a32, b32, width, start_x, start_y, end_x, end_y, max_delta)
 }
 
 /// Minimum block-row width for the cold pass's 16-wide skip to pay off. Below
@@ -184,21 +185,7 @@ unsafe fn chunk_exceeds_neon(
     use std::arch::aarch64::*;
 
     if all_opaque_neon(va, vb) {
-        // Integer reject: the YIQ metric is a positive-definite quadratic form,
-        // so delta <= LAMBDA_MAX * (dr^2 + dg^2 + db^2). Any chunk whose every
-        // lane is under maxDelta/LAMBDA_MAX is provably below threshold and can
-        // skip the float pipeline entirely: 6 int->float converts and ~9 FMAs
-        // replaced by an absolute-difference and a widening square-accumulate.
-        let reject = vdupq_n_u32(reject_bound(max_delta));
-        let rgb_mask = vreinterpretq_u8_u32(vdupq_n_u32(0x00FF_FFFF));
-        let d8 = vandq_u8(
-            vabdq_u8(vreinterpretq_u8_u32(va), vreinterpretq_u8_u32(vb)),
-            rgb_mask,
-        );
-        let sq_lo = vmull_u8(vget_low_u8(d8), vget_low_u8(d8));
-        let sq_hi = vmull_u8(vget_high_u8(d8), vget_high_u8(d8));
-        let sums = vpaddq_u32(vpaddlq_u16(sq_lo), vpaddlq_u16(sq_hi));
-        if vminvq_u32(vcleq_u32(sums, reject)) != 0 {
+        if within_reject_neon(va, vb, vdupq_n_u32(reject_bound(max_delta))) {
             return false;
         }
 
@@ -221,9 +208,34 @@ unsafe fn chunk_exceeds_neon(
     false
 }
 
+/// Integer reject: the YIQ metric is a positive-definite quadratic form, so
+/// delta <= LAMBDA_MAX * (dr^2 + dg^2 + db^2). A chunk whose every lane is
+/// within `reject` is provably below threshold and skips the float pipeline:
+/// 6 int->float converts and ~9 FMAs replaced by an absolute difference and a
+/// widening square-accumulate. Both vectors must be fully opaque.
+#[cfg(target_arch = "aarch64")]
+#[inline(always)]
+unsafe fn within_reject_neon(
+    va: std::arch::aarch64::uint32x4_t,
+    vb: std::arch::aarch64::uint32x4_t,
+    reject: std::arch::aarch64::uint32x4_t,
+) -> bool {
+    use std::arch::aarch64::*;
+
+    let rgb_mask = vreinterpretq_u8_u32(vdupq_n_u32(0x00FF_FFFF));
+    let d8 = vandq_u8(
+        vabdq_u8(vreinterpretq_u8_u32(va), vreinterpretq_u8_u32(vb)),
+        rgb_mask,
+    );
+    let sq_lo = vmull_u8(vget_low_u8(d8), vget_low_u8(d8));
+    let sq_hi = vmull_u8(vget_high_u8(d8), vget_high_u8(d8));
+    let sums = vpaddq_u32(vpaddlq_u16(sq_lo), vpaddlq_u16(sq_hi));
+    vminvq_u32(vcleq_u32(sums, reject)) != 0
+}
+
 #[cfg(target_arch = "aarch64")]
 #[inline]
-fn block_has_perceptual_diff_neon(
+fn first_perceptual_diff_neon(
     a32: &[u32],
     b32: &[u32],
     width: u32,
@@ -232,7 +244,7 @@ fn block_has_perceptual_diff_neon(
     end_x: u32,
     end_y: u32,
     max_delta: f32,
-) -> bool {
+) -> Option<u32> {
     use std::arch::aarch64::*;
 
     let row_width = (end_x - start_x) as usize;
@@ -264,13 +276,14 @@ fn block_has_perceptual_diff_neon(
                     vorrq_u32(veorq_u32(a2, b2), veorq_u32(a3, b3)),
                 );
 
-                if vmaxvq_u32(acc) != 0
-                    && (chunk_exceeds_neon(a32, b32, a0, b0, row_start + offset, max_delta)
-                        || chunk_exceeds_neon(a32, b32, a1, b1, row_start + offset + 4, max_delta)
-                        || chunk_exceeds_neon(a32, b32, a2, b2, row_start + offset + 8, max_delta)
-                        || chunk_exceeds_neon(a32, b32, a3, b3, row_start + offset + 12, max_delta))
-                {
-                    return true;
+                if vmaxvq_u32(acc) != 0 {
+                    let chunks = [(a0, b0), (a1, b1), (a2, b2), (a3, b3)];
+                    for (k, (va, vb)) in chunks.into_iter().enumerate() {
+                        let at = offset + 4 * k;
+                        if chunk_exceeds_neon(a32, b32, va, vb, row_start + at, max_delta) {
+                            return Some(start_x + at as u32);
+                        }
+                    }
                 }
                 offset += 16;
             }
@@ -284,7 +297,7 @@ fn block_has_perceptual_diff_neon(
                 if vmaxvq_u32(not_cmp) != 0
                     && chunk_exceeds_neon(a32, b32, va, vb, row_start + offset, max_delta)
                 {
-                    return true;
+                    return Some(start_x + offset as u32);
                 }
                 offset += 4;
             }
@@ -296,11 +309,11 @@ fn block_has_perceptual_diff_neon(
             let pa = a32[idx];
             let pb = b32[idx];
             if pa != pb && color_delta_scalar(pa, pb, idx).abs() > max_delta as f64 {
-                return true;
+                return Some(start_x + i as u32);
             }
         }
     }
-    false
+    None
 }
 
 /// SSE4.1 twin of [`chunk_exceeds_neon`], over 4 pixels.
@@ -419,24 +432,7 @@ unsafe fn chunk_exceeds_wasm(
     use std::arch::wasm32::*;
 
     if all_opaque_wasm(va, vb) {
-        // See `chunk_exceeds_neon`: reject provably-below-threshold chunks with
-        // integer arithmetic before touching the float pipeline. wasm has no
-        // absolute-difference op, so it is built from two saturating subtracts.
-        let d8 = v128_and(
-            v128_or(u8x16_sub_sat(va, vb), u8x16_sub_sat(vb, va)),
-            u32x4_splat(0x00FF_FFFF),
-        );
-        let sq_lo = u16x8_extmul_low_u8x16(d8, d8);
-        let sq_hi = u16x8_extmul_high_u8x16(d8, d8);
-        let plo = u32x4_extadd_pairwise_u16x8(sq_lo);
-        let phi = u32x4_extadd_pairwise_u16x8(sq_hi);
-        // plo/phi hold (r²+g², b²+0) per pixel; fold the pairs together so
-        // each lane ends up with one pixel's squared channel distance.
-        let sums = u32x4_add(
-            u32x4_shuffle::<0, 2, 4, 6>(plo, phi),
-            u32x4_shuffle::<1, 3, 5, 7>(plo, phi),
-        );
-        if u32x4_all_true(u32x4_le(sums, u32x4_splat(reject_bound(max_delta)))) {
+        if within_reject_wasm(va, vb, u32x4_splat(reject_bound(max_delta))) {
             return false;
         }
 
@@ -459,9 +455,37 @@ unsafe fn chunk_exceeds_wasm(
     false
 }
 
+/// wasm twin of [`within_reject_neon`]. wasm has no absolute-difference op, so
+/// it is built from two saturating subtracts.
+#[cfg(all(target_arch = "wasm32", target_feature = "simd128"))]
+#[inline(always)]
+unsafe fn within_reject_wasm(
+    va: std::arch::wasm32::v128,
+    vb: std::arch::wasm32::v128,
+    reject: std::arch::wasm32::v128,
+) -> bool {
+    use std::arch::wasm32::*;
+
+    let d8 = v128_and(
+        v128_or(u8x16_sub_sat(va, vb), u8x16_sub_sat(vb, va)),
+        u32x4_splat(0x00FF_FFFF),
+    );
+    let sq_lo = u16x8_extmul_low_u8x16(d8, d8);
+    let sq_hi = u16x8_extmul_high_u8x16(d8, d8);
+    let plo = u32x4_extadd_pairwise_u16x8(sq_lo);
+    let phi = u32x4_extadd_pairwise_u16x8(sq_hi);
+    // plo/phi hold (r²+g², b²+0) per pixel; fold the pairs together so
+    // each lane ends up with one pixel's squared channel distance.
+    let sums = u32x4_add(
+        u32x4_shuffle::<0, 2, 4, 6>(plo, phi),
+        u32x4_shuffle::<1, 3, 5, 7>(plo, phi),
+    );
+    u32x4_all_true(u32x4_le(sums, reject))
+}
+
 #[cfg(all(target_arch = "wasm32", target_feature = "simd128"))]
 #[inline]
-fn block_has_perceptual_diff_wasm(
+fn first_perceptual_diff_wasm(
     a32: &[u32],
     b32: &[u32],
     width: u32,
@@ -470,7 +494,7 @@ fn block_has_perceptual_diff_wasm(
     end_x: u32,
     end_y: u32,
     max_delta: f32,
-) -> bool {
+) -> Option<u32> {
     use std::arch::wasm32::*;
 
     let row_width = (end_x - start_x) as usize;
@@ -499,13 +523,14 @@ fn block_has_perceptual_diff_wasm(
                     v128_or(v128_xor(a2, b2), v128_xor(a3, b3)),
                 );
 
-                if v128_any_true(acc)
-                    && (chunk_exceeds_wasm(a32, b32, a0, b0, row_start + offset, max_delta)
-                        || chunk_exceeds_wasm(a32, b32, a1, b1, row_start + offset + 4, max_delta)
-                        || chunk_exceeds_wasm(a32, b32, a2, b2, row_start + offset + 8, max_delta)
-                        || chunk_exceeds_wasm(a32, b32, a3, b3, row_start + offset + 12, max_delta))
-                {
-                    return true;
+                if v128_any_true(acc) {
+                    let chunks = [(a0, b0), (a1, b1), (a2, b2), (a3, b3)];
+                    for (k, (va, vb)) in chunks.into_iter().enumerate() {
+                        let at = offset + 4 * k;
+                        if chunk_exceeds_wasm(a32, b32, va, vb, row_start + at, max_delta) {
+                            return Some(start_x + at as u32);
+                        }
+                    }
                 }
                 offset += 16;
             }
@@ -519,7 +544,7 @@ fn block_has_perceptual_diff_wasm(
                 if v128_any_true(not_cmp)
                     && chunk_exceeds_wasm(a32, b32, va, vb, row_start + offset, max_delta)
                 {
-                    return true;
+                    return Some(start_x + offset as u32);
                 }
                 offset += 4;
             }
@@ -531,17 +556,17 @@ fn block_has_perceptual_diff_wasm(
             let pa = a32[idx];
             let pb = b32[idx];
             if pa != pb && color_delta_scalar(pa, pb, idx).abs() > max_delta as f64 {
-                return true;
+                return Some(start_x + i as u32);
             }
         }
     }
-    false
+    None
 }
 
 #[cfg(target_arch = "x86_64")]
 #[target_feature(enable = "avx2", enable = "fma")]
 #[inline]
-unsafe fn block_has_perceptual_diff_avx2(
+unsafe fn first_perceptual_diff_avx2(
     a32: &[u32],
     b32: &[u32],
     width: u32,
@@ -550,7 +575,7 @@ unsafe fn block_has_perceptual_diff_avx2(
     end_x: u32,
     end_y: u32,
     max_delta: f32,
-) -> bool {
+) -> Option<u32> {
     use std::arch::x86_64::*;
 
     let row_width = (end_x - start_x) as usize;
@@ -579,13 +604,14 @@ unsafe fn block_has_perceptual_diff_avx2(
                 _mm256_or_si256(_mm256_xor_si256(a2, b2), _mm256_xor_si256(a3, b3)),
             );
 
-            if _mm256_testz_si256(acc, acc) == 0
-                && (chunk_exceeds_avx2(a32, b32, a0, b0, row_start + offset, max_delta)
-                    || chunk_exceeds_avx2(a32, b32, a1, b1, row_start + offset + 8, max_delta)
-                    || chunk_exceeds_avx2(a32, b32, a2, b2, row_start + offset + 16, max_delta)
-                    || chunk_exceeds_avx2(a32, b32, a3, b3, row_start + offset + 24, max_delta))
-            {
-                return true;
+            if _mm256_testz_si256(acc, acc) == 0 {
+                let chunks = [(a0, b0), (a1, b1), (a2, b2), (a3, b3)];
+                for (k, (va, vb)) in chunks.into_iter().enumerate() {
+                    let at = offset + 8 * k;
+                    if chunk_exceeds_avx2(a32, b32, va, vb, row_start + at, max_delta) {
+                        return Some(start_x + at as u32);
+                    }
+                }
             }
             offset += 32;
         }
@@ -598,7 +624,7 @@ unsafe fn block_has_perceptual_diff_avx2(
             let mask = _mm256_movemask_ps(_mm256_castsi256_ps(cmp));
 
             if mask != 0xFF && chunk_exceeds_avx2(a32, b32, va, vb, row_start + offset, max_delta) {
-                return true;
+                return Some(start_x + offset as u32);
             }
             offset += 8;
         }
@@ -612,7 +638,7 @@ unsafe fn block_has_perceptual_diff_avx2(
 
             if mask != 0xFFFF && chunk_exceeds_sse(a32, b32, va, vb, row_start + offset, max_delta)
             {
-                return true;
+                return Some(start_x + offset as u32);
             }
             offset += 4;
         }
@@ -623,17 +649,17 @@ unsafe fn block_has_perceptual_diff_avx2(
             let pa = a32[idx];
             let pb = b32[idx];
             if pa != pb && color_delta_scalar(pa, pb, idx).abs() > max_delta as f64 {
-                return true;
+                return Some(start_x + i as u32);
             }
         }
     }
-    false
+    None
 }
 
 #[cfg(target_arch = "x86_64")]
 #[target_feature(enable = "sse4.1")]
 #[inline]
-unsafe fn block_has_perceptual_diff_sse(
+unsafe fn first_perceptual_diff_sse(
     a32: &[u32],
     b32: &[u32],
     width: u32,
@@ -642,7 +668,7 @@ unsafe fn block_has_perceptual_diff_sse(
     end_x: u32,
     end_y: u32,
     max_delta: f32,
-) -> bool {
+) -> Option<u32> {
     use std::arch::x86_64::*;
 
     let row_width = (end_x - start_x) as usize;
@@ -670,13 +696,14 @@ unsafe fn block_has_perceptual_diff_sse(
                 _mm_or_si128(_mm_xor_si128(a2, b2), _mm_xor_si128(a3, b3)),
             );
 
-            if _mm_testz_si128(acc, acc) == 0
-                && (chunk_exceeds_sse(a32, b32, a0, b0, row_start + offset, max_delta)
-                    || chunk_exceeds_sse(a32, b32, a1, b1, row_start + offset + 4, max_delta)
-                    || chunk_exceeds_sse(a32, b32, a2, b2, row_start + offset + 8, max_delta)
-                    || chunk_exceeds_sse(a32, b32, a3, b3, row_start + offset + 12, max_delta))
-            {
-                return true;
+            if _mm_testz_si128(acc, acc) == 0 {
+                let chunks = [(a0, b0), (a1, b1), (a2, b2), (a3, b3)];
+                for (k, (va, vb)) in chunks.into_iter().enumerate() {
+                    let at = offset + 4 * k;
+                    if chunk_exceeds_sse(a32, b32, va, vb, row_start + at, max_delta) {
+                        return Some(start_x + at as u32);
+                    }
+                }
             }
             offset += 16;
         }
@@ -689,7 +716,7 @@ unsafe fn block_has_perceptual_diff_sse(
 
             if mask != 0xFFFF && chunk_exceeds_sse(a32, b32, va, vb, row_start + offset, max_delta)
             {
-                return true;
+                return Some(start_x + offset as u32);
             }
             offset += 4;
         }
@@ -699,11 +726,11 @@ unsafe fn block_has_perceptual_diff_sse(
             let pa = a32[idx];
             let pb = b32[idx];
             if pa != pb && color_delta_scalar(pa, pb, idx).abs() > max_delta as f64 {
-                return true;
+                return Some(start_x + i as u32);
             }
         }
     }
-    false
+    None
 }
 
 #[cfg(not(any(
@@ -711,7 +738,7 @@ unsafe fn block_has_perceptual_diff_sse(
     all(target_arch = "wasm32", target_feature = "simd128"),
 )))]
 #[inline]
-fn block_has_perceptual_diff_scalar(
+fn first_perceptual_diff_scalar(
     a32: &[u32],
     b32: &[u32],
     width: u32,
@@ -720,18 +747,18 @@ fn block_has_perceptual_diff_scalar(
     end_x: u32,
     end_y: u32,
     max_delta: f32,
-) -> bool {
+) -> Option<u32> {
     for y in start_y..end_y {
         for x in start_x..end_x {
             let idx = (y * width + x) as usize;
             let pa = a32[idx];
             let pb = b32[idx];
             if pa != pb && color_delta_scalar(pa, pb, idx).abs() > max_delta as f64 {
-                return true;
+                return Some(x);
             }
         }
     }
-    false
+    None
 }
 
 // =============================================================================
@@ -1114,8 +1141,8 @@ fn process_hot_block(
     diff_color_alt: u32,
     aa_color: u32,
     alpha_f32: f32,
-    image1: &Image,
-    image2: &Image,
+    image1: Px,
+    image2: Px,
 ) -> u32 {
     process_hot_block_neon(
         a32,
@@ -1157,8 +1184,8 @@ fn process_hot_block_with_features(
     diff_color_alt: u32,
     aa_color: u32,
     alpha_f32: f32,
-    image1: &Image,
-    image2: &Image,
+    image1: Px,
+    image2: Px,
     features: X86Features,
 ) -> u32 {
     if features.has_avx2_fma {
@@ -1247,8 +1274,8 @@ fn process_hot_block(
     diff_color_alt: u32,
     aa_color: u32,
     alpha_f32: f32,
-    image1: &Image,
-    image2: &Image,
+    image1: Px,
+    image2: Px,
 ) -> u32 {
     process_hot_block_wasm(
         a32,
@@ -1294,8 +1321,8 @@ fn process_hot_block(
     diff_color_alt: u32,
     aa_color: u32,
     alpha_f32: f32,
-    image1: &Image,
-    image2: &Image,
+    image1: Px,
+    image2: Px,
 ) -> u32 {
     process_hot_block_scalar(
         a32,
@@ -1337,13 +1364,14 @@ fn process_hot_block_neon(
     diff_color_alt: u32,
     aa_color: u32,
     alpha_f32: f32,
-    image1: &Image,
-    image2: &Image,
+    image1: Px,
+    image2: Px,
 ) -> u32 {
     use std::arch::aarch64::*;
 
     let mut diff_count = 0u32;
     let inv_255 = 1.0 / 255.0;
+    let reject_limit = reject_bound(max_delta);
     let alpha_scaled = alpha_f32 * inv_255;
 
     for y in start_y..end_y {
@@ -1360,6 +1388,7 @@ fn process_hot_block_neon(
             let v255 = vdupq_n_f32(255.0);
             let max_delta_vec = vdupq_n_f32(max_delta);
             let alpha_vec = vdupq_n_f32(alpha_scaled);
+            let reject = vdupq_n_u32(reject_limit);
 
             while offset + 4 <= row_width {
                 let va = vld1q_u32(a_ptr.add(offset));
@@ -1377,6 +1406,18 @@ fn process_hot_block_neon(
                 } else {
                     // At least one pixel differs - compute deltas
                     let opaque = all_opaque_neon(va, vb);
+                    if opaque && within_reject_neon(va, vb, reject) {
+                        // Provably under the threshold: the same background
+                        // store as the no-exceed branch below.
+                        if draw_background {
+                            if let Some(ref mut out) = out32 {
+                                let grays = compute_gray_4_neon(va, alpha_vec, mask_ff, v255);
+                                vst1q_u32(out.as_mut_ptr().add(base_offset + offset), grays);
+                            }
+                        }
+                        offset += 4;
+                        continue;
+                    }
                     // Computed once and shared by the early-out below and the
                     // per-lane spill further down, so the fast path adds no
                     // duplicate work on chunks that do contain a diff.
@@ -1525,13 +1566,14 @@ fn process_hot_block_wasm(
     diff_color_alt: u32,
     aa_color: u32,
     alpha_f32: f32,
-    image1: &Image,
-    image2: &Image,
+    image1: Px,
+    image2: Px,
 ) -> u32 {
     use std::arch::wasm32::*;
 
     let mut diff_count = 0u32;
     let inv_255 = 1.0 / 255.0;
+    let reject_limit = reject_bound(max_delta);
     let alpha_scaled = alpha_f32 * inv_255;
 
     for y in start_y..end_y {
@@ -1548,6 +1590,7 @@ fn process_hot_block_wasm(
             let v255 = f32x4_splat(255.0);
             let max_delta_vec = f32x4_splat(max_delta);
             let alpha_vec = f32x4_splat(alpha_scaled);
+            let reject = u32x4_splat(reject_limit);
 
             while offset + 4 <= row_width {
                 let va = v128_load(a_ptr.add(offset) as *const v128);
@@ -1568,6 +1611,21 @@ fn process_hot_block_wasm(
                 } else {
                     // At least one pixel differs - compute deltas
                     let opaque = all_opaque_wasm(va, vb);
+                    if opaque && within_reject_wasm(va, vb, reject) {
+                        // Provably under the threshold: the same background
+                        // store as the no-exceed branch below.
+                        if draw_background {
+                            if let Some(ref mut out) = out32 {
+                                let grays = compute_gray_4_wasm(va, alpha_vec, mask_ff, v255);
+                                v128_store(
+                                    out.as_mut_ptr().add(base_offset + offset) as *mut v128,
+                                    grays,
+                                );
+                            }
+                        }
+                        offset += 4;
+                        continue;
+                    }
                     // Computed once and shared by the early-out below and the
                     // per-lane spill further down.
                     let deltas = if opaque {
@@ -1919,8 +1977,8 @@ unsafe fn process_hot_block_avx2(
     diff_color_alt: u32,
     aa_color: u32,
     alpha_f32: f32,
-    image1: &Image,
-    image2: &Image,
+    image1: Px,
+    image2: Px,
 ) -> u32 {
     use std::arch::x86_64::*;
 
@@ -2246,8 +2304,8 @@ unsafe fn process_hot_block_sse(
     diff_color_alt: u32,
     aa_color: u32,
     alpha_f32: f32,
-    image1: &Image,
-    image2: &Image,
+    image1: Px,
+    image2: Px,
 ) -> u32 {
     let mut diff_count = 0u32;
     let alpha_scaled = alpha_f32 / 255.0;
@@ -2345,8 +2403,8 @@ unsafe fn process_hot_chunk_sse(
     alpha_scaled: f32,
     start_x: u32,
     y: u32,
-    image1: &Image,
-    image2: &Image,
+    image1: Px,
+    image2: Px,
 ) -> u32 {
     use std::arch::x86_64::*;
 
@@ -2607,8 +2665,8 @@ fn process_hot_block_scalar(
     diff_color_alt: u32,
     aa_color: u32,
     alpha_f32: f32,
-    image1: &Image,
-    image2: &Image,
+    image1: Px,
+    image2: Px,
 ) -> u32 {
     let mut diff_count = 0u32;
     let alpha_scaled = alpha_f32 / 255.0;
@@ -2668,8 +2726,8 @@ fn process_diff_pixel(
     aa_color: u32,
     x: u32,
     y: u32,
-    image1: &Image,
-    image2: &Image,
+    image1: Px,
+    image2: Px,
     out32: Option<&mut [u32]>,
 ) -> u32 {
     if include_aa {
@@ -2683,7 +2741,8 @@ fn process_diff_pixel(
         }
         1
     } else {
-        let is_aa = is_antialiased(image1, image2, x, y) || is_antialiased(image2, image1, x, y);
+        let is_aa =
+            is_antialiased_px(image1, image2, x, y) || is_antialiased_px(image2, image1, x, y);
         if is_aa {
             if let Some(out) = out32 {
                 out[pixel_index] = aa_color;
@@ -2722,12 +2781,61 @@ pub fn diff(
 pub fn diff_with(
     image1: &Image,
     image2: &Image,
-    mut output: Option<&mut Image>,
+    output: Option<&mut Image>,
+    options: &DiffOptions,
+    fill_identical: bool,
+) -> Result<DiffResult, DiffError> {
+    check_data_size(image1)?;
+    check_data_size(image2)?;
+    if let Some(out) = output.as_deref() {
+        if image1.width == image2.width && image1.height == image2.height {
+            check_data_size(out)?;
+            if out.width != image1.width || out.height != image1.height {
+                return Err(DiffError::InvalidDataSize {
+                    expected: image1.width as usize * image1.height as usize * 4,
+                    actual: out.data.len(),
+                });
+            }
+        }
+    }
+    diff_rgba(
+        Rgba::of(image1),
+        Rgba::of(image2),
+        output.map(|out| out.data.as_mut_slice()),
+        options,
+        fill_identical,
+    )
+}
+
+/// Borrowed RGBA8 bytes: what the bindings hand over without copying.
+#[derive(Clone, Copy)]
+pub(crate) struct Rgba<'a> {
+    pub data: &'a [u8],
+    pub width: u32,
+    pub height: u32,
+}
+
+impl<'a> Rgba<'a> {
+    fn of(image: &'a Image) -> Self {
+        Self {
+            data: &image.data,
+            width: image.width,
+            height: image.height,
+        }
+    }
+}
+
+/// [`diff_with`] over borrowed buffers. `output` must hold width × height × 4
+/// bytes; misaligned buffers are copied, so any byte slice works.
+pub(crate) fn diff_rgba(
+    image1: Rgba,
+    image2: Rgba,
+    output: Option<&mut [u8]>,
     options: &DiffOptions,
     fill_identical: bool,
 ) -> Result<DiffResult, DiffError> {
     for image in [image1, image2] {
-        check_data_size(image)?;
+        expect_len(image.data.len(), image.width, image.height)?;
     }
     if image1.width != image2.width || image1.height != image2.height {
         return Ok(DiffResult::DimensionMismatch {
@@ -2741,28 +2849,72 @@ pub fn diff_with(
             },
         });
     }
-
-    let (width, height) = (image1.width, image1.height);
-    let total_pixels = width * height;
     if let Some(out) = output.as_deref() {
-        check_data_size(out)?;
-        if out.width != width || out.height != height {
-            return Err(DiffError::InvalidDataSize {
-                expected: total_pixels as usize * 4,
-                actual: out.data.len(),
-            });
-        }
+        expect_len(out.len(), image1.width, image1.height)?;
     }
-
     if let Some(mask) = options.mask.as_deref() {
-        if mask.len() != total_pixels as usize {
+        let expected = image1.width as usize * image1.height as usize;
+        if mask.len() != expected {
             return Err(DiffError::InvalidMaskSize {
-                expected: total_pixels as usize,
+                expected,
                 actual: mask.len(),
             });
         }
     }
 
+    let same_buffer = image1.data.as_ptr() == image2.data.as_ptr();
+    let a_words = words(image1.data);
+    let b_words = (!same_buffer).then(|| words(image2.data));
+    let a = Px {
+        data: &a_words,
+        width: image1.width,
+        height: image1.height,
+    };
+    // One buffer passed twice must stay one buffer, even when it was copied.
+    let b = b_words.as_deref().map_or(a, |data| Px { data, ..a });
+    let Some(out) = output else {
+        return Ok(diff_px(a, b, None, options, fill_identical));
+    };
+    // SAFETY: u32 has no invalid bit patterns and align_to only yields the
+    // aligned middle, so the cast is sound.
+    let (head, body, tail) = unsafe { out.align_to_mut::<u32>() };
+    if head.is_empty() && tail.is_empty() {
+        return Ok(diff_px(a, b, Some(body), options, fill_identical));
+    }
+    // Misaligned target: render into aligned scratch seeded with its bytes,
+    // so pixels the diff leaves unwritten stay untouched.
+    let mut scratch = words(out).into_owned();
+    let result = diff_px(a, b, Some(&mut scratch), options, fill_identical);
+    for (dst, word) in out.chunks_exact_mut(4).zip(&scratch) {
+        dst.copy_from_slice(&word.to_ne_bytes());
+    }
+    Ok(result)
+}
+
+/// The bytes as native-endian pixels, borrowed when aligned.
+fn words(bytes: &[u8]) -> std::borrow::Cow<'_, [u32]> {
+    // SAFETY: see `diff_rgba`.
+    let (head, body, tail) = unsafe { bytes.align_to::<u32>() };
+    if head.is_empty() && tail.is_empty() {
+        return std::borrow::Cow::Borrowed(body);
+    }
+    std::borrow::Cow::Owned(
+        bytes
+            .chunks_exact(4)
+            .map(|px| u32::from_ne_bytes([px[0], px[1], px[2], px[3]]))
+            .collect(),
+    )
+}
+
+fn diff_px(
+    a: Px,
+    b: Px,
+    mut output: Option<&mut [u32]>,
+    options: &DiffOptions,
+    fill_identical: bool,
+) -> DiffResult {
+    let (width, height) = (a.width, a.height);
+    let total_pixels = width * height;
     let render = &options.render;
     let transparent = render.background == Background::Transparent;
     // An empty window hit, reported when nothing differs.
@@ -2772,268 +2924,350 @@ pub fn diff_with(
         count: 0,
     });
 
-    if let Some(ref mut out) = output {
-        if transparent {
-            clear_transparent(out);
+    if transparent {
+        if let Some(out) = output.as_deref_mut() {
+            out.fill(0);
         }
     }
 
-    if image1.data.as_ptr() == image2.data.as_ptr() {
-        if let Some(ref mut out) = output {
+    if a.data.as_ptr() == b.data.as_ptr() {
+        if let Some(out) = output {
             if !transparent {
-                fill_block_gray_optimized(image1, out, render.alpha, 0, 0, width, height);
+                fill_gray_rect(a.data, width, out, render.alpha, 0, 0, width, height);
             }
         }
-        return Ok(DiffResult::compared(0, total_pixels, no_hit));
+        return DiffResult::compared(0, total_pixels, no_hit);
     }
 
-    // Fast path on *decoded* RGBA equality. Two PNGs that round-trip to the
-    // same pixel buffer (an artifact and its lossless re-encoding, or two
-    // files that differ only in PNG metadata) finish here with zero
-    // per-block work.
-    //
-    // The comparison is `==` on `Vec<u8>`, which lowers to a vectorized
-    // memcmp with early exit on first mismatch. For non-identical images
-    // the cost is ~tens of nanoseconds (mismatch is almost always in the
-    // first cache line); for identical images it walks both buffers once
-    // at memory-bandwidth speed, which is no more work than the cold
-    // block-scan would have done.
+    // Fast path on *decoded* RGBA equality: a vectorized memcmp that exits on
+    // the first mismatch, so differing images pay tens of nanoseconds.
     //
     // Not on wasm32: `wasm32-unknown-unknown` has no libc, so this lowers to
-    // `compiler_builtins`' scalar byte-loop memcmp, measured at ~2.4 GB/s,
-    // i.e. ~30ms for a 4K pair. The cold block-scan below reaches the same
-    // "no differing pixel" conclusion with v128 compares in under half that,
-    // so the shortcut is a pessimization there rather than an optimization.
+    // `compiler_builtins`' scalar byte-loop memcmp (~2.4 GB/s). The band scan
+    // below reaches the same verdict with v128 compares in under half that.
     #[cfg(not(target_arch = "wasm32"))]
-    if image1.data == image2.data {
+    if a.data == b.data {
         if fill_identical && !transparent {
-            if let Some(ref mut out) = output {
-                fill_block_gray_optimized(image1, out, render.alpha, 0, 0, width, height);
+            if let Some(out) = output {
+                fill_gray_rect(a.data, width, out, render.alpha, 0, 0, width, height);
             }
         }
-        return Ok(DiffResult::compared(0, total_pixels, no_hit));
+        return DiffResult::compared(0, total_pixels, no_hit);
     }
 
     if options.metric != Metric::Yiq || options.mask.is_some() || options.window.is_some() {
-        return Ok(diff_extended(image1, image2, output, options));
+        return diff_extended(a, b, output, options);
     }
 
-    let block_size = calculate_block_size(width, height);
-    let blocks_x = (width + block_size - 1) / block_size;
-    let blocks_y = (height + block_size - 1) / block_size;
+    let scan = Scan::new(a, b, options, output.is_some() && !transparent);
+    DiffResult::compared(scan.run(output, fill_identical), total_pixels, None)
+}
 
-    let a32 = image1.as_u32();
-    let b32 = image2.as_u32();
-    let max_delta = threshold_to_max_delta_f32(options.threshold);
-    let draw_background = output.is_some() && !transparent;
-    let include_aa = !options.antialiasing;
-    let alpha_f32 = render.alpha as f32;
-
-    let diff_color = pack_color_pixel(&render.diff_color);
-    let diff_color_alt =
-        pack_color_pixel(render.diff_color_alt.as_ref().unwrap_or(&render.diff_color));
-    let aa_color = pack_color_pixel(&render.aa_color);
-
-    let estimated_changed_blocks = ((blocks_x * blocks_y) as usize / 8).max(16);
-    let mut changed_blocks: Vec<(u32, u32, u32, u32)> =
-        Vec::with_capacity(estimated_changed_blocks);
-
-    // Detect CPU features once (x86_64 only)
+/// The default YIQ diff, walked in bands of one block row.
+///
+/// Each band is first scanned in row order to flag the blocks holding a pixel
+/// over the threshold, then rendered while it is still in cache: unflagged
+/// blocks get the gray background, flagged ones the per-pixel hot kernel.
+/// Blocks, kernels and their chunk alignment are those of the original
+/// block walk, so counts and output bytes do not depend on the walk order.
+struct Scan<'a> {
+    a: Px<'a>,
+    b: Px<'a>,
+    block_size: u32,
+    blocks_x: usize,
+    max_delta: f32,
+    include_aa: bool,
+    draw_background: bool,
+    diff_color: u32,
+    diff_color_alt: u32,
+    aa_color: u32,
+    alpha: f64,
     #[cfg(target_arch = "x86_64")]
-    let features = X86Features::detect();
+    features: X86Features,
+}
 
-    // Cold pass: identify changed blocks. We deliberately *do not* fill the
-    // output's unchanged blocks with gray here — that fill is purely
-    // cosmetic (it visualizes "this pixel did not change") and is wasted
-    // work whenever the image turns out identical: callers skip saving the
-    // diff PNG in that case. Deferring the fill into a second pass means an
-    // identical-image diff finishes after just the cold-pass equality scan,
-    // with no extra writes to the 4×W×H output buffer.
-    //
-    // Cache cost of the deferred fill on non-identical images: each block's
-    // input data has to be reloaded in pass 2. For full-image-fit-in-L2
-    // inputs that's free; for very large screenshots the extra read is a
-    // small percentage of total bandwidth (and is dwarfed by PNG IO).
-    for by in 0..blocks_y {
-        for bx in 0..blocks_x {
-            let start_x = bx * block_size;
-            let start_y = by * block_size;
-            let end_x = (start_x + block_size).min(width);
-            let end_y = (start_y + block_size).min(height);
-
+impl<'a> Scan<'a> {
+    fn new(a: Px<'a>, b: Px<'a>, options: &DiffOptions, draw_background: bool) -> Self {
+        let render = &options.render;
+        let block_size = calculate_block_size(a.width, a.height);
+        Self {
+            a,
+            b,
+            block_size,
+            blocks_x: a.width.div_ceil(block_size) as usize,
+            max_delta: threshold_to_max_delta_f32(options.threshold),
+            include_aa: !options.antialiasing,
+            draw_background,
+            diff_color: pack_color_pixel(&render.diff_color),
+            diff_color_alt: pack_color_pixel(
+                render.diff_color_alt.as_ref().unwrap_or(&render.diff_color),
+            ),
+            aa_color: pack_color_pixel(&render.aa_color),
+            alpha: render.alpha,
             #[cfg(target_arch = "x86_64")]
-            let has_diff = block_has_perceptual_diff_with_features(
-                a32, b32, width, start_x, start_y, end_x, end_y, max_delta, features,
-            );
-            #[cfg(not(target_arch = "x86_64"))]
-            let has_diff = block_has_perceptual_diff(
-                a32, b32, width, start_x, start_y, end_x, end_y, max_delta,
-            );
-
-            if has_diff {
-                changed_blocks.push((start_x, start_y, end_x, end_y));
-            }
+            features: X86Features::detect(),
         }
     }
 
-    if changed_blocks.is_empty() {
-        // Identical within threshold: the gray fill is skipped unless the
-        // caller keeps the output (see `diff_with`).
-        if fill_identical && draw_background {
-            if let Some(ref mut out) = output {
-                fill_block_gray_optimized(image1, out, render.alpha, 0, 0, width, height);
-            }
-        }
-        return Ok(DiffResult::compared(0, total_pixels, None));
-    }
-
-    // Second pass: fill unchanged blocks with gray. We re-walk every block
-    // in the same row-major order pass 1 used and skip indexes that ended
-    // up in `changed_blocks` (which is naturally row-major), so the skip
-    // check is a single comparison per block — no hash set needed.
-    if let Some(ref mut out) = output {
-        if !transparent {
-            let mut next_changed = 0usize;
-            for by in 0..blocks_y {
-                for bx in 0..blocks_x {
-                    let start_x = bx * block_size;
-                    let start_y = by * block_size;
-                    let end_x = (start_x + block_size).min(width);
-                    let end_y = (start_y + block_size).min(height);
-
-                    if next_changed < changed_blocks.len() {
-                        let (csx, csy, _, _) = changed_blocks[next_changed];
-                        if csx == start_x && csy == start_y {
-                            next_changed += 1;
-                            continue;
-                        }
-                    }
-                    fill_block_gray_optimized(
-                        image1,
-                        out,
-                        render.alpha,
-                        start_x,
-                        start_y,
-                        end_x,
-                        end_y,
-                    );
+    /// Diff count. With `fill_identical` false the output stays unwritten
+    /// until the first flagged block, then the skipped rows are caught up.
+    fn run(&self, mut output: Option<&mut [u32]>, fill_identical: bool) -> u32 {
+        let (width, height) = (self.a.width, self.a.height);
+        let mut flags = vec![false; self.blocks_x];
+        let mut drawn_to = 0;
+        let mut count = 0;
+        let mut changed = false;
+        for y0 in (0..height).step_by(self.block_size as usize) {
+            let y1 = (y0 + self.block_size).min(height);
+            let flagged = self.flag_band(&mut flags, y0, y1);
+            let out = output.as_deref_mut().filter(|_| self.draw_background);
+            if !flagged {
+                if let Some(out) = out.filter(|_| fill_identical || changed) {
+                    self.fill(out, 0, drawn_to, width, y1);
+                    drawn_to = y1;
                 }
+                continue;
             }
+            if let Some(out) = out {
+                self.fill(out, 0, drawn_to, width, y0);
+                drawn_to = y1;
+            }
+            changed = true;
+            count += self.render_band(output.as_deref_mut(), &flags, y0, y1);
+        }
+        count
+    }
+
+    /// Flags each block column of the band that holds a pixel over the
+    /// threshold. Returns whether any did.
+    ///
+    /// Each row scans a run of unflagged blocks in one kernel call. A hit
+    /// flags its block and the scan resumes at the next one. Kernel chunks
+    /// are 4 or 8 pixels and never cross a block edge, so every block gets
+    /// the verdict a scan of that block alone would give.
+    fn flag_band(&self, flags: &mut [bool], y0: u32, y1: u32) -> bool {
+        flags.fill(false);
+        let mut clean = flags.len();
+        for y in y0..y1 {
+            let mut column = 0;
+            while column < flags.len() {
+                if flags[column] {
+                    column += 1;
+                    continue;
+                }
+                let run_end = (column..flags.len())
+                    .find(|&c| flags[c])
+                    .unwrap_or(flags.len());
+                let end_x = self.block_end(run_end - 1);
+                while column < run_end {
+                    let Some(x) = self.first_diff(y, self.block_start(column), end_x) else {
+                        break;
+                    };
+                    let block = (x / self.block_size) as usize;
+                    flags[block] = true;
+                    clean -= 1;
+                    column = block + 1;
+                }
+                column = run_end;
+            }
+            if clean == 0 {
+                break;
+            }
+        }
+        clean < flags.len()
+    }
+
+    #[inline]
+    fn block_start(&self, column: usize) -> u32 {
+        column as u32 * self.block_size
+    }
+
+    #[inline]
+    fn block_end(&self, column: usize) -> u32 {
+        (self.block_start(column) + self.block_size).min(self.a.width)
+    }
+
+    /// Hot kernel on flagged blocks, gray fill on runs of unflagged ones.
+    fn render_band(&self, mut output: Option<&mut [u32]>, flags: &[bool], y0: u32, y1: u32) -> u32 {
+        let mut count = 0;
+        let mut column = 0;
+        while column < flags.len() {
+            let start_x = self.block_start(column);
+            if flags[column] {
+                count += self.hot(
+                    output.as_deref_mut(),
+                    start_x,
+                    y0,
+                    self.block_end(column),
+                    y1,
+                );
+                column += 1;
+                continue;
+            }
+            while column < flags.len() && !flags[column] {
+                column += 1;
+            }
+            if let Some(out) = output.as_deref_mut().filter(|_| self.draw_background) {
+                self.fill(out, start_x, y0, self.block_end(column - 1), y1);
+            }
+        }
+        count
+    }
+
+    fn fill(&self, out: &mut [u32], start_x: u32, start_y: u32, end_x: u32, end_y: u32) {
+        if start_y < end_y {
+            let (data, width) = (self.a.data, self.a.width);
+            fill_gray_rect(data, width, out, self.alpha, start_x, start_y, end_x, end_y);
         }
     }
 
-    // Hot pass: process changed blocks with SIMD
-    #[cfg(target_arch = "x86_64")]
-    let diff_count: u32 = if let Some(ref mut out) = output {
-        let out32 = out.as_u32_mut();
-        changed_blocks
-            .iter()
-            .map(|&(start_x, start_y, end_x, end_y)| {
-                process_hot_block_with_features(
-                    a32,
-                    b32,
-                    Some(out32),
-                    width,
-                    start_x,
-                    start_y,
-                    end_x,
-                    end_y,
-                    max_delta,
-                    include_aa,
-                    draw_background,
-                    diff_color,
-                    diff_color_alt,
-                    aa_color,
-                    alpha_f32,
-                    image1,
-                    image2,
-                    features,
-                )
-            })
-            .sum()
-    } else {
-        changed_blocks
-            .iter()
-            .map(|&(start_x, start_y, end_x, end_y)| {
-                process_hot_block_with_features(
-                    a32,
-                    b32,
-                    None,
-                    width,
-                    start_x,
-                    start_y,
-                    end_x,
-                    end_y,
-                    max_delta,
-                    include_aa,
-                    draw_background,
-                    diff_color,
-                    diff_color_alt,
-                    aa_color,
-                    alpha_f32,
-                    image1,
-                    image2,
-                    features,
-                )
-            })
-            .sum()
-    };
+    /// Column of the first pixel over the threshold in `start_x..end_x` of row `y`.
+    #[inline]
+    fn first_diff(&self, y: u32, start_x: u32, end_x: u32) -> Option<u32> {
+        let (a32, b32, width) = (self.a.data, self.b.data, self.a.width);
+        let row = (y * width) as usize;
+        let (from, to) = (row + start_x as usize, row + end_x as usize);
+        let skipped = equal_prefix(&a32[from..to], &b32[from..to]);
+        if skipped == to - from {
+            return None;
+        }
+        // A multiple of 64 keeps the kernel's 4/8-pixel chunks where they were.
+        let start_x = start_x + skipped as u32;
+        #[cfg(target_arch = "x86_64")]
+        return first_perceptual_diff_with_features(
+            a32,
+            b32,
+            width,
+            start_x,
+            y,
+            end_x,
+            y + 1,
+            self.max_delta,
+            self.features,
+        );
+        #[cfg(not(target_arch = "x86_64"))]
+        first_perceptual_diff(a32, b32, width, start_x, y, end_x, y + 1, self.max_delta)
+    }
 
-    #[cfg(not(target_arch = "x86_64"))]
-    let diff_count: u32 = if let Some(ref mut out) = output {
-        let out32 = out.as_u32_mut();
-        changed_blocks
-            .iter()
-            .map(|&(start_x, start_y, end_x, end_y)| {
-                process_hot_block(
-                    a32,
-                    b32,
-                    Some(out32),
-                    width,
-                    start_x,
-                    start_y,
-                    end_x,
-                    end_y,
-                    max_delta,
-                    include_aa,
-                    draw_background,
-                    diff_color,
-                    diff_color_alt,
-                    aa_color,
-                    alpha_f32,
-                    image1,
-                    image2,
-                )
-            })
-            .sum()
-    } else {
-        changed_blocks
-            .iter()
-            .map(|&(start_x, start_y, end_x, end_y)| {
-                process_hot_block(
-                    a32,
-                    b32,
-                    None,
-                    width,
-                    start_x,
-                    start_y,
-                    end_x,
-                    end_y,
-                    max_delta,
-                    include_aa,
-                    draw_background,
-                    diff_color,
-                    diff_color_alt,
-                    aa_color,
-                    alpha_f32,
-                    image1,
-                    image2,
-                )
-            })
-            .sum()
-    };
+    fn hot(
+        &self,
+        out32: Option<&mut [u32]>,
+        start_x: u32,
+        start_y: u32,
+        end_x: u32,
+        end_y: u32,
+    ) -> u32 {
+        #[cfg(target_arch = "x86_64")]
+        return process_hot_block_with_features(
+            self.a.data,
+            self.b.data,
+            out32,
+            self.a.width,
+            start_x,
+            start_y,
+            end_x,
+            end_y,
+            self.max_delta,
+            self.include_aa,
+            self.draw_background,
+            self.diff_color,
+            self.diff_color_alt,
+            self.aa_color,
+            self.alpha as f32,
+            self.a,
+            self.b,
+            self.features,
+        );
+        #[cfg(not(target_arch = "x86_64"))]
+        process_hot_block(
+            self.a.data,
+            self.b.data,
+            out32,
+            self.a.width,
+            start_x,
+            start_y,
+            end_x,
+            end_y,
+            self.max_delta,
+            self.include_aa,
+            self.draw_background,
+            self.diff_color,
+            self.diff_color_alt,
+            self.aa_color,
+            self.alpha as f32,
+            self.a,
+            self.b,
+        )
+    }
+}
 
-    Ok(DiffResult::compared(diff_count, total_pixels, None))
+/// Pixels to skip before the first possible diff: all of them when the rows
+/// are equal, otherwise a multiple of [`SKIP_GROUP`] (itself a multiple of 64).
+#[inline]
+fn equal_prefix(a: &[u32], b: &[u32]) -> usize {
+    let groups = a.chunks_exact(SKIP_GROUP).zip(b.chunks_exact(SKIP_GROUP));
+    let mut skipped = 0;
+    for (ga, gb) in groups {
+        if !group_equal(ga, gb) {
+            return skipped;
+        }
+        skipped += SKIP_GROUP;
+    }
+    if group_equal(&a[skipped..], &b[skipped..]) {
+        a.len()
+    } else {
+        skipped
+    }
+}
+
+/// libc memcmp runs at memory speed; groups only bound how far a dirty row
+/// gets rescanned.
+#[cfg(not(target_arch = "wasm32"))]
+const SKIP_GROUP: usize = 1024;
+
+#[cfg(not(target_arch = "wasm32"))]
+#[inline(always)]
+fn group_equal(a: &[u32], b: &[u32]) -> bool {
+    a == b
+}
+
+/// wasm32 has no vector memcmp (its `memcmp` is a byte loop), so OR the XOR
+/// of 64 pixels and branch once.
+#[cfg(target_arch = "wasm32")]
+const SKIP_GROUP: usize = 64;
+
+#[cfg(all(target_arch = "wasm32", target_feature = "simd128"))]
+#[inline(always)]
+fn group_equal(a: &[u32], b: &[u32]) -> bool {
+    use std::arch::wasm32::*;
+
+    if a.len() != SKIP_GROUP {
+        return a.iter().zip(b).all(|(x, y)| x == y);
+    }
+    // SAFETY: both slices hold exactly SKIP_GROUP pixels.
+    unsafe {
+        let (pa, pb) = (a.as_ptr() as *const v128, b.as_ptr() as *const v128);
+        let mut acc = [u32x4_splat(0); 4];
+        for k in 0..SKIP_GROUP / 4 {
+            let diff = v128_xor(v128_load(pa.add(k)), v128_load(pb.add(k)));
+            acc[k % 4] = v128_or(acc[k % 4], diff);
+        }
+        !v128_any_true(v128_or(v128_or(acc[0], acc[1]), v128_or(acc[2], acc[3])))
+    }
+}
+
+#[cfg(all(target_arch = "wasm32", not(target_feature = "simd128")))]
+#[inline(always)]
+fn group_equal(a: &[u32], b: &[u32]) -> bool {
+    a.iter().zip(b).fold(0, |acc, (x, y)| acc | (x ^ y)) == 0
+}
+
+fn expect_len(actual: usize, width: u32, height: u32) -> Result<(), DiffError> {
+    let expected = width as usize * height as usize * 4;
+    if actual != expected {
+        return Err(DiffError::InvalidDataSize { expected, actual });
+    }
+    Ok(())
 }
 
 fn check_data_size(image: &Image) -> Result<(), DiffError> {

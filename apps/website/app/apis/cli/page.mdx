@@ -33,7 +33,7 @@ npx blazediff-cli image1.png image2.png -o diff.png
 
 ### `blazediff-cli core-native` (default)
 
-Native Rust binary with SIMD optimization. The fastest option - **3-4x faster** than odiff on large images.
+Native Rust binary with SIMD optimization. The fastest option - **4.3-4.9x faster** than odiff on 4K images.
 
 #### Basic Usage
 
@@ -94,7 +94,7 @@ fi
 ```
 
 <Callout type="info">
-  **Why so fast?** Uses a two-pass block-based algorithm with SIMD acceleration (NEON on ARM, SSE4.1 on x86). The cold pass quickly identifies unchanged blocks, then the hot pass only processes changed regions.
+  **Why so fast?** The diff walks the image one row of blocks at a time, with SIMD (NEON on ARM, AVX2 or SSE4.1 on x86). A row-order scan flags the blocks that hold a pixel over the threshold. The hot pass then processes the flagged blocks only, while that band is still in the CPU cache.
 </Callout>
 
 </Tabs.Tab>

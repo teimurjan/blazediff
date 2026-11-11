@@ -1,15 +1,15 @@
 # BlazeDiff
 
-> BlazeDiff is a high-performance diff ecosystem. Originally built in JavaScript as a pixel-perfect image comparison library that's 1.5x faster than [pixelmatch](https://github.com/mapbox/pixelmatch). Now, BlazeDiff has evolved into a comprehensive suite of blazing-fast diff tools including image comparison, image diff analysis deterministically + agent-in-the-loop verdict, object diffing, perceptual quality metrics, framework-agnostic UI renderers, and React components for visualizing differences.
+> BlazeDiff is a high-performance diff ecosystem. Originally built in JavaScript as a pixel-perfect image comparison library that's now about 7x faster than [pixelmatch](https://github.com/mapbox/pixelmatch). Now, BlazeDiff has evolved into a comprehensive suite of blazing-fast diff tools including image comparison, image diff analysis deterministically + agent-in-the-loop verdict, object diffing, perceptual quality metrics, framework-agnostic UI renderers, and React components for visualizing differences.
 
 **Install (npm):** `npm install @blazediff/core`  
 **Install (JSR):** `deno add jsr:@blazediff/core`
 
 ## Performance
 
-- **Native (Rust)**: 4.4-4.9x faster than odiff on 4K images (5.7-6.7x from encoded buffers)
-- **WASM**: ~51% faster than pixelmatch, up to ~10x on 4K (browser, edge, any wasm host)
-- **Image Pixel-by-Pixel (JS)**: ~50% faster than pixelmatch (up to 88% on identical images)
+- **Native (Rust)**: 4.3-4.9x faster than odiff on 4K images (6.5-7.2x with the in-house PNG codec, `BLAZEDIFF_PNG_ENABLED=1`)
+- **WASM**: about 6.6x faster than pixelmatch in total time, 5-11x on 4K (browser, edge, any wasm host)
+- **Image Pixel-by-Pixel (JS)**: about 7x faster than pixelmatch in total time (about 3x when it also writes a diff image)
 - **SSIM (JS)**: ~30% faster than ssim.js, ~75% faster with Hitchhiker's SSIM
 - **SSIM (Rust)**: ~15x faster again than the JS port (~4x for Hitchhiker's SSIM), from the same decoded buffers
 - **Object Diff**: ~55% faster than microdiff (up to 96% on identical arrays)
@@ -20,7 +20,7 @@
 
 # @blazediff/core
 
-High-performance pixel-by-pixel image comparison library. 1.5x faster than [pixelmatch](https://github.com/mapbox/pixelmatch) while maintaining identical accuracy.
+High-performance pixel-by-pixel image comparison library. About 7x faster than [pixelmatch](https://github.com/mapbox/pixelmatch) while maintaining identical accuracy.
 
 [View Detailed Benchmarks](https://github.com/teimurjan/blazediff/blob/main/BENCHMARKS.md)
 
@@ -32,7 +32,7 @@ npm install @blazediff/core
 
 ## Features
 
-- **1.5x faster** than pixelmatch on average, **88% faster** on identical images
+- **~7x faster** than pixelmatch in total time, **~3x faster** when it also writes a diff image
 - **pixelmatch 8 adapter**: `@blazediff/core/pixelmatch` is a drop-in replacement
 - **Zero dependencies**
 
@@ -455,7 +455,7 @@ npx blazediff-cli image1.png image2.png -o diff.png
 
 ### `blazediff-cli core-native` (default)
 
-Native Rust binary with SIMD optimization. The fastest option - **3-4x faster** than odiff on large images.
+Native Rust binary with SIMD optimization. The fastest option - **4.3-4.9x faster** than odiff on 4K images.
 
 #### Basic Usage
 
@@ -515,7 +515,7 @@ else
 fi
 ```
 
-> **Info:** **Why so fast?** Uses a two-pass block-based algorithm with SIMD acceleration (NEON on ARM, SSE4.1 on x86). The cold pass quickly identifies unchanged blocks, then the hot pass only processes changed regions.
+> **Info:** **Why so fast?** The diff walks the image one row of blocks at a time, with SIMD (NEON on ARM, AVX2 or SSE4.1 on x86). A row-order scan flags the blocks that hold a pixel over the threshold. The hot pass then processes the flagged blocks only, while that band is still in the CPU cache.
 
 ### `blazediff-cli interpret`
 
@@ -1266,7 +1266,7 @@ Exit codes:
 
 # @blazediff/core-native
 
-The fastest single-threaded image diff in the world. Native Rust implementation with SIMD optimization, **4.4-4.9x faster** and **3x smaller** than [odiff](https://github.com/dmtrKovalenko/odiff).
+The fastest single-threaded image diff in the world. Native Rust implementation with SIMD optimization, **4.3-4.9x faster** and **3x smaller** than [odiff](https://github.com/dmtrKovalenko/odiff).
 
 [View Detailed Benchmarks](https://github.com/teimurjan/blazediff/blob/main/BENCHMARKS.md)
 
@@ -1288,7 +1288,7 @@ Pre-built binaries are included for all major platforms - no compilation require
 ## Features
 
 - **PNG, JPEG & QOI support** - auto-detected by file extension or encoded bytes
-- **4.4-4.9x faster** than odiff, **3x smaller** binaries (~700KB-900KB vs ~2-3MB)
+- **4.3-4.9x faster** than odiff, **3x smaller** binaries (~700KB-900KB vs ~2-3MB)
 - **SIMD-accelerated** - NEON on ARM, SSE4.1 on x86
 - **Block-based optimization** - skips unchanged regions
 - **Interpret mode** - region detection, classification, severity scoring, human-readable summaries
@@ -1463,13 +1463,16 @@ Benchmarked on Apple M1 Max with 5600×3200 4K images (25 runs, 5 warmup, image 
 
 | Tool | Time | Comparison |
 |------|------|------------|
-| **blazediff** (encoded buffer input) | ~203ms | - |
-| **blazediff** (file paths) | ~275ms | - |
-| odiff | ~1266ms | 4.6x slower |
+| **blazediff** (`BLAZEDIFF_PNG_ENABLED=1`) | ~190ms | - |
+| **blazediff** (file paths) | ~274ms | - |
+| odiff | ~1239ms | 4.5x slower |
 
-These are end-to-end times, so PNG decode and encode dominate them. The diff kernel
-itself is 27–37% faster than the previous release on 4K buffers; that gain is diluted
-here because IO is the larger share of the total.
+These are end-to-end times, so PNG decode and encode take most of them. The diff
+itself is faster than in 7.0.0. On a 3598x16384 page screenshot, a count-only diff
+takes 11 ms instead of 38 ms, and a diff that writes an image is about 3.5x faster.
+That gain is small in this table because IO is the larger share of the total.
+`BLAZEDIFF_PNG_ENABLED=1` routes PNG decode and stored-block (level 0) encode
+through the in-house [`blazediff_png`](https://crates.io/crates/blazediff-png) codec.
 
 Binary sizes (stripped, LTO optimized):
 
@@ -1479,7 +1482,7 @@ Binary sizes (stripped, LTO optimized):
 | Linux x64 | 869 KB | 2.9 MB |
 | Windows x64 | 915 KB | 3.0 MB |
 
-> **Info:** **Why so fast?** BlazeDiff uses a two-pass block-based algorithm with SIMD acceleration. The cold pass quickly identifies unchanged blocks using 32-bit integer comparison, then the hot pass only processes changed regions with YIQ perceptual color difference. Three refinements keep the common paths cheap: the cold pass folds four SIMD chunks into one wide test, so 16 unchanged pixels cost a single branch; an integer bound derived from the YIQ metric's largest eigenvalue rejects sub-threshold pixels before any floating-point work; and chunks where nothing crosses the threshold take a vectorized background write instead of falling back to per-pixel handling.
+> **Info:** **Why so fast?** BlazeDiff walks the image one band at a time. A band is one row of blocks, and the block size grows with the image area, from 8 to 128 pixels. A SIMD scan reads the band in pixel-row order and flags each block that holds a pixel over the threshold. An integer bound derived from the YIQ metric's largest eigenvalue rejects most sub-threshold pixels before any floating-point work. The hot pass then runs the YIQ delta and the anti-aliasing check on the flagged blocks only, while the band is still in the CPU cache. The other blocks get the gray background in one vectorized write. The N-API binding diffs raw RGBA input in place and draws into your output buffer, so it does not copy either one.
 
 ## Links
 
@@ -1492,7 +1495,7 @@ Binary sizes (stripped, LTO optimized):
 
 # @blazediff/core-wasm
 
-WebAssembly build of the BlazeDiff Rust algorithm for browsers, edge runtimes, and any wasm host. Same two-pass block algorithm as [`@blazediff/core-native`](/apis/core-native), compiled to `wasm32` with `v128` SIMD (`+simd128`). ~51% faster than [pixelmatch](https://github.com/mapbox/pixelmatch) on the same RGBA buffers (up to ~90% on 4K); diff counts agree with pixelmatch to within ~0.05%.
+WebAssembly build of the BlazeDiff Rust algorithm for browsers, edge runtimes, and any wasm host. Same block-band algorithm as [`@blazediff/core-native`](/apis/core-native), compiled to `wasm32` with `v128` SIMD (`+simd128`). About 6.6x faster than [pixelmatch](https://github.com/mapbox/pixelmatch) in total time on the same RGBA buffers (5x to 11x on 4K); diff counts agree with pixelmatch to within ~0.05%.
 
 [View Detailed Benchmarks](https://github.com/teimurjan/blazediff/blob/main/BENCHMARKS.md)
 
@@ -1507,7 +1510,7 @@ Ships ~32 KB of optimized wasm + ~10 KB of JS glue. No native binaries, no posti
 ## Features
 
 - **Same algorithm as `@blazediff/core-native`**: YIQ perceptual delta + block-based cold/hot pass
-- **wasm32 v128 SIMD** (`+simd128`): 4-lane vectorized cold and hot loops; up to ~16× faster than pixelmatch on 4K
+- **wasm32 v128 SIMD** (`+simd128`): 4-lane vectorized cold and hot loops; up to ~11× faster than pixelmatch on 4K
 - **Same API as `@blazediff/core`**: caller decodes images and hands in `{ data, width, height }`. No PNG/JPEG codecs bundled
 - **Runs anywhere wasm runs**: browsers (`fetch()` of the .wasm), Node (`fs.readFileSync` + bytes), Cloudflare Workers, Deno, Bun
 
@@ -1654,15 +1657,15 @@ vs `pixelmatch` on M1 Max, image I/O excluded (pre-decoded RGBA buffers):
 
 | Fixture           | pixelmatch | core-wasm  | Improvement |
 | ----------------- | ---------- | ---------- | ----------- |
-| 4k/1              | 338.53ms   | 34.42ms    | **89.8%**   |
-| 4k/3              | 415.01ms   | 45.34ms    | **89.1%**   |
-| page/2            | 511.88ms   | 70.89ms    | **86.2%**   |
-| blazediff/3       | 12.08ms    | 5.76ms     | **52.3%**   |
-| pixelmatch/1      | 0.57ms     | 0.11ms     | **80.5%**   |
+| 4k/1              | 350.83ms   | 32.95ms    | **90.6%**   |
+| 4k/3              | 438.65ms   | 44.80ms    | **89.8%**   |
+| page/2            | 535.68ms   | 71.14ms    | **86.7%**   |
+| blazediff/3       | 11.07ms    | 6.41ms     | **42.1%**   |
+| pixelmatch/1      | 0.63ms     | 0.11ms     | **83.0%**   |
 
-Average ~51% faster across the full fixture set (~60% across differing pairs). Counts agree with pixelmatch within ~0.05% (e.g. `4k/1`: 69 932 vs 69 912 of 17 920 000 pixels; both use YIQ perceptual delta, residual differences are anti-aliasing edge cases).
+About 6.6x faster in total time across the full fixture set, ~78% per fixture on average (~66% across differing pairs). Counts agree with pixelmatch within ~0.05% (e.g. `4k/1`: 69 932 vs 69 912 of 17 920 000 pixels; both use YIQ perceptual delta, residual differences are anti-aliasing edge cases).
 
-> **Info:** **Why so fast?** Block-based two-pass algorithm (cold pass skips unchanged blocks via integer compare, hot pass runs YIQ delta only on changed regions) with `v128` SIMD intrinsics: 4-lane vectorized RGBA extraction, YIQ transform, and threshold compare. The cold pass folds four chunks into a single wide test so 16 unchanged pixels cost one branch, and an integer bound derived from the YIQ metric's largest eigenvalue rejects sub-threshold pixels before any float work happens.
+> **Info:** **Why so fast?** It is the same band walk as `@blazediff/core-native`. The diff reads one row of blocks at a time in pixel-row order and flags each block that holds a pixel over the threshold. The hot pass then runs the YIQ delta on the flagged blocks only, while the band is still in cache. `v128` SIMD intrinsics do the RGBA extraction, the YIQ transform and the threshold compare 4 lanes at a time. An integer bound derived from the YIQ metric's largest eigenvalue rejects most sub-threshold pixels before any float work. In Node, byte-identical inputs return through `Buffer.compare` before the wasm call, when you ask for no output.
 
 ## Picking the Right Package
 
@@ -3190,7 +3193,7 @@ Shows pixel differences using the BlazeDiff comparison algorithm. Pass encoded d
 
 # blazediff (Python)
 
-PyO3 bindings to the same Rust core that powers `@blazediff/core-native`. **3-4x faster** than [odiff](https://github.com/dmtrKovalenko/odiff), shipped as `abi3` wheels for CPython ≥ 3.8 across macOS, Linux, and Windows.
+PyO3 bindings to the same Rust core that powers `@blazediff/core-native`. **4.3-4.9x faster** on 4K images than [odiff](https://github.com/dmtrKovalenko/odiff), shipped as `abi3` wheels for CPython ≥ 3.8 across macOS, Linux, and Windows.
 
 [View Detailed Benchmarks](https://github.com/teimurjan/blazediff/blob/main/BENCHMARKS.md)
 
@@ -3334,7 +3337,7 @@ See [Interpret example →](/docs/difference-analysis) for the interactive demo.
 
 # blazediff (Rust)
 
-The Rust crate that powers the entire BlazeDiff stack. **3-4x faster** than [odiff](https://github.com/dmtrKovalenko/odiff), **8x faster** than pixelmatch on 4K images. Block-based diff algorithm with SIMD-accelerated YIQ color comparison; the same engine drives `@blazediff/core-native` (Node.js) and `blazediff` (Python).
+The Rust crate that powers the entire BlazeDiff stack. **4.3-4.9x faster** than [odiff](https://github.com/dmtrKovalenko/odiff), **8x faster** than pixelmatch on 4K images. Block-based diff algorithm with SIMD-accelerated YIQ color comparison; the same engine drives `@blazediff/core-native` (Node.js) and `blazediff` (Python).
 
 [View Detailed Benchmarks](https://github.com/teimurjan/blazediff/blob/main/BENCHMARKS.md)
 
@@ -3359,8 +3362,8 @@ Pre-built binaries (via `cargo install`) and crate sources are available on [cra
 ## Features
 
 - **PNG, JPEG & QOI support** with vendored libspng, libjpeg-turbo, and qoi-rust (no system dependencies)
-- **SIMD-accelerated** - NEON on ARM, SSE4.1 on x86
-- **Block-based optimization** - skips unchanged 8x8 blocks via 32-bit integer compare before perceptual diff
+- **SIMD-accelerated** - NEON on ARM, AVX2 or SSE4.1 on x86
+- **Block-band scan** - walks one row of blocks at a time and runs the perceptual diff only on blocks with a pixel over the threshold, while the band is still in cache
 - **Interpret mode** - region detection, classification, severity scoring, human-readable summaries
 - **Cargo features** - opt into `napi` (Node.js bindings) or `python` (PyO3 bindings) when building from source
 
@@ -4259,9 +4262,9 @@ they are ranges rather than single numbers.
 
 | Comparison                           | Method                   | Baseline          | BlazeDiff       |
 | ------------------------------------ | ------------------------ | ----------------- | --------------- |
-| `@blazediff/core` vs pixelmatch      | 4K pair, decode excluded | 201.60-253.77ms   | 96.52-135.89ms  |
-| `@blazediff/core-wasm` vs pixelmatch | 4K pair, decode excluded | 332.26-423.14ms   | 33.18-68.37ms   |
-| `@blazediff/core-native` vs odiff    | 4K pair, decode included | 1157.12-1677.13ms | 288.01-349.43ms |
+| `@blazediff/core` vs pixelmatch      | 4K pair, decode excluded | 349.73-462.10ms   | 41.81-60.57ms   |
+| `@blazediff/core-wasm` vs pixelmatch | 4K pair, decode excluded | 345.40-438.65ms   | 32.95-68.49ms   |
+| `@blazediff/core-native` vs odiff    | 4K pair, decode included | 1238.75-1803.10ms | 274.41-367.63ms |
 
 Averaged over the full fixture set rather than the 4K pairs: `@blazediff/ssim` is
 ~25% faster than ssim.js and the Hitchhiker's variant ~70% faster, and
@@ -4270,7 +4273,7 @@ Averaged over the full fixture set rather than the 4K pairs: `@blazediff/ssim` i
 Per-fixture tables, iteration counts and methodology notes:
 [Benchmarks](/benchmarks/pixel-by-pixel).
 
-> **Info:** Identical images are the common case in a passing suite, and every core has a fast path for them. That is where the largest wins are: the pure-JS core is 7x to 9x faster than pixelmatch on an unchanged 4K pair.
+> **Info:** Identical images are the common case in a passing suite, and every core has a fast path for them. On an unchanged 4K pair the pure-JS core is 5x to 6x faster than pixelmatch, and the WebAssembly core is 8x to 9x faster.
 
 ## Where to go next
 
@@ -4554,20 +4557,21 @@ Measured against pixelmatch on the same fixtures, decode excluded, M1 Max, Node 
 
 | Case                          | pixelmatch      | `@blazediff/core` |
 | ----------------------------- | --------------- | ----------------- |
-| 4K pair, count only           | 201.60-253.77ms | 96.52-135.89ms    |
-| 4K pair, identical            | 23.79-28.04ms   | 2.50-3.77ms       |
-| 4K pair, writing a diff image | 280.79-336.93ms | 151.72-205.21ms   |
+| 4K pair, count only           | 349.73-462.10ms | 41.81-60.57ms     |
+| 4K pair, identical            | 21.96-28.12ms   | 3.41-4.90ms       |
+| 4K pair, writing a diff image | 413.51-544.79ms | 98.78-126.63ms    |
 
-Averaged over the whole fixture set that is ~62% faster when counting and ~28%
-faster when also rendering a diff image. Small images narrow the gap further: the
-win comes from skipping unchanged blocks, and there are fewer of them to skip.
+Over the whole fixture set that is ~7x faster in total time when counting
+(~78% per fixture on average) and ~3x faster when also rendering a diff image
+(~52%). Small images narrow the gap: the win comes from skipping identical and
+sub-threshold pixels, and small images with dense diffs have fewer of them.
 [Full tables](/benchmarks/pixel-by-pixel).
 
 ## Next
 
-- Same algorithm, 5x to 10x faster on 4K:
-  [WebAssembly](/docs/pixel-comparison/rust-wasm) or
-  [Node native](/docs/pixel-comparison/rust-napi)
+- The Rust engine, compiled:
+  [WebAssembly](/docs/pixel-comparison/rust-wasm) for the browser and the edge, or
+  [Node native](/docs/pixel-comparison/rust-napi), which also decodes the PNGs
 - Exact matching too strict? [Structural comparison](/docs/structural-comparison)
 - Every option and its default: [`@blazediff/core` reference](/apis/core)
 
@@ -4656,15 +4660,15 @@ iterations:
 
 | Case               | pixelmatch      | `@blazediff/core-wasm` |
 | ------------------ | --------------- | ---------------------- |
-| 4K pair            | 332.26-423.14ms | 33.18-68.37ms          |
-| 4K pair, identical | 19.86-30.53ms   | 17.47-22.17ms          |
+| 4K pair            | 345.40-438.65ms | 32.95-68.49ms          |
+| 4K pair, identical | 20.92-27.94ms   | 2.47-3.60ms            |
 
-So 5x to 10x on a changed 4K pair, and ~51% faster averaged over the whole
-fixture set. Identical images are the weak spot: `wasm32-unknown-unknown` has no
-libc, so the byte-equality shortcut the other cores use lowers to a scalar memcmp
-and is skipped here. The block scan reaches the same answer with `v128` compares,
-which is why that row is close rather than behind.
-[Full tables and the history of that fix](/benchmarks/pixel-by-pixel).
+So 5x to 11x on a changed 4K pair, 8x to 9x on an identical one, and about 6.6x in
+total time over the whole fixture set. In Node, an identical pair with no `output`
+returns early through `Buffer.compare`, a native memcmp, before any bytes are
+copied into wasm. Browsers and edge runtimes have no `Buffer`, so there the block
+scan reaches the same answer with `v128` compares.
+[Full tables](/benchmarks/pixel-by-pixel).
 
 ## Next
 
@@ -4748,14 +4752,14 @@ are never copied into Rust. Decoding still allocates native RGBA buffers, and on
 ## What it costs
 
 Against [odiff](https://github.com/dmtrKovalenko/odiff) on the same fixtures with
-image IO included, measured with hyperfine on an M1 Max, 25 runs:
+image IO included, measured with tinybench on an M1 Max, 25 runs:
 
 | Case               | odiff             | `@blazediff/core-native` |
 | ------------------ | ----------------- | ------------------------ |
-| 4K pair            | 1157.12-1677.13ms | 288.01-349.43ms          |
-| 4K pair, identical | 269.36-366.79ms   | 183.94-230.29ms          |
+| 4K pair            | 1238.75-1803.10ms | 274.41-367.63ms          |
+| 4K pair, identical | 278.45-383.71ms   | 196.76-241.81ms          |
 
-That is 4x to 4.8x on a changed 4K pair. Because decode dominates end-to-end time,
+That is 4.3x to 4.9x on a changed 4K pair. Because decode dominates end-to-end time,
 passing already-decoded buffers moves the number further than any change to the
 diff kernel would. [Full tables](/benchmarks/pixel-by-pixel).
 
@@ -7562,8 +7566,8 @@ test is the usual mistake.
 | `@blazediff/core`        | Node, browser       | Decoded RGBA              | No native dependency allowed               |
 
 If you are on `pixelmatch` today, `@blazediff/core/pixelmatch` is a drop-in
-replacement with an identical API, about 1.5x faster. `core-native` is the bigger
-jump, and it decodes file paths or encoded buffers in Rust.
+replacement with an identical API, about 7x faster. `core-native` also moves the
+decode out of JS: it reads file paths or encoded buffers in Rust.
 
 ```ts
 import { diff } from "@blazediff/core-native";
@@ -7581,8 +7585,8 @@ diff to paint every pixel, not just count them:
 
 | Mode                  | Average improvement over pixelmatch |
 | --------------------- | ----------------------------------- |
-| No output buffer      | ~62%                                |
-| With output buffer    | ~28%                                |
+| No output buffer      | ~78%                                |
+| With output buffer    | ~52%                                |
 
 So leave out `output` when a green run does not need a picture:
 
@@ -7602,7 +7606,7 @@ Generate the diff image only on failure, in a second pass.
 
 Most snapshots in a healthy suite do not change. `@blazediff/core` always checks
 for byte-identical inputs before doing any per-pixel work. On identical 4K pairs
-that is 2.5-3.8ms against pixelmatch's 24-28ms - roughly 88% faster.
+that is 3.4-4.9ms against pixelmatch's 22-28ms, roughly 83% faster.
 
 ## 4. Parallelize, but cap it
 
@@ -7803,19 +7807,19 @@ not.
 **`@blazediff/core-wasm` is a ~32KB WebAssembly build of the same Rust diff core,
 compiled to `wasm32` with `v128` SIMD.** It runs in browsers, Web Workers, Deno,
 Bun, Cloudflare Workers, and any other wasm host, with no native dependency and no
-network call. On a 4K pair it is about 90% faster than pixelmatch.
+network call. On a changed 4K pair it is 5x to 11x faster than pixelmatch.
 
 ## Measured speed
 
 From the [pixel benchmarks](/benchmarks/pixel-by-pixel), M1 Max, image IO
-excluded, ~50.8% faster than pixelmatch on average across the fixture set:
+excluded, about 6.6x faster than pixelmatch in total time across the fixture set:
 
 | Fixture | pixelmatch | `core-wasm` | Improvement |
 | ------- | ---------- | ----------- | ----------- |
-| 4k/1    | 332.26ms   | 33.18ms     | 90.0%       |
-| 4k/2    | 333.33ms   | 68.37ms     | 79.5%       |
-| 4k/3    | 423.14ms   | 44.65ms     | 89.4%       |
-| page/2  | 513.06ms   | 73.42ms     | 85.7%       |
+| 4k/1    | 350.83ms   | 32.95ms     | 90.6%       |
+| 4k/2    | 345.40ms   | 68.49ms     | 80.2%       |
+| 4k/3    | 438.65ms   | 44.80ms     | 89.8%       |
+| page/2  | 535.68ms   | 71.14ms     | 86.7%       |
 
 Counts agree with pixelmatch to within about 0.05% - both use a YIQ-style
 perceptual delta, so they classify the same pixels apart from a handful of edge

@@ -1,8 +1,8 @@
-"""Benchmark blazediff (PyO3) compare()."""
+"""Benchmark blazediff (PyO3) diff()."""
 
 from __future__ import annotations
 
-from blazediff import compare
+from blazediff import diff
 
 from ._common import (
     get_benchmark_image_pairs,
@@ -21,7 +21,7 @@ def main() -> None:
         a, b = str(pair.a), str(pair.b)
         results.append(run_bench(
             f"blazediff - {pair.name}",
-            lambda a=a, b=b: compare(a, b),
+            lambda a=a, b=b: diff(a, b),
             args.iterations,
         ))
 

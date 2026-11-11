@@ -8,11 +8,11 @@
 
 </div>
 
-WebAssembly build of the BlazeDiff Rust algorithm for browsers, edge runtimes, and any wasm host. Same two-pass block algorithm as [`@blazediff/core-native`](https://www.npmjs.com/package/@blazediff/core-native), compiled to `wasm32` with `v128` SIMD (`+simd128`). **~51%** faster than [pixelmatch](https://github.com/mapbox/pixelmatch) on the same RGBA buffers (up to ~90% on 4K); diff counts agree with pixelmatch to within ~0.05%.
+WebAssembly build of the BlazeDiff Rust algorithm for browsers, edge runtimes, and any wasm host. Same block-band algorithm as [`@blazediff/core-native`](https://www.npmjs.com/package/@blazediff/core-native), compiled to `wasm32` with `v128` SIMD (`+simd128`). About **6.6x** faster than [pixelmatch](https://github.com/mapbox/pixelmatch) in total time on the same RGBA buffers (5x to 11x on 4K); diff counts agree with pixelmatch to within ~0.05%.
 
 **Features:**
 - Same Rust algorithm as `@blazediff/core-native` (YIQ perceptual delta + block-based cold/hot pass)
-- `wasm32` v128 SIMD: 4-lane vectorized cold and hot loops; up to ~16x faster than pixelmatch on 4K
+- `wasm32` v128 SIMD: 4-lane vectorized cold and hot loops; up to ~11x faster than pixelmatch on 4K
 - Same `Image`, `DiffOptions` and `DiffResult` as `@blazediff/core`. Caller decodes images; no PNG/JPEG codecs bundled
 - ~32 KB optimized wasm + ~10 KB JS glue. No native binaries, no postinstall, no platform packages
 - Runs anywhere wasm runs: browsers, Node 18+, Cloudflare Workers, Deno, Bun
@@ -255,21 +255,21 @@ vs `pixelmatch` on M1 Max, image I/O excluded (pre-decoded RGBA buffers):
 
 | Fixture       | pixelmatch | core-wasm | Improvement |
 |---------------|------------|-----------|-------------|
-| 4k/1          | 338.53ms   | 34.42ms   | **89.8%**   |
-| 4k/3          | 415.01ms   | 45.34ms   | **89.1%**   |
-| page/2        | 511.88ms   | 70.89ms   | **86.2%**   |
-| blazediff/3   | 12.08ms    | 5.76ms    | **52.3%**   |
-| pixelmatch/1  | 0.57ms     | 0.11ms    | **80.5%**   |
+| 4k/1          | 350.83ms   | 32.95ms   | **90.6%**   |
+| 4k/3          | 438.65ms   | 44.80ms   | **89.8%**   |
+| page/2        | 535.68ms   | 71.14ms   | **86.7%**   |
+| blazediff/3   | 11.07ms    | 6.41ms    | **42.1%**   |
+| pixelmatch/1  | 0.63ms     | 0.11ms    | **83.0%**   |
 
-Average **~51%** faster across the full fixture set (~60% across differing pairs). Counts agree with pixelmatch within ~0.05% (e.g. `4k/1`: 69 932 vs 69 912 of 17 920 000 pixels).
+About **6.6x** faster in total time across the full fixture set, ~78% per fixture on average (~66% across differing pairs). Counts agree with pixelmatch within ~0.05% (e.g. `4k/1`: 69 932 vs 69 912 of 17 920 000 pixels).
  Full benchmarks in [BENCHMARKS.md](https://github.com/teimurjan/blazediff/blob/main/BENCHMARKS.md).
 
 ## Algorithm
 
-Same two-pass block-based approach as `@blazediff/core-native`, recompiled for wasm:
+Same block-band approach as `@blazediff/core-native`, recompiled for wasm. The diff walks one row of blocks at a time. The block size grows with the image area, from 8 to 128 pixels.
 
-1. **Cold pass:** scans the image in 8x8 blocks using 32-bit integer comparison to identify changed regions
-2. **Hot pass:** only processes blocks marked as changed, applying YIQ perceptual color difference
+1. **Cold pass:** a SIMD scan reads the band in pixel-row order and flags each block that holds a pixel over the threshold
+2. **Hot pass:** YIQ perceptual color difference on the flagged blocks only, while the band is still in cache
 3. **SIMD:** `v128` intrinsics (`f32x4_*`, `i32x4_*`) for parallel 4-lane RGBA extraction, alpha blend, YIQ transform, and threshold compare. Baseline simd128 has no native FMA, so weighted sums use `add(mul, c)`
 4. **Anti-aliasing:** Vysniauskas (2009) algorithm to detect AA artifacts
 

@@ -10,19 +10,19 @@ import { Callout } from "nextra/components";
 **`@blazediff/core-wasm` is a ~32KB WebAssembly build of the same Rust diff core,
 compiled to `wasm32` with `v128` SIMD.** It runs in browsers, Web Workers, Deno,
 Bun, Cloudflare Workers, and any other wasm host, with no native dependency and no
-network call. On a 4K pair it is about 90% faster than pixelmatch.
+network call. On a changed 4K pair it is 5x to 11x faster than pixelmatch.
 
 ## Measured speed
 
 From the [pixel benchmarks](/benchmarks/pixel-by-pixel), M1 Max, image IO
-excluded, ~50.8% faster than pixelmatch on average across the fixture set:
+excluded, about 6.6x faster than pixelmatch in total time across the fixture set:
 
 | Fixture | pixelmatch | `core-wasm` | Improvement |
 | ------- | ---------- | ----------- | ----------- |
-| 4k/1    | 332.26ms   | 33.18ms     | 90.0%       |
-| 4k/2    | 333.33ms   | 68.37ms     | 79.5%       |
-| 4k/3    | 423.14ms   | 44.65ms     | 89.4%       |
-| page/2  | 513.06ms   | 73.42ms     | 85.7%       |
+| 4k/1    | 350.83ms   | 32.95ms     | 90.6%       |
+| 4k/2    | 345.40ms   | 68.49ms     | 80.2%       |
+| 4k/3    | 438.65ms   | 44.80ms     | 89.8%       |
+| page/2  | 535.68ms   | 71.14ms     | 86.7%       |
 
 Counts agree with pixelmatch to within about 0.05% - both use a YIQ-style
 perceptual delta, so they classify the same pixels apart from a handful of edge

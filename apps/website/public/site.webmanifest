@@ -1,7 +1,7 @@
 {
 	"name": "BlazeDiff - High-Performance Image Comparison",
 	"short_name": "BlazeDiff",
-	"description": "High-performance image comparison library. 1.5x faster than pixelmatch while maintaining identical accuracy.",
+	"description": "High-performance image comparison library. About 7x faster than pixelmatch while maintaining identical accuracy.",
 	"icons": [
 		{
 			"src": "/android-chrome-192x192.png",

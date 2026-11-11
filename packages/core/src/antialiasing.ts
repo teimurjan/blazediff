@@ -1,4 +1,5 @@
 import {
+	LITTLE_ENDIAN,
 	type PixelData,
 	SHIFT_A,
 	SHIFT_B,
@@ -76,6 +77,11 @@ export function antialiased(
 	b32: Uint32Array,
 	overWhite = false,
 ): boolean {
+	if (LITTLE_ENDIAN && x1 > 0 && x1 < width - 1 && y1 > 0 && y1 < height - 1) {
+		const verdict = antialiasedOpaque(x1, y1, width, height, a32, b32);
+		if (verdict >= 0) return verdict === 1;
+	}
+
 	const x0 = Math.max(x1 - 1, 0);
 	const y0 = Math.max(y1 - 1, 0);
 	const x2 = Math.min(x1 + 1, width - 1);
@@ -167,6 +173,150 @@ export function antialiased(
 	);
 }
 
+/** 1 when two words differ, else 0, without a branch: the sign bit of `x | -x` is set for every x but 0. */
+function differs(a: number, b: number): number {
+	const x = a ^ b;
+	return (x | -x) >>> 31;
+}
+
+/**
+ * {@link antialiased} for an interior pixel on a little-endian platform: 1 or
+ * 0, or -1 when a pixel of its 3×3 block is not opaque.
+ *
+ * It ranks the neighbours by exact luma instead of the float brightness delta.
+ * The luma weights times 5e7 are multiples of 0.5, so every sum below is exact,
+ * and no two different color deltas share a luma (see the test). The float
+ * deltas therefore sort the same way, and one is 0 only for equal colors.
+ * Adding `k / 16` to the delta of neighbour `k` makes the lowest key the first
+ * darkest neighbour, with no branch per neighbour. The weights stay fractional
+ * because V8 runs integer-valued float math through slower checked integers.
+ */
+function antialiasedOpaque(
+	x1: number,
+	y1: number,
+	width: number,
+	height: number,
+	a32: Uint32Array,
+	b32: Uint32Array,
+): number {
+	const pos = y1 * width + x1;
+	const up = pos - width;
+	const down = pos + width;
+	// Same neighbour order as the loop in `antialiased`: columns left to right, top to bottom.
+	const center = a32[pos] | 0;
+	const n0 = a32[up - 1] | 0;
+	const n1 = a32[pos - 1] | 0;
+	const n2 = a32[down - 1] | 0;
+	const n3 = a32[up] | 0;
+	const n4 = a32[down] | 0;
+	const n5 = a32[up + 1] | 0;
+	const n6 = a32[pos + 1] | 0;
+	const n7 = a32[down + 1] | 0;
+	if ((center & n0 & n1 & n2 & n3 & n4 & n5 & n6 & n7) >>> 24 !== 0xff)
+		return -1;
+
+	// More than 2 neighbours of the center's color: not anti-aliasing.
+	if (
+		differs(n0, center) +
+			differs(n1, center) +
+			differs(n2, center) +
+			differs(n3, center) +
+			differs(n4, center) +
+			differs(n5, center) +
+			differs(n6, center) +
+			differs(n7, center) <
+		6
+	)
+		return 0;
+
+	const luma =
+		(center & 0xff) * 14944765.5 +
+		((center >>> 8) & 0xff) * 29331123.5 +
+		((center >>> 16) & 0xff) * 5724111.5;
+	const d0 =
+		luma -
+		((n0 & 0xff) * 14944765.5 +
+			((n0 >>> 8) & 0xff) * 29331123.5 +
+			((n0 >>> 16) & 0xff) * 5724111.5);
+	const d1 =
+		luma -
+		((n1 & 0xff) * 14944765.5 +
+			((n1 >>> 8) & 0xff) * 29331123.5 +
+			((n1 >>> 16) & 0xff) * 5724111.5);
+	const d2 =
+		luma -
+		((n2 & 0xff) * 14944765.5 +
+			((n2 >>> 8) & 0xff) * 29331123.5 +
+			((n2 >>> 16) & 0xff) * 5724111.5);
+	const d3 =
+		luma -
+		((n3 & 0xff) * 14944765.5 +
+			((n3 >>> 8) & 0xff) * 29331123.5 +
+			((n3 >>> 16) & 0xff) * 5724111.5);
+	const d4 =
+		luma -
+		((n4 & 0xff) * 14944765.5 +
+			((n4 >>> 8) & 0xff) * 29331123.5 +
+			((n4 >>> 16) & 0xff) * 5724111.5);
+	const d5 =
+		luma -
+		((n5 & 0xff) * 14944765.5 +
+			((n5 >>> 8) & 0xff) * 29331123.5 +
+			((n5 >>> 16) & 0xff) * 5724111.5);
+	const d6 =
+		luma -
+		((n6 & 0xff) * 14944765.5 +
+			((n6 >>> 8) & 0xff) * 29331123.5 +
+			((n6 >>> 16) & 0xff) * 5724111.5);
+	const d7 =
+		luma -
+		((n7 & 0xff) * 14944765.5 +
+			((n7 >>> 8) & 0xff) * 29331123.5 +
+			((n7 >>> 16) & 0xff) * 5724111.5);
+
+	const darkest = Math.min(
+		d0,
+		d1 + 0.0625,
+		d2 + 0.125,
+		d3 + 0.1875,
+		d4 + 0.25,
+		d5 + 0.3125,
+		d6 + 0.375,
+		d7 + 0.4375,
+	);
+	const brightest = Math.max(
+		d0,
+		d1 - 0.0625,
+		d2 - 0.125,
+		d3 - 0.1875,
+		d4 - 0.25,
+		d5 - 0.3125,
+		d6 - 0.375,
+		d7 - 0.4375,
+	);
+	// Without both a darker and a brighter neighbour it is not anti-aliasing.
+	if (darkest >= 0 || brightest <= 0) return 0;
+
+	// The fraction of a key is its neighbour index; the center is cell 4 of the 3×3 block.
+	let cell = ((darkest - Math.floor(darkest * 2) / 2) * 16) | 0;
+	if (cell > 3) cell++;
+	let column = (cell * 11) >> 5;
+	const minX = x1 - 1 + column;
+	const minY = y1 - 1 + cell - column * 3;
+	cell = ((Math.ceil(brightest * 2) / 2 - brightest) * 16) | 0;
+	if (cell > 3) cell++;
+	column = (cell * 11) >> 5;
+	const maxX = x1 - 1 + column;
+	const maxY = y1 - 1 + cell - column * 3;
+
+	return (hasManySiblings(a32, minX, minY, width, height) &&
+		hasManySiblings(b32, minX, minY, width, height)) ||
+		(hasManySiblings(a32, maxX, maxY, width, height) &&
+			hasManySiblings(b32, maxX, maxY, width, height))
+		? 1
+		: 0;
+}
+
 /**
  * Check if a pixel has 3+ adjacent pixels of the same color.
  */
@@ -179,6 +329,22 @@ function hasManySiblings(
 ): boolean {
 	const pos = y1 * width + x1;
 	const val = image[pos];
+	if (x1 > 0 && x1 < width - 1 && y1 > 0 && y1 < height - 1) {
+		// Interior pixel: count the differing neighbours without a branch.
+		const up = pos - width;
+		const down = pos + width;
+		return (
+			differs(image[up - 1], val) +
+				differs(image[up], val) +
+				differs(image[up + 1], val) +
+				differs(image[pos - 1], val) +
+				differs(image[pos + 1], val) +
+				differs(image[down - 1], val) +
+				differs(image[down], val) +
+				differs(image[down + 1], val) <
+			6
+		);
+	}
 	const isOnBoundary =
 		x1 === 0 || x1 === width - 1 || y1 === 0 || y1 === height - 1;
 	let count = isOnBoundary ? 1 : 0;

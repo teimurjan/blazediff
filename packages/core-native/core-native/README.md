@@ -8,12 +8,12 @@
 
 </div>
 
-The fastest single-threaded image diff in the world. Native Rust implementation with SIMD optimization, **4.4-4.9x faster** and **3x smaller** than [odiff](https://github.com/dmtrKovalenko/odiff).
+The fastest single-threaded image diff in the world. Native Rust implementation with SIMD optimization, **4.3-4.9x faster** and **3x smaller** than [odiff](https://github.com/dmtrKovalenko/odiff).
 
 **Features:**
 - **PNG, JPEG & QOI support** - auto-detected by file extension or encoded bytes
-- SIMD-accelerated (NEON on ARM, SSE4.1 on x86)
-- Block-based two-pass optimization
+- SIMD-accelerated (NEON on ARM, AVX2 or SSE4.1 on x86)
+- Block-band scan: the perceptual diff runs only on blocks with a pixel over the threshold
 - YIQ perceptual color difference
 - Anti-aliasing detection
 - Cross-platform pre-built binaries (~700KB-900KB, no compilation required)
@@ -276,13 +276,13 @@ Input images can be mixed formats (e.g., compare PNG to JPEG). Output format is 
 
 ## Performance
 
-Benchmarked on Apple M1 Max (25 runs, 5 warmup, image IO included) against `odiff` on 5600×3200 4K PNG images via `hyperfine`. Full numbers in the root [BENCHMARKS.md](https://github.com/teimurjan/blazediff/blob/main/BENCHMARKS.md).
+Benchmarked on Apple M1 Max (25 runs, 5 warmup, image IO included) against `odiff` on 5600×3200 4K PNG images via `tinybench`. Full numbers in the root [BENCHMARKS.md](https://github.com/teimurjan/blazediff/blob/main/BENCHMARKS.md).
 
 | Tool | 4k/1 | 4k/2 | 4k/3 | vs blazediff |
 |------|-----:|-----:|-----:|-------------|
-| **blazediff** | ~275ms | ~342ms | ~347ms | - |
-| **blazediff** (encoded buffer input) | ~203ms | ~256ms | ~270ms | - |
-| odiff | ~1266ms | ~1538ms | ~1799ms | 4.5-5.2x slower |
+| **blazediff** | ~274ms | ~363ms | ~368ms | - |
+| **blazediff** (`BLAZEDIFF_PNG_ENABLED=1`) | ~190ms | ~242ms | ~250ms | - |
+| odiff | ~1239ms | ~1563ms | ~1803ms | 4.3-4.9x slower |
 
 Binary sizes (stripped, LTO optimized) - **~3x smaller than odiff**:
 
@@ -297,12 +297,13 @@ Binary sizes (stripped, LTO optimized) - **~3x smaller than odiff**:
 
 ## Algorithm
 
-BlazeDiff uses a two-pass block-based approach with SIMD acceleration:
+BlazeDiff walks the image one band at a time. A band is one row of blocks. The block size grows with the image area, from 8 to 128 pixels.
 
-1. **Cold Pass**: Scans image in 8x8 blocks using 32-bit integer comparison to identify changed regions
-2. **Hot Pass**: Only processes blocks marked as changed, applying YIQ perceptual color difference
-3. **SIMD**: Uses NEON (ARM) or SSE4.1 (x86) for parallel pixel processing
-4. **Anti-aliasing**: Implements Vysniauskas (2009) algorithm to detect AA artifacts
+1. **Cold pass**: A SIMD scan reads the band in pixel-row order and flags each block that holds a pixel over the threshold. An integer bound from the YIQ metric rejects most sub-threshold pixels before any float work.
+2. **Hot pass**: The YIQ perceptual color difference runs on the flagged blocks only, while the band is still in the CPU cache. The other blocks get the gray background in one vectorized write.
+3. **SIMD**: NEON (ARM), AVX2 or SSE4.1 (x86) for parallel pixel processing.
+4. **Anti-aliasing**: The Vysniauskas (2009) algorithm detects AA artifacts on the pixels over the threshold.
+5. **Zero copy**: The N-API binding diffs raw RGBA input in place and draws into your output buffer.
 
 ## References
 

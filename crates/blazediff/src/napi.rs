@@ -3,7 +3,7 @@
 //! Provides native bindings via napi-rs for direct function calls from JavaScript
 //! without spawning child processes.
 
-use crate::diff::diff_with;
+use crate::diff::{diff_rgba, Rgba};
 use crate::{Background, DiffError, DiffOptions, DiffResult, Image, Metric, RenderOptions};
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
@@ -198,7 +198,7 @@ fn to_diff_options(options: Option<NapiDiffOptions>) -> Result<DiffOptions> {
 enum Source {
     Path(String),
     Encoded(Uint8Array),
-    Raw(Image),
+    Raw(NapiImage),
 }
 
 fn to_source(input: NapiInput, label: &str) -> Result<Source> {
@@ -217,11 +217,7 @@ fn to_source(input: NapiInput, label: &str) -> Result<Source> {
                     image.height
                 )));
             }
-            Ok(Source::Raw(Image {
-                width: image.width,
-                height: image.height,
-                data: image.data.to_vec(),
-            }))
+            Ok(Source::Raw(image))
         }
         _ => Err(invalid(format!(
             "{}: expected exactly one of path, encoded or image",
@@ -230,33 +226,56 @@ fn to_source(input: NapiInput, label: &str) -> Result<Source> {
     }
 }
 
+/// A loaded side: decoded here, or the caller's raw pixels borrowed in place.
+enum Pixels {
+    Decoded(Image),
+    Raw(NapiImage),
+}
+
+impl Pixels {
+    fn rgba(&self) -> Rgba<'_> {
+        match self {
+            Self::Decoded(image) => Rgba {
+                data: &image.data,
+                width: image.width,
+                height: image.height,
+            },
+            Self::Raw(image) => Rgba {
+                data: &image.data,
+                width: image.width,
+                height: image.height,
+            },
+        }
+    }
+}
+
 /// Loads one side. Errors carry the path when there is one.
-fn load(source: Source) -> std::result::Result<Image, (Option<String>, DiffError)> {
+fn load(source: Source) -> std::result::Result<Pixels, (Option<String>, DiffError)> {
     match source {
-        Source::Path(path) => {
-            blazediff_shared::load_image(&path).map_err(|e| (Some(path), DiffError::from(e)))
-        }
-        Source::Encoded(bytes) => {
-            blazediff_shared::decode_image(&bytes).map_err(|e| (None, DiffError::from(e)))
-        }
-        Source::Raw(image) => Ok(image),
+        Source::Path(path) => blazediff_shared::load_image(&path)
+            .map(Pixels::Decoded)
+            .map_err(|e| (Some(path), DiffError::from(e))),
+        Source::Encoded(bytes) => blazediff_shared::decode_image(&bytes)
+            .map(Pixels::Decoded)
+            .map_err(|e| (None, DiffError::from(e))),
+        Source::Raw(image) => Ok(Pixels::Raw(image)),
     }
 }
 
 /// Loads both sides, decoding two paths or two byte arrays in parallel.
-fn load_pair(a: Source, b: Source) -> std::result::Result<(Image, Image), NapiDiffResult> {
+fn load_pair(a: Source, b: Source) -> std::result::Result<(Pixels, Pixels), NapiDiffResult> {
     let failed =
         |(path, e): (Option<String>, DiffError)| NapiDiffResult::io_error(path, e.to_string());
     match (a, b) {
-        (Source::Path(a), Source::Path(b)) => {
-            blazediff_shared::load_image_pair(&a, &b).map_err(|e| {
+        (Source::Path(a), Source::Path(b)) => blazediff_shared::load_image_pair(&a, &b)
+            .map(|(a, b)| (Pixels::Decoded(a), Pixels::Decoded(b)))
+            .map_err(|e| {
                 let path = crate::failing_path([&a, &b]).map(str::to_string);
                 failed((path, DiffError::from(e)))
-            })
-        }
-        (Source::Encoded(a), Source::Encoded(b)) => {
-            blazediff_shared::decode_image_pair(&a, &b).map_err(|e| failed((None, e.into())))
-        }
+            }),
+        (Source::Encoded(a), Source::Encoded(b)) => blazediff_shared::decode_image_pair(&a, &b)
+            .map(|(a, b)| (Pixels::Decoded(a), Pixels::Decoded(b)))
+            .map_err(|e| failed((None, e.into()))),
         (a, b) => Ok((load(a).map_err(failed)?, load(b).map_err(failed)?)),
     }
 }
@@ -285,46 +304,61 @@ pub fn diff(
         Ok(pair) => pair,
         Err(failure) => return Ok(failure),
     };
-    if img_a.width != img_b.width || img_a.height != img_b.height {
+    let (a, b) = (img_a.rgba(), img_b.rgba());
+    if a.width != b.width || a.height != b.height {
         return Ok(NapiDiffResult::from_result(
-            diff_with(&img_a, &img_b, None, &options, false).map_err(generic)?,
+            diff_rgba(a, b, None, &options, false).map_err(generic)?,
         ));
     }
 
-    let wants_output = output.path.is_some() || output.image.is_some();
-    let mut rendered = wants_output.then(|| Image::new_uninit(img_a.width, img_a.height));
-    // An image output is kept even when identical, so it needs the full render.
-    let fill_identical = output.image.is_some();
-    let result =
-        diff_with(&img_a, &img_b, rendered.as_mut(), &options, fill_identical).map_err(generic)?;
-
-    if let (Some(mut target), Some(image)) = (output.image, &rendered) {
-        if target.len() != image.data.len() {
+    if let Some(mut target) = output.image {
+        let expected = a.width as usize * a.height as usize * 4;
+        // Draw straight into the caller's buffer unless it is the wrong size
+        // (reported after the diff, as before) or shares memory with an input.
+        if target.len() == expected && !overlaps(&target, a.data) && !overlaps(&target, b.data) {
+            let result = diff_rgba(a, b, Some(&mut target), &options, true).map_err(generic)?;
+            return Ok(NapiDiffResult::from_result(result));
+        }
+        let mut rendered = Image::new_uninit(a.width, a.height);
+        let result = diff_rgba(a, b, Some(&mut rendered.data), &options, true).map_err(generic)?;
+        if target.len() != rendered.data.len() {
             return Err(invalid(format!(
                 "output.image is {} bytes, expected {}.",
                 target.len(),
-                image.data.len()
+                rendered.data.len()
             )));
         }
-        target.copy_from_slice(&image.data);
+        target.copy_from_slice(&rendered.data);
+        return Ok(NapiDiffResult::from_result(result));
     }
-    if let (Some(path), Some(image)) = (&output.path, &rendered) {
-        if !result.is_identical() {
-            let saved = blazediff_shared::save_image(
-                image,
-                path,
-                output.compression.unwrap_or(0),
-                output.quality.unwrap_or(90),
-            );
-            if let Err(e) = saved {
-                return Ok(NapiDiffResult::io_error(
-                    Some(path.clone()),
-                    format!("Failed to save diff: {}", DiffError::from(e)),
-                ));
-            }
+
+    let Some(path) = output.path else {
+        return Ok(NapiDiffResult::from_result(
+            diff_rgba(a, b, None, &options, false).map_err(generic)?,
+        ));
+    };
+    let mut rendered = Image::new_uninit(a.width, a.height);
+    let result = diff_rgba(a, b, Some(&mut rendered.data), &options, false).map_err(generic)?;
+    if !result.is_identical() {
+        let saved = blazediff_shared::save_image(
+            &rendered,
+            &path,
+            output.compression.unwrap_or(0),
+            output.quality.unwrap_or(90),
+        );
+        if let Err(e) = saved {
+            return Ok(NapiDiffResult::io_error(
+                Some(path),
+                format!("Failed to save diff: {}", DiffError::from(e)),
+            ));
         }
     }
     Ok(NapiDiffResult::from_result(result))
+}
+
+fn overlaps(a: &[u8], b: &[u8]) -> bool {
+    let (a, b) = (a.as_ptr_range(), b.as_ptr_range());
+    a.start < b.end && b.start < a.end
 }
 
 fn generic(e: DiffError) -> Error {

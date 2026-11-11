@@ -120,15 +120,15 @@ iterations:
 
 | Case               | pixelmatch      | `@blazediff/core-wasm` |
 | ------------------ | --------------- | ---------------------- |
-| 4K pair            | 332.26-423.14ms | 33.18-68.37ms          |
-| 4K pair, identical | 19.86-30.53ms   | 17.47-22.17ms          |
+| 4K pair            | 345.40-438.65ms | 32.95-68.49ms          |
+| 4K pair, identical | 20.92-27.94ms   | 2.47-3.60ms            |
 
-So 5x to 10x on a changed 4K pair, and ~51% faster averaged over the whole
-fixture set. Identical images are the weak spot: `wasm32-unknown-unknown` has no
-libc, so the byte-equality shortcut the other cores use lowers to a scalar memcmp
-and is skipped here. The block scan reaches the same answer with `v128` compares,
-which is why that row is close rather than behind.
-[Full tables and the history of that fix](/benchmarks/pixel-by-pixel).
+So 5x to 11x on a changed 4K pair, 8x to 9x on an identical one, and about 6.6x in
+total time over the whole fixture set. In Node, an identical pair with no `output`
+returns early through `Buffer.compare`, a native memcmp, before any bytes are
+copied into wasm. Browsers and edge runtimes have no `Buffer`, so there the block
+scan reaches the same answer with `v128` compares.
+[Full tables](/benchmarks/pixel-by-pixel).
 
 ## Next
 

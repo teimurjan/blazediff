@@ -6,6 +6,24 @@ use serde::{Deserialize, Serialize};
 /// crate can speak it without depending on this one.
 pub use blazediff_shared::Image;
 
+/// Borrowed RGBA pixels, so bindings can diff caller memory without a copy.
+#[derive(Clone, Copy)]
+pub(crate) struct Px<'a> {
+    pub data: &'a [u32],
+    pub width: u32,
+    pub height: u32,
+}
+
+impl<'a> Px<'a> {
+    pub(crate) fn of(image: &'a Image) -> Self {
+        Self {
+            data: image.as_u32(),
+            width: image.width,
+            height: image.height,
+        }
+    }
+}
+
 /// Color difference metric.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum Metric {
