@@ -1,0 +1,349 @@
+{
+	"schemaVersion": 1,
+	"key": "ssim-dssim",
+	"category": "structural",
+	"generatedAt": "2026-11-12T12:43:11.360Z",
+	"commit": {
+		"sha": "20f7f6305bf40b06d61b987de23adf02278bc163",
+		"dirty": true
+	},
+	"env": {
+		"platform": "linux",
+		"arch": "x64",
+		"osRelease": "7.0.0-1017-gcp",
+		"cpu": "INTEL(R) XEON(R) PLATINUM 8581C CPU @ 2.30GHz",
+		"cores": 8,
+		"memoryGb": 59,
+		"node": "v22.14.0",
+		"rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)"
+	},
+	"config": {
+		"method": "best-of, iterations scaled by image size, dssim single-threaded",
+		"ioIncluded": false
+	},
+	"sections": [
+		{
+			"id": "ssim-dssim",
+			"title": "Rust (`blazediff-ssim` vs `dssim`) (image IO excluded)",
+			"unit": "ms",
+			"stat": "best",
+			"note": "dssim is a different algorithm (multi-scale, Lab chroma), so this compares cost, not scores.",
+			"series": [
+				{
+					"id": "dssim",
+					"name": "dssim",
+					"baseline": true,
+					"ours": false
+				},
+				{
+					"id": "ssim",
+					"name": "ssim",
+					"baseline": false,
+					"ours": true
+				},
+				{
+					"id": "ms-ssim",
+					"name": "ms-ssim",
+					"baseline": false,
+					"ours": true
+				},
+				{
+					"id": "hitchhikers",
+					"name": "hitchhikers",
+					"baseline": false,
+					"ours": true
+				}
+			],
+			"rows": [
+				{
+					"fixture": "4k/1",
+					"mpx": 17.92,
+					"values": {
+						"dssim": {
+							"value": 3383.7768
+						},
+						"ssim": {
+							"value": 298.6282
+						},
+						"ms-ssim": {
+							"value": 475.6343
+						},
+						"hitchhikers": {
+							"value": 463.741
+						}
+					}
+				},
+				{
+					"fixture": "4k/2",
+					"mpx": 19.9619,
+					"values": {
+						"dssim": {
+							"value": 3718.1004
+						},
+						"ssim": {
+							"value": 342.8343
+						},
+						"ms-ssim": {
+							"value": 537.4062
+						},
+						"hitchhikers": {
+							"value": 507.6745
+						}
+					}
+				},
+				{
+					"fixture": "4k/3",
+					"mpx": 24,
+					"values": {
+						"dssim": {
+							"value": 4376.3572
+						},
+						"ssim": {
+							"value": 387.5375
+						},
+						"ms-ssim": {
+							"value": 591.8569
+						},
+						"hitchhikers": {
+							"value": 600.7471
+						}
+					}
+				},
+				{
+					"fixture": "alpha/1",
+					"mpx": 0.0369,
+					"values": {
+						"dssim": {
+							"value": 2.293
+						},
+						"ssim": {
+							"value": 0.5116
+						},
+						"ms-ssim": {
+							"value": 0.6607
+						},
+						"hitchhikers": {
+							"value": 0.1646
+						}
+					}
+				},
+				{
+					"fixture": "blazediff/1",
+					"mpx": 0.4316,
+					"values": {
+						"dssim": {
+							"value": 31.6196
+						},
+						"ssim": {
+							"value": 6.3977
+						},
+						"ms-ssim": {
+							"value": 6.4557
+						},
+						"hitchhikers": {
+							"value": 2.6869
+						}
+					}
+				},
+				{
+					"fixture": "blazediff/2",
+					"mpx": 0.3511,
+					"values": {
+						"dssim": {
+							"value": 24.6067
+						},
+						"ssim": {
+							"value": 2.0909
+						},
+						"ms-ssim": {
+							"value": 5.729
+						},
+						"hitchhikers": {
+							"value": 2.0525
+						}
+					}
+				},
+				{
+					"fixture": "blazediff/3",
+					"mpx": 1.6308,
+					"values": {
+						"dssim": {
+							"value": 212.6133
+						},
+						"ssim": {
+							"value": 7.5746
+						},
+						"ms-ssim": {
+							"value": 26.9855
+						},
+						"hitchhikers": {
+							"value": 19.5427
+						}
+					}
+				},
+				{
+					"fixture": "blazediff/4",
+					"mpx": 3.7858,
+					"values": {
+						"dssim": {
+							"value": 599.8357
+						},
+						"ssim": {
+							"value": 21.3526
+						},
+						"ms-ssim": {
+							"value": 67.6742
+						},
+						"hitchhikers": {
+							"value": 79.9796
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/1",
+					"mpx": 0.1311,
+					"values": {
+						"dssim": {
+							"value": 8.1504
+						},
+						"ssim": {
+							"value": 2.0167
+						},
+						"ms-ssim": {
+							"value": 2.4799
+						},
+						"hitchhikers": {
+							"value": 0.7007
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/2",
+					"mpx": 0.0655,
+					"values": {
+						"dssim": {
+							"value": 3.8632
+						},
+						"ssim": {
+							"value": 1.0347
+						},
+						"ms-ssim": {
+							"value": 1.1657
+						},
+						"hitchhikers": {
+							"value": 0.3316
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/3",
+					"mpx": 0.1311,
+					"values": {
+						"dssim": {
+							"value": 8.0673
+						},
+						"ssim": {
+							"value": 1.9812
+						},
+						"ms-ssim": {
+							"value": 2.5332
+						},
+						"hitchhikers": {
+							"value": 0.7066
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/4",
+					"mpx": 0.1805,
+					"values": {
+						"dssim": {
+							"value": 11.6692
+						},
+						"ssim": {
+							"value": 0.9846
+						},
+						"ms-ssim": {
+							"value": 3.0045
+						},
+						"hitchhikers": {
+							"value": 1.001
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/5",
+					"mpx": 0.0655,
+					"values": {
+						"dssim": {
+							"value": 3.861
+						},
+						"ssim": {
+							"value": 1.0322
+						},
+						"ms-ssim": {
+							"value": 1.1647
+						},
+						"hitchhikers": {
+							"value": 0.3358
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/6",
+					"mpx": 0.0655,
+					"values": {
+						"dssim": {
+							"value": 3.9368
+						},
+						"ssim": {
+							"value": 1.0481
+						},
+						"ms-ssim": {
+							"value": 1.1487
+						},
+						"hitchhikers": {
+							"value": 0.3359
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/7",
+					"mpx": 0.25,
+					"values": {
+						"dssim": {
+							"value": 16.6422
+						},
+						"ssim": {
+							"value": 1.4155
+						},
+						"ms-ssim": {
+							"value": 4.0383
+						},
+						"hitchhikers": {
+							"value": 1.4418
+						}
+					}
+				},
+				{
+					"fixture": "same/1",
+					"mpx": 1.7377,
+					"values": {
+						"dssim": {
+							"value": 227.3856
+						},
+						"ssim": {
+							"value": 7.7677
+						},
+						"ms-ssim": {
+							"value": 29.0179
+						},
+						"hitchhikers": {
+							"value": 20.9697
+						}
+					}
+				}
+			]
+		}
+	]
+}

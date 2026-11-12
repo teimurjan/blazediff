@@ -166,17 +166,17 @@ const result = await diff(a, b);
 
 ## Performance
 
-vs `pixelmatch` on M1 Max, image I/O excluded (pre-decoded RGBA buffers):
+vs `pixelmatch` on Linux x64 (Intel Xeon Platinum 8581C), image I/O excluded (pre-decoded RGBA buffers):
 
 | Fixture           | pixelmatch | core-wasm  | Improvement |
 | ----------------- | ---------- | ---------- | ----------- |
-| 4k/1              | 350.83ms   | 32.95ms    | **90.6%**   |
-| 4k/3              | 438.65ms   | 44.80ms    | **89.8%**   |
-| page/2            | 535.68ms   | 71.14ms    | **86.7%**   |
-| blazediff/3       | 11.07ms    | 6.41ms     | **42.1%**   |
-| pixelmatch/1      | 0.63ms     | 0.11ms     | **83.0%**   |
+| 4k/1 | 327.33ms | 57.49ms | **82.4%** |
+| 4k/3 | 422.67ms | 81.60ms | **80.7%** |
+| page/2 | 498.86ms | 119.82ms | **76.0%** |
+| blazediff/3 | 11.90ms | 7.73ms | **35.0%** |
+| pixelmatch/1 | 0.68ms | 0.12ms | **81.8%** |
 
-About 6.6x faster in total time across the full fixture set, ~78% per fixture on average (~66% across differing pairs). Counts agree with pixelmatch within ~0.05% (e.g. `4k/1`: 69 932 vs 69 912 of 17 920 000 pixels; both use YIQ perceptual delta, residual differences are anti-aliasing edge cases).
+About 3.8x faster in total time across the full fixture set, ~68% per fixture on average (~57% across differing pairs). Counts agree with pixelmatch within ~0.05% (e.g. `4k/1`: 69 932 vs 69 912 of 17 920 000 pixels; both use YIQ perceptual delta, residual differences are anti-aliasing edge cases).
 
 <Callout type="info">
   **Why so fast?** It is the same band walk as `@blazediff/core-native`. The diff reads one row of blocks at a time in pixel-row order and flags each block that holds a pixel over the threshold. The hot pass then runs the YIQ delta on the flagged blocks only, while the band is still in cache. `v128` SIMD intrinsics do the RGBA extraction, the YIQ transform and the threshold compare 4 lanes at a time. An integer bound derived from the YIQ metric's largest eigenvalue rejects most sub-threshold pixels before any float work. In Node, byte-identical inputs return through `Buffer.compare` before the wasm call, when you ask for no output.

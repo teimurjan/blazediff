@@ -21,18 +21,18 @@
 
 </div>
 
-**BlazeDiff** is a high-performance diff ecosystem. Originally built in JavaScript as a pixel-perfect image comparison library that's now about 7x faster than [pixelmatch](https://github.com/mapbox/pixelmatch). Now, BlazeDiff has evolved into a comprehensive suite of blazing-fast diff tools including image comparison, image diff analysis deterministically + agent-in-the-loop verdict, object diffing, perceptual quality metrics, framework-agnostic UI renderers, and React components for visualizing differences.
+**BlazeDiff** is a high-performance diff ecosystem. Originally built in JavaScript as a pixel-perfect image comparison library that's now about 5x faster than [pixelmatch](https://github.com/mapbox/pixelmatch). Now, BlazeDiff has evolved into a comprehensive suite of blazing-fast diff tools including image comparison, image diff analysis deterministically + agent-in-the-loop verdict, object diffing, perceptual quality metrics, framework-agnostic UI renderers, and React components for visualizing differences.
 
 ## Available Packages
 
 ### Core Libraries
 - **[@blazediff/core-native](./packages/core-native/core-native#readme)** - The fastest single-threaded image diff in the world (Rust + SIMD, 3.6-3.9x faster than odiff on 4K images)
-- **[@blazediff/core-wasm](./packages/core-wasm#readme)** - WebAssembly build of the same Rust algorithm (wasm32 + v128 SIMD, about 6.6x faster than pixelmatch). For browsers, edge runtimes, and any wasm host.
-- **[@blazediff/core](./packages/core#readme)** - Pixel-perfect image comparison (about 7x faster than pixelmatch)
+- **[@blazediff/core-wasm](./packages/core-wasm#readme)** - WebAssembly build of the same Rust algorithm (wasm32 + v128 SIMD, about 3.8x faster than pixelmatch). For browsers, edge runtimes, and any wasm host.
+- **[@blazediff/core](./packages/core#readme)** - Pixel-perfect image comparison (about 5x faster than pixelmatch)
 - **[@blazediff/interpret-native](./packages/interpret-native/interpret-native#readme)** - Native Rust structured interpretation of a diff: what changed in each region, where, and how much - not just which pixels differ
 - **[@blazediff/object](./packages/object#readme)** - High-performance object diffing with detailed change tracking
 - **[@blazediff/ssim](./packages/ssim#readme)** - SSIM, MS-SSIM, and Hitchhiker's SSIM for perceptual quality assessment
-- **[@blazediff/ssim-native](./packages/ssim-native/ssim-native#readme)** - Native Rust build of the same metrics plus perceptual SSIM (~15x faster than the JS port; ~4x for Hitchhiker's)
+- **[@blazediff/ssim-native](./packages/ssim-native/ssim-native#readme)** - Native Rust build of the same metrics plus perceptual SSIM (~10x faster than the JS port; ~1.7x for Hitchhiker's)
 - **[@blazediff/gmsd](./packages/gmsd#readme)** - Gradient Magnitude Similarity Deviation metric
 - **[@blazediff/milo-native](./packages/milo-native/milo-native#readme)** - Native Rust MILO (Çoğalan et al. 2025), a learned perceptual metric that models visual masking. The authors' weights embedded, PyTorch parity, no PyTorch
 - **[@blazediff/milo-wasm](./packages/milo-wasm#readme)** - WebAssembly build of the same metric for browsers, edge runtimes, and any wasm host
@@ -92,11 +92,11 @@ Every package above is available on both registries **except** the test-runner a
 BlazeDiff delivers significant performance improvements across all components:
 
 - **Native (Rust)**: 3.6-3.9x faster than odiff on 4K images (4.4-4.8x with the in-house PNG codec, `BLAZEDIFF_PNG_ENABLED=1`)
-- **WASM**: about 6.6x faster than pixelmatch in total time, 5-11x on 4K (browser, edge, any wasm host)
-- **Image Pixel-by-Pixel (JS)**: about 7x faster than pixelmatch in total time (about 3x when it also writes a diff image)
-- **SSIM (JS)**: ~30% faster than ssim.js, ~75% faster with Hitchhiker's SSIM
-- **SSIM (Rust)**: ~15x faster again than the JS port (~4x for Hitchhiker's SSIM), from the same decoded buffers
-- **Object Diff**: ~55% faster than microdiff (up to 96% on identical arrays)
+- **WASM**: about 3.8x faster than pixelmatch in total time, 3-6x on 4K (browser, edge, any wasm host)
+- **Image Pixel-by-Pixel (JS)**: about 5x faster than pixelmatch in total time (about 2.5x when it also writes a diff image)
+- **SSIM (JS)**: ~55% faster than ssim.js, ~85% faster with Hitchhiker's SSIM
+- **SSIM (Rust)**: ~10x faster again than the JS port (~1.7x for Hitchhiker's SSIM), from the same decoded buffers
+- **Object Diff**: ~14% faster than microdiff on average (up to 95% on identical arrays)
 
 **[View Detailed Benchmarks](./BENCHMARKS.md)** - Complete performance data, test methodology, and hardware specifications.
 

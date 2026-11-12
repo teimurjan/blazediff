@@ -1,0 +1,501 @@
+{
+	"schemaVersion": 1,
+	"key": "ssim",
+	"category": "structural",
+	"generatedAt": "2026-11-12T12:40:14.838Z",
+	"commit": {
+		"sha": "20f7f6305bf40b06d61b987de23adf02278bc163",
+		"dirty": true
+	},
+	"env": {
+		"platform": "linux",
+		"arch": "x64",
+		"osRelease": "7.0.0-1017-gcp",
+		"cpu": "INTEL(R) XEON(R) PLATINUM 8581C CPU @ 2.30GHz",
+		"cores": 8,
+		"memoryGb": 59,
+		"node": "v22.14.0",
+		"rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)"
+	},
+	"config": {
+		"iterations": 25,
+		"warmup": 3,
+		"ioIncluded": false
+	},
+	"sections": [
+		{
+			"id": "ssim",
+			"title": "Fast Original ( `@blazediff/ssim` using `ssim` vs `ssim.js` using `fast` algorithm) (image IO excluded)",
+			"unit": "ms",
+			"stat": "mean",
+			"series": [
+				{
+					"id": "ssim-js",
+					"name": "ssim.js",
+					"version": "3.5.0",
+					"iterations": 25,
+					"baseline": true,
+					"ours": false
+				},
+				{
+					"id": "blazediff",
+					"name": "BlazeDiff",
+					"version": "2.0.0",
+					"iterations": 25,
+					"baseline": false,
+					"ours": true
+				},
+				{
+					"id": "blazediff-ssim-native",
+					"name": "BlazeDiff (ssim-native)",
+					"version": "6.1.1",
+					"iterations": 25,
+					"baseline": false,
+					"ours": true
+				}
+			],
+			"rows": [
+				{
+					"fixture": "blazediff/1",
+					"values": {
+						"ssim-js": {
+							"value": 128.60304215999903,
+							"min": 121.85873500001617,
+							"max": 141.27341900000465
+						},
+						"blazediff": {
+							"value": 67.36319504000944,
+							"min": 66.4932100000442,
+							"max": 68.13464699999895
+						},
+						"blazediff-ssim-native": {
+							"value": 6.578832919991109,
+							"min": 6.3497300000162795,
+							"max": 9.219321999989916
+						}
+					}
+				},
+				{
+					"fixture": "blazediff/1 (identical)",
+					"values": {
+						"ssim-js": {
+							"value": 129.28553375999442,
+							"min": 121.7328629999829,
+							"max": 140.42285899998387
+						},
+						"blazediff": {
+							"value": 67.4555710399989,
+							"min": 66.57298500003526,
+							"max": 68.39306999999098
+						},
+						"blazediff-ssim-native": {
+							"value": 6.606469760003965,
+							"min": 6.354475000000093,
+							"max": 9.34794399997918
+						}
+					}
+				},
+				{
+					"fixture": "blazediff/2",
+					"values": {
+						"ssim-js": {
+							"value": 63.12058563999599,
+							"min": 57.40587799999048,
+							"max": 71.01828499999829
+						},
+						"blazediff": {
+							"value": 23.674919280004687,
+							"min": 23.166474000026938,
+							"max": 24.21471199998632
+						},
+						"blazediff-ssim-native": {
+							"value": 2.1953655200009234,
+							"min": 2.111432000005152,
+							"max": 3.2481689999694936
+						}
+					}
+				},
+				{
+					"fixture": "blazediff/2 (identical)",
+					"values": {
+						"ssim-js": {
+							"value": 63.54902975999983,
+							"min": 58.78678300001775,
+							"max": 97.05032799998298
+						},
+						"blazediff": {
+							"value": 23.783886319997254,
+							"min": 23.434697999968193,
+							"max": 24.27892199996859
+						},
+						"blazediff-ssim-native": {
+							"value": 2.201679440001026,
+							"min": 2.113658000016585,
+							"max": 3.2623189999721944
+						}
+					}
+				},
+				{
+					"fixture": "blazediff/3",
+					"values": {
+						"ssim-js": {
+							"value": 194.01490427999641,
+							"min": 176.67403500000364,
+							"max": 219.01771700000972
+						},
+						"blazediff": {
+							"value": 97.32219132000115,
+							"min": 96.52654200000688,
+							"max": 98.30147700000089
+						},
+						"blazediff-ssim-native": {
+							"value": 8.247904039996211,
+							"min": 7.028283999999985,
+							"max": 11.067602000024635
+						}
+					}
+				},
+				{
+					"fixture": "blazediff/3 (identical)",
+					"values": {
+						"ssim-js": {
+							"value": 194.39516284000362,
+							"min": 174.47164199998952,
+							"max": 229.85655699999188
+						},
+						"blazediff": {
+							"value": 97.1077460399922,
+							"min": 95.5666579999961,
+							"max": 98.4678309999872
+						},
+						"blazediff-ssim-native": {
+							"value": 8.955837640000972,
+							"min": 7.875182999996468,
+							"max": 11.041207999980543
+						}
+					}
+				},
+				{
+					"fixture": "blazediff/4",
+					"values": {
+						"ssim-js": {
+							"value": 547.2249891600025,
+							"min": 532.9783219999808,
+							"max": 559.13162499998
+						},
+						"blazediff": {
+							"value": 230.20744548000164,
+							"min": 225.9486030000262,
+							"max": 241.5747229999979
+						},
+						"blazediff-ssim-native": {
+							"value": 18.552872839993796,
+							"min": 17.741723999963142,
+							"max": 21.767596999998204
+						}
+					}
+				},
+				{
+					"fixture": "blazediff/4 (identical)",
+					"values": {
+						"ssim-js": {
+							"value": 542.4696510799939,
+							"min": 527.2025509999949,
+							"max": 564.9046080000116
+						},
+						"blazediff": {
+							"value": 228.81049608000555,
+							"min": 225.99816499999724,
+							"max": 231.34315400000196
+						},
+						"blazediff-ssim-native": {
+							"value": 25.00342315998627,
+							"min": 23.220027999952435,
+							"max": 26.85275299998466
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/1",
+					"values": {
+						"ssim-js": {
+							"value": 38.25000500000315,
+							"min": 36.050935999985086,
+							"max": 42.813043000001926
+						},
+						"blazediff": {
+							"value": 20.13734727999661,
+							"min": 19.771968999993987,
+							"max": 21.516639999987092
+						},
+						"blazediff-ssim-native": {
+							"value": 1.9874010799988173,
+							"min": 1.924600999976974,
+							"max": 2.766269999963697
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/1 (identical)",
+					"values": {
+						"ssim-js": {
+							"value": 38.65442819999996,
+							"min": 36.3145310000109,
+							"max": 44.32439900000463
+						},
+						"blazediff": {
+							"value": 20.03874732000055,
+							"min": 19.80072400002973,
+							"max": 20.48751299997093
+						},
+						"blazediff-ssim-native": {
+							"value": 1.991451240000315,
+							"min": 1.9294370000134222,
+							"max": 2.9059809999889694
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/2",
+					"values": {
+						"ssim-js": {
+							"value": 19.29132615999668,
+							"min": 18.04293100000359,
+							"max": 20.475505999987945
+						},
+						"blazediff": {
+							"value": 9.932724559996277,
+							"min": 9.847360999963712,
+							"max": 10.253970000019763
+						},
+						"blazediff-ssim-native": {
+							"value": 1.0341861200053244,
+							"min": 1.0089010000228882,
+							"max": 1.3675430000294
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/2 (identical)",
+					"values": {
+						"ssim-js": {
+							"value": 20.426924720000244,
+							"min": 18.424394000001485,
+							"max": 27.227952000015648
+						},
+						"blazediff": {
+							"value": 9.956850999994204,
+							"min": 9.775384000036865,
+							"max": 10.167075000004843
+						},
+						"blazediff-ssim-native": {
+							"value": 1.0339972399990074,
+							"min": 1.0123420000309125,
+							"max": 1.352511000004597
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/3",
+					"values": {
+						"ssim-js": {
+							"value": 38.94529943999601,
+							"min": 36.33340000000317,
+							"max": 44.63794600000256
+						},
+						"blazediff": {
+							"value": 20.09309467999963,
+							"min": 19.845950999995694,
+							"max": 20.373791999998502
+						},
+						"blazediff-ssim-native": {
+							"value": 1.989489120002836,
+							"min": 1.9311689999885857,
+							"max": 2.7934300000197254
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/3 (identical)",
+					"values": {
+						"ssim-js": {
+							"value": 39.00720268000266,
+							"min": 36.60153899999568,
+							"max": 44.19097599998349
+						},
+						"blazediff": {
+							"value": 20.076692439999896,
+							"min": 19.661001999978907,
+							"max": 20.381034999969415
+						},
+						"blazediff-ssim-native": {
+							"value": 1.9941446799971163,
+							"min": 1.9292520000017248,
+							"max": 2.935598000010941
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/4",
+					"values": {
+						"ssim-js": {
+							"value": 33.741080880002116,
+							"min": 31.226614999992307,
+							"max": 41.026929000014206
+						},
+						"blazediff": {
+							"value": 12.10768043999793,
+							"min": 11.82977299997583,
+							"max": 12.398930999974255
+						},
+						"blazediff-ssim-native": {
+							"value": 1.0889974000048823,
+							"min": 1.045810999989044,
+							"max": 1.5693820000160486
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/4 (identical)",
+					"values": {
+						"ssim-js": {
+							"value": 34.34660980000393,
+							"min": 31.487567999982275,
+							"max": 41.09185600001365
+						},
+						"blazediff": {
+							"value": 12.142295519998298,
+							"min": 11.7674709999701,
+							"max": 12.532723999989685
+						},
+						"blazediff-ssim-native": {
+							"value": 1.083577079998795,
+							"min": 1.037549999949988,
+							"max": 1.5856710000080056
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/5",
+					"values": {
+						"ssim-js": {
+							"value": 19.31046863999916,
+							"min": 18.004906999995,
+							"max": 20.286186000012094
+						},
+						"blazediff": {
+							"value": 9.873827640002128,
+							"min": 9.749722999986261,
+							"max": 10.170214999991003
+						},
+						"blazediff-ssim-native": {
+							"value": 1.0386449200031347,
+							"min": 0.9978220000048168,
+							"max": 1.4261650000116788
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/5 (identical)",
+					"values": {
+						"ssim-js": {
+							"value": 19.964370039997156,
+							"min": 17.71429299999727,
+							"max": 26.560705999989295
+						},
+						"blazediff": {
+							"value": 9.961441560003442,
+							"min": 9.818104000005405,
+							"max": 10.218710999994073
+						},
+						"blazediff-ssim-native": {
+							"value": 1.0353202000027522,
+							"min": 1.0088029999751598,
+							"max": 1.372447999950964
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/6",
+					"values": {
+						"ssim-js": {
+							"value": 19.890661280000348,
+							"min": 18.00001799999154,
+							"max": 25.497804000013275
+						},
+						"blazediff": {
+							"value": 9.998112439999822,
+							"min": 9.887999999977183,
+							"max": 10.254247000033502
+						},
+						"blazediff-ssim-native": {
+							"value": 1.0355209199991078,
+							"min": 0.9976940000196919,
+							"max": 1.3833989999839105
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/6 (identical)",
+					"values": {
+						"ssim-js": {
+							"value": 19.316637080000945,
+							"min": 17.864996000018436,
+							"max": 20.378473999997368
+						},
+						"blazediff": {
+							"value": 9.961600919992197,
+							"min": 9.875912999967113,
+							"max": 10.260666999965906
+						},
+						"blazediff-ssim-native": {
+							"value": 1.0318790400004945,
+							"min": 1.0029510000022128,
+							"max": 1.363439000037033
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/7",
+					"values": {
+						"ssim-js": {
+							"value": 44.74228392000077,
+							"min": 42.62728599997354,
+							"max": 51.246389999985695
+						},
+						"blazediff": {
+							"value": 16.992873559992294,
+							"min": 16.468678000033833,
+							"max": 17.369538000028115
+						},
+						"blazediff-ssim-native": {
+							"value": 1.4698607600014657,
+							"min": 1.3929280000156723,
+							"max": 2.129233999992721
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/7 (identical)",
+					"values": {
+						"ssim-js": {
+							"value": 44.81336455999641,
+							"min": 42.20595299999695,
+							"max": 60.33117200000561
+						},
+						"blazediff": {
+							"value": 16.999512560006696,
+							"min": 16.54410800000187,
+							"max": 17.347300000023097
+						},
+						"blazediff-ssim-native": {
+							"value": 1.489133840005379,
+							"min": 1.4248939999961294,
+							"max": 2.1409310000017285
+						}
+					}
+				}
+			]
+		}
+	]
+}
