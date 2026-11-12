@@ -35,8 +35,10 @@ function Cell({
 
 export default function FixtureTable({
 	section,
+	heading = "Per-fixture results",
 }: {
 	section: BenchmarkSection;
+	heading?: string;
 }) {
 	const baseline = section.series.find((s) => s.baseline) ?? section.series[0];
 	// Ratio columns only for BlazeDiff, so a wide chart stays readable.
@@ -47,7 +49,7 @@ export default function FixtureTable({
 	return (
 		<details className="border border-line">
 			<summary className="cursor-pointer px-4 py-3 font-mono text-[12px] uppercase text-muted hover:text-fg">
-				Per-fixture results ({section.rows.length})
+				{heading} ({section.rows.length})
 			</summary>
 			<div className="overflow-x-auto border-t border-line">
 				<table className="w-full font-mono text-[12px] text-fg">

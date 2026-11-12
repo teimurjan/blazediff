@@ -163,6 +163,8 @@ export interface SeriesPick {
 	key: string;
 	/** Section id inside the artifact; defaults to the bench key. */
 	section?: string;
+	/** A bytes section of the same bench that measured this series' output. */
+	sizeSection?: string;
 	series: string;
 	name?: string;
 	runtime?: string;
@@ -181,6 +183,63 @@ export interface Card {
 	id: string;
 	artifacts: BenchmarkArtifact[];
 	section: BenchmarkSection;
+	/** Output sizes of the same series, under the same series ids. */
+	size?: BenchmarkSection;
+}
+
+const pickId = (pick: SeriesPick) =>
+	`${pick.key}/${pick.section ?? pick.key}/${pick.series}`;
+
+// Picks whose bench, section and series exist on `platform`.
+function findPicks(
+	picks: SeriesPick[],
+	sectionOf: (pick: SeriesPick) => string | undefined,
+	platform?: Platform,
+) {
+	return picks.flatMap((pick) => {
+		const artifact = findArtifact(pick.key, platform);
+		const sectionId = sectionOf(pick);
+		const section = artifact?.sections.find((s) => s.id === sectionId);
+		const series = section?.series.find((s) => s.id === pick.series);
+		return artifact && section && series
+			? [{ pick, artifact, section, series }]
+			: [];
+	});
+}
+
+type Found = ReturnType<typeof findPicks>[number];
+
+function combine(spec: ChartSpec, found: Found[]): BenchmarkSection {
+	const [first] = found;
+	const rows = new Map<string, BenchmarkRow>();
+	for (const f of found) {
+		for (const row of f.section.rows) {
+			const merged = rows.get(row.fixture) ?? {
+				fixture: row.fixture,
+				mpx: row.mpx,
+				values: {},
+			};
+			merged.values[pickId(f.pick)] = row.values[f.pick.series] ?? null;
+			rows.set(row.fixture, merged);
+		}
+	}
+	const notes = [...new Set(found.map((f) => f.section.note).filter(Boolean))];
+	return {
+		id: spec.id,
+		title: spec.title,
+		unit: first.section.unit,
+		stat: first.section.stat,
+		note: spec.note ?? (notes.join(" ") || undefined),
+		series: found.map((f) => ({
+			...f.series,
+			id: pickId(f.pick),
+			name: f.pick.name ?? f.series.name,
+			runtime: f.pick.runtime,
+			iterations: f.series.iterations ?? f.artifact.config.iterations,
+			baseline: f === first,
+		})),
+		rows: [...rows.values()],
+	};
 }
 
 /**
@@ -191,77 +250,57 @@ export function resolveChart(
 	spec: ChartSpec,
 	platform?: Platform,
 ): Card | undefined {
-	const found = spec.picks.flatMap((pick) => {
-		const artifact = findArtifact(pick.key, platform);
-		const section = artifact?.sections.find(
-			(s) => s.id === (pick.section ?? pick.key),
-		);
-		const series = section?.series.find((s) => s.id === pick.series);
-		return artifact && section && series
-			? [{ pick, artifact, section, series }]
-			: [];
-	});
+	const found = findPicks(spec.picks, (p) => p.section ?? p.key, platform);
 	if (found.length < 2 || !found.some((f) => f.series.ours)) return undefined;
-
-	const [first] = found;
-	const id = ({ pick, section }: (typeof found)[number]) =>
-		`${pick.key}/${section.id}/${pick.series}`;
-	const rows = new Map<string, BenchmarkRow>();
-	for (const f of found) {
-		for (const row of f.section.rows) {
-			const merged = rows.get(row.fixture) ?? {
-				fixture: row.fixture,
-				mpx: row.mpx,
-				values: {},
-			};
-			merged.values[id(f)] = row.values[f.pick.series] ?? null;
-			rows.set(row.fixture, merged);
-		}
-	}
-
+	// The size baseline must be the time baseline, or the shares mislead.
+	const sized = findPicks(
+		found.map((f) => f.pick),
+		(p) => p.sizeSection,
+		platform,
+	);
 	return {
 		id: spec.id,
 		artifacts: [...new Set(found.map((f) => f.artifact))],
-		section: {
-			id: spec.id,
-			title: spec.title,
-			unit: first.section.unit,
-			stat: first.section.stat,
-			note:
-				spec.note ??
-				([...new Set(found.map((f) => f.section.note).filter(Boolean))].join(
-					" ",
-				) ||
-					undefined),
-			series: found.map((f) => ({
-				...f.series,
-				id: id(f),
-				name: f.pick.name ?? f.series.name,
-				runtime: f.pick.runtime,
-				iterations: f.series.iterations ?? f.artifact.config.iterations,
-				baseline: f === first,
-			})),
-			rows: [...rows.values()],
-		},
+		section: combine(spec, found),
+		size:
+			sized[0]?.pick === found[0].pick
+				? combine({ ...spec, note: undefined }, sized)
+				: undefined,
 	};
 }
 
-/** Every section of one bench as its own chart, its baseline first. */
+/**
+ * Every section of one bench as its own chart, its baseline first. An
+ * `encode-*` section carries its `size-*` twin instead of a separate chart.
+ */
 export function keyCards(key: string, platform?: Platform): Card[] {
 	const artifact = findArtifact(key, platform);
 	if (!artifact) return [];
-	return artifact.sections.flatMap((section) => {
-		const series = [...section.series].sort(
-			(a, b) => Number(b.baseline) - Number(a.baseline),
-		);
-		const card = resolveChart(
-			{
-				id: `${key}-${section.id}`,
-				title: section.title,
-				picks: series.map((s) => ({ key, section: section.id, series: s.id })),
-			},
-			platform,
-		);
-		return card ? [card] : [];
-	});
+	const ids = new Set(artifact.sections.map((s) => s.id));
+	const sizeOf = (id: string) => {
+		const twin = id.replace(/^encode-/, "size-");
+		return twin !== id && ids.has(twin) ? twin : undefined;
+	};
+	const paired = new Set(artifact.sections.flatMap((s) => sizeOf(s.id) ?? []));
+	return artifact.sections
+		.filter((section) => !paired.has(section.id))
+		.flatMap((section) => {
+			const series = [...section.series].sort(
+				(a, b) => Number(b.baseline) - Number(a.baseline),
+			);
+			const card = resolveChart(
+				{
+					id: `${key}-${section.id}`,
+					title: section.title,
+					picks: series.map((s) => ({
+						key,
+						section: section.id,
+						sizeSection: sizeOf(section.id),
+						series: s.id,
+					})),
+				},
+				platform,
+			);
+			return card ? [card] : [];
+		});
 }

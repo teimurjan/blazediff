@@ -129,12 +129,26 @@ const barComparison = (
 export default function BenchmarkSectionCard({
 	artifacts,
 	section,
+	size,
 }: {
 	/** Every bench the chart draws from; a combined chart has several. */
 	artifacts: BenchmarkArtifact[];
 	section: BenchmarkSection;
+	/** Output sizes of the same series, shown beside their times. */
+	size?: BenchmarkSection;
 }) {
 	const { totals, baseline, series } = ranked(section);
+	const sizes = size && sectionTotals(size);
+	const sizeOf = (id: string) => {
+		if (!size || !sizes || sizes[id] === undefined) return {};
+		return {
+			size: formatValue(sizes[id], "bytes"),
+			sizeVersus:
+				id === baseline.id
+					? "baseline"
+					: versus(size, sizes[id], sizes[baseline.id]),
+		};
+	};
 	return (
 		<article className="flex min-w-0 flex-col gap-6 border border-line bg-surface p-6">
 			<header className="flex flex-col gap-2">
@@ -175,6 +189,7 @@ export default function BenchmarkSectionCard({
 						s.id === baseline.id
 							? "baseline"
 							: versus(section, totals[s.id], totals[baseline.id]),
+					...sizeOf(s.id),
 				}))}
 			/>
 			{section.note && (
@@ -183,6 +198,7 @@ export default function BenchmarkSectionCard({
 				</p>
 			)}
 			<FixtureTable section={section} />
+			{size && <FixtureTable section={size} heading="Per-fixture sizes" />}
 			<div className="flex flex-col gap-1">
 				{artifacts.map((artifact) => (
 					<RunMeta key={artifact.key} artifact={artifact} />

@@ -12,6 +12,7 @@ export default function BenchmarkCharts({ cards }: { cards: string[] }) {
 						key={card.id}
 						artifacts={card.artifacts}
 						section={card.section}
+						size={card.size}
 					/>
 				))}
 		</div>

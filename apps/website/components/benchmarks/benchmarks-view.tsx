@@ -14,25 +14,23 @@ import BenchmarkSectionCard from "./benchmark-section";
 import Contents from "./contents";
 import { ordinal } from "./format";
 
+// Rust and wasm series of one PNG measure; encodes carry their output size.
 const png = (
-	rust: string,
-	wasm: string,
+	sections: { rust: string; wasm: string },
 	series: { rust: string[]; wasm: string[] },
 	runtimes: { rust: string; wasm: string },
-) => [
-	...series.rust.map((id) => ({
-		key: "png",
-		section: rust,
-		series: id,
-		runtime: runtimes.rust,
-	})),
-	...series.wasm.map((id) => ({
-		key: "png-wasm",
-		section: wasm,
-		series: id,
-		runtime: runtimes.wasm,
-	})),
-];
+) =>
+	(["rust", "wasm"] as const).flatMap((side) =>
+		series[side].map((id) => ({
+			key: side === "rust" ? "png" : "png-wasm",
+			section: sections[side],
+			sizeSection: sections[side].startsWith("encode-")
+				? sections[side].replace("encode-", "size-")
+				: undefined,
+			series: id,
+			runtime: runtimes[side],
+		})),
+	);
 
 const PNG_RUST = ["spng", "blazediff", "image-rs", "zune"];
 const PNG_WASM = ["blazediff", "zune", "jsquash"];
@@ -178,14 +176,13 @@ const CATEGORIES: {
 		id: "png-codec",
 		title: "PNG CODEC",
 		intro:
-			"The blazediff-png codec against spng, image-rs and zune-png in Rust, and against zune-png and jSquash in WebAssembly, single-threaded.",
+			"The blazediff-png codec against spng, image-rs and zune-png in Rust, and against zune-png and jSquash in WebAssembly, single-threaded. Each encode table also shows the size of the files it wrote.",
 		charts: [
 			{
 				id: "decode",
 				title: "Decode (PNG to RGBA8)",
 				picks: png(
-					"decode",
-					"decode",
+					{ rust: "decode", wasm: "decode" },
 					{ rust: PNG_RUST, wasm: PNG_WASM },
 					{ rust: "Rust", wasm: "wasm" },
 				),
@@ -194,8 +191,7 @@ const CATEGORIES: {
 				id: "encode-none",
 				title: "Encode, no compression",
 				picks: png(
-					"encode-none",
-					"encode-none",
+					{ rust: "encode-none", wasm: "encode-none" },
 					{ rust: PNG_RUST, wasm: ["blazediff", "zune"] },
 					{ rust: "Rust", wasm: "wasm" },
 				),
@@ -204,28 +200,7 @@ const CATEGORIES: {
 				id: "encode-compressed",
 				title: "Encode, compressed",
 				picks: png(
-					"encode-half",
-					"encode-default",
-					{ rust: PNG_RUST, wasm: PNG_WASM },
-					{ rust: "Rust, half", wasm: "wasm, default" },
-				),
-			},
-			{
-				id: "size-none",
-				title: "Encoded size, no compression",
-				picks: png(
-					"size-none",
-					"size-none",
-					{ rust: PNG_RUST, wasm: ["blazediff", "zune"] },
-					{ rust: "Rust", wasm: "wasm" },
-				),
-			},
-			{
-				id: "size-compressed",
-				title: "Encoded size, compressed",
-				picks: png(
-					"size-half",
-					"size-default",
+					{ rust: "encode-half", wasm: "encode-default" },
 					{ rust: PNG_RUST, wasm: PNG_WASM },
 					{ rust: "Rust, half", wasm: "wasm, default" },
 				),
@@ -331,6 +306,7 @@ export default function BenchmarksView({ platform }: { platform: Platform }) {
 										<BenchmarkSectionCard
 											artifacts={card.artifacts}
 											section={card.section}
+											size={card.size}
 										/>
 									</div>
 								))}
