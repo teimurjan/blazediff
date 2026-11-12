@@ -8,7 +8,7 @@
 
 </div>
 
-WebAssembly build of the BlazeDiff Rust algorithm for browsers, edge runtimes, and any wasm host. Same block-band algorithm as [`@blazediff/core-native`](https://www.npmjs.com/package/@blazediff/core-native), compiled to `wasm32` with `v128` SIMD (`+simd128`). About **3.8x** faster than [pixelmatch](https://github.com/mapbox/pixelmatch) in total time on the same RGBA buffers (5x to 11x on 4K); diff counts agree with pixelmatch to within ~0.05%.
+WebAssembly build of the BlazeDiff Rust algorithm for browsers, edge runtimes, and any wasm host. Same block-band algorithm as [`@blazediff/core-native`](https://www.npmjs.com/package/@blazediff/core-native), compiled to `wasm32` with `v128` SIMD (`+simd128`). About **3.8x** faster than [pixelmatch](https://github.com/mapbox/pixelmatch) in total time on the same RGBA buffers (3x to 6x on 4K); diff counts agree with pixelmatch to within ~0.05%.
 
 **Features:**
 - Same Rust algorithm as `@blazediff/core-native` (YIQ perceptual delta + block-based cold/hot pass)
