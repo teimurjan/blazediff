@@ -2,7 +2,7 @@
 
 import { Callout } from "nextra/components";
 
-The fastest single-threaded image diff in the world. Native Rust implementation with SIMD optimization, **4.3-4.9x faster** and **3x smaller** than [odiff](https://github.com/dmtrKovalenko/odiff).
+The fastest single-threaded image diff in the world. Native Rust implementation with SIMD optimization, **3.6-3.9x faster** and **3x smaller** than [odiff](https://github.com/dmtrKovalenko/odiff).
 
 [View Detailed Benchmarks](https://github.com/teimurjan/blazediff/blob/main/BENCHMARKS.md)
 
@@ -26,7 +26,7 @@ Pre-built binaries are included for all major platforms - no compilation require
 ## Features
 
 - **PNG, JPEG & QOI support** - auto-detected by file extension or encoded bytes
-- **4.3-4.9x faster** than odiff, **3x smaller** binaries (~700KB-900KB vs ~2-3MB)
+- **3.6-3.9x faster** than odiff, **3x smaller** binaries (~700KB-900KB vs ~2-3MB)
 - **SIMD-accelerated** - NEON on ARM, SSE4.1 on x86
 - **Block-based optimization** - skips unchanged regions
 - **Interpret mode** - region detection, classification, severity scoring, human-readable summaries
@@ -209,13 +209,13 @@ See [Interpret example →](/docs/difference-analysis) for the interactive demo.
 
 ## Performance
 
-Benchmarked on Apple M1 Max with 5600×3200 4K images (25 runs, 5 warmup, image IO included):
+Benchmarked on Linux x64 (GCP `c4-standard-16`, Intel Xeon Platinum 8581C) with 5600×3200 4K images (25 runs, 5 warmup, image IO included):
 
 | Tool | Time | Comparison |
 |------|------|------------|
-| **blazediff** (`BLAZEDIFF_PNG_ENABLED=1`) | ~190ms | - |
-| **blazediff** (file paths) | ~274ms | - |
-| odiff | ~1239ms | 4.5x slower |
+| **blazediff** (`BLAZEDIFF_PNG_ENABLED=1`) | ~279ms | - |
+| **blazediff** (file paths) | ~343ms | - |
+| odiff | ~1221ms | 3.6x slower |
 
 These are end-to-end times, so PNG decode and encode take most of them. The diff
 itself is faster than in 7.0.0. On a 3598x16384 page screenshot, a count-only diff
