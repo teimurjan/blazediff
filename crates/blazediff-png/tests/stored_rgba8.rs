@@ -85,3 +85,40 @@ fn tall_single_column() {
     // Stride = 5; many short rows per block exercises the filter-byte interleave.
     check(1, 5000);
 }
+
+/// The direct stored writer also takes 8-bit palette rows. A singleton filter
+/// choice selects the generic encoder, which must produce the same bytes.
+#[test]
+fn stored_palette_matches_generic_encoder() {
+    use blazediff_png::{ColorMode, FilterSet};
+
+    // 301 x 700 index bytes span several 0xffff blocks that split mid-row.
+    let (width, height) = (301u32, 700u32);
+    let colors = [
+        [240, 240, 240, 255],
+        [255, 0, 0, 255],
+        [0, 0, 0, 0],
+        [9, 8, 7, 128],
+    ];
+    let data: Vec<u8> = (0..width * height)
+        .flat_map(|i| colors[(i as usize * 2654435761 >> 7) % colors.len()])
+        .collect();
+    let img = Image {
+        data,
+        width,
+        height,
+    };
+    let options = |filter| EncodeOptions {
+        color: ColorMode::Auto,
+        compression: 0,
+        filter,
+        interlace: false,
+    };
+
+    let direct = encode(&img, &options(Filter::None)).expect("direct");
+    let generic = encode(&img, &options(Filter::Choice(FilterSet::NONE))).expect("generic");
+
+    assert_eq!(direct[25], 3, "expected a palette PNG");
+    assert_eq!(direct, generic);
+    assert_eq!(decode(&direct).expect("decode").data, img.data);
+}
