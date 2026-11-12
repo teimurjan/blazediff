@@ -388,6 +388,7 @@ pub fn encode(
         // The stored stream's size is analytic, so reserve once and let the
         // direct writer fill the output Vec in a single pass.
         let mut out = Vec::with_capacity(stored_rgba8_png_len(image));
+        crate::huge_pages::advise(&out);
         if write_stored_rgba8(image, &mut out)? {
             return Ok(out);
         }

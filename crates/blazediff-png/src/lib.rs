@@ -50,6 +50,7 @@ mod encode;
 mod error;
 mod expand;
 mod format;
+mod huge_pages;
 mod interlace;
 mod meta;
 #[cfg(feature = "napi")]

@@ -582,6 +582,7 @@ fn try_alloc(len: usize) -> Result<Vec<u8>, PngError> {
     let mut v: Vec<u8> = Vec::new();
     v.try_reserve_exact(len)
         .map_err(|_| PngError::OutOfMemory)?;
+    crate::huge_pages::advise(&v);
     // SAFETY: u8 has no validity requirements; every byte is written before
     // being read (inflate fills `raw` fully or decode fails; the output is
     // written row by row by the expanders).
@@ -595,6 +596,7 @@ fn try_alloc_zeroed(len: usize) -> Result<Vec<u8>, PngError> {
     let mut v: Vec<u8> = Vec::new();
     v.try_reserve_exact(len)
         .map_err(|_| PngError::OutOfMemory)?;
+    crate::huge_pages::advise(&v);
     v.resize(len, 0);
     Ok(v)
 }

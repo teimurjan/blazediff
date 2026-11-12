@@ -19,6 +19,7 @@
 //! wasm32: [`Image`], [`ImageError`], [`ImageFormat`] and [`yiq`] remain, which
 //! is all the wasm build of `blazediff` needs.
 
+mod huge_pages;
 #[cfg(feature = "codecs")]
 pub mod jpeg_io;
 #[cfg(feature = "codecs")]
@@ -93,6 +94,7 @@ impl Image {
     pub fn new_uninit(width: u32, height: u32) -> Self {
         let size = (width as usize) * (height as usize) * 4;
         let mut data: Vec<u8> = Vec::with_capacity(size);
+        huge_pages::advise(&data);
         // SAFETY: the new length matches the capacity we just reserved, the
         // element type (`u8`) has no validity requirements, and every byte
         // of this allocation is overwritten before being read on every

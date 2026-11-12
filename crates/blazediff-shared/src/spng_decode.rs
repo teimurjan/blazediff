@@ -57,6 +57,7 @@ pub fn decode_spng(file_data: &[u8]) -> Result<Image, ImageError> {
 
         // Allocate without zero-initialization (spng will overwrite)
         let mut data: Vec<u8> = Vec::with_capacity(out_size);
+        crate::huge_pages::advise(&data);
         data.set_len(out_size);
 
         if spng_decode_image(
