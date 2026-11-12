@@ -151,4 +151,26 @@ describe("word and byte paths", () => {
 			expect(Buffer.compare(aligned.data, misaligned.data)).toBe(0);
 		}
 	});
+
+	it.each(["pixelmatch/1", "pixelmatch/4", "blazediff/1", "alpha/1"])(
+		"%s: drawing into an input's own buffer matches a separate output",
+		(name) => {
+			const a = loadPNG(`${name}a.png`);
+			const b = loadPNG(`${name}b.png`);
+			for (const option of [...options, { metric: "oklab" as const }]) {
+				const separate = { ...a, data: new Uint8Array(a.data.length) };
+				const expected = diff(a, b, { ...option, output: separate });
+
+				const first = { ...a, data: new Uint8Array(a.data) };
+				expect(diff(first, b, { ...option, output: first })).toEqual(expected);
+				expect(Buffer.compare(first.data, separate.data)).toBe(0);
+
+				const second = { ...b, data: new Uint8Array(b.data) };
+				expect(diff(a, second, { ...option, output: second })).toEqual(
+					expected,
+				);
+				expect(Buffer.compare(second.data, separate.data)).toBe(0);
+			}
+		},
+	);
 });

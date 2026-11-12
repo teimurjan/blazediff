@@ -88,6 +88,7 @@ export function pixelmatch(
 			diffColorAlt: diffColorAlt ?? diffColor,
 			excludeAA: !includeAA,
 			diffMask: !!diffMask,
+			clear: false,
 			oklab: true,
 			checkerboard,
 			mask: ignoreMask,

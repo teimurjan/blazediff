@@ -28,6 +28,8 @@ export interface EngineOptions {
 	diffColorAlt: Rgb;
 	excludeAA: boolean;
 	diffMask: boolean;
+	/** Zero the output before drawing, whatever it held. */
+	clear: boolean;
 	oklab: boolean;
 	/** Blend semi-transparent OKLab pixels over pixelmatch 8's checkerboard, or white when false. */
 	checkerboard: boolean;
@@ -58,12 +60,31 @@ export function diffPixels(
 		diffColorAlt,
 		excludeAA,
 		diffMask,
+		clear,
 		oklab,
 		checkerboard,
 		mask,
 		window,
 	} = options;
 	const len = width * height;
+
+	// The draw loops overwrite pixels they still read, so an output that
+	// shares memory with an input is drawn into a copy first.
+	if (output && (overlaps(output, image1) || overlaps(output, image2))) {
+		const scratch = new Uint8Array(output);
+		const count = diffPixels(
+			image1,
+			image2,
+			scratch,
+			width,
+			height,
+			options,
+			hit,
+		);
+		output.set(scratch);
+		return count;
+	}
+	if (output && clear) output.fill(0);
 
 	if (
 		HAS_NATIVE_COMPARE &&
@@ -197,6 +218,14 @@ function nativeSameRange(image1: PixelData, image2: PixelData): SameRange {
 	const a = Buffer.from(image1.buffer, image1.byteOffset, image1.byteLength);
 	const b = Buffer.from(image2.buffer, image2.byteOffset, image2.byteLength);
 	return (from, to) => a.compare(b, from * 4, to * 4, from * 4, to * 4) === 0;
+}
+
+function overlaps(a: PixelData, b: PixelData): boolean {
+	return (
+		a.buffer === b.buffer &&
+		a.byteOffset < b.byteOffset + b.byteLength &&
+		b.byteOffset < a.byteOffset + a.byteLength
+	);
 }
 
 /** Gray copy of `image`, the output of two identical images. */
