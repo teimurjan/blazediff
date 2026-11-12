@@ -14,6 +14,8 @@ export interface BenchmarkSeries {
 	iterations?: number;
 	baseline: boolean;
 	ours: boolean;
+	/** Set on combined charts, where several series share a name. */
+	runtime?: string;
 }
 
 export interface BenchmarkRow {
@@ -156,63 +158,24 @@ export function fasterThan(
 	return ours <= theirs ? `~${pct}% faster` : `~${pct}% slower`;
 }
 
-/**
- * One chart over several benches that measured the same thing, e.g. odiff and
- * honeydiff each run against core-native. A series that several benches share
- * (BlazeDiff, measured in each run) keeps the first bench's measurement.
- */
-export function mergeSections(
-	id: string,
-	title: string,
-	sections: BenchmarkSection[],
-): BenchmarkSection {
-	const [first] = sections;
-	const owner = new Map<string, BenchmarkSection>();
-	for (const section of sections) {
-		for (const s of section.series) {
-			if (!owner.has(s.id)) owner.set(s.id, section);
-		}
-	}
-	const series = [...owner.entries()].map(([seriesId, section]) => {
-		const s = section.series.find((x) => x.id === seriesId);
-		if (!s) throw new Error(`Series "${seriesId}" vanished while merging.`);
-		return { ...s, baseline: s.baseline && section === first };
-	});
-
-	const values = new Map<string, BenchmarkRow>();
-	for (const section of sections) {
-		for (const row of section.rows) {
-			const merged = values.get(row.fixture) ?? {
-				fixture: row.fixture,
-				mpx: row.mpx,
-				values: {},
-			};
-			for (const [seriesId, value] of Object.entries(row.values)) {
-				if (owner.get(seriesId) === section) merged.values[seriesId] = value;
-			}
-			values.set(row.fixture, merged);
-		}
-	}
-
-	return {
-		id,
-		title,
-		unit: first.unit,
-		stat: first.stat,
-		note: sections
-			.map((s) => s.note)
-			.filter(Boolean)
-			.join(" "),
-		// Competitors first, then BlazeDiff, each in source order.
-		series: [...series.filter((s) => !s.ours), ...series.filter((s) => s.ours)],
-		rows: [...values.values()].sort((a, b) =>
-			a.fixture.localeCompare(b.fixture),
-		),
-	};
+/** One series taken from a bench, with the label it gets in a combined chart. */
+export interface SeriesPick {
+	key: string;
+	/** Section id inside the artifact; defaults to the bench key. */
+	section?: string;
+	series: string;
+	name?: string;
+	runtime?: string;
 }
 
-/** A bench key (one chart per section), or several benches merged into one chart. */
-export type CardSpec = string | { id: string; title: string; keys: string[] };
+/** One chart that puts series from several benches side by side. */
+export interface ChartSpec {
+	id: string;
+	title: string;
+	note?: string;
+	/** The first pick is the baseline the others compare against. */
+	picks: SeriesPick[];
+}
 
 export interface Card {
 	id: string;
@@ -220,34 +183,85 @@ export interface Card {
 	section: BenchmarkSection;
 }
 
-// A merged chart keeps whichever of its benches exist; a lone survivor
-// renders as its own chart.
-export function resolveCards(spec: CardSpec, platform?: Platform): Card[] {
-	if (typeof spec === "string") {
-		const artifact = findArtifact(spec, platform);
-		return artifact
-			? artifact.sections.map((section) => ({
-					id: `${spec}-${section.id}`,
-					artifacts: [artifact],
-					section,
-				}))
+/**
+ * Builds one section from the picks that exist on `platform`. Totals later use
+ * only the fixtures every series measured, so the picks compare like with like.
+ */
+export function resolveChart(
+	spec: ChartSpec,
+	platform?: Platform,
+): Card | undefined {
+	const found = spec.picks.flatMap((pick) => {
+		const artifact = findArtifact(pick.key, platform);
+		const section = artifact?.sections.find(
+			(s) => s.id === (pick.section ?? pick.key),
+		);
+		const series = section?.series.find((s) => s.id === pick.series);
+		return artifact && section && series
+			? [{ pick, artifact, section, series }]
 			: [];
+	});
+	if (found.length < 2 || !found.some((f) => f.series.ours)) return undefined;
+
+	const [first] = found;
+	const id = ({ pick, section }: (typeof found)[number]) =>
+		`${pick.key}/${section.id}/${pick.series}`;
+	const rows = new Map<string, BenchmarkRow>();
+	for (const f of found) {
+		for (const row of f.section.rows) {
+			const merged = rows.get(row.fixture) ?? {
+				fixture: row.fixture,
+				mpx: row.mpx,
+				values: {},
+			};
+			merged.values[id(f)] = row.values[f.pick.series] ?? null;
+			rows.set(row.fixture, merged);
+		}
 	}
-	const artifacts = spec.keys.flatMap(
-		(key) => findArtifact(key, platform) ?? [],
-	);
-	const sections = spec.keys.flatMap(
-		(key) => findSection(key, key, platform) ?? [],
-	);
-	if (sections.length === 0) return [];
-	return [
-		{
+
+	return {
+		id: spec.id,
+		artifacts: [...new Set(found.map((f) => f.artifact))],
+		section: {
 			id: spec.id,
-			artifacts,
-			section:
-				sections.length === 1
-					? sections[0]
-					: mergeSections(spec.id, spec.title, sections),
+			title: spec.title,
+			unit: first.section.unit,
+			stat: first.section.stat,
+			note:
+				spec.note ??
+				([...new Set(found.map((f) => f.section.note).filter(Boolean))].join(
+					" ",
+				) ||
+					undefined),
+			series: found.map((f) => ({
+				...f.series,
+				id: id(f),
+				name: f.pick.name ?? f.series.name,
+				runtime: f.pick.runtime,
+				iterations: f.series.iterations ?? f.artifact.config.iterations,
+				baseline: f === first,
+			})),
+			rows: [...rows.values()],
 		},
-	];
+	};
+}
+
+/** Every section of one bench as its own chart, its baseline first. */
+export function keyCards(key: string, platform?: Platform): Card[] {
+	const artifact = findArtifact(key, platform);
+	if (!artifact) return [];
+	return artifact.sections.flatMap((section) => {
+		const series = [...section.series].sort(
+			(a, b) => Number(b.baseline) - Number(a.baseline),
+		);
+		const card = resolveChart(
+			{
+				id: `${key}-${section.id}`,
+				title: section.title,
+				picks: series.map((s) => ({ key, section: section.id, series: s.id })),
+			},
+			platform,
+		);
+		return card ? [card] : [];
+	});
 }

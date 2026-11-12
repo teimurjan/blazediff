@@ -1,12 +1,12 @@
-import { type CardSpec, fasterThan, resolveCards } from "./artifacts";
+import { fasterThan, keyCards } from "./artifacts";
 import BenchmarkSectionCard from "./benchmark-section";
 
 /** Benchmark charts for an MDX page, from the same artifacts as /benchmarks. */
-export default function BenchmarkCharts({ cards }: { cards: CardSpec[] }) {
+export default function BenchmarkCharts({ cards }: { cards: string[] }) {
 	return (
 		<div className="not-prose mt-6 flex flex-col gap-6">
 			{cards
-				.flatMap((spec) => resolveCards(spec))
+				.flatMap((key) => keyCards(key))
 				.map((card) => (
 					<BenchmarkSectionCard
 						key={card.id}

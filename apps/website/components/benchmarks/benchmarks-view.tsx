@@ -4,51 +4,105 @@ import HeroSubhead from "../landing/hero-subhead";
 import Section from "../landing/section";
 import LandingShell from "../landing/shell";
 import {
-	type CardSpec,
+	type ChartSpec,
 	PLATFORMS,
 	type Platform,
 	platformLabel,
-	resolveCards,
+	resolveChart,
 } from "./artifacts";
 import BenchmarkSectionCard from "./benchmark-section";
 import Contents from "./contents";
 import { ordinal } from "./format";
 
+const png = (
+	rust: string,
+	wasm: string,
+	series: { rust: string[]; wasm: string[] },
+	runtimes: { rust: string; wasm: string },
+) => [
+	...series.rust.map((id) => ({
+		key: "png",
+		section: rust,
+		series: id,
+		runtime: runtimes.rust,
+	})),
+	...series.wasm.map((id) => ({
+		key: "png-wasm",
+		section: wasm,
+		series: id,
+		runtime: runtimes.wasm,
+	})),
+];
+
+const PNG_RUST = ["spng", "blazediff", "image-rs", "zune"];
+const PNG_WASM = ["blazediff", "zune", "jsquash"];
+
 const CATEGORIES: {
 	id: string;
 	title: string;
 	intro: string;
-	groups: { id: string; title: string; cards: CardSpec[] }[];
+	charts: ChartSpec[];
 }[] = [
 	{
 		id: "pixel-by-pixel",
 		title: "PIXEL BY PIXEL",
 		intro:
 			"Direct pixel comparisons in JavaScript, WebAssembly, the native binary and the Python bindings.",
-		groups: [
-			{ id: "javascript", title: "JavaScript", cards: ["core"] },
+		charts: [
 			{
-				id: "native",
-				title: "Native",
-				cards: [
-					"core-wasm",
+				id: "io-excluded",
+				title: "Image IO excluded (pre-decoded RGBA buffers)",
+				picks: [
+					{ key: "core", series: "pixelmatch", runtime: "JS, count only" },
+					{ key: "core", series: "blazediff", runtime: "core, count only" },
 					{
-						id: "native",
-						title:
-							"JavaScript Native Binary (`@blazediff/core-native` vs `odiff` vs `honeydiff`) (image IO included)",
-						keys: ["core-native", "honeydiff"],
+						key: "core-wasm",
+						series: "blazediff-core-wasm",
+						runtime: "core-wasm, count only",
+					},
+					{
+						key: "core",
+						section: "core-output",
+						series: "pixelmatch",
+						runtime: "JS, with output",
+					},
+					{
+						key: "core",
+						section: "core-output",
+						series: "blazediff",
+						runtime: "core, with output",
 					},
 				],
 			},
 			{
-				id: "python",
-				title: "Python",
-				cards: [
+				id: "io-included",
+				title: "Image IO included (PNG files in, diff PNG out)",
+				note: "Own PNG means BLAZEDIFF_PNG_ENABLED=1, which decodes with blazediff-png instead of spng. The Python bindings run the same Rust core as core-native.",
+				picks: [
+					{ key: "core-native", series: "odiff", runtime: "native" },
+					{ key: "honeydiff", series: "honeydiff", runtime: "native" },
+					{ key: "core-native", series: "blazediff", runtime: "core-native" },
 					{
-						id: "python",
-						title:
-							"Python Bindings (`blazediff` vs `pixelmatch` vs `opencv-python`) (image IO included)",
-						keys: ["python-pixelmatch", "python-opencv"],
+						key: "core-native",
+						series: "blazediff-next",
+						name: "BlazeDiff",
+						runtime: "core-native, own PNG",
+					},
+					{
+						key: "python-pixelmatch",
+						series: "pixelmatch-pypi",
+						name: "pixelmatch",
+						runtime: "Python (pypi)",
+					},
+					{
+						key: "python-opencv",
+						series: "opencv-absdiff",
+						runtime: "Python",
+					},
+					{
+						key: "python-pixelmatch",
+						series: "blazediff",
+						runtime: "Python",
 					},
 				],
 			},
@@ -57,46 +111,138 @@ const CATEGORIES: {
 	{
 		id: "structural",
 		title: "STRUCTURAL",
-		intro: "SSIM and its variants against ssim.js and the Rust dssim.",
-		groups: [
+		intro:
+			"SSIM and its variants against ssim.js and the Rust dssim. The dssim run uses its own fixtures and best-of timing, so it has its own chart.",
+		charts: [
 			{
-				id: "javascript",
-				title: "JavaScript and native",
-				cards: ["ssim", "hitchhikers-ssim"],
+				id: "ssim",
+				title: "SSIM in JavaScript and native (image IO excluded)",
+				picks: [
+					{ key: "ssim", series: "ssim-js", runtime: "JS, fast" },
+					{ key: "ssim", series: "blazediff", runtime: "JS, SSIM" },
+					{
+						key: "ssim",
+						series: "blazediff-ssim-native",
+						name: "BlazeDiff",
+						runtime: "native, SSIM",
+					},
+					{
+						key: "hitchhikers-ssim",
+						series: "ssim-js",
+						runtime: "JS, weber",
+					},
+					{
+						key: "hitchhikers-ssim",
+						series: "blazediff",
+						runtime: "JS, Hitchhiker's",
+					},
+					{
+						key: "hitchhikers-ssim",
+						series: "blazediff-ssim-native",
+						name: "BlazeDiff",
+						runtime: "native, Hitchhiker's",
+					},
+				],
 			},
-			{ id: "rust", title: "Rust", cards: ["ssim-dssim"] },
+			{
+				id: "rust",
+				title: "Rust against dssim (image IO excluded)",
+				picks: [
+					{ key: "ssim-dssim", series: "dssim", runtime: "Rust" },
+					...["ssim", "ms-ssim", "hitchhikers"].map((id) => ({
+						key: "ssim-dssim",
+						series: id,
+						name: "BlazeDiff",
+						runtime: `Rust, ${id}`,
+					})),
+				],
+			},
 		],
 	},
 	{
 		id: "object",
 		title: "OBJECT",
 		intro: "Deep object diffing against microdiff.",
-		groups: [{ id: "javascript", title: "JavaScript", cards: ["object"] }],
+		charts: [
+			{
+				id: "javascript",
+				title: "Object diff in JavaScript",
+				picks: [
+					{ key: "object", series: "microdiff" },
+					{ key: "object", series: "blazediff" },
+				],
+			},
+		],
 	},
 	{
 		id: "png-codec",
 		title: "PNG CODEC",
 		intro:
-			"The blazediff-png codec against spng, image-rs and zune-png in Rust, and against zune-png and jSquash in WebAssembly, decode and encode.",
-		groups: [
-			{ id: "rust", title: "Rust", cards: ["png"] },
-			{ id: "wasm", title: "WebAssembly", cards: ["png-wasm"] },
+			"The blazediff-png codec against spng, image-rs and zune-png in Rust, and against zune-png and jSquash in WebAssembly, single-threaded.",
+		charts: [
+			{
+				id: "decode",
+				title: "Decode (PNG to RGBA8)",
+				picks: png(
+					"decode",
+					"decode",
+					{ rust: PNG_RUST, wasm: PNG_WASM },
+					{ rust: "Rust", wasm: "wasm" },
+				),
+			},
+			{
+				id: "encode-none",
+				title: "Encode, no compression",
+				picks: png(
+					"encode-none",
+					"encode-none",
+					{ rust: PNG_RUST, wasm: ["blazediff", "zune"] },
+					{ rust: "Rust", wasm: "wasm" },
+				),
+			},
+			{
+				id: "encode-compressed",
+				title: "Encode, compressed",
+				picks: png(
+					"encode-half",
+					"encode-default",
+					{ rust: PNG_RUST, wasm: PNG_WASM },
+					{ rust: "Rust, half", wasm: "wasm, default" },
+				),
+			},
+			{
+				id: "size-none",
+				title: "Encoded size, no compression",
+				picks: png(
+					"size-none",
+					"size-none",
+					{ rust: PNG_RUST, wasm: ["blazediff", "zune"] },
+					{ rust: "Rust", wasm: "wasm" },
+				),
+			},
+			{
+				id: "size-compressed",
+				title: "Encoded size, compressed",
+				picks: png(
+					"size-half",
+					"size-default",
+					{ rust: PNG_RUST, wasm: PNG_WASM },
+					{ rust: "Rust, half", wasm: "wasm, default" },
+				),
+			},
 		],
 	},
 ];
 
-// Benches not yet run on this machine are skipped, and so are empty groups.
+// Benches not yet run on this machine are skipped, and so are empty categories.
 function availableCategories(platform: Platform) {
 	return CATEGORIES.map((category) => ({
 		...category,
-		groups: category.groups
-			.map((group) => ({
-				...group,
-				anchor: `${category.id}-${group.id}`,
-				cards: group.cards.flatMap((card) => resolveCards(card, platform)),
-			}))
-			.filter((group) => group.cards.length > 0),
-	})).filter((category) => category.groups.length > 0);
+		cards: category.charts.flatMap((chart) => {
+			const card = resolveChart(chart, platform);
+			return card ? [{ ...card, anchor: `${category.id}-${chart.id}` }] : [];
+		}),
+	})).filter((category) => category.cards.length > 0);
 }
 
 /** The first platform owns /benchmarks; the others get /benchmarks/<platform>. */
@@ -176,29 +322,16 @@ export default function BenchmarksView({ platform }: { platform: Platform }) {
 										{category.intro}
 									</p>
 								</header>
-								{category.groups.map((group) => (
+								{category.cards.map((card) => (
 									<div
-										key={group.anchor}
-										id={group.anchor}
-										className="flex scroll-mt-24 flex-col gap-4"
+										key={card.anchor}
+										id={card.anchor}
+										className="scroll-mt-24"
 									>
-										<h3 className="flex items-center gap-3 font-mono text-[13px] text-muted uppercase tracking-wider">
-											<span className="text-fg">{group.title}</span>
-											<span className="h-px flex-1 bg-line" />
-											<span>
-												{group.cards.length}{" "}
-												{group.cards.length === 1 ? "chart" : "charts"}
-											</span>
-										</h3>
-										<div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-											{group.cards.map((card) => (
-												<BenchmarkSectionCard
-													key={card.id}
-													artifacts={card.artifacts}
-													section={card.section}
-												/>
-											))}
-										</div>
+										<BenchmarkSectionCard
+											artifacts={card.artifacts}
+											section={card.section}
+										/>
 									</div>
 								))}
 							</section>
@@ -207,12 +340,12 @@ export default function BenchmarksView({ platform }: { platform: Platform }) {
 					<aside className="hidden lg:block">
 						<div className="sticky top-24">
 							<Contents
-								categories={AVAILABLE.map(({ id, title, groups }) => ({
+								categories={AVAILABLE.map(({ id, title, cards }) => ({
 									id,
 									title,
-									groups: groups.map(({ anchor, title }) => ({
+									groups: cards.map(({ anchor, section }) => ({
 										anchor,
-										title,
+										title: section.title.replace(/ \(.*\)$/, ""),
 									})),
 								}))}
 							/>

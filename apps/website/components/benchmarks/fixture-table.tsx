@@ -1,4 +1,8 @@
-import { type BenchmarkSection, sectionTotals } from "./artifacts";
+import {
+	type BenchmarkSection,
+	type BenchmarkSeries,
+	sectionTotals,
+} from "./artifacts";
 import { type BenchmarkUnit, formatValue } from "./format";
 
 // Time reads as a speedup over the baseline; size as a share of its bytes.
@@ -8,15 +12,22 @@ function versus(base: number, other: number, unit: BenchmarkUnit) {
 		: `${(base / other).toFixed(2)}x`;
 }
 
+const label = (s: BenchmarkSeries) =>
+	s.runtime ? `${s.name} (${s.runtime})` : s.name;
+
 function Cell({
 	value,
 	unit,
+	ours,
 }: {
 	value: number | undefined;
 	unit: BenchmarkUnit;
+	ours: boolean;
 }) {
 	return (
-		<td className="px-4 py-2 text-right whitespace-nowrap">
+		<td
+			className={`px-4 py-2 text-right whitespace-nowrap ${ours ? "bg-accent/10" : ""}`}
+		>
 			{value === undefined ? "-" : formatValue(value, unit)}
 		</td>
 	);
@@ -28,7 +39,8 @@ export default function FixtureTable({
 	section: BenchmarkSection;
 }) {
 	const baseline = section.series.find((s) => s.baseline) ?? section.series[0];
-	const others = section.series.filter((s) => s.id !== baseline.id);
+	// Ratio columns only for BlazeDiff, so a wide chart stays readable.
+	const others = section.series.filter((s) => s.ours && s.id !== baseline.id);
 	const hasMpx = section.rows.some((row) => row.mpx !== undefined);
 	const totals = sectionTotals(section);
 
@@ -44,13 +56,16 @@ export default function FixtureTable({
 							<th className="px-4 py-2 text-left">Fixture</th>
 							{hasMpx && <th className="px-4 py-2 text-right">MPx</th>}
 							{section.series.map((s) => (
-								<th key={s.id} className="px-4 py-2 text-right">
-									{s.name}
+								<th
+									key={s.id}
+									className={`px-4 py-2 text-right ${s.ours ? "text-accent" : ""}`}
+								>
+									{label(s)}
 								</th>
 							))}
 							{others.map((s) => (
 								<th key={s.id} className="px-4 py-2 text-right">
-									{s.name} vs {baseline.name}
+									{label(s)} vs {label(baseline)}
 								</th>
 							))}
 						</tr>
@@ -73,6 +88,7 @@ export default function FixtureTable({
 											key={s.id}
 											value={row.values[s.id]?.value}
 											unit={section.unit}
+											ours={s.ours}
 										/>
 									))}
 									{others.map((s) => {
@@ -97,7 +113,12 @@ export default function FixtureTable({
 							<td className="px-4 py-2 text-left">TOTAL</td>
 							{hasMpx && <td />}
 							{section.series.map((s) => (
-								<Cell key={s.id} value={totals[s.id]} unit={section.unit} />
+								<Cell
+									key={s.id}
+									value={totals[s.id]}
+									unit={section.unit}
+									ours={s.ours}
+								/>
 							))}
 							{others.map((s) => (
 								<td key={s.id} className="px-4 py-2 text-right text-accent">
