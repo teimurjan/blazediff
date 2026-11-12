@@ -8,7 +8,7 @@
 
 </div>
 
-The fastest single-threaded image diff in the world. Native Rust implementation with SIMD optimization, **4.3-4.9x faster** and **3x smaller** than [odiff](https://github.com/dmtrKovalenko/odiff).
+The fastest single-threaded image diff in the world. Native Rust implementation with SIMD optimization, **3.6-3.9x faster** and **3x smaller** than [odiff](https://github.com/dmtrKovalenko/odiff).
 
 **Features:**
 - **PNG, JPEG & QOI support** - auto-detected by file extension or encoded bytes
@@ -277,13 +277,13 @@ Input images can be mixed formats (e.g., compare PNG to JPEG). Output format is 
 
 ## Performance
 
-Benchmarked on Apple M1 Max (25 runs, 5 warmup, image IO included) against `odiff` on 5600×3200 4K PNG images via `tinybench`. Full numbers in the root [BENCHMARKS.md](https://github.com/teimurjan/blazediff/blob/main/BENCHMARKS.md).
+Benchmarked on Linux x64 (GCP `c4-standard-16`, Intel Xeon Platinum 8581C; 25 runs, 5 warmup, image IO included) against `odiff` on 5600×3200 4K PNG images via `tinybench`. Full numbers in the root [BENCHMARKS.md](https://github.com/teimurjan/blazediff/blob/main/BENCHMARKS.md).
 
 | Tool | 4k/1 | 4k/2 | 4k/3 | vs blazediff |
 |------|-----:|-----:|-----:|-------------|
-| **blazediff** | ~274ms | ~363ms | ~368ms | - |
-| **blazediff** (`BLAZEDIFF_PNG_ENABLED=1`) | ~190ms | ~242ms | ~250ms | - |
-| odiff | ~1239ms | ~1563ms | ~1803ms | 4.3-4.9x slower |
+| **blazediff** | ~343ms | ~427ms | ~469ms | - |
+| **blazediff** (`BLAZEDIFF_PNG_ENABLED=1`) | ~279ms | ~332ms | ~383ms | - |
+| odiff | ~1221ms | ~1586ms | ~1818ms | 3.6-3.9x slower |
 
 Binary sizes (stripped, LTO optimized) - **~3x smaller than odiff**:
 
