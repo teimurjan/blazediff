@@ -37,8 +37,8 @@ const slug = (s) =>
 		.replace(/[^a-z0-9]+/g, "-")
 		.replace(/^-|-$/g, "");
 
-// CI runners are where visual tests run, so Linux owns the published numbers.
-const REFERENCE_PLATFORM = "linux-x64";
+// The Mac owns the published numbers; other machines are shown as secondary runs.
+const REFERENCE_PLATFORM = "darwin-arm64";
 const currentPlatform = () => `${os.platform()}-${os.arch()}`;
 
 const artifactPath = (key, platform = currentPlatform()) =>

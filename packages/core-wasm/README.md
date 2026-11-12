@@ -8,7 +8,7 @@
 
 </div>
 
-WebAssembly build of the BlazeDiff Rust algorithm for browsers, edge runtimes, and any wasm host. Same block-band algorithm as [`@blazediff/core-native`](https://www.npmjs.com/package/@blazediff/core-native), compiled to `wasm32` with `v128` SIMD (`+simd128`). About **3.8x** faster than [pixelmatch](https://github.com/mapbox/pixelmatch) in total time on the same RGBA buffers (3x to 6x on 4K); diff counts agree with pixelmatch to within ~0.05%.
+WebAssembly build of the BlazeDiff Rust algorithm for browsers, edge runtimes, and any wasm host. Same block-band algorithm as [`@blazediff/core-native`](https://www.npmjs.com/package/@blazediff/core-native), compiled to `wasm32` with `v128` SIMD (`+simd128`). About **6.8x** faster than [pixelmatch](https://github.com/mapbox/pixelmatch) in total time on the same RGBA buffers (5x to 10x on 4K); diff counts agree with pixelmatch to within ~0.05%.
 
 **Features:**
 - Same Rust algorithm as `@blazediff/core-native` (YIQ perceptual delta + block-based cold/hot pass)
@@ -251,17 +251,17 @@ const result = await diff(a, b);
 
 ## Performance
 
-vs `pixelmatch` on Linux x64 (Intel Xeon Platinum 8581C), image I/O excluded (pre-decoded RGBA buffers):
+vs `pixelmatch` on M1 Max, image I/O excluded (pre-decoded RGBA buffers):
 
 | Fixture       | pixelmatch | core-wasm | Improvement |
 |---------------|------------|-----------|-------------|
-| 4k/1 | 327.33ms | 57.49ms | **82.4%** |
-| 4k/3 | 422.67ms | 81.60ms | **80.7%** |
-| page/2 | 498.86ms | 119.82ms | **76.0%** |
-| blazediff/3 | 11.90ms | 7.73ms | **35.0%** |
-| pixelmatch/1 | 0.68ms | 0.12ms | **81.8%** |
+| 4k/1 | 346.12ms | 34.73ms | **90.0%** |
+| 4k/3 | 423.70ms | 44.48ms | **89.5%** |
+| page/2 | 529.30ms | 65.49ms | **87.6%** |
+| blazediff/3 | 10.86ms | 5.94ms | **45.3%** |
+| pixelmatch/1 | 0.82ms | 0.10ms | **88.3%** |
 
-About **3.8x** faster in total time across the full fixture set, ~68% per fixture on average (~57% across differing pairs). Counts agree with pixelmatch within ~0.05% (e.g. `4k/1`: 69 932 vs 69 912 of 17 920 000 pixels).
+About **6.8x** faster in total time across the full fixture set, ~77% per fixture on average (~72% across differing pairs). Counts agree with pixelmatch within ~0.05% (e.g. `4k/1`: 69 932 vs 69 912 of 17 920 000 pixels).
  Full benchmarks in [BENCHMARKS.md](https://github.com/teimurjan/blazediff/blob/main/BENCHMARKS.md).
 
 ## Algorithm

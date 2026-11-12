@@ -7,7 +7,7 @@
 
 </div>
 
-High-performance pixel-by-pixel image comparison with a chunked, branch-free scan and YIQ perceptual color difference. About 5x faster than pixelmatch in total time across the benchmark fixtures, with the same counts and output bytes.
+High-performance pixel-by-pixel image comparison with a chunked, branch-free scan and YIQ perceptual color difference. About 7x faster than pixelmatch in total time across the benchmark fixtures, with the same counts and output bytes.
 
 **Features:**
 - YIQ color space for perceptual color difference
@@ -158,17 +158,17 @@ See [FORMULA.md](./FORMULA.md) for detailed mathematical formulas and algorithm 
 
 ## Performance
 
-> **Total: ~5.2x faster** | Average: ~73% | Median: ~74% | With an output image: ~2.5x faster in total, ~46% average
+> **Total: ~7.4x faster** | Average: ~79% | Median: ~86% | With an output image: ~4.2x faster in total, ~66% average
 
-Benchmarked against pixelmatch across 34 fixtures (50 iterations, 5 warmup) on Linux x64 (GCP `c4-standard-16`, Intel Xeon Platinum 8581C) with Node.js 22, count only. Full numbers in the root [BENCHMARKS.md](https://github.com/teimurjan/blazediff/blob/main/BENCHMARKS.md).
+Benchmarked against pixelmatch across 34 fixtures (50 iterations, 5 warmup) on Apple M1 Max with Node.js 22, count only. Full numbers in the root [BENCHMARKS.md](https://github.com/teimurjan/blazediff/blob/main/BENCHMARKS.md).
 
 | Benchmark | Pixelmatch | BlazeDiff | Improvement |
 |-----------|------------|-----------|-------------|
-| 4k/1 (5600×3200) | 331.37ms | 46.99ms | **85.8%** |
-| 4k/1 (identical) | 17.91ms | 5.02ms | **71.9%** |
-| page/1 (3598×16384) | 167.38ms | 32.11ms | **80.8%** |
-| page/1 (identical) | 66.47ms | 24.98ms | **62.4%** |
-| small images | 0.06-13ms | 0.01-5.1ms | **35-94%** |
+| 4k/1 (5600×3200) | 333.85ms | 41.73ms | **87.5%** |
+| 4k/1 (identical) | 23.22ms | 3.31ms | **85.7%** |
+| page/1 (3598×16384) | 148.48ms | 14.90ms | **90.0%** |
+| page/1 (identical) | 69.44ms | 9.63ms | **86.1%** |
+| small images | 0.07-12ms | 0.01-4.1ms | **38-88%** |
 
 The largest gains are on large images, where most pixels are identical or below the threshold. Small images with dense diffs gain the least.
 

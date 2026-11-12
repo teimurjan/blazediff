@@ -68,7 +68,7 @@ const ARTIFACTS = data as unknown as Record<
 >;
 
 // Mirrors `REFERENCE_PLATFORM` in `scripts/bench/artifact.js`.
-export const REFERENCE_PLATFORM: Platform = "linux-x64";
+export const REFERENCE_PLATFORM: Platform = "darwin-arm64";
 
 const PLATFORM_LABELS: Record<Platform, string> = {
 	"linux-x64": "Linux x64",

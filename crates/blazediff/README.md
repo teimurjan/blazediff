@@ -145,7 +145,7 @@ See [INTERPRET.md](./INTERPRET.md) for the full algorithm documentation - pipeli
 
 ## Performance
 
-3.6-3.9x faster than odiff, 8x faster than pixelmatch on 4K images.
+5.1-5.9x faster than odiff, 8x faster than pixelmatch on 4K images.
 
 Image I/O lives in [`blazediff-shared`](../blazediff-shared), shared with the other crates;
 `load_png`, `save_jpeg` and friends are re-exported here unchanged. PNG encode uses the

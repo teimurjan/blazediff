@@ -16,8 +16,8 @@ The root `package.json` has no per-library aliases. Each side's `cmd` in `pairs.
 
 Every run writes `benchmarks/results/<platform>/<key>.json` (built by `artifact.js`). `<platform>` is the machine the run happened on, as `<os>-<arch>`: `linux-x64` or `darwin-arm64`. A run replaces only its own machine's file, so both machines keep their numbers. These files are the single source of the numbers:
 
-- `update-benchmarks-md.js` and `png.js` build the Markdown tables in `benchmarks/*.md` from the reference platform, `linux-x64`. A run on another machine leaves the Markdown alone, unless the bench has no Linux run yet.
-- The website reads all artifacts at build time (`apps/website/scripts/generate-benchmarks.mjs`). `/benchmarks` shows the Linux run and `/benchmarks/darwin-arm64` shows the Mac run, with tabs to switch. The homepage teaser and speed claims use the Linux run, or the Mac run when a bench has no Linux run.
+- `update-benchmarks-md.js` and `png.js` build the Markdown tables in `benchmarks/*.md` from the reference platform, `darwin-arm64`. A run on another machine leaves the Markdown alone, unless the bench has no Mac run yet.
+- The website reads all artifacts at build time (`apps/website/scripts/generate-benchmarks.mjs`). `/benchmarks` shows the Mac run and `/benchmarks/linux-x64` shows the Linux run, with tabs to switch. The homepage teaser and speed claims use the Mac run, or the Linux run when a bench has no Mac run.
 - The benchmark workflows in `.github/workflows/benchmark-*.yml` upload the same files as GitHub Actions artifacts.
 
 Commit the artifact together with the Markdown it produced. The shape is (schemaVersion 1):

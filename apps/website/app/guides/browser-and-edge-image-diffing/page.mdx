@@ -10,19 +10,19 @@ import { Callout } from "nextra/components";
 **`@blazediff/core-wasm` is a ~32KB WebAssembly build of the same Rust diff core,
 compiled to `wasm32` with `v128` SIMD.** It runs in browsers, Web Workers, Deno,
 Bun, Cloudflare Workers, and any other wasm host, with no native dependency and no
-network call. On a changed 4K pair it is 5x to 11x faster than pixelmatch.
+network call. On a changed 4K pair it is 5x to 10x faster than pixelmatch.
 
 ## Measured speed
 
 From the [pixel benchmarks](/benchmarks/pixel-by-pixel), M1 Max, image IO
-excluded, about 6.6x faster than pixelmatch in total time across the fixture set:
+excluded, about 6.8x faster than pixelmatch in total time across the fixture set:
 
 | Fixture | pixelmatch | `core-wasm` | Improvement |
 | ------- | ---------- | ----------- | ----------- |
-| 4k/1    | 350.83ms   | 32.95ms     | 90.6%       |
-| 4k/2    | 345.40ms   | 68.49ms     | 80.2%       |
-| 4k/3    | 438.65ms   | 44.80ms     | 89.8%       |
-| page/2  | 535.68ms   | 71.14ms     | 86.7%       |
+| 4k/1    | 346.12ms   | 34.73ms     | 90.0%       |
+| 4k/2    | 338.34ms   | 63.27ms     | 81.3%       |
+| 4k/3    | 423.70ms   | 44.48ms     | 89.5%       |
+| page/2  | 529.30ms   | 65.49ms     | 87.6%       |
 
 Counts agree with pixelmatch to within about 0.05% - both use a YIQ-style
 perceptual delta, so they classify the same pixels apart from a handful of edge
@@ -85,7 +85,7 @@ Full setup in [Rust + WASM in JavaScript →](/docs/pixel-comparison/rust-wasm).
 
 - **Bundle size.** ~32KB of wasm fits comfortably inside a Workers bundle.
 - **No filesystem.** Everything is buffers. That is already the API.
-- **CPU time limits.** A 4K diff at 33-68ms is fine for most edge budgets. Diffing
+- **CPU time limits.** A 4K diff at 35-63ms is fine for most edge budgets. Diffing
   a batch in one request is not - fan out instead.
 - **Cold start.** The module instantiates once per isolate. Instantiate at module
   scope, not per request.

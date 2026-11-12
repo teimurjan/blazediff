@@ -120,10 +120,10 @@ iterations:
 
 | Case               | pixelmatch      | `@blazediff/core-wasm` |
 | ------------------ | --------------- | ---------------------- |
-| 4K pair            | 345.40-438.65ms | 32.95-68.49ms          |
-| 4K pair, identical | 20.92-27.94ms   | 2.47-3.60ms            |
+| 4K pair            | 338.34-423.70ms | 34.73-63.27ms          |
+| 4K pair, identical | 21.94-38.68ms   | 4.33-5.34ms            |
 
-So 5x to 11x on a changed 4K pair, 8x to 9x on an identical one, and about 6.6x in
+So 5x to 10x on a changed 4K pair, 5x to 7x on an identical one, and about 6.8x in
 total time over the whole fixture set. In Node, an identical pair with no `output`
 returns early through `Buffer.compare`, a native memcmp, before any bytes are
 copied into wasm. Browsers and edge runtimes have no `Buffer`, so there the block
