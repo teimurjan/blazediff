@@ -59,18 +59,54 @@ export interface BenchmarkArtifact {
 	sections: BenchmarkSection[];
 }
 
-const ARTIFACTS = data as unknown as Record<string, BenchmarkArtifact>;
+/** `<os>-<arch>`, the folder a run is stored under in `benchmarks/results`. */
+export type Platform = string;
 
-// Any artifact may be missing (not yet run on this checkout); callers skip it.
-export function findArtifact(key: string): BenchmarkArtifact | undefined {
-	return ARTIFACTS[key];
+const ARTIFACTS = data as unknown as Record<
+	Platform,
+	Record<string, BenchmarkArtifact>
+>;
+
+// Mirrors `REFERENCE_PLATFORM` in `scripts/bench/artifact.js`.
+export const REFERENCE_PLATFORM: Platform = "linux-x64";
+
+const PLATFORM_LABELS: Record<Platform, string> = {
+	"linux-x64": "Linux x64",
+	"linux-arm64": "Linux arm64",
+	"darwin-arm64": "macOS arm64",
+	"darwin-x64": "macOS x64",
+	"win32-x64": "Windows x64",
+};
+
+export const platformLabel = (platform: Platform) =>
+	PLATFORM_LABELS[platform] ?? platform;
+
+/** Every platform with results, the reference one first. */
+export const PLATFORMS: Platform[] = Object.keys(ARTIFACTS).sort(
+	(a, b) =>
+		Number(b === REFERENCE_PLATFORM) - Number(a === REFERENCE_PLATFORM) ||
+		a.localeCompare(b),
+);
+
+/**
+ * The run of `key` on `platform`. Without a platform, the reference run, or
+ * any other machine's when the reference has none, so a claim keeps its data.
+ * Any artifact may be missing (not yet run on this checkout); callers skip it.
+ */
+export function findArtifact(
+	key: string,
+	platform?: Platform,
+): BenchmarkArtifact | undefined {
+	if (platform) return ARTIFACTS[platform]?.[key];
+	return PLATFORMS.map((p) => ARTIFACTS[p][key]).find(Boolean);
 }
 
 export function findSection(
 	key: string,
 	sectionId = key,
+	platform?: Platform,
 ): BenchmarkSection | undefined {
-	return findArtifact(key)?.sections.find((s) => s.id === sectionId);
+	return findArtifact(key, platform)?.sections.find((s) => s.id === sectionId);
 }
 
 /** Rows every series measured, so totals compare like with like. */
@@ -186,9 +222,9 @@ export interface Card {
 
 // A merged chart keeps whichever of its benches exist; a lone survivor
 // renders as its own chart.
-export function resolveCards(spec: CardSpec): Card[] {
+export function resolveCards(spec: CardSpec, platform?: Platform): Card[] {
 	if (typeof spec === "string") {
-		const artifact = findArtifact(spec);
+		const artifact = findArtifact(spec, platform);
 		return artifact
 			? artifact.sections.map((section) => ({
 					id: `${spec}-${section.id}`,
@@ -197,8 +233,12 @@ export function resolveCards(spec: CardSpec): Card[] {
 				}))
 			: [];
 	}
-	const artifacts = spec.keys.flatMap((key) => findArtifact(key) ?? []);
-	const sections = spec.keys.flatMap((key) => findSection(key) ?? []);
+	const artifacts = spec.keys.flatMap(
+		(key) => findArtifact(key, platform) ?? [],
+	);
+	const sections = spec.keys.flatMap(
+		(key) => findSection(key, key, platform) ?? [],
+	);
 	if (sections.length === 0) return [];
 	return [
 		{

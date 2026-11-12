@@ -9,7 +9,7 @@ Performance benchmarks comparing BlazeDiff against popular alternatives across i
 - **[Object Diffing](./benchmarks/object.md)** - `@blazediff/object` compared against `microdiff`.
 - **[PNG Codec](./benchmarks/png-codec.md)** - `blazediff-png` compared against `spng`, image-rs `png`, and `zune-png`.
 
-The raw results, with machine, toolchain and commit, are committed as JSON in [`benchmarks/results/`](./benchmarks/results). The [website benchmarks page](https://blazediff.dev/benchmarks) renders them as charts. To regenerate a result, see [`scripts/bench/README.md`](./scripts/bench/README.md).
+The raw results, with machine, toolchain and commit, are committed as JSON in [`benchmarks/results/`](./benchmarks/results), one folder per machine (`linux-x64`, `darwin-arm64`). The [website benchmarks page](https://blazediff.dev/benchmarks) renders them as charts. To regenerate a result, see [`scripts/bench/README.md`](./scripts/bench/README.md).
 
 ## Test Fixtures
 
@@ -23,8 +23,8 @@ The object benchmark fixtures can be viewed [here](./apps/object-benchmark/src/f
 
 ## Hardware Specifications
 
-All benchmarks are run on consistent hardware:
+Benchmarks run on two machines. The Markdown tables show the Linux run when one exists, and the website shows both.
 
-- **CPU**: Apple M1 Max
+- **Linux**: GCP `c4-standard-16`, Intel Xeon Platinum 8581C, 8 cores (SMT off), Ubuntu 24.04. Run with `apps/image-benchmark/scripts/gcp.sh`.
+- **macOS**: MacBook Pro, Apple M1 Max.
 - **Runtime**: Node.js 22
-- **OS**: macOS

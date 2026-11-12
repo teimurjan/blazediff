@@ -2,7 +2,7 @@
 /**
  * Patch the table, iterations line, and average-improvement blockquote of one
  * Markdown section per artifact section. The numbers come from the bench's
- * artifact (`benchmarks/results/<key>.json`), so the md never disagrees with
+ * artifact (`benchmarks/results/<platform>/<key>.json`), so the md never disagrees with
  * the website.
  *
  * Usage:
@@ -12,7 +12,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { PAIRS } = require("./pairs.js");
-const { readArtifact, artifactPath } = require("./artifact.js");
+const { readMarkdownArtifact, artifactPath } = require("./artifact.js");
 
 const REPO_ROOT = path.resolve(__dirname, "../..");
 
@@ -242,7 +242,7 @@ function main() {
 		console.error(`Known pairs: ${Object.keys(PAIRS).join(", ")}`);
 		process.exit(2);
 	}
-	const artifact = readArtifact(args.pair);
+	const artifact = readMarkdownArtifact(args.pair);
 	if (!artifact) {
 		console.error(`Missing artifact: ${artifactPath(args.pair)}`);
 		process.exit(1);

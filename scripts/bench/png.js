@@ -7,7 +7,8 @@
  *   1. Run the Rust benchmark (`blazediff-png-benchmark`) with `--json`, which
  *      times decode + encode + encoded size for every fixture across
  *      blazediff / spng / image-rs / zune.
- *   2. Convert that JSON into `benchmarks/results/png.json` (see `artifact.js`).
+ *   2. Convert that JSON into `benchmarks/results/<platform>/png.json` (see
+ *      `artifact.js`).
  *   3. Write `benchmarks/png-codec.md` (intro, decode/encode/size tables) from
  *      the artifact in the existing HTML-table style, plus a WebAssembly part
  *      from `png-wasm.json` when that bench has run (see `png-wasm.js`).
@@ -27,6 +28,8 @@ const {
 	slug,
 	writeArtifact,
 	readArtifact,
+	readMarkdownArtifact,
+	ownsMarkdown,
 	artifactPath,
 } = require("./artifact.js");
 
@@ -212,10 +215,10 @@ function encodeSection(timing, size, label, encNick, depth = "##") {
 	const t = timingTable(timing);
 	const base = timing.series.find((s) => s.baseline).name;
 	const zune = size.series.some((s) => s.id === "zune")
-		? " zune-png has no compressed mode, so it always writes stored output — far larger than the rest."
+		? " zune-png has no compressed mode, so it always writes stored output, far larger than the rest."
 		: "";
 	return [
-		`${depth} Encode — ${label}`,
+		`${depth} Encode: ${label}`,
 		"",
 		`_${timing.note}_`,
 		"",
@@ -223,7 +226,7 @@ function encodeSection(timing, size, label, encNick, depth = "##") {
 		"",
 		t.html,
 		"",
-		`${depth}# Encode Size — ${label}`,
+		`${depth}# Encode Size: ${label}`,
 		"",
 		`> Output bytes per codec; the final row is each codec's total as a percentage of ${base}'s${base === "spng" ? " (the de-facto reference)" : ""}.${zune}`,
 		"",
@@ -241,11 +244,11 @@ function buildMarkdown(artifact) {
 	return `${[
 		"# PNG Codec Benchmarks",
 		"",
-		`A from-scratch PNG codec in Rust — \`blazediff-png\` — against [spng](https://libspng.org), image-rs (\`png\`), and [zune-png](https://github.com/etemesi254/zune-image). Decode and encode are timed (best-of, size-scaled iteration counts) over the full fixture corpus (${rows.length} PNGs, ${totalMpx.toFixed(1)} MPx), single-threaded on ${artifact.env.cpu ?? "the reference machine"}. Lower is better.`,
+		`A from-scratch PNG codec in Rust (\`blazediff-png\`) against [spng](https://libspng.org), image-rs (\`png\`), and [zune-png](https://github.com/etemesi254/zune-image). Decode and encode are timed (best-of, size-scaled iteration counts) over the full fixture corpus (${rows.length} PNGs, ${totalMpx.toFixed(1)} MPx), single-threaded on ${artifact.env.cpu ?? "the reference machine"}. Lower is better.`,
 		"",
-		"Encode is measured at two settings so the speed/size trade-off is explicit and zune's stored-only encoder is compared fairly: **no compression** (stored deflate blocks) and **half compression** (half of each codec's own max deflate level — libdeflate 12 → 6, zlib 9 → 4).",
+		"Encode is measured at two settings so the speed/size trade-off is explicit and zune's stored-only encoder is compared fairly: **no compression** (stored deflate blocks) and **half compression** (half of each codec's own max deflate level: libdeflate 12 → 6, zlib 9 → 4).",
 		"",
-		"**Speed here, correctness elsewhere.** These are timing numbers. Byte-identical *decode* parity with spng is verified separately on a large public-image corpus — Urban100, BSD100, Set14, Set5 (real high-res photos) plus the full [PngSuite](http://www.schaik.com/pngsuite/) (every format corner and the intentionally-malformed files), ~395 files — by the `corpus_differential` test: every file decodes byte-identically to spng at RGBA8 and at every `SPNG_FMT_*`, malformed files reject in lockstep, and every accepted image survives a blazediff encode → decode round-trip. Fetch the corpus with `crates/blazediff-png/scripts/fetch-corpus.sh` and run with `BLAZEDIFF_PNG_CORPUS` set; the `Benchmark PNG` GitHub workflow runs the benchmark and this verification.",
+		"**Speed here, correctness elsewhere.** These are timing numbers. Byte-identical *decode* parity with spng is verified separately by the `corpus_differential` test on ~395 public images: Urban100, BSD100, Set14 and Set5 (real high-res photos) plus the full [PngSuite](http://www.schaik.com/pngsuite/) (every format corner and the intentionally-malformed files). Every file decodes byte-identically to spng at RGBA8 and at every `SPNG_FMT_*`, malformed files reject in lockstep, and every accepted image survives a blazediff encode → decode round-trip. Fetch the corpus with `crates/blazediff-png/scripts/fetch-corpus.sh` and run with `BLAZEDIFF_PNG_CORPUS` set; the `Benchmark PNG` GitHub workflow runs the benchmark and this verification.",
 		"",
 		"## Decode",
 		"",
@@ -301,13 +304,17 @@ function buildWasmMarkdown(artifact) {
 	].join("\n");
 }
 
-/** Write `benchmarks/png-codec.md` from the `png` artifact, plus `png-wasm` when present. */
-function writeMarkdown(artifact = readArtifact(KEY)) {
+/**
+ * Write `benchmarks/png-codec.md` from the `png` artifact, plus `png-wasm`
+ * when present. Both come from the reference platform when it has them.
+ */
+function writeMarkdown() {
+	const artifact = readMarkdownArtifact(KEY);
 	if (!artifact) {
 		console.error(`Missing artifact: ${artifactPath(KEY)}`);
 		process.exit(1);
 	}
-	const wasm = readArtifact("png-wasm");
+	const wasm = readMarkdownArtifact("png-wasm");
 	const parts = [
 		buildMarkdown(artifact),
 		...(wasm ? [buildWasmMarkdown(wasm)] : []),
@@ -344,7 +351,7 @@ function run(flags = {}) {
 		console.log(`\nArtifact: ${path.relative(REPO_ROOT, out)}`);
 	}
 
-	if (!flags["skip-md"]) writeMarkdown(artifact);
+	if (!flags["skip-md"] && ownsMarkdown(KEY)) writeMarkdown();
 }
 
 module.exports = { run, writeMarkdown };

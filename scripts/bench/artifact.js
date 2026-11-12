@@ -1,6 +1,8 @@
 /**
- * Benchmark artifacts: one committed `benchmarks/results/<key>.json` per bench,
- * the single source the Markdown tables and the website both render from.
+ * Benchmark artifacts: one committed `benchmarks/results/<platform>/<key>.json`
+ * per bench and machine (`linux-x64`, `darwin-arm64`), the single source the
+ * Markdown tables and the website both render from. Markdown and the website's
+ * speed claims read the reference platform; the website shows every platform.
  *
  * Shape (schemaVersion 1):
  *   { schemaVersion, key, category, generatedAt, commit: {sha, dirty},
@@ -15,6 +17,7 @@
  */
 
 const fs = require("node:fs");
+const os = require("node:os");
 const path = require("node:path");
 const { seriesOf, sideJsonPath } = require("./pairs.js");
 const {
@@ -34,7 +37,12 @@ const slug = (s) =>
 		.replace(/[^a-z0-9]+/g, "-")
 		.replace(/^-|-$/g, "");
 
-const artifactPath = (key) => path.join(RESULTS_DIR, `${key}.json`);
+// CI runners are where visual tests run, so Linux owns the published numbers.
+const REFERENCE_PLATFORM = "linux-x64";
+const currentPlatform = () => `${os.platform()}-${os.arch()}`;
+
+const artifactPath = (key, platform = currentPlatform()) =>
+	path.join(RESULTS_DIR, platform, `${key}.json`);
 
 function header({ key, category, config, python = false }) {
 	return {
@@ -143,16 +151,33 @@ function buildPairArtifact(key, pair, { iterations, warmup }) {
 }
 
 function writeArtifact(artifact) {
-	fs.mkdirSync(RESULTS_DIR, { recursive: true });
-	const out = artifactPath(artifact.key);
+	const { platform, arch } = artifact.env;
+	const out = artifactPath(artifact.key, `${platform}-${arch}`);
+	fs.mkdirSync(path.dirname(out), { recursive: true });
 	fs.writeFileSync(out, `${JSON.stringify(artifact, null, "\t")}\n`);
 	return out;
 }
 
-function readArtifact(key) {
-	const p = artifactPath(key);
+function readArtifact(key, platform = currentPlatform()) {
+	const p = artifactPath(key, platform);
 	if (!fs.existsSync(p)) return null;
 	return JSON.parse(fs.readFileSync(p, "utf8"));
+}
+
+/** The artifact the Markdown shows: the reference run, else this machine's. */
+function readMarkdownArtifact(key) {
+	return readArtifact(key, REFERENCE_PLATFORM) ?? readArtifact(key);
+}
+
+/**
+ * Whether a run on this machine may rewrite the Markdown for `key`. A second
+ * machine never replaces reference numbers that already exist.
+ */
+function ownsMarkdown(key) {
+	return (
+		currentPlatform() === REFERENCE_PLATFORM ||
+		!fs.existsSync(artifactPath(key, REFERENCE_PLATFORM))
+	);
 }
 
 module.exports = {
@@ -161,5 +186,8 @@ module.exports = {
 	buildPairArtifact,
 	writeArtifact,
 	readArtifact,
+	readMarkdownArtifact,
+	ownsMarkdown,
 	artifactPath,
+	REFERENCE_PLATFORM,
 };

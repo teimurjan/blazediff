@@ -5,13 +5,15 @@ import BenchmarkSectionCard from "./benchmark-section";
 export default function BenchmarkCharts({ cards }: { cards: CardSpec[] }) {
 	return (
 		<div className="not-prose mt-6 flex flex-col gap-6">
-			{cards.flatMap(resolveCards).map((card) => (
-				<BenchmarkSectionCard
-					key={card.id}
-					artifacts={card.artifacts}
-					section={card.section}
-				/>
-			))}
+			{cards
+				.flatMap((spec) => resolveCards(spec))
+				.map((card) => (
+					<BenchmarkSectionCard
+						key={card.id}
+						artifacts={card.artifacts}
+						section={card.section}
+					/>
+				))}
 		</div>
 	);
 }

@@ -1,7 +1,7 @@
 /**
  * The `ssim-dssim` standalone bench: time blazediff's Rust SSIM family against
  * dssim (`blazediff-ssim-benchmark`, AGPL, so opt-in via `--features dssim`)
- * and store the time table as `benchmarks/results/ssim-dssim.json`.
+ * and store the time table as `benchmarks/results/<platform>/ssim-dssim.json`.
  * Dispatched by `run.js` (see `STANDALONE` in `pairs.js`), not a CLI itself.
  *
  * No Markdown: the crate README keeps its hand-written analysis.

@@ -129,7 +129,7 @@ jobs:
       # The checkout holds the committed results; drop them so a failed run
       # cannot upload a stale copy.
       - name: Remove committed benchmark results
-        run: rm -f benchmarks/results/core-wasm.json
+        run: rm -f benchmarks/results/*/core-wasm.json
 
       - name: Run Benchmark (@blazediff/core-wasm vs pixelmatch)
         run: pnpm benchmark core-wasm --skip-md
@@ -139,5 +139,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: benchmark-results-wasm-${{ github.event.inputs.platform }}
-          path: benchmarks/results/core-wasm.json
+          path: benchmarks/results/*/core-wasm.json
           if-no-files-found: warn

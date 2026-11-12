@@ -2,9 +2,9 @@
 	"schemaVersion": 1,
 	"key": "png",
 	"category": "png-codec",
-	"generatedAt": "2026-10-22T10:02:42.825Z",
+	"generatedAt": "2026-11-12T12:30:45.354Z",
 	"commit": {
-		"sha": "234b30088649cc7ad8a00d9ef70271c14de3bc94",
+		"sha": "867ed3b4772b45b9331842e8d79bf94c9c7bb37a",
 		"dirty": true
 	},
 	"env": {
@@ -59,16 +59,16 @@
 					"mpx": 17.92,
 					"values": {
 						"blazediff": {
-							"value": 137.6555
+							"value": 121.0135
 						},
 						"spng": {
-							"value": 178.9217
+							"value": 177.9989
 						},
 						"image-rs": {
-							"value": 152.0128
+							"value": 151.0002
 						},
 						"zune": {
-							"value": 208.7398
+							"value": 202.6687
 						}
 					}
 				},
@@ -77,16 +77,16 @@
 					"mpx": 17.92,
 					"values": {
 						"blazediff": {
-							"value": 124.607
+							"value": 110.4803
 						},
 						"spng": {
-							"value": 186.5681
+							"value": 164.5552
 						},
 						"image-rs": {
-							"value": 144.5783
+							"value": 143.7816
 						},
 						"zune": {
-							"value": 196.3948
+							"value": 193.0042
 						}
 					}
 				},
@@ -95,16 +95,16 @@
 					"mpx": 19.9619,
 					"values": {
 						"blazediff": {
-							"value": 158.2807
+							"value": 144.9306
 						},
 						"spng": {
-							"value": 278.7848
+							"value": 217.075
 						},
 						"image-rs": {
-							"value": 193.8899
+							"value": 193.9253
 						},
 						"zune": {
-							"value": 233.9342
+							"value": 227.0963
 						}
 					}
 				},
@@ -113,16 +113,16 @@
 					"mpx": 19.9619,
 					"values": {
 						"blazediff": {
-							"value": 159.8962
+							"value": 144.242
 						},
 						"spng": {
-							"value": 221.4769
+							"value": 218.4001
 						},
 						"image-rs": {
-							"value": 195.7818
+							"value": 195.044
 						},
 						"zune": {
-							"value": 234.5337
+							"value": 232.1072
 						}
 					}
 				},
@@ -131,16 +131,16 @@
 					"mpx": 24,
 					"values": {
 						"blazediff": {
-							"value": 160.067
+							"value": 149.6629
 						},
 						"spng": {
-							"value": 220.306
+							"value": 219.9545
 						},
 						"image-rs": {
-							"value": 194.084
+							"value": 193.5229
 						},
 						"zune": {
-							"value": 265.1173
+							"value": 263.5512
 						}
 					}
 				},
@@ -149,16 +149,16 @@
 					"mpx": 24,
 					"values": {
 						"blazediff": {
-							"value": 159.9745
+							"value": 148.5922
 						},
 						"spng": {
-							"value": 219.5197
+							"value": 219.1555
 						},
 						"image-rs": {
-							"value": 199.6246
+							"value": 193.0544
 						},
 						"zune": {
-							"value": 265.8572
+							"value": 259.5128
 						}
 					}
 				},
@@ -167,16 +167,16 @@
 					"mpx": 0.0369,
 					"values": {
 						"blazediff": {
-							"value": 0.0823
+							"value": 0.0672
 						},
 						"spng": {
-							"value": 0.195
+							"value": 0.1914
 						},
 						"image-rs": {
-							"value": 0.074
+							"value": 0.0726
 						},
 						"zune": {
-							"value": 0.1107
+							"value": 0.1082
 						}
 					}
 				},
@@ -185,16 +185,16 @@
 					"mpx": 0.0369,
 					"values": {
 						"blazediff": {
-							"value": 0.0858
+							"value": 0.0684
 						},
 						"spng": {
-							"value": 0.198
+							"value": 0.1943
 						},
 						"image-rs": {
-							"value": 0.077
+							"value": 0.0754
 						},
 						"zune": {
-							"value": 0.1142
+							"value": 0.1117
 						}
 					}
 				},
@@ -203,16 +203,16 @@
 					"mpx": 0.4316,
 					"values": {
 						"blazediff": {
-							"value": 0.605
+							"value": 0.5054
 						},
 						"spng": {
-							"value": 0.6883
+							"value": 0.6909
 						},
 						"image-rs": {
-							"value": 0.7129
+							"value": 0.7094
 						},
 						"zune": {
-							"value": 1.0088
+							"value": 1.0067
 						}
 					}
 				},
@@ -221,16 +221,16 @@
 					"mpx": 0.4316,
 					"values": {
 						"blazediff": {
-							"value": 0.6038
+							"value": 0.5081
 						},
 						"spng": {
-							"value": 0.6952
+							"value": 0.6848
 						},
 						"image-rs": {
-							"value": 0.7061
+							"value": 0.7087
 						},
 						"zune": {
-							"value": 1.0069
+							"value": 1.0017
 						}
 					}
 				},
@@ -239,16 +239,16 @@
 					"mpx": 0.3511,
 					"values": {
 						"blazediff": {
-							"value": 0.6153
+							"value": 0.4913
 						},
 						"spng": {
-							"value": 0.8343
+							"value": 0.7949
 						},
 						"image-rs": {
-							"value": 0.6879
+							"value": 0.6684
 						},
 						"zune": {
-							"value": 0.9298
+							"value": 0.9275
 						}
 					}
 				},
@@ -257,16 +257,16 @@
 					"mpx": 0.3511,
 					"values": {
 						"blazediff": {
-							"value": 0.655
+							"value": 0.531
 						},
 						"spng": {
-							"value": 0.8536
+							"value": 0.8458
 						},
 						"image-rs": {
-							"value": 0.7325
+							"value": 0.7162
 						},
 						"zune": {
-							"value": 1.0191
+							"value": 1.0145
 						}
 					}
 				},
@@ -275,16 +275,16 @@
 					"mpx": 1.6308,
 					"values": {
 						"blazediff": {
-							"value": 10.8634
+							"value": 8.5225
 						},
 						"spng": {
-							"value": 13.3782
+							"value": 12.9792
 						},
 						"image-rs": {
-							"value": 12.0974
+							"value": 12.0603
 						},
 						"zune": {
-							"value": 17.55
+							"value": 17.0276
 						}
 					}
 				},
@@ -293,16 +293,16 @@
 					"mpx": 1.6308,
 					"values": {
 						"blazediff": {
-							"value": 10.828
+							"value": 8.7634
 						},
 						"spng": {
-							"value": 13.2515
+							"value": 12.9901
 						},
 						"image-rs": {
-							"value": 12.1239
+							"value": 12.0492
 						},
 						"zune": {
-							"value": 17.4537
+							"value": 17.2104
 						}
 					}
 				},
@@ -311,16 +311,16 @@
 					"mpx": 3.7858,
 					"values": {
 						"blazediff": {
-							"value": 2.8009
+							"value": 2.5151
 						},
 						"spng": {
-							"value": 3.4119
+							"value": 3.4352
 						},
 						"image-rs": {
-							"value": 3.382
+							"value": 3.3727
 						},
 						"zune": {
-							"value": 4.429
+							"value": 4.4054
 						}
 					}
 				},
@@ -329,16 +329,16 @@
 					"mpx": 3.7858,
 					"values": {
 						"blazediff": {
-							"value": 2.9328
+							"value": 2.5608
 						},
 						"spng": {
-							"value": 3.482
+							"value": 3.4424
 						},
 						"image-rs": {
-							"value": 3.4164
+							"value": 3.4172
 						},
 						"zune": {
-							"value": 4.4928
+							"value": 4.413
 						}
 					}
 				},
@@ -347,16 +347,16 @@
 					"mpx": 58.9496,
 					"values": {
 						"blazediff": {
-							"value": 155.9751
+							"value": 132.4694
 						},
 						"spng": {
-							"value": 236.304
+							"value": 234.1915
 						},
 						"image-rs": {
-							"value": 183.9543
+							"value": 182.2555
 						},
 						"zune": {
-							"value": 255.0873
+							"value": 240.881
 						}
 					}
 				},
@@ -365,16 +365,16 @@
 					"mpx": 58.9496,
 					"values": {
 						"blazediff": {
-							"value": 155.8699
+							"value": 131.4831
 						},
 						"spng": {
-							"value": 234.3262
+							"value": 235.7629
 						},
 						"image-rs": {
-							"value": 183.6615
+							"value": 181.1421
 						},
 						"zune": {
-							"value": 246.193
+							"value": 241.1859
 						}
 					}
 				},
@@ -383,16 +383,16 @@
 					"mpx": 41.712,
 					"values": {
 						"blazediff": {
-							"value": 26.1178
+							"value": 25.7811
 						},
 						"spng": {
-							"value": 36.5113
+							"value": 36.0042
 						},
 						"image-rs": {
-							"value": 20.2147
+							"value": 20.1961
 						},
 						"zune": {
-							"value": 47.5592
+							"value": 60.8489
 						}
 					}
 				},
@@ -401,16 +401,16 @@
 					"mpx": 41.712,
 					"values": {
 						"blazediff": {
-							"value": 26.4565
+							"value": 26.4925
 						},
 						"spng": {
-							"value": 35.7099
+							"value": 35.9438
 						},
 						"image-rs": {
-							"value": 20.6487
+							"value": 20.3242
 						},
 						"zune": {
-							"value": 58.0157
+							"value": 57.0937
 						}
 					}
 				},
@@ -419,16 +419,16 @@
 					"mpx": 0.1311,
 					"values": {
 						"blazediff": {
-							"value": 0.7382
+							"value": 0.5418
 						},
 						"spng": {
-							"value": 0.9475
+							"value": 0.9415
 						},
 						"image-rs": {
-							"value": 0.6655
+							"value": 0.6502
 						},
 						"zune": {
-							"value": 1.0705
+							"value": 1.0504
 						}
 					}
 				},
@@ -437,16 +437,16 @@
 					"mpx": 0.1311,
 					"values": {
 						"blazediff": {
-							"value": 0.5487
+							"value": 0.4204
 						},
 						"spng": {
-							"value": 0.7135
+							"value": 0.71
 						},
 						"image-rs": {
-							"value": 0.529
+							"value": 0.5231
 						},
 						"zune": {
-							"value": 0.8919
+							"value": 0.8942
 						}
 					}
 				},
@@ -455,16 +455,16 @@
 					"mpx": 0.0655,
 					"values": {
 						"blazediff": {
-							"value": 0.1108
+							"value": 0.1038
 						},
 						"spng": {
-							"value": 0.3682
+							"value": 0.3687
 						},
 						"image-rs": {
-							"value": 0.1214
+							"value": 0.1167
 						},
 						"zune": {
-							"value": 0.153
+							"value": 0.1547
 						}
 					}
 				},
@@ -473,16 +473,16 @@
 					"mpx": 0.0655,
 					"values": {
 						"blazediff": {
-							"value": 0.1126
+							"value": 0.1078
 						},
 						"spng": {
-							"value": 0.3765
+							"value": 0.3723
 						},
 						"image-rs": {
-							"value": 0.1183
+							"value": 0.1171
 						},
 						"zune": {
-							"value": 0.155
+							"value": 0.1555
 						}
 					}
 				},
@@ -491,16 +491,16 @@
 					"mpx": 0.1311,
 					"values": {
 						"blazediff": {
-							"value": 0.5003
+							"value": 0.387
 						},
 						"spng": {
-							"value": 0.7315
+							"value": 0.7234
 						},
 						"image-rs": {
-							"value": 0.4664
+							"value": 0.4645
 						},
 						"zune": {
-							"value": 0.7444
+							"value": 0.7467
 						}
 					}
 				},
@@ -509,16 +509,16 @@
 					"mpx": 0.1311,
 					"values": {
 						"blazediff": {
-							"value": 0.498
+							"value": 0.3779
 						},
 						"spng": {
-							"value": 0.7207
+							"value": 0.7116
 						},
 						"image-rs": {
-							"value": 0.462
+							"value": 0.467
 						},
 						"zune": {
-							"value": 0.7405
+							"value": 0.7494
 						}
 					}
 				},
@@ -527,16 +527,16 @@
 					"mpx": 0.1805,
 					"values": {
 						"blazediff": {
-							"value": 1.0822
+							"value": 1.0188
 						},
 						"spng": {
-							"value": 1.8338
+							"value": 1.8185
 						},
 						"image-rs": {
-							"value": 1.356
+							"value": 1.353
 						},
 						"zune": {
-							"value": 1.7371
+							"value": 1.694
 						}
 					}
 				},
@@ -545,16 +545,16 @@
 					"mpx": 0.1805,
 					"values": {
 						"blazediff": {
-							"value": 1.3082
+							"value": 1.1697
 						},
 						"spng": {
-							"value": 1.753
+							"value": 1.7352
 						},
 						"image-rs": {
-							"value": 1.3629
+							"value": 1.3333
 						},
 						"zune": {
-							"value": 2.1996
+							"value": 2.1504
 						}
 					}
 				},
@@ -563,16 +563,16 @@
 					"mpx": 0.0655,
 					"values": {
 						"blazediff": {
-							"value": 0.2927
+							"value": 0.2957
 						},
 						"spng": {
-							"value": 0.4333
+							"value": 0.4383
 						},
 						"image-rs": {
-							"value": 0.2831
+							"value": 0.2781
 						},
 						"zune": {
-							"value": 0.3693
+							"value": 0.3683
 						}
 					}
 				},
@@ -581,16 +581,16 @@
 					"mpx": 0.0655,
 					"values": {
 						"blazediff": {
-							"value": 0.2928
+							"value": 0.2869
 						},
 						"spng": {
-							"value": 0.4311
+							"value": 0.4293
 						},
 						"image-rs": {
-							"value": 0.2687
+							"value": 0.2656
 						},
 						"zune": {
-							"value": 0.361
+							"value": 0.3616
 						}
 					}
 				},
@@ -599,16 +599,16 @@
 					"mpx": 0.0655,
 					"values": {
 						"blazediff": {
-							"value": 0.3501
+							"value": 0.3426
 						},
 						"spng": {
-							"value": 0.655
+							"value": 0.6439
 						},
 						"image-rs": {
-							"value": 0.3825
+							"value": 0.3822
 						},
 						"zune": {
-							"value": 0.4627
+							"value": 0.4602
 						}
 					}
 				},
@@ -617,16 +617,16 @@
 					"mpx": 0.0655,
 					"values": {
 						"blazediff": {
-							"value": 0.6029
+							"value": 0.5206
 						},
 						"spng": {
-							"value": 0.9403
+							"value": 0.9288
 						},
 						"image-rs": {
-							"value": 0.5084
+							"value": 0.5082
 						},
 						"zune": {
-							"value": 0.8413
+							"value": 0.84
 						}
 					}
 				},
@@ -635,16 +635,16 @@
 					"mpx": 0.25,
 					"values": {
 						"blazediff": {
-							"value": 0.1864
+							"value": 0.1693
 						},
 						"spng": {
-							"value": 0.4662
+							"value": 0.4683
 						},
 						"image-rs": {
-							"value": 0.1806
+							"value": 0.1764
 						},
 						"zune": {
-							"value": 0.3132
+							"value": 0.3131
 						}
 					}
 				},
@@ -653,16 +653,16 @@
 					"mpx": 0.25,
 					"values": {
 						"blazediff": {
-							"value": 0.1792
+							"value": 0.1689
 						},
 						"spng": {
-							"value": 0.4623
+							"value": 0.4645
 						},
 						"image-rs": {
-							"value": 0.1857
+							"value": 0.1806
 						},
 						"zune": {
-							"value": 0.3133
+							"value": 0.3097
 						}
 					}
 				},
@@ -671,16 +671,16 @@
 					"mpx": 1.7377,
 					"values": {
 						"blazediff": {
-							"value": 2.0933
+							"value": 2.0624
 						},
 						"spng": {
-							"value": 2.5329
+							"value": 2.5245
 						},
 						"image-rs": {
-							"value": 2.6293
+							"value": 2.6094
 						},
 						"zune": {
-							"value": 9.2278
+							"value": 9.0988
 						}
 					}
 				},
@@ -689,16 +689,16 @@
 					"mpx": 1.7377,
 					"values": {
 						"blazediff": {
-							"value": 2.0898
+							"value": 2.0853
 						},
 						"spng": {
-							"value": 2.5257
+							"value": 2.525
 						},
 						"image-rs": {
-							"value": 2.6365
+							"value": 2.5922
 						},
 						"zune": {
-							"value": 9.2785
+							"value": 9.0679
 						}
 					}
 				}
@@ -742,16 +742,16 @@
 					"mpx": 17.92,
 					"values": {
 						"blazediff": {
-							"value": 4.3547
+							"value": 4.1628
 						},
 						"spng": {
-							"value": 30.1611
+							"value": 26.0594
 						},
 						"image-rs": {
-							"value": 27.6412
+							"value": 37.1705
 						},
 						"zune": {
-							"value": 56.7502
+							"value": 53.7639
 						}
 					}
 				},
@@ -760,16 +760,16 @@
 					"mpx": 17.92,
 					"values": {
 						"blazediff": {
-							"value": 4.8252
+							"value": 4.234
 						},
 						"spng": {
-							"value": 36.4716
+							"value": 30.4205
 						},
 						"image-rs": {
-							"value": 25.8378
+							"value": 35.327
 						},
 						"zune": {
-							"value": 68.7683
+							"value": 56.8702
 						}
 					}
 				},
@@ -778,16 +778,16 @@
 					"mpx": 19.9619,
 					"values": {
 						"blazediff": {
-							"value": 4.6423
+							"value": 4.7307
 						},
 						"spng": {
-							"value": 32.0675
+							"value": 30.5225
 						},
 						"image-rs": {
-							"value": 25.1919
+							"value": 27.1309
 						},
 						"zune": {
-							"value": 71.5714
+							"value": 68.3167
 						}
 					}
 				},
@@ -796,16 +796,16 @@
 					"mpx": 19.9619,
 					"values": {
 						"blazediff": {
-							"value": 4.6324
+							"value": 4.7362
 						},
 						"spng": {
-							"value": 45.5712
+							"value": 41.2778
 						},
 						"image-rs": {
-							"value": 31.1037
+							"value": 31.3652
 						},
 						"zune": {
-							"value": 69.7134
+							"value": 68.8921
 						}
 					}
 				},
@@ -814,16 +814,16 @@
 					"mpx": 24,
 					"values": {
 						"blazediff": {
-							"value": 5.6272
+							"value": 5.6219
 						},
 						"spng": {
-							"value": 61.564
+							"value": 46.1655
 						},
 						"image-rs": {
-							"value": 60.0472
+							"value": 46.6889
 						},
 						"zune": {
-							"value": 82.3376
+							"value": 69.6523
 						}
 					}
 				},
@@ -832,16 +832,16 @@
 					"mpx": 24,
 					"values": {
 						"blazediff": {
-							"value": 5.6254
+							"value": 5.6288
 						},
 						"spng": {
-							"value": 61.7079
+							"value": 33.7747
 						},
 						"image-rs": {
-							"value": 29.4965
+							"value": 32.7995
 						},
 						"zune": {
-							"value": 72.2517
+							"value": 70.0069
 						}
 					}
 				},
@@ -850,16 +850,16 @@
 					"mpx": 0.0369,
 					"values": {
 						"blazediff": {
-							"value": 0.0089
+							"value": 0.0087
 						},
 						"spng": {
-							"value": 0.0415
+							"value": 0.04
 						},
 						"image-rs": {
-							"value": 0.0379
+							"value": 0.0375
 						},
 						"zune": {
-							"value": 0.0956
+							"value": 0.0947
 						}
 					}
 				},
@@ -868,16 +868,16 @@
 					"mpx": 0.0369,
 					"values": {
 						"blazediff": {
-							"value": 0.0088
+							"value": 0.0086
 						},
 						"spng": {
-							"value": 0.0413
+							"value": 0.0402
 						},
 						"image-rs": {
-							"value": 0.0381
+							"value": 0.0375
 						},
 						"zune": {
-							"value": 0.0959
+							"value": 0.0951
 						}
 					}
 				},
@@ -886,16 +886,16 @@
 					"mpx": 0.4316,
 					"values": {
 						"blazediff": {
-							"value": 0.0978
+							"value": 0.0953
 						},
 						"spng": {
-							"value": 0.4773
+							"value": 0.4263
 						},
 						"image-rs": {
-							"value": 0.3872
+							"value": 0.4278
 						},
 						"zune": {
-							"value": 1.179
+							"value": 1.1768
 						}
 					}
 				},
@@ -904,16 +904,16 @@
 					"mpx": 0.4316,
 					"values": {
 						"blazediff": {
-							"value": 0.1004
+							"value": 0.0939
 						},
 						"spng": {
-							"value": 0.4238
+							"value": 0.4271
 						},
 						"image-rs": {
-							"value": 0.3881
+							"value": 0.4333
 						},
 						"zune": {
-							"value": 1.135
+							"value": 1.1767
 						}
 					}
 				},
@@ -922,16 +922,16 @@
 					"mpx": 0.3511,
 					"values": {
 						"blazediff": {
-							"value": 0.0855
+							"value": 0.0805
 						},
 						"spng": {
-							"value": 0.364
+							"value": 0.3464
 						},
 						"image-rs": {
-							"value": 0.3081
+							"value": 0.3772
 						},
 						"zune": {
-							"value": 0.9435
+							"value": 0.9463
 						}
 					}
 				},
@@ -940,16 +940,16 @@
 					"mpx": 0.3511,
 					"values": {
 						"blazediff": {
-							"value": 0.0833
+							"value": 0.0804
 						},
 						"spng": {
-							"value": 0.3671
+							"value": 0.3428
 						},
 						"image-rs": {
-							"value": 0.3105
+							"value": 0.3751
 						},
 						"zune": {
-							"value": 0.9373
+							"value": 0.9502
 						}
 					}
 				},
@@ -958,16 +958,16 @@
 					"mpx": 1.6308,
 					"values": {
 						"blazediff": {
-							"value": 0.3635
+							"value": 0.3569
 						},
 						"spng": {
-							"value": 1.9993
+							"value": 1.8136
 						},
 						"image-rs": {
-							"value": 3.5135
+							"value": 3.6169
 						},
 						"zune": {
-							"value": 4.8647
+							"value": 5.4091
 						}
 					}
 				},
@@ -976,16 +976,16 @@
 					"mpx": 1.6308,
 					"values": {
 						"blazediff": {
-							"value": 0.36
+							"value": 0.3568
 						},
 						"spng": {
-							"value": 1.9784
+							"value": 2.141
 						},
 						"image-rs": {
-							"value": 2.2848
+							"value": 3.2672
 						},
 						"zune": {
-							"value": 4.9185
+							"value": 4.891
 						}
 					}
 				},
@@ -994,16 +994,16 @@
 					"mpx": 3.7858,
 					"values": {
 						"blazediff": {
-							"value": 0.8667
+							"value": 0.8457
 						},
 						"spng": {
-							"value": 5.3513
+							"value": 6.1894
 						},
 						"image-rs": {
-							"value": 5.727
+							"value": 8.4127
 						},
 						"zune": {
-							"value": 11.377
+							"value": 11.6711
 						}
 					}
 				},
@@ -1012,16 +1012,16 @@
 					"mpx": 3.7858,
 					"values": {
 						"blazediff": {
-							"value": 0.8682
+							"value": 0.8483
 						},
 						"spng": {
-							"value": 6.1247
+							"value": 6.4685
 						},
 						"image-rs": {
-							"value": 7.8695
+							"value": 7.762
 						},
 						"zune": {
-							"value": 13.1215
+							"value": 11.7434
 						}
 					}
 				},
@@ -1030,16 +1030,16 @@
 					"mpx": 58.9496,
 					"values": {
 						"blazediff": {
-							"value": 16.839
+							"value": 16.6323
 						},
 						"spng": {
-							"value": 113.833
+							"value": 107.7905
 						},
 						"image-rs": {
-							"value": 117.0605
+							"value": 115.7364
 						},
 						"zune": {
-							"value": 191.6818
+							"value": 176.3586
 						}
 					}
 				},
@@ -1048,16 +1048,16 @@
 					"mpx": 58.9496,
 					"values": {
 						"blazediff": {
-							"value": 22.5893
+							"value": 16.4814
 						},
 						"spng": {
-							"value": 107.8115
+							"value": 104.9248
 						},
 						"image-rs": {
-							"value": 92.3416
+							"value": 103.8561
 						},
 						"zune": {
-							"value": 195.7717
+							"value": 179.9398
 						}
 					}
 				},
@@ -1066,16 +1066,16 @@
 					"mpx": 41.712,
 					"values": {
 						"blazediff": {
-							"value": 12.3235
+							"value": 11.9961
 						},
 						"spng": {
-							"value": 88.2305
+							"value": 84.6983
 						},
 						"image-rs": {
-							"value": 109.1914
+							"value": 53.9383
 						},
 						"zune": {
-							"value": 121.9192
+							"value": 128.6671
 						}
 					}
 				},
@@ -1084,16 +1084,16 @@
 					"mpx": 41.712,
 					"values": {
 						"blazediff": {
-							"value": 12.0827
+							"value": 12.8831
 						},
 						"spng": {
-							"value": 78.1735
+							"value": 91.6612
 						},
 						"image-rs": {
-							"value": 53.9533
+							"value": 103.7575
 						},
 						"zune": {
-							"value": 126.525
+							"value": 136.6132
 						}
 					}
 				},
@@ -1102,16 +1102,16 @@
 					"mpx": 0.1311,
 					"values": {
 						"blazediff": {
-							"value": 0.0312
+							"value": 0.0298
 						},
 						"spng": {
-							"value": 0.1575
+							"value": 0.1532
 						},
 						"image-rs": {
-							"value": 0.101
+							"value": 0.099
 						},
 						"zune": {
-							"value": 0.3365
+							"value": 0.3372
 						}
 					}
 				},
@@ -1120,16 +1120,16 @@
 					"mpx": 0.1311,
 					"values": {
 						"blazediff": {
-							"value": 0.0298
+							"value": 0.029
 						},
 						"spng": {
-							"value": 0.1344
+							"value": 0.1293
 						},
 						"image-rs": {
-							"value": 0.1007
+							"value": 0.1012
 						},
 						"zune": {
-							"value": 0.3421
+							"value": 0.3446
 						}
 					}
 				},
@@ -1138,16 +1138,16 @@
 					"mpx": 0.0655,
 					"values": {
 						"blazediff": {
-							"value": 0.0149
+							"value": 0.0147
 						},
 						"spng": {
-							"value": 0.0782
+							"value": 0.0668
 						},
 						"image-rs": {
-							"value": 0.055
+							"value": 0.0545
 						},
 						"zune": {
-							"value": 0.1735
+							"value": 0.1746
 						}
 					}
 				},
@@ -1156,16 +1156,16 @@
 					"mpx": 0.0655,
 					"values": {
 						"blazediff": {
-							"value": 0.0147
+							"value": 0.0153
 						},
 						"spng": {
-							"value": 0.0793
+							"value": 0.0695
 						},
 						"image-rs": {
-							"value": 0.0549
+							"value": 0.054
 						},
 						"zune": {
-							"value": 0.1705
+							"value": 0.1728
 						}
 					}
 				},
@@ -1174,16 +1174,16 @@
 					"mpx": 0.1311,
 					"values": {
 						"blazediff": {
-							"value": 0.0297
+							"value": 0.0296
 						},
 						"spng": {
-							"value": 0.1564
+							"value": 0.152
 						},
 						"image-rs": {
-							"value": 0.1007
+							"value": 0.1003
 						},
 						"zune": {
-							"value": 0.3372
+							"value": 0.3417
 						}
 					}
 				},
@@ -1192,16 +1192,16 @@
 					"mpx": 0.1311,
 					"values": {
 						"blazediff": {
-							"value": 0.0298
+							"value": 0.0291
 						},
 						"spng": {
-							"value": 0.157
+							"value": 0.1519
 						},
 						"image-rs": {
-							"value": 0.1005
+							"value": 0.1021
 						},
 						"zune": {
-							"value": 0.3356
+							"value": 0.3416
 						}
 					}
 				},
@@ -1210,16 +1210,16 @@
 					"mpx": 0.1805,
 					"values": {
 						"blazediff": {
-							"value": 0.0448
+							"value": 0.0441
 						},
 						"spng": {
-							"value": 0.1818
+							"value": 0.1735
 						},
 						"image-rs": {
-							"value": 0.1463
+							"value": 0.1439
 						},
 						"zune": {
-							"value": 0.4742
+							"value": 0.4498
 						}
 					}
 				},
@@ -1228,16 +1228,16 @@
 					"mpx": 0.1805,
 					"values": {
 						"blazediff": {
-							"value": 0.0452
+							"value": 0.0443
 						},
 						"spng": {
-							"value": 0.1899
+							"value": 0.1751
 						},
 						"image-rs": {
-							"value": 0.1631
+							"value": 0.1601
 						},
 						"zune": {
-							"value": 0.4886
+							"value": 0.4652
 						}
 					}
 				},
@@ -1246,16 +1246,16 @@
 					"mpx": 0.0655,
 					"values": {
 						"blazediff": {
-							"value": 0.0149
+							"value": 0.0148
 						},
 						"spng": {
-							"value": 0.0686
+							"value": 0.0688
 						},
 						"image-rs": {
-							"value": 0.053
+							"value": 0.0523
 						},
 						"zune": {
-							"value": 0.1706
+							"value": 0.1692
 						}
 					}
 				},
@@ -1264,16 +1264,16 @@
 					"mpx": 0.0655,
 					"values": {
 						"blazediff": {
-							"value": 0.0149
+							"value": 0.0143
 						},
 						"spng": {
-							"value": 0.0802
+							"value": 0.078
 						},
 						"image-rs": {
-							"value": 0.0529
+							"value": 0.0524
 						},
 						"zune": {
-							"value": 0.1696
+							"value": 0.1694
 						}
 					}
 				},
@@ -1282,16 +1282,16 @@
 					"mpx": 0.0655,
 					"values": {
 						"blazediff": {
-							"value": 0.0149
+							"value": 0.0144
 						},
 						"spng": {
-							"value": 0.0675
+							"value": 0.0666
 						},
 						"image-rs": {
-							"value": 0.0538
+							"value": 0.0531
 						},
 						"zune": {
-							"value": 0.1773
+							"value": 0.1755
 						}
 					}
 				},
@@ -1300,16 +1300,16 @@
 					"mpx": 0.0655,
 					"values": {
 						"blazediff": {
-							"value": 0.0155
+							"value": 0.0149
 						},
 						"spng": {
-							"value": 0.0707
+							"value": 0.0677
 						},
 						"image-rs": {
-							"value": 0.054
+							"value": 0.0524
 						},
 						"zune": {
-							"value": 0.1707
+							"value": 0.1688
 						}
 					}
 				},
@@ -1318,16 +1318,16 @@
 					"mpx": 0.25,
 					"values": {
 						"blazediff": {
-							"value": 0.0587
+							"value": 0.0571
 						},
 						"spng": {
-							"value": 0.239
+							"value": 0.2407
 						},
 						"image-rs": {
-							"value": 0.1967
+							"value": 0.2214
 						},
 						"zune": {
-							"value": 0.6458
+							"value": 0.6496
 						}
 					}
 				},
@@ -1336,16 +1336,16 @@
 					"mpx": 0.25,
 					"values": {
 						"blazediff": {
-							"value": 0.0587
+							"value": 0.0575
 						},
 						"spng": {
-							"value": 0.2713
+							"value": 0.2722
 						},
 						"image-rs": {
-							"value": 0.1964
+							"value": 0.2312
 						},
 						"zune": {
-							"value": 0.6522
+							"value": 0.6482
 						}
 					}
 				},
@@ -1354,16 +1354,16 @@
 					"mpx": 1.7377,
 					"values": {
 						"blazediff": {
-							"value": 0.4004
+							"value": 0.3864
 						},
 						"spng": {
-							"value": 2.0681
+							"value": 2.7989
 						},
 						"image-rs": {
-							"value": 3.454
+							"value": 3.7677
 						},
 						"zune": {
-							"value": 4.9816
+							"value": 5.8127
 						}
 					}
 				},
@@ -1372,16 +1372,16 @@
 					"mpx": 1.7377,
 					"values": {
 						"blazediff": {
-							"value": 0.395
+							"value": 0.3858
 						},
 						"spng": {
-							"value": 2.5655
+							"value": 2.8459
 						},
 						"image-rs": {
-							"value": 3.9604
+							"value": 4.1575
 						},
 						"zune": {
-							"value": 5.8768
+							"value": 5.7516
 						}
 					}
 				}
@@ -1425,16 +1425,16 @@
 					"mpx": 17.92,
 					"values": {
 						"blazediff": {
-							"value": 1152.1039
+							"value": 1092.3938
 						},
 						"spng": {
-							"value": 2801.9828
+							"value": 2788.2798
 						},
 						"image-rs": {
-							"value": 1082.5961
+							"value": 1028.4691
 						},
 						"zune": {
-							"value": 55.057
+							"value": 56.729
 						}
 					}
 				},
@@ -1443,16 +1443,16 @@
 					"mpx": 17.92,
 					"values": {
 						"blazediff": {
-							"value": 959.2652
+							"value": 932.7983
 						},
 						"spng": {
-							"value": 2506.1925
+							"value": 2414.9626
 						},
 						"image-rs": {
-							"value": 900.0322
+							"value": 878.2499
 						},
 						"zune": {
-							"value": 62.9679
+							"value": 58.2009
 						}
 					}
 				},
@@ -1461,16 +1461,16 @@
 					"mpx": 19.9619,
 					"values": {
 						"blazediff": {
-							"value": 963.2644
+							"value": 952.9743
 						},
 						"spng": {
-							"value": 3149.5736
+							"value": 2954.748
 						},
 						"image-rs": {
-							"value": 1103.5149
+							"value": 1070.3231
 						},
 						"zune": {
-							"value": 71.7327
+							"value": 67.8815
 						}
 					}
 				},
@@ -1479,16 +1479,16 @@
 					"mpx": 19.9619,
 					"values": {
 						"blazediff": {
-							"value": 1010.7669
+							"value": 961.947
 						},
 						"spng": {
-							"value": 3052.0415
+							"value": 2996.7915
 						},
 						"image-rs": {
-							"value": 1117.0684
+							"value": 1092.2592
 						},
 						"zune": {
-							"value": 60.2715
+							"value": 68.2075
 						}
 					}
 				},
@@ -1497,16 +1497,16 @@
 					"mpx": 24,
 					"values": {
 						"blazediff": {
-							"value": 1414.357
+							"value": 1397.7942
 						},
 						"spng": {
-							"value": 3822.4101
+							"value": 3732.1406
 						},
 						"image-rs": {
-							"value": 1458.309
+							"value": 1428.286
 						},
 						"zune": {
-							"value": 83.1164
+							"value": 69.4183
 						}
 					}
 				},
@@ -1515,16 +1515,16 @@
 					"mpx": 24,
 					"values": {
 						"blazediff": {
-							"value": 1407.1846
+							"value": 1396.6987
 						},
 						"spng": {
-							"value": 3875.3282
+							"value": 3754.8328
 						},
 						"image-rs": {
-							"value": 1465.7668
+							"value": 1418.3218
 						},
 						"zune": {
-							"value": 72.0314
+							"value": 71.3236
 						}
 					}
 				},
@@ -1533,16 +1533,16 @@
 					"mpx": 0.0369,
 					"values": {
 						"blazediff": {
-							"value": 0.3594
+							"value": 0.3524
 						},
 						"spng": {
-							"value": 2.8794
+							"value": 2.7376
 						},
 						"image-rs": {
-							"value": 0.3672
+							"value": 0.3632
 						},
 						"zune": {
-							"value": 0.0958
+							"value": 0.0946
 						}
 					}
 				},
@@ -1551,16 +1551,16 @@
 					"mpx": 0.0369,
 					"values": {
 						"blazediff": {
-							"value": 0.3603
+							"value": 0.3536
 						},
 						"spng": {
-							"value": 2.8803
+							"value": 2.7347
 						},
 						"image-rs": {
-							"value": 0.3751
+							"value": 0.3833
 						},
 						"zune": {
-							"value": 0.0959
+							"value": 0.095
 						}
 					}
 				},
@@ -1569,16 +1569,16 @@
 					"mpx": 0.4316,
 					"values": {
 						"blazediff": {
-							"value": 3.7981
+							"value": 3.7931
 						},
 						"spng": {
-							"value": 33.9865
+							"value": 33.2042
 						},
 						"image-rs": {
-							"value": 2.9612
+							"value": 2.9458
 						},
 						"zune": {
-							"value": 1.1394
+							"value": 1.15
 						}
 					}
 				},
@@ -1587,16 +1587,16 @@
 					"mpx": 0.4316,
 					"values": {
 						"blazediff": {
-							"value": 3.8337
+							"value": 3.8025
 						},
 						"spng": {
-							"value": 34.2041
+							"value": 33.8552
 						},
 						"image-rs": {
-							"value": 2.9626
+							"value": 2.9478
 						},
 						"zune": {
-							"value": 1.1494
+							"value": 1.1787
 						}
 					}
 				},
@@ -1605,16 +1605,16 @@
 					"mpx": 0.3511,
 					"values": {
 						"blazediff": {
-							"value": 3.3106
+							"value": 3.2695
 						},
 						"spng": {
-							"value": 27.8294
+							"value": 27.2281
 						},
 						"image-rs": {
-							"value": 2.5942
+							"value": 2.5503
 						},
 						"zune": {
-							"value": 0.9345
+							"value": 0.9419
 						}
 					}
 				},
@@ -1623,16 +1623,16 @@
 					"mpx": 0.3511,
 					"values": {
 						"blazediff": {
-							"value": 3.3418
+							"value": 3.2956
 						},
 						"spng": {
-							"value": 28.0631
+							"value": 27.2905
 						},
 						"image-rs": {
-							"value": 2.6751
+							"value": 2.6123
 						},
 						"zune": {
-							"value": 0.9277
+							"value": 0.9524
 						}
 					}
 				},
@@ -1641,16 +1641,16 @@
 					"mpx": 1.6308,
 					"values": {
 						"blazediff": {
-							"value": 37.8836
+							"value": 37.0731
 						},
 						"spng": {
-							"value": 157.1075
+							"value": 156.4858
 						},
 						"image-rs": {
-							"value": 37.5763
+							"value": 37.4464
 						},
 						"zune": {
-							"value": 4.8787
+							"value": 5.434
 						}
 					}
 				},
@@ -1659,16 +1659,16 @@
 					"mpx": 1.6308,
 					"values": {
 						"blazediff": {
-							"value": 36.7211
+							"value": 36.5011
 						},
 						"spng": {
-							"value": 158.3357
+							"value": 152.7746
 						},
 						"image-rs": {
-							"value": 37.0205
+							"value": 36.6747
 						},
 						"zune": {
-							"value": 4.979
+							"value": 5.4427
 						}
 					}
 				},
@@ -1677,16 +1677,16 @@
 					"mpx": 3.7858,
 					"values": {
 						"blazediff": {
-							"value": 29.1592
+							"value": 29.1149
 						},
 						"spng": {
-							"value": 292.0455
+							"value": 294.6477
 						},
 						"image-rs": {
-							"value": 20.4776
+							"value": 20.4017
 						},
 						"zune": {
-							"value": 11.3057
+							"value": 11.6878
 						}
 					}
 				},
@@ -1695,16 +1695,16 @@
 					"mpx": 3.7858,
 					"values": {
 						"blazediff": {
-							"value": 29.1827
+							"value": 29.1455
 						},
 						"spng": {
-							"value": 293.8052
+							"value": 290.948
 						},
 						"image-rs": {
-							"value": 20.4503
+							"value": 20.3711
 						},
 						"zune": {
-							"value": 12.6966
+							"value": 11.6839
 						}
 					}
 				},
@@ -1713,16 +1713,16 @@
 					"mpx": 58.9496,
 					"values": {
 						"blazediff": {
-							"value": 821.6783
+							"value": 797.8058
 						},
 						"spng": {
-							"value": 5189.7538
+							"value": 4981.2531
 						},
 						"image-rs": {
-							"value": 705.5735
+							"value": 694.0978
 						},
 						"zune": {
-							"value": 192.2481
+							"value": 183.9124
 						}
 					}
 				},
@@ -1731,16 +1731,16 @@
 					"mpx": 58.9496,
 					"values": {
 						"blazediff": {
-							"value": 828.8814
+							"value": 797.6428
 						},
 						"spng": {
-							"value": 5130.358
+							"value": 4951.0914
 						},
 						"image-rs": {
-							"value": 695.0334
+							"value": 694.1729
 						},
 						"zune": {
-							"value": 194.1785
+							"value": 180.0699
 						}
 					}
 				},
@@ -1749,16 +1749,16 @@
 					"mpx": 41.712,
 					"values": {
 						"blazediff": {
-							"value": 628.7195
+							"value": 607.518
 						},
 						"spng": {
-							"value": 3670.9113
+							"value": 3585.332
 						},
 						"image-rs": {
-							"value": 595.4352
+							"value": 597.9981
 						},
 						"zune": {
-							"value": 133.2382
+							"value": 142.5033
 						}
 					}
 				},
@@ -1767,16 +1767,16 @@
 					"mpx": 41.712,
 					"values": {
 						"blazediff": {
-							"value": 618.7628
+							"value": 616.8505
 						},
 						"spng": {
-							"value": 3685.9217
+							"value": 3636.6149
 						},
 						"image-rs": {
-							"value": 597.756
+							"value": 622.7079
 						},
 						"zune": {
-							"value": 130.5517
+							"value": 144.7346
 						}
 					}
 				},
@@ -1785,16 +1785,16 @@
 					"mpx": 0.1311,
 					"values": {
 						"blazediff": {
-							"value": 1.649
+							"value": 1.6305
 						},
 						"spng": {
-							"value": 11.2423
+							"value": 11.1357
 						},
 						"image-rs": {
-							"value": 1.7235
+							"value": 1.6837
 						},
 						"zune": {
-							"value": 0.337
+							"value": 0.3375
 						}
 					}
 				},
@@ -1803,16 +1803,16 @@
 					"mpx": 0.1311,
 					"values": {
 						"blazediff": {
-							"value": 1.6498
+							"value": 1.606
 						},
 						"spng": {
-							"value": 11.2128
+							"value": 11.0778
 						},
 						"image-rs": {
-							"value": 1.7343
+							"value": 1.7169
 						},
 						"zune": {
-							"value": 0.3426
+							"value": 0.3473
 						}
 					}
 				},
@@ -1821,16 +1821,16 @@
 					"mpx": 0.0655,
 					"values": {
 						"blazediff": {
-							"value": 2.4527
+							"value": 2.4238
 						},
 						"spng": {
-							"value": 8.9087
+							"value": 9.0091
 						},
 						"image-rs": {
-							"value": 3.2031
+							"value": 3.1916
 						},
 						"zune": {
-							"value": 0.1733
+							"value": 0.1745
 						}
 					}
 				},
@@ -1839,16 +1839,16 @@
 					"mpx": 0.0655,
 					"values": {
 						"blazediff": {
-							"value": 2.487
+							"value": 2.4885
 						},
 						"spng": {
-							"value": 9.201
+							"value": 9.1475
 						},
 						"image-rs": {
-							"value": 3.3117
+							"value": 3.2806
 						},
 						"zune": {
-							"value": 0.1828
+							"value": 0.1729
 						}
 					}
 				},
@@ -1857,16 +1857,16 @@
 					"mpx": 0.1311,
 					"values": {
 						"blazediff": {
-							"value": 1.341
+							"value": 1.3126
 						},
 						"spng": {
-							"value": 10.4184
+							"value": 10.4449
 						},
 						"image-rs": {
-							"value": 1.159
+							"value": 1.162
 						},
 						"zune": {
-							"value": 0.3422
+							"value": 0.3445
 						}
 					}
 				},
@@ -1875,16 +1875,16 @@
 					"mpx": 0.1311,
 					"values": {
 						"blazediff": {
-							"value": 1.3158
+							"value": 1.2941
 						},
 						"spng": {
-							"value": 10.4349
+							"value": 10.4124
 						},
 						"image-rs": {
-							"value": 1.1585
+							"value": 1.1638
 						},
 						"zune": {
-							"value": 0.338
+							"value": 0.341
 						}
 					}
 				},
@@ -1893,16 +1893,16 @@
 					"mpx": 0.1805,
 					"values": {
 						"blazediff": {
-							"value": 6.9693
+							"value": 6.8757
 						},
 						"spng": {
-							"value": 24.6865
+							"value": 24.2474
 						},
 						"image-rs": {
-							"value": 8.84
+							"value": 8.658
 						},
 						"zune": {
-							"value": 0.4746
+							"value": 0.451
 						}
 					}
 				},
@@ -1911,16 +1911,16 @@
 					"mpx": 0.1805,
 					"values": {
 						"blazediff": {
-							"value": 7.0527
+							"value": 6.906
 						},
 						"spng": {
-							"value": 25.1598
+							"value": 24.7125
 						},
 						"image-rs": {
-							"value": 9.2963
+							"value": 8.9868
 						},
 						"zune": {
-							"value": 0.4662
+							"value": 0.4818
 						}
 					}
 				},
@@ -1929,16 +1929,16 @@
 					"mpx": 0.0655,
 					"values": {
 						"blazediff": {
-							"value": 0.6065
+							"value": 0.6121
 						},
 						"spng": {
-							"value": 5.0745
+							"value": 5.0674
 						},
 						"image-rs": {
-							"value": 0.5839
+							"value": 0.601
 						},
 						"zune": {
-							"value": 0.1722
+							"value": 0.1706
 						}
 					}
 				},
@@ -1947,16 +1947,16 @@
 					"mpx": 0.0655,
 					"values": {
 						"blazediff": {
-							"value": 0.6054
+							"value": 0.5964
 						},
 						"spng": {
-							"value": 5.0587
+							"value": 5.0619
 						},
 						"image-rs": {
-							"value": 0.5762
+							"value": 0.5727
 						},
 						"zune": {
-							"value": 0.1703
+							"value": 0.1705
 						}
 					}
 				},
@@ -1965,16 +1965,16 @@
 					"mpx": 0.0655,
 					"values": {
 						"blazediff": {
-							"value": 2.1059
+							"value": 2.0636
 						},
 						"spng": {
-							"value": 7.2326
+							"value": 7.1679
 						},
 						"image-rs": {
-							"value": 2.4426
+							"value": 2.4686
 						},
 						"zune": {
-							"value": 0.1781
+							"value": 0.1752
 						}
 					}
 				},
@@ -1983,16 +1983,16 @@
 					"mpx": 0.0655,
 					"values": {
 						"blazediff": {
-							"value": 2.0286
+							"value": 1.988
 						},
 						"spng": {
-							"value": 6.8787
+							"value": 6.6775
 						},
 						"image-rs": {
-							"value": 2.1376
+							"value": 2.0759
 						},
 						"zune": {
-							"value": 0.1711
+							"value": 0.1688
 						}
 					}
 				},
@@ -2001,16 +2001,16 @@
 					"mpx": 0.25,
 					"values": {
 						"blazediff": {
-							"value": 3.7657
+							"value": 3.7111
 						},
 						"spng": {
-							"value": 22.389
+							"value": 21.742
 						},
 						"image-rs": {
-							"value": 4.0516
+							"value": 4.0578
 						},
 						"zune": {
-							"value": 0.6445
+							"value": 0.6457
 						}
 					}
 				},
@@ -2019,16 +2019,16 @@
 					"mpx": 0.25,
 					"values": {
 						"blazediff": {
-							"value": 3.7718
+							"value": 3.7372
 						},
 						"spng": {
-							"value": 22.068
+							"value": 21.8055
 						},
 						"image-rs": {
-							"value": 4.0344
+							"value": 3.9987
 						},
 						"zune": {
-							"value": 0.6571
+							"value": 0.6451
 						}
 					}
 				},
@@ -2037,16 +2037,16 @@
 					"mpx": 1.7377,
 					"values": {
 						"blazediff": {
-							"value": 15.3987
+							"value": 15.451
 						},
 						"spng": {
-							"value": 137.089
+							"value": 135.8947
 						},
 						"image-rs": {
-							"value": 12.2496
+							"value": 12.2345
 						},
 						"zune": {
-							"value": 5.1789
+							"value": 5.7445
 						}
 					}
 				},
@@ -2055,16 +2055,16 @@
 					"mpx": 1.7377,
 					"values": {
 						"blazediff": {
-							"value": 15.6997
+							"value": 15.459
 						},
 						"spng": {
-							"value": 139.977
+							"value": 135.9897
 						},
 						"image-rs": {
-							"value": 12.3841
+							"value": 12.1604
 						},
 						"zune": {
-							"value": 5.8551
+							"value": 5.685
 						}
 					}
 				}

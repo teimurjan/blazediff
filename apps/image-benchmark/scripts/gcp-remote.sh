@@ -68,7 +68,8 @@ pnpm build
 ')
 
 # A failed key must not ship back the committed artifact as if it were fresh.
-for key in "${KEYS[@]}"; do rm -f "benchmarks/results/$key.json"; done
+RESULTS_DIR="benchmarks/results/linux-$(node -p process.arch)"
+for key in "${KEYS[@]}"; do rm -f "$RESULTS_DIR/$key.json"; done
 
 case "$(uname -m)" in
 x86_64) CODEC_RUSTFLAGS="-C target-cpu=haswell" ;;
@@ -88,7 +89,7 @@ done
 # Only what this run wrote, so unselected keys never overwrite local results.
 results=()
 for key in "${KEYS[@]}"; do
-	if [ -f "benchmarks/results/$key.json" ]; then results+=("benchmarks/results/$key.json"); fi
+	if [ -f "$RESULTS_DIR/$key.json" ]; then results+=("$RESULTS_DIR/$key.json"); fi
 done
 tar czf "$HOME/benchmarks.tgz" benchmarks/*.md ${results[@]+"${results[@]}"}
 

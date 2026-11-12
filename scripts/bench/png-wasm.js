@@ -8,7 +8,7 @@
  *   1. Build the zune-png wasm shim, the codec-png-wasm module when it is
  *      missing, and the image-benchmark app.
  *   2. Run `pnpm --filter @blazediff/image-benchmark png-wasm`, which writes JSON.
- *   3. Convert it into `benchmarks/results/png-wasm.json` and regenerate
+ *   3. Convert it into `benchmarks/results/<platform>/png-wasm.json` and regenerate
  *      `benchmarks/png-codec.md` (see `png.js`).
  *
  * Usage (from repo root):
@@ -24,6 +24,7 @@ const {
 	header,
 	writeArtifact,
 	readArtifact,
+	ownsMarkdown,
 	artifactPath,
 } = require("./artifact.js");
 const { npmVersion } = require("./env.js");
@@ -198,7 +199,7 @@ function run(flags = {}) {
 		);
 	}
 
-	if (!flags["skip-md"]) writeMarkdown();
+	if (!flags["skip-md"] && ownsMarkdown(KEY)) writeMarkdown();
 }
 
 module.exports = { run };
