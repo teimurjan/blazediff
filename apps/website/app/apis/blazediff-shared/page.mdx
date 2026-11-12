@@ -61,7 +61,7 @@ The per-codec modules (`png_io`, `jpeg_io`, `qoi_io`) are public too, for caller
 
 ## Codecs
 
-- **PNG** — vendored [libspng](https://github.com/randy408/libspng), compiled with its SIMD paths. Setting `BLAZEDIFF_PNG_ENABLED` to a truthy value routes decode and level-0 encode through the in-house [`blazediff-png`](/apis/blazediff-png) codec instead, with spng staying as a defensive fallback.
+- **PNG**: encode uses the in-house [`blazediff-png`](/apis/blazediff-png) codec and writes the smallest lossless color mode (a palette for images of at most 256 colors). Decode uses vendored [libspng](https://github.com/randy408/libspng), compiled with its SIMD paths. Setting `BLAZEDIFF_PNG_ENABLED` to a truthy value routes decode through `blazediff-png` too, with spng staying as a defensive fallback.
 - **JPEG** — vendored [libjpeg-turbo](https://github.com/libjpeg-turbo/libjpeg-turbo) via the TurboJPEG API.
 - **QOI** — [`qoi-rust`](https://crates.io/crates/qoi), pure Rust.
 

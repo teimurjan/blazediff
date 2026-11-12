@@ -221,8 +221,9 @@ These are end-to-end times, so PNG decode and encode take most of them. The diff
 itself is faster than in 7.0.0. On a 3598x16384 page screenshot, a count-only diff
 takes 11 ms instead of 38 ms, and a diff that writes an image is about 3.5x faster.
 That gain is small in this table because IO is the larger share of the total.
-`BLAZEDIFF_PNG_ENABLED=1` routes PNG decode and stored-block (level 0) encode
-through the in-house [`blazediff_png`](https://crates.io/crates/blazediff-png) codec.
+`BLAZEDIFF_PNG_ENABLED=1` routes PNG decode through the in-house
+[`blazediff_png`](https://crates.io/crates/blazediff-png) codec. Encode always uses it,
+and writes a diff image as a palette PNG when it has at most 256 colors.
 
 Binary sizes (stripped, LTO optimized):
 

@@ -148,10 +148,11 @@ See [INTERPRET.md](./INTERPRET.md) for the full algorithm documentation - pipeli
 4.3-4.9x faster than odiff, 8x faster than pixelmatch on 4K images.
 
 Image I/O lives in [`blazediff-shared`](../blazediff-shared), shared with the other crates;
-`load_png`, `save_jpeg` and friends are re-exported here unchanged. PNG I/O defaults
-to spng. Setting `BLAZEDIFF_PNG_ENABLED=1` routes decode and stored (level 0) encode
-through the in-house [`blazediff_png`](../blazediff-png) codec, which is faster than
-spng on every fixture.
+`load_png`, `save_jpeg` and friends are re-exported here unchanged. PNG encode uses the
+in-house [`blazediff_png`](../blazediff-png) codec. A diff image has few colors, so it is
+written as a palette PNG: the decoded pixels are the same and the file is about 4x smaller.
+PNG decode defaults to spng. Setting `BLAZEDIFF_PNG_ENABLED=1` routes decode through
+`blazediff_png` too, which is faster than spng on every fixture.
 
 ## License
 

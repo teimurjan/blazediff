@@ -203,7 +203,6 @@ dependencies = [
  "bytemuck",
  "cc",
  "cmake",
- "libc",
  "memmap2",
  "pkg-config",
  "qoi",
