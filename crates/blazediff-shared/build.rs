@@ -25,8 +25,7 @@ fn main() {
     // own rlib that mismatch happened to resolve, but from a dependency rlib
     // lld-link loads them lazily and the link dies on
     // `undefined symbol: __declspec(dllimport) realloc`. Forcing `/MT` here
-    // matches what is actually on the line and keeps spng's allocations on the
-    // same heap as the `libc::free` in png_io.rs.
+    // matches what is actually on the line.
     let static_crt = target_env == "msvc";
 
     // Use the vendored miniz instead of system zlib whenever zlib headers

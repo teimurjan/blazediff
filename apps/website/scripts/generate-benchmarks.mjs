@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 /**
- * Merge the committed benchmark artifacts (`benchmarks/results/<key>.json`,
- * written by `pnpm benchmark <key>`) into `data/benchmarks.json`, keyed by bench,
- * for the /benchmarks page and the homepage teaser to import.
+ * Merge the committed benchmark artifacts
+ * (`benchmarks/results/<platform>/<key>.json`, written by `pnpm benchmark <key>`)
+ * into `data/benchmarks.json`, keyed by platform and then bench, for the
+ * /benchmarks pages and the homepage teaser to import.
  *
  * Wired into `prebuild`/`predev`; `data/` is gitignored.
  */
@@ -19,27 +20,41 @@ const resultsDir = path.resolve(websiteRoot, "../../benchmarks/results");
 const outPath = path.join(websiteRoot, "data/benchmarks.json");
 
 // A checkout without results still builds; the pages skip what is missing.
-const files = fs.existsSync(resultsDir) ? fs.readdirSync(resultsDir) : [];
+const platforms = fs.existsSync(resultsDir)
+	? fs
+			.readdirSync(resultsDir, { withFileTypes: true })
+			.filter((entry) => entry.isDirectory())
+			.map((entry) => entry.name)
+			.sort()
+	: [];
 
-const artifacts = Object.fromEntries(
-	files
+function readPlatform(platform) {
+	const dir = path.join(resultsDir, platform);
+	const entries = fs
+		.readdirSync(dir)
 		.filter((file) => file.endsWith(".json"))
 		.sort()
 		.map((file) => {
-			const artifact = JSON.parse(
-				fs.readFileSync(path.join(resultsDir, file), "utf8"),
-			);
+			const artifact = JSON.parse(fs.readFileSync(path.join(dir, file), "utf8"));
 			if (artifact.schemaVersion !== SCHEMA_VERSION) {
 				throw new Error(
-					`${file}: schemaVersion ${artifact.schemaVersion}, expected ${SCHEMA_VERSION}`,
+					`${platform}/${file}: schemaVersion ${artifact.schemaVersion}, expected ${SCHEMA_VERSION}`,
 				);
 			}
 			return [artifact.key, artifact];
-		}),
+		});
+	return Object.fromEntries(entries);
+}
+
+const artifacts = Object.fromEntries(
+	platforms.map((platform) => [platform, readPlatform(platform)]),
 );
 
 fs.mkdirSync(path.dirname(outPath), { recursive: true });
 fs.writeFileSync(outPath, JSON.stringify(artifacts));
+const summary = platforms
+	.map((p) => `${p}: ${Object.keys(artifacts[p]).join(", ")}`)
+	.join("; ");
 console.log(
-	`Wrote ${path.relative(websiteRoot, outPath)} (${Object.keys(artifacts).join(", ") || "no artifacts"})`,
+	`Wrote ${path.relative(websiteRoot, outPath)} (${summary || "no artifacts"})`,
 );

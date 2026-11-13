@@ -73,8 +73,9 @@ export default withNextra({
 				permanent: true,
 			},
 			// The per-category benchmark pages merged into one /benchmarks page.
+			// Only those names: /benchmarks/<platform> is a real page.
 			{
-				source: "/benchmarks/:category",
+				source: "/benchmarks/:category(pixel-by-pixel|structural|object|png-codec)",
 				destination: "/benchmarks#:category",
 				permanent: true,
 			},

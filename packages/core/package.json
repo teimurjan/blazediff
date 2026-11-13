@@ -1,7 +1,7 @@
 {
 	"name": "@blazediff/core",
 	"version": "2.0.0",
-	"description": "Blazing-fast pixel-by-pixel image comparison with block-based optimization. 1.5x times faster than pixelmatch",
+	"description": "Blazing-fast pixel-by-pixel image comparison. About 7x faster than pixelmatch, with the same output",
 	"private": false,
 	"publishConfig": {
 		"access": "public"

@@ -112,14 +112,14 @@ are never copied into Rust. Decoding still allocates native RGBA buffers, and on
 ## What it costs
 
 Against [odiff](https://github.com/dmtrKovalenko/odiff) on the same fixtures with
-image IO included, measured with hyperfine on an M1 Max, 25 runs:
+image IO included, measured with tinybench on an M1 Max, 25 runs:
 
 | Case               | odiff             | `@blazediff/core-native` |
 | ------------------ | ----------------- | ------------------------ |
-| 4K pair            | 1157.12-1677.13ms | 288.01-349.43ms          |
-| 4K pair, identical | 269.36-366.79ms   | 183.94-230.29ms          |
+| 4K pair            | 1238.75-1803.10ms | 274.41-367.63ms          |
+| 4K pair, identical | 278.45-383.71ms   | 196.76-241.81ms          |
 
-That is 4x to 4.8x on a changed 4K pair. Because decode dominates end-to-end time,
+That is 4.3x to 4.9x on a changed 4K pair. Because decode dominates end-to-end time,
 passing already-decoded buffers moves the number further than any change to the
 diff kernel would. [Full tables](/benchmarks/pixel-by-pixel).
 

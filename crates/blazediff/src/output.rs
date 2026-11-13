@@ -93,29 +93,54 @@ pub fn fill_block_gray_optimized(
     end_x: u32,
     end_y: u32,
 ) {
+    let width = source.width;
+    fill_gray_rect(
+        source.as_u32(),
+        width,
+        output.as_u32_mut(),
+        alpha,
+        start_x,
+        start_y,
+        end_x,
+        end_y,
+    );
+}
+
+/// [`fill_block_gray_optimized`] over borrowed pixels.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn fill_gray_rect(
+    source: &[u32],
+    width: u32,
+    output: &mut [u32],
+    alpha: f64,
+    start_x: u32,
+    start_y: u32,
+    end_x: u32,
+    end_y: u32,
+) {
     #[cfg(target_arch = "aarch64")]
     {
-        fill_block_gray_neon(source, output, alpha, start_x, start_y, end_x, end_y);
+        fill_block_gray_neon(source, width, output, alpha, start_x, start_y, end_x, end_y);
     }
 
     #[cfg(target_arch = "x86_64")]
     {
         if is_x86_feature_detected!("avx2") && is_x86_feature_detected!("fma") {
             unsafe {
-                fill_block_gray_avx2(source, output, alpha, start_x, start_y, end_x, end_y);
+                fill_block_gray_avx2(source, width, output, alpha, start_x, start_y, end_x, end_y);
             }
         } else if is_x86_feature_detected!("sse4.1") {
             unsafe {
-                fill_block_gray_sse(source, output, alpha, start_x, start_y, end_x, end_y);
+                fill_block_gray_sse(source, width, output, alpha, start_x, start_y, end_x, end_y);
             }
         } else {
-            fill_block_gray_scalar(source, output, alpha, start_x, start_y, end_x, end_y);
+            fill_block_gray_scalar(source, width, output, alpha, start_x, start_y, end_x, end_y);
         }
     }
 
     #[cfg(not(any(target_arch = "aarch64", target_arch = "x86_64")))]
     {
-        fill_block_gray_scalar(source, output, alpha, start_x, start_y, end_x, end_y);
+        fill_block_gray_scalar(source, width, output, alpha, start_x, start_y, end_x, end_y);
     }
 }
 
@@ -124,9 +149,11 @@ const YIQ_Y_F32: [f32; 3] = [0.29889531, 0.58662247, 0.11448223];
 /// NEON implementation - processes 4 pixels at a time
 #[cfg(target_arch = "aarch64")]
 #[inline]
+#[allow(clippy::too_many_arguments)]
 fn fill_block_gray_neon(
-    source: &Image,
-    output: &mut Image,
+    source_pixels: &[u32],
+    width: u32,
+    output_pixels: &mut [u32],
     alpha: f64,
     start_x: u32,
     start_y: u32,
@@ -135,9 +162,6 @@ fn fill_block_gray_neon(
 ) {
     use std::arch::aarch64::*;
 
-    let width = source.width;
-    let source_pixels = source.as_u32();
-    let output_pixels = output.as_u32_mut();
     let alpha_scaled = (alpha / 255.0) as f32;
 
     unsafe {
@@ -146,7 +170,43 @@ fn fill_block_gray_neon(
         let alpha_vec = vdupq_n_f32(alpha_scaled);
         let alpha_byte = vdupq_n_u32(0xFF000000);
 
-        for y in start_y..end_y {
+        let gray_4 = |pixels: uint32x4_t| {
+            let r = vcvtq_f32_u32(vandq_u32(pixels, mask_ff));
+            let g = vcvtq_f32_u32(vandq_u32(vshrq_n_u32(pixels, 8), mask_ff));
+            let b = vcvtq_f32_u32(vandq_u32(vshrq_n_u32(pixels, 16), mask_ff));
+            let a = vcvtq_f32_u32(vshrq_n_u32(pixels, 24));
+
+            // Luminance: Y = 0.299*R + 0.587*G + 0.114*B
+            let luminance = vfmaq_n_f32(
+                vfmaq_n_f32(vmulq_n_f32(r, YIQ_Y_F32[0]), g, YIQ_Y_F32[1]),
+                b,
+                YIQ_Y_F32[2],
+            );
+
+            // Gray = 255 + (luminance - 255) * alpha_scaled * pixel_alpha
+            let gray_f = vfmaq_f32(v255, vsubq_f32(luminance, v255), vmulq_f32(alpha_vec, a));
+            let gray_clamped = vminq_f32(vmaxq_f32(gray_f, vdupq_n_f32(0.0)), v255);
+            let gray_u32 = vcvtq_u32_f32(gray_clamped);
+
+            // Pack as RGBA (gray, gray, gray, 255)
+            vorrq_u32(
+                vorrq_u32(
+                    vorrq_u32(gray_u32, vshlq_n_u32(gray_u32, 8)),
+                    vshlq_n_u32(gray_u32, 16),
+                ),
+                alpha_byte,
+            )
+        };
+
+        // Screenshots repeat whole chunks (flat fills, stripes), and the
+        // formula is per lane, so a repeated chunk reuses the last result.
+        // Photos and maps repeat less, and there the branch costs more than it
+        // saves: a row only checks if 3/4 of the last row hit, or every 8th row.
+        let mut last_pixels = vdupq_n_u32(0);
+        let mut last_gray = gray_4(last_pixels);
+        let mut reuse = true;
+
+        for (row, y) in (start_y..end_y).enumerate() {
             let row_start = (y * width + start_x) as usize;
             let row_width = (end_x - start_x) as usize;
             let mut offset = 0usize;
@@ -154,39 +214,25 @@ fn fill_block_gray_neon(
             let src_ptr = source_pixels.as_ptr().add(row_start);
             let dst_ptr = output_pixels.as_mut_ptr().add(row_start);
 
-            // Process 4 pixels at a time
-            while offset + 4 <= row_width {
-                let pixels = vld1q_u32(src_ptr.add(offset));
-
-                // Extract RGBA
-                let r = vcvtq_f32_u32(vandq_u32(pixels, mask_ff));
-                let g = vcvtq_f32_u32(vandq_u32(vshrq_n_u32(pixels, 8), mask_ff));
-                let b = vcvtq_f32_u32(vandq_u32(vshrq_n_u32(pixels, 16), mask_ff));
-                let a = vcvtq_f32_u32(vshrq_n_u32(pixels, 24));
-
-                // Luminance: Y = 0.299*R + 0.587*G + 0.114*B
-                let luminance = vfmaq_n_f32(
-                    vfmaq_n_f32(vmulq_n_f32(r, YIQ_Y_F32[0]), g, YIQ_Y_F32[1]),
-                    b,
-                    YIQ_Y_F32[2],
-                );
-
-                // Gray = 255 + (luminance - 255) * alpha_scaled * pixel_alpha
-                let gray_f = vfmaq_f32(v255, vsubq_f32(luminance, v255), vmulq_f32(alpha_vec, a));
-                let gray_clamped = vminq_f32(vmaxq_f32(gray_f, vdupq_n_f32(0.0)), v255);
-                let gray_u32 = vcvtq_u32_f32(gray_clamped);
-
-                // Pack as RGBA (gray, gray, gray, 255)
-                let result = vorrq_u32(
-                    vorrq_u32(
-                        vorrq_u32(gray_u32, vshlq_n_u32(gray_u32, 8)),
-                        vshlq_n_u32(gray_u32, 16),
-                    ),
-                    alpha_byte,
-                );
-
-                vst1q_u32(dst_ptr.add(offset), result);
-                offset += 4;
+            if reuse || row % 8 == 0 {
+                let mut hits = 0;
+                while offset + 4 <= row_width {
+                    let pixels = vld1q_u32(src_ptr.add(offset));
+                    if vminvq_u32(vceqq_u32(pixels, last_pixels)) == 0 {
+                        last_pixels = pixels;
+                        last_gray = gray_4(pixels);
+                    } else {
+                        hits += 1;
+                    }
+                    vst1q_u32(dst_ptr.add(offset), last_gray);
+                    offset += 4;
+                }
+                reuse = hits * 16 >= 3 * row_width;
+            } else {
+                while offset + 4 <= row_width {
+                    vst1q_u32(dst_ptr.add(offset), gray_4(vld1q_u32(src_ptr.add(offset))));
+                    offset += 4;
+                }
             }
 
             // Scalar remainder
@@ -205,9 +251,11 @@ fn fill_block_gray_neon(
 #[cfg(target_arch = "x86_64")]
 #[target_feature(enable = "avx2", enable = "fma")]
 #[inline]
+#[allow(clippy::too_many_arguments)]
 unsafe fn fill_block_gray_avx2(
-    source: &Image,
-    output: &mut Image,
+    source_pixels: &[u32],
+    width: u32,
+    output_pixels: &mut [u32],
     alpha: f64,
     start_x: u32,
     start_y: u32,
@@ -216,9 +264,6 @@ unsafe fn fill_block_gray_avx2(
 ) {
     use std::arch::x86_64::*;
 
-    let width = source.width;
-    let source_pixels = source.as_u32();
-    let output_pixels = output.as_u32_mut();
     let alpha_scaled = (alpha / 255.0) as f32;
 
     let mask_ff = _mm256_set1_epi32(0xFF);
@@ -355,18 +400,17 @@ unsafe fn fill_row_gray_sse4(
 #[cfg(target_arch = "x86_64")]
 #[target_feature(enable = "sse4.1")]
 #[inline]
+#[allow(clippy::too_many_arguments)]
 unsafe fn fill_block_gray_sse(
-    source: &Image,
-    output: &mut Image,
+    source_pixels: &[u32],
+    width: u32,
+    output_pixels: &mut [u32],
     alpha: f64,
     start_x: u32,
     start_y: u32,
     end_x: u32,
     end_y: u32,
 ) {
-    let width = source.width;
-    let source_pixels = source.as_u32();
-    let output_pixels = output.as_u32_mut();
     let alpha_scaled = (alpha / 255.0) as f32;
 
     for y in start_y..end_y {
@@ -397,18 +441,17 @@ unsafe fn fill_block_gray_sse(
 
 /// Scalar fallback, also the reference the vector fills are tested against.
 #[cfg(any(test, not(target_arch = "aarch64")))]
+#[allow(clippy::too_many_arguments)]
 fn fill_block_gray_scalar(
-    source: &Image,
-    output: &mut Image,
+    source_pixels: &[u32],
+    width: u32,
+    output_pixels: &mut [u32],
     alpha: f64,
     start_x: u32,
     start_y: u32,
     end_x: u32,
     end_y: u32,
 ) {
-    let width = source.width;
-    let source_pixels = source.as_u32();
-    let output_pixels = output.as_u32_mut();
     let alpha_scaled = (alpha / 255.0) as f32;
 
     for y in start_y..end_y {
@@ -491,7 +534,16 @@ mod tests {
         let mut vector = Image::new(width, height);
         let mut scalar = Image::new(width, height);
         fill_block_gray_optimized(&source, &mut vector, 0.1, 0, 0, width, height);
-        fill_block_gray_scalar(&source, &mut scalar, 0.1, 0, 0, width, height);
+        fill_block_gray_scalar(
+            source.as_u32(),
+            width,
+            scalar.as_u32_mut(),
+            0.1,
+            0,
+            0,
+            width,
+            height,
+        );
         assert!(vector.data == scalar.data);
     }
 

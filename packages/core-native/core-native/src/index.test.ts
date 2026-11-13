@@ -184,6 +184,32 @@ describe("diff", () => {
 			expect(new Uint8Array(data.buffer)).toEqual(fromFile);
 		});
 
+		it("draws the same diff from misaligned views and into an input's own buffer", async () => {
+			const a = rawImage("pixelmatch/1a.png");
+			const b = rawImage("pixelmatch/1b.png");
+			const expectedData = new Uint8Array(a.data.length);
+			const expected = await diff(a, b, {
+				output: { ...a, data: expectedData },
+			});
+			const shifted = (data: Uint8Array) => {
+				const storage = new Uint8Array(data.length + 1);
+				storage.set(data, 1);
+				return storage.subarray(1);
+			};
+
+			const outData = shifted(new Uint8Array(a.data.length));
+			const misaligned = await diff(
+				{ ...a, data: shifted(a.data) },
+				{ ...b, data: shifted(b.data) },
+				{ output: { ...a, data: outData } },
+			);
+			expect(misaligned).toEqual(expected);
+			expect(outData).toEqual(expectedData);
+
+			expect(await diff(a, b, { output: a })).toEqual(expected);
+			expect(a.data).toEqual(expectedData);
+		});
+
 		it("writes a file output only when the images differ", async () => {
 			await withTempDir(async (dir) => {
 				const changed = join(dir, "changed.png");

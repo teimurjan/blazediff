@@ -103,6 +103,25 @@ Verified exhaustively over all `511³ = 133,432,830` integer delta triples: the 
 observed ratio `δ/‖v‖²` is `0.2560781281866944 ≤ λmax`, and across thresholds
 `0.001`–`1.0` zero pixels are rejected that the full metric counts as different.
 
+### Near-Equal Word Test
+
+Before any channel math, the scan rejects whole groups of 4 pixels with one masked XOR
+of their 32-bit words. Let `reject = maxDelta / λmax`, and let `k` be the largest value
+in `[0, 7]` with:
+
+```
+3 × (2^k − 1)² ≤ reject
+```
+
+The mask keeps the top `8 − k` bits of each color channel and all 8 alpha bits. Two
+words that agree on the masked bits have equal alpha and differ by at most `2^k − 1`
+per color channel, so `‖v‖² ≤ 3 × (2^k − 1)² ≤ reject`. By the bound above, the pair
+is below threshold.
+
+Equal alpha keeps the test exact for pixels that are not opaque. With `α₁ = α₂ = α`,
+the background terms cancel and each blended delta is the channel delta times
+`α / 255`, which can only shrink `‖v‖²`. The test suite checks the mask at every alpha.
+
 ## Anti-Aliasing Detection
 
 For each pixel, examine its 8 neighbors:

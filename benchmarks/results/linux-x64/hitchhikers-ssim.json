@@ -1,0 +1,501 @@
+{
+	"schemaVersion": 1,
+	"key": "hitchhikers-ssim",
+	"category": "structural",
+	"generatedAt": "2026-11-12T12:41:52.939Z",
+	"commit": {
+		"sha": "20f7f6305bf40b06d61b987de23adf02278bc163",
+		"dirty": true
+	},
+	"env": {
+		"platform": "linux",
+		"arch": "x64",
+		"osRelease": "7.0.0-1017-gcp",
+		"cpu": "INTEL(R) XEON(R) PLATINUM 8581C CPU @ 2.30GHz",
+		"cores": 8,
+		"memoryGb": 59,
+		"node": "v22.14.0",
+		"rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)"
+	},
+	"config": {
+		"iterations": 25,
+		"warmup": 3,
+		"ioIncluded": false
+	},
+	"sections": [
+		{
+			"id": "hitchhikers-ssim",
+			"title": "Hitchhikers SSIM SSIM (`@blazediff/ssim` using `hitchhikers-ssim` vs `ssim.js` using `weber` algorithm) (image IO excluded)",
+			"unit": "ms",
+			"stat": "mean",
+			"series": [
+				{
+					"id": "ssim-js",
+					"name": "ssim.js",
+					"version": "3.5.0",
+					"iterations": 25,
+					"baseline": true,
+					"ours": false
+				},
+				{
+					"id": "blazediff",
+					"name": "BlazeDiff",
+					"version": "2.0.0",
+					"iterations": 25,
+					"baseline": false,
+					"ours": true
+				},
+				{
+					"id": "blazediff-ssim-native",
+					"name": "BlazeDiff (ssim-native)",
+					"version": "6.1.1",
+					"iterations": 25,
+					"baseline": false,
+					"ours": true
+				}
+			],
+			"rows": [
+				{
+					"fixture": "blazediff/1",
+					"values": {
+						"ssim-js": {
+							"value": 87.16378480000421,
+							"min": 83.93022199999541,
+							"max": 96.4975609999965
+						},
+						"blazediff": {
+							"value": 9.918834200000855,
+							"min": 9.470593000005465,
+							"max": 10.635074000048917
+						},
+						"blazediff-ssim-native": {
+							"value": 2.880547679995652,
+							"min": 2.6716019999585114,
+							"max": 5.60892500000773
+						}
+					}
+				},
+				{
+					"fixture": "blazediff/1 (identical)",
+					"values": {
+						"ssim-js": {
+							"value": 87.71176112000597,
+							"min": 84.44563799997559,
+							"max": 98.46672700002091
+						},
+						"blazediff": {
+							"value": 10.052952959993855,
+							"min": 9.730639999965206,
+							"max": 11.013603000028525
+						},
+						"blazediff-ssim-native": {
+							"value": 2.92590604000492,
+							"min": 2.6718939999700524,
+							"max": 6.01493299996946
+						}
+					}
+				},
+				{
+					"fixture": "blazediff/2",
+					"values": {
+						"ssim-js": {
+							"value": 58.714772680008316,
+							"min": 56.0653090000269,
+							"max": 75.3810999999987
+						},
+						"blazediff": {
+							"value": 8.039979199999943,
+							"min": 7.653358000039589,
+							"max": 8.753471000003628
+						},
+						"blazediff-ssim-native": {
+							"value": 2.112876039999537,
+							"min": 2.034179999958724,
+							"max": 3.2177069999743253
+						}
+					}
+				},
+				{
+					"fixture": "blazediff/2 (identical)",
+					"values": {
+						"ssim-js": {
+							"value": 57.718378879993686,
+							"min": 54.7938210000284,
+							"max": 64.55218300002161
+						},
+						"blazediff": {
+							"value": 8.00006687999703,
+							"min": 7.630715999985114,
+							"max": 8.713677000021562
+						},
+						"blazediff-ssim-native": {
+							"value": 2.1234971199976282,
+							"min": 2.032779000001028,
+							"max": 3.281498000025749
+						}
+					}
+				},
+				{
+					"fixture": "blazediff/3",
+					"values": {
+						"ssim-js": {
+							"value": 208.17461940000067,
+							"min": 187.04542799998308,
+							"max": 233.56642699998338
+						},
+						"blazediff": {
+							"value": 45.854847480000466,
+							"min": 43.797652999986894,
+							"max": 57.21170100005111
+						},
+						"blazediff-ssim-native": {
+							"value": 24.27764432000695,
+							"min": 22.762019000016153,
+							"max": 27.32753499998944
+						}
+					}
+				},
+				{
+					"fixture": "blazediff/3 (identical)",
+					"values": {
+						"ssim-js": {
+							"value": 208.11189288000577,
+							"min": 185.13835800002562,
+							"max": 247.91889400000218
+						},
+						"blazediff": {
+							"value": 44.84063683999935,
+							"min": 43.30034000001615,
+							"max": 52.834636999992654
+						},
+						"blazediff-ssim-native": {
+							"value": 23.885910720000975,
+							"min": 22.32480999996187,
+							"max": 27.303194999985863
+						}
+					}
+				},
+				{
+					"fixture": "blazediff/4",
+					"values": {
+						"ssim-js": {
+							"value": 608.8711623600009,
+							"min": 599.892600000021,
+							"max": 619.6284089999972
+						},
+						"blazediff": {
+							"value": 117.17330195999705,
+							"min": 101.37143800000194,
+							"max": 156.12848800001666
+						},
+						"blazediff-ssim-native": {
+							"value": 83.83828087999719,
+							"min": 78.51477199996589,
+							"max": 85.78561199997785
+						}
+					}
+				},
+				{
+					"fixture": "blazediff/4 (identical)",
+					"values": {
+						"ssim-js": {
+							"value": 599.4332501200051,
+							"min": 546.1862819999806,
+							"max": 634.9155909999972
+						},
+						"blazediff": {
+							"value": 112.1605668000062,
+							"min": 102.53229000000283,
+							"max": 145.96493699995335
+						},
+						"blazediff-ssim-native": {
+							"value": 84.34685836000368,
+							"min": 83.20220699999481,
+							"max": 88.88525599997956
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/1",
+					"values": {
+						"ssim-js": {
+							"value": 26.053881600003223,
+							"min": 24.57501400000183,
+							"max": 30.367913000052795
+						},
+						"blazediff": {
+							"value": 3.141839200002141,
+							"min": 2.8808659999631345,
+							"max": 3.4301940000150353
+						},
+						"blazediff-ssim-native": {
+							"value": 0.7529890000005253,
+							"min": 0.7077750000171363,
+							"max": 1.2469839999685064
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/1 (identical)",
+					"values": {
+						"ssim-js": {
+							"value": 25.804228120001497,
+							"min": 24.435617999988608,
+							"max": 32.12251900002593
+						},
+						"blazediff": {
+							"value": 3.1187410400016233,
+							"min": 2.764460999984294,
+							"max": 3.5652220000047237
+						},
+						"blazediff-ssim-native": {
+							"value": 0.762959719998762,
+							"min": 0.7092679999768734,
+							"max": 1.4376280000433326
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/2",
+					"values": {
+						"ssim-js": {
+							"value": 12.548092640002723,
+							"min": 11.83243800001219,
+							"max": 13.781651000026613
+						},
+						"blazediff": {
+							"value": 1.5945752799953334,
+							"min": 1.3831269999500364,
+							"max": 1.9655400000046939
+						},
+						"blazediff-ssim-native": {
+							"value": 0.35484487999929115,
+							"min": 0.3321190000278875,
+							"max": 0.6129719999735244
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/2 (identical)",
+					"values": {
+						"ssim-js": {
+							"value": 12.503953600001987,
+							"min": 11.857309000042733,
+							"max": 13.655037000018638
+						},
+						"blazediff": {
+							"value": 1.6193155200011098,
+							"min": 1.43385200004559,
+							"max": 1.8307180000119843
+						},
+						"blazediff-ssim-native": {
+							"value": 0.35163099999772385,
+							"min": 0.3310990000027232,
+							"max": 0.5882220000494272
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/3",
+					"values": {
+						"ssim-js": {
+							"value": 26.250192479998805,
+							"min": 24.566377000010107,
+							"max": 31.850780000037048
+						},
+						"blazediff": {
+							"value": 3.117904600002803,
+							"min": 2.8645660000038333,
+							"max": 3.603977999999188
+						},
+						"blazediff-ssim-native": {
+							"value": 0.7846819999953731,
+							"min": 0.7166669999714941,
+							"max": 1.5582949999952689
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/3 (identical)",
+					"values": {
+						"ssim-js": {
+							"value": 25.615612640006002,
+							"min": 24.589838000014424,
+							"max": 29.769667999993544
+						},
+						"blazediff": {
+							"value": 3.1406322800018827,
+							"min": 2.8808480000006966,
+							"max": 3.5699429999804124
+						},
+						"blazediff-ssim-native": {
+							"value": 0.7493108400003985,
+							"min": 0.7042730000102893,
+							"max": 1.2994259999832138
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/4",
+					"values": {
+						"ssim-js": {
+							"value": 30.74240847999463,
+							"min": 29.079356999951415,
+							"max": 33.257505999994464
+						},
+						"blazediff": {
+							"value": 4.362282319997903,
+							"min": 4.084075000020675,
+							"max": 4.622786000021733
+						},
+						"blazediff-ssim-native": {
+							"value": 1.0415552000002934,
+							"min": 0.9999449999886565,
+							"max": 1.7299110000021756
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/4 (identical)",
+					"values": {
+						"ssim-js": {
+							"value": 30.228661840001585,
+							"min": 28.382878999982495,
+							"max": 37.71941000001971
+						},
+						"blazediff": {
+							"value": 4.315404239997734,
+							"min": 4.112177999981213,
+							"max": 4.801540000014938
+						},
+						"blazediff-ssim-native": {
+							"value": 1.062815999998711,
+							"min": 0.9998560000094585,
+							"max": 2.037091000005603
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/5",
+					"values": {
+						"ssim-js": {
+							"value": 12.325637000007555,
+							"min": 11.651782000029925,
+							"max": 13.108445000019856
+						},
+						"blazediff": {
+							"value": 1.5586090800072998,
+							"min": 1.381939000042621,
+							"max": 1.9332430000067689
+						},
+						"blazediff-ssim-native": {
+							"value": 0.3572186799976043,
+							"min": 0.33342199999606237,
+							"max": 0.6577760000363924
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/5 (identical)",
+					"values": {
+						"ssim-js": {
+							"value": 12.679489160000813,
+							"min": 11.809321000007913,
+							"max": 18.294521000003442
+						},
+						"blazediff": {
+							"value": 1.611069719993975,
+							"min": 1.4235270000062883,
+							"max": 1.758972999989055
+						},
+						"blazediff-ssim-native": {
+							"value": 0.3561507600010373,
+							"min": 0.33136100001866,
+							"max": 0.639833000022918
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/6",
+					"values": {
+						"ssim-js": {
+							"value": 12.376409480012953,
+							"min": 11.697977000032552,
+							"max": 14.098709000041708
+						},
+						"blazediff": {
+							"value": 1.6278931999928319,
+							"min": 1.4733419999829493,
+							"max": 1.788834999955725
+						},
+						"blazediff-ssim-native": {
+							"value": 0.35489912000251933,
+							"min": 0.3322090000147,
+							"max": 0.5844470000010915
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/6 (identical)",
+					"values": {
+						"ssim-js": {
+							"value": 12.487456199985463,
+							"min": 11.846699999994598,
+							"max": 13.463744000007864
+						},
+						"blazediff": {
+							"value": 1.5773708800016903,
+							"min": 1.439185000024736,
+							"max": 1.943518000014592
+						},
+						"blazediff-ssim-native": {
+							"value": 0.35315812000073493,
+							"min": 0.3316730000078678,
+							"max": 0.6001560000004247
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/7",
+					"values": {
+						"ssim-js": {
+							"value": 41.18912752000615,
+							"min": 37.63325300003635,
+							"max": 47.6377119999961
+						},
+						"blazediff": {
+							"value": 5.7988487199973315,
+							"min": 5.366485000005923,
+							"max": 6.575145999959204
+						},
+						"blazediff-ssim-native": {
+							"value": 1.4503480400005355,
+							"min": 1.4133249999722466,
+							"max": 1.8645870000473224
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/7 (identical)",
+					"values": {
+						"ssim-js": {
+							"value": 39.51920288000023,
+							"min": 35.81923700001789,
+							"max": 53.91157499997644
+						},
+						"blazediff": {
+							"value": 5.906730400002561,
+							"min": 5.406684999994468,
+							"max": 6.511462000024039
+						},
+						"blazediff-ssim-native": {
+							"value": 1.4820386399980634,
+							"min": 1.415259999979753,
+							"max": 2.3275189999840222
+						}
+					}
+				}
+			]
+		}
+	]
+}

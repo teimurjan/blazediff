@@ -2,7 +2,7 @@
 
 import { Callout } from "nextra/components";
 
-The Rust crate that powers the entire BlazeDiff stack. **3-4x faster** than [odiff](https://github.com/dmtrKovalenko/odiff), **8x faster** than pixelmatch on 4K images. Block-based diff algorithm with SIMD-accelerated YIQ color comparison; the same engine drives `@blazediff/core-native` (Node.js) and `blazediff` (Python).
+The Rust crate that powers the entire BlazeDiff stack. **5.1-5.9x faster** than [odiff](https://github.com/dmtrKovalenko/odiff), **8x faster** than pixelmatch on 4K images. Block-based diff algorithm with SIMD-accelerated YIQ color comparison; the same engine drives `@blazediff/core-native` (Node.js) and `blazediff` (Python).
 
 [View Detailed Benchmarks](https://github.com/teimurjan/blazediff/blob/main/BENCHMARKS.md)
 
@@ -27,8 +27,8 @@ Pre-built binaries (via `cargo install`) and crate sources are available on [cra
 ## Features
 
 - **PNG, JPEG & QOI support** with vendored libspng, libjpeg-turbo, and qoi-rust (no system dependencies)
-- **SIMD-accelerated** - NEON on ARM, SSE4.1 on x86
-- **Block-based optimization** - skips unchanged 8x8 blocks via 32-bit integer compare before perceptual diff
+- **SIMD-accelerated** - NEON on ARM, AVX2 or SSE4.1 on x86
+- **Block-band scan** - walks one row of blocks at a time and runs the perceptual diff only on blocks with a pixel over the threshold, while the band is still in cache
 - **Interpret mode** - region detection, classification, severity scoring, human-readable summaries
 - **Cargo features** - opt into `napi` (Node.js bindings) or `python` (PyO3 bindings) when building from source
 

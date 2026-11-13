@@ -1,0 +1,564 @@
+{
+	"schemaVersion": 1,
+	"key": "honeydiff",
+	"category": "pixel-by-pixel",
+	"generatedAt": "2026-11-12T11:12:29.876Z",
+	"commit": {
+		"sha": "867ed3b4772b45b9331842e8d79bf94c9c7bb37a",
+		"dirty": true
+	},
+	"env": {
+		"platform": "linux",
+		"arch": "x64",
+		"osRelease": "7.0.0-1017-gcp",
+		"cpu": "INTEL(R) XEON(R) PLATINUM 8581C CPU @ 2.30GHz",
+		"cores": 8,
+		"memoryGb": 59,
+		"node": "v22.14.0",
+		"rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)"
+	},
+	"config": {
+		"iterations": 25,
+		"warmup": 5,
+		"ioIncluded": true
+	},
+	"sections": [
+		{
+			"id": "honeydiff",
+			"title": "JavaScript Native Binary (`@blazediff/core-native` vs `honeydiff`) (image IO included)",
+			"unit": "ms",
+			"stat": "mean",
+			"note": "Both libraries run at their defaults with antialiasing on and write a diff PNG. honeydiff thresholds on CIEDE2000 ΔE and BlazeDiff on YIQ, so this compares speed, not identical output.",
+			"series": [
+				{
+					"id": "honeydiff",
+					"name": "honeydiff",
+					"version": "0.17.0",
+					"iterations": 25,
+					"baseline": true,
+					"ours": false
+				},
+				{
+					"id": "blazediff",
+					"name": "BlazeDiff",
+					"version": "7.0.0",
+					"iterations": 25,
+					"baseline": false,
+					"ours": true
+				}
+			],
+			"rows": [
+				{
+					"fixture": "4k/1",
+					"values": {
+						"honeydiff": {
+							"value": 1822.064713159995,
+							"min": 1737.5739590000594,
+							"max": 1956.6999099999666
+						},
+						"blazediff": {
+							"value": 343.67198692001404,
+							"min": 337.8886899999343,
+							"max": 363.17766800010577
+						}
+					}
+				},
+				{
+					"fixture": "4k/1 (identical)",
+					"values": {
+						"honeydiff": {
+							"value": 714.3745305600297,
+							"min": 703.9410850000568,
+							"max": 740.7420000000857
+						},
+						"blazediff": {
+							"value": 238.6443432800006,
+							"min": 235.26468900009058,
+							"max": 245.94368499983102
+						}
+					}
+				},
+				{
+					"fixture": "4k/2",
+					"values": {
+						"honeydiff": {
+							"value": 1668.803812679993,
+							"min": 1615.3570319999708,
+							"max": 1710.3055840000743
+						},
+						"blazediff": {
+							"value": 420.54472716001794,
+							"min": 414.24478500010446,
+							"max": 427.42665300006047
+						}
+					}
+				},
+				{
+					"fixture": "4k/2 (identical)",
+					"values": {
+						"honeydiff": {
+							"value": 853.0233923599869,
+							"min": 837.1802129999269,
+							"max": 879.0449149999768
+						},
+						"blazediff": {
+							"value": 289.4806495999731,
+							"min": 286.78882299992256,
+							"max": 297.97500900016166
+						}
+					}
+				},
+				{
+					"fixture": "4k/3",
+					"values": {
+						"honeydiff": {
+							"value": 1659.2925379599865,
+							"min": 1581.0635839999886,
+							"max": 1763.6133739999495
+						},
+						"blazediff": {
+							"value": 468.89343256000427,
+							"min": 461.5500029998366,
+							"max": 499.1525499999989
+						}
+					}
+				},
+				{
+					"fixture": "4k/3 (identical)",
+					"values": {
+						"honeydiff": {
+							"value": 991.264385880013,
+							"min": 975.7555260000518,
+							"max": 1012.6429820000194
+						},
+						"blazediff": {
+							"value": 317.4989694800042,
+							"min": 315.3003469998948,
+							"max": 320.150973000098
+						}
+					}
+				},
+				{
+					"fixture": "blazediff/1",
+					"values": {
+						"honeydiff": {
+							"value": 4.2579336000094195,
+							"min": 3.793390000006184,
+							"max": 5.416163999936543
+						},
+						"blazediff": {
+							"value": 1.6918141200020909,
+							"min": 1.5432290001772344,
+							"max": 2.375402000034228
+						}
+					}
+				},
+				{
+					"fixture": "blazediff/1 (identical)",
+					"values": {
+						"honeydiff": {
+							"value": 4.185456559993327,
+							"min": 3.8218299999134615,
+							"max": 5.618233000044711
+						},
+						"blazediff": {
+							"value": 0.9928014399949461,
+							"min": 0.7950989999808371,
+							"max": 1.157518999883905
+						}
+					}
+				},
+				{
+					"fixture": "blazediff/2",
+					"values": {
+						"honeydiff": {
+							"value": 3.651387159982696,
+							"min": 3.4960429999046028,
+							"max": 4.22680400009267
+						},
+						"blazediff": {
+							"value": 1.8958920399751513,
+							"min": 1.7872349999379367,
+							"max": 2.0130159999243915
+						}
+					}
+				},
+				{
+					"fixture": "blazediff/2 (identical)",
+					"values": {
+						"honeydiff": {
+							"value": 3.399482800005935,
+							"min": 3.127580999978818,
+							"max": 3.967257000040263
+						},
+						"blazediff": {
+							"value": 0.9354288800060749,
+							"min": 0.7901740001980215,
+							"max": 1.101592999882996
+						}
+					}
+				},
+				{
+					"fixture": "blazediff/3",
+					"values": {
+						"honeydiff": {
+							"value": 42.59254132000729,
+							"min": 39.794289000099525,
+							"max": 48.11301700002514
+						},
+						"blazediff": {
+							"value": 21.306641079997643,
+							"min": 20.055547999916598,
+							"max": 36.29555299994536
+						}
+					}
+				},
+				{
+					"fixture": "blazediff/3 (identical)",
+					"values": {
+						"honeydiff": {
+							"value": 36.51057196000125,
+							"min": 35.87538099999074,
+							"max": 38.96366299991496
+						},
+						"blazediff": {
+							"value": 14.490859400015324,
+							"min": 14.287757999962196,
+							"max": 15.093716999981552
+						}
+					}
+				},
+				{
+					"fixture": "blazediff/4",
+					"values": {
+						"honeydiff": {
+							"value": 29.678187799998557,
+							"min": 27.91244799993001,
+							"max": 36.50410599994939
+						},
+						"blazediff": {
+							"value": 11.871118519976735,
+							"min": 10.983711999841034,
+							"max": 18.983530999859795
+						}
+					}
+				},
+				{
+					"fixture": "blazediff/4 (identical)",
+					"values": {
+						"honeydiff": {
+							"value": 30.154872679999098,
+							"min": 27.71296299993992,
+							"max": 45.11951400001999
+						},
+						"blazediff": {
+							"value": 4.0257496799808,
+							"min": 3.900584999937564,
+							"max": 4.264879999915138
+						}
+					}
+				},
+				{
+					"fixture": "page/1",
+					"values": {
+						"honeydiff": {
+							"value": 1467.675594680002,
+							"min": 1442.7604899998987,
+							"max": 1528.9486449999968
+						},
+						"blazediff": {
+							"value": 615.8460492799896,
+							"min": 601.9013590000104,
+							"max": 646.7791110000107
+						}
+					}
+				},
+				{
+					"fixture": "page/1 (identical)",
+					"values": {
+						"honeydiff": {
+							"value": 1436.4331066800003,
+							"min": 1417.6704570000293,
+							"max": 1458.5705790000502
+						},
+						"blazediff": {
+							"value": 327.0658062399551,
+							"min": 324.9498419999145,
+							"max": 335.83431899989955
+						}
+					}
+				},
+				{
+					"fixture": "page/2",
+					"values": {
+						"honeydiff": {
+							"value": 2134.477401200002,
+							"min": 2089.1056490000337,
+							"max": 2216.412948000012
+						},
+						"blazediff": {
+							"value": 405.8387811999675,
+							"min": 397.0841520000249,
+							"max": 458.3057089999784
+						}
+					}
+				},
+				{
+					"fixture": "page/2 (identical)",
+					"values": {
+						"honeydiff": {
+							"value": 908.4805883599864,
+							"min": 899.3076250000158,
+							"max": 921.7465830000583
+						},
+						"blazediff": {
+							"value": 142.45808072003535,
+							"min": 138.40423800004646,
+							"max": 149.86308500007726
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/1",
+					"values": {
+						"honeydiff": {
+							"value": 4.1398037200002,
+							"min": 4.0339229999808595,
+							"max": 4.450503999949433
+						},
+						"blazediff": {
+							"value": 1.1085847600083798,
+							"min": 1.0137109998613596,
+							"max": 1.2115289999637753
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/1 (identical)",
+					"values": {
+						"honeydiff": {
+							"value": 1.9879148800019175,
+							"min": 1.955203999998048,
+							"max": 2.0746459999354556
+						},
+						"blazediff": {
+							"value": 1.0344047199841588,
+							"min": 0.8051719998475164,
+							"max": 1.2451500000897795
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/2",
+					"values": {
+						"honeydiff": {
+							"value": 4.984540039999411,
+							"min": 4.6234340000664815,
+							"max": 7.233637999976054
+						},
+						"blazediff": {
+							"value": 1.555141720008105,
+							"min": 1.5174040000420064,
+							"max": 1.8570400001481175
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/2 (identical)",
+					"values": {
+						"honeydiff": {
+							"value": 1.7289740800112485,
+							"min": 1.3730829999549314,
+							"max": 2.828527000034228
+						},
+						"blazediff": {
+							"value": 0.5628067200165242,
+							"min": 0.40389600000344217,
+							"max": 0.8202190001029521
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/3",
+					"values": {
+						"honeydiff": {
+							"value": 1.9360049999924376,
+							"min": 1.873003999935463,
+							"max": 2.0218569999560714
+						},
+						"blazediff": {
+							"value": 0.9755681600049138,
+							"min": 0.9047149999532849,
+							"max": 1.1768170001450926
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/3 (identical)",
+					"values": {
+						"honeydiff": {
+							"value": 1.672192400000058,
+							"min": 1.6374030000297353,
+							"max": 1.8910690000047907
+						},
+						"blazediff": {
+							"value": 0.6464687599800527,
+							"min": 0.5800039998721331,
+							"max": 0.7125490000471473
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/4",
+					"values": {
+						"honeydiff": {
+							"value": 11.53195748001337,
+							"min": 11.09549400000833,
+							"max": 14.12315999995917
+						},
+						"blazediff": {
+							"value": 4.539102440001443,
+							"min": 4.496218000072986,
+							"max": 4.678720999974757
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/4 (identical)",
+					"values": {
+						"honeydiff": {
+							"value": 5.640493320003152,
+							"min": 5.485394999966957,
+							"max": 6.180770999984816
+						},
+						"blazediff": {
+							"value": 2.1939187600370498,
+							"min": 2.1293059999588877,
+							"max": 2.3329000000376254
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/5",
+					"values": {
+						"honeydiff": {
+							"value": 1.3483215599879623,
+							"min": 1.2928580000298098,
+							"max": 1.5478139999322593
+						},
+						"blazediff": {
+							"value": 0.8156252800207585,
+							"min": 0.705367999849841,
+							"max": 1.2417410002090037
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/5 (identical)",
+					"values": {
+						"honeydiff": {
+							"value": 2.7046211600024255,
+							"min": 1.0817610000958666,
+							"max": 37.57891199993901
+						},
+						"blazediff": {
+							"value": 0.5369715600274503,
+							"min": 0.5065790000371635,
+							"max": 0.5799940000288188
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/6",
+					"values": {
+						"honeydiff": {
+							"value": 4.75938492000103,
+							"min": 4.495164000079967,
+							"max": 5.053169999970123
+						},
+						"blazediff": {
+							"value": 1.809519759984687,
+							"min": 1.5967939998954535,
+							"max": 2.798143999883905
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/6 (identical)",
+					"values": {
+						"honeydiff": {
+							"value": 1.6228866399917752,
+							"min": 1.5514020000118762,
+							"max": 1.8678049999289215
+						},
+						"blazediff": {
+							"value": 0.8063953600078821,
+							"min": 0.7160499999299645,
+							"max": 0.9929140000604093
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/7",
+					"values": {
+						"honeydiff": {
+							"value": 4.050684719989076,
+							"min": 3.890010999981314,
+							"max": 4.309525999939069
+						},
+						"blazediff": {
+							"value": 1.6136894399952144,
+							"min": 1.467685000039637,
+							"max": 1.9087709998711944
+						}
+					}
+				},
+				{
+					"fixture": "pixelmatch/7 (identical)",
+					"values": {
+						"honeydiff": {
+							"value": 3.410942120007239,
+							"min": 3.186212999979034,
+							"max": 4.207258000038564
+						},
+						"blazediff": {
+							"value": 0.8295410799887031,
+							"min": 0.6001260001212358,
+							"max": 0.9530399998184294
+						}
+					}
+				},
+				{
+					"fixture": "same/1",
+					"values": {
+						"honeydiff": {
+							"value": 15.817579839993268,
+							"min": 13.210995999979787,
+							"max": 59.095456999959424
+						},
+						"blazediff": {
+							"value": 3.0207669600006195,
+							"min": 2.6934229999314994,
+							"max": 4.020473000127822
+						}
+					}
+				},
+				{
+					"fixture": "same/1 (identical)",
+					"values": {
+						"honeydiff": {
+							"value": 13.298945440007374,
+							"min": 13.113375000073574,
+							"max": 14.008340999949723
+						},
+						"blazediff": {
+							"value": 2.970126960007474,
+							"min": 2.7214989999774843,
+							"max": 3.497341000009328
+						}
+					}
+				}
+			]
+		}
+	]
+}

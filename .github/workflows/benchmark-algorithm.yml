@@ -35,10 +35,10 @@ jobs:
       # The checkout holds the committed results; drop them so a failed run
       # cannot upload a stale copy.
       - name: Remove committed benchmark results
-        run: rm -f benchmarks/results/core.json
+        run: rm -f benchmarks/results/*/core.json
 
       # Runs both sides, prints the comparison table and writes
-      # benchmarks/results/core.json.
+      # benchmarks/results/*/core.json.
       - name: Run Benchmark (@blazediff/core vs pixelmatch)
         run: pnpm benchmark core --skip-md
 
@@ -47,5 +47,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: benchmark-results-algorithm
-          path: benchmarks/results/core.json
+          path: benchmarks/results/*/core.json
           if-no-files-found: warn

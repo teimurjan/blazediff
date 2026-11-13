@@ -208,11 +208,12 @@ impl ImageFormat {
     }
 }
 
-/// Whether the in-house [`blazediff_png`] codec takes the PNG paths.
+/// Whether the in-house [`blazediff_png`] codec takes PNG decode. Encode
+/// always uses it.
 ///
 /// Opt in by setting `BLAZEDIFF_PNG_ENABLED` to a truthy value
-/// (`1`/`true`/`yes`/`on`, any case); unset or anything else keeps PNG I/O
-/// entirely on spng. Read once per process, so changing the variable after the
+/// (`1`/`true`/`yes`/`on`, any case); unset or anything else keeps PNG decode
+/// on spng. Read once per process, so changing the variable after the
 /// first PNG has been touched has no effect.
 ///
 /// This is a property of the codec layer rather than of any one front-end, so

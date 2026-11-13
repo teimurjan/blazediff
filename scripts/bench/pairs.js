@@ -1,6 +1,6 @@
 /**
  * One entry per benchmark that `pnpm benchmark <key>` can refresh. Each run writes
- * `benchmarks/results/<key>.json` (see `artifact.js`), then patches the
+ * `benchmarks/results/<platform>/<key>.json` (see `artifact.js`), then patches the
  * Markdown section(s) from it.
  *
  * `package` / `pythonPackage` name the library a side measures, so the

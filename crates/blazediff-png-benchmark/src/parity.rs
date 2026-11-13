@@ -1,22 +1,13 @@
-//! Output-parity check for blazediff's `BLAZEDIFF_PNG_ENABLED` toggle.
+//! Output-parity check of blazediff's PNG I/O
+//! (`crates/blazediff-shared/src/png_io.rs`) against spng.
 //!
-//! Setting `BLAZEDIFF_PNG_ENABLED` swaps two paths inside blazediff's PNG I/O
-//! (`crates/blazediff/src/io.rs`):
-//!   - **decode** — `blazediff_png::decode` instead of spng's `FMT_RGBA8 + TRNS`;
-//!   - **level-0 encode** — `blazediff_png` stored (uncompressed) deflate blocks
-//!     instead of spng's level-0 `FMT_PNG` with filtering disabled.
-//!
-//! Everything between those two endpoints — the diff itself — is pure,
-//! deterministic Rust over the decoded buffers. So blazediff's compare output is
-//! the same image with the flag on vs off **iff** both swapped paths agree. This
-//! checks exactly that, per fixture:
-//!   - **decode** must be byte-identical RGBA8 — anything else changes the
-//!     pixels fed to the diff;
-//!   - **level-0 encode** must produce the same *image*. The two encoders are
-//!     intentionally not byte-identical files — `blazediff_png` writes one IDAT
-//!     chunk, spng splits the stream into 8 KB IDATs — but PNG readers
-//!     concatenate IDATs before inflating, so both must decode to the same
-//!     pixels. We re-decode each encoding and compare those.
+//!   - **decode**: `BLAZEDIFF_PNG_ENABLED` swaps spng's `FMT_RGBA8 + TRNS`
+//!     for `blazediff_png::decode`. Both must be byte-identical RGBA8,
+//!     anything else changes the pixels fed to the diff.
+//!   - **level-0 encode**: always `blazediff_png` in its smallest lossless
+//!     color mode (a palette when the colors fit). It must produce the same
+//!     *image* as spng's RGBA8 encode. The files differ by design, so we
+//!     re-decode each encoding and compare the pixels.
 
 use crate::codecs::spng_decode;
 use blazediff_png::{ColorMode, EncodeOptions, Filter, Image};
@@ -100,13 +91,13 @@ fn trunc(s: &str, max: usize) -> String {
     }
 }
 
-/// blazediff_png stored encode, mirroring io.rs::encode_png's enabled branch:
-/// RGBA8, compression 0 (stored deflate blocks), filter none, no interlace.
+/// blazediff_png stored encode, mirroring png_io.rs::encode_png: smallest
+/// lossless color mode, compression 0 (stored blocks), filter none.
 fn bd_encode_stored(img: &Image) -> Vec<u8> {
     blazediff_png::encode(
         img,
         &EncodeOptions {
-            color: ColorMode::Rgba8,
+            color: ColorMode::Auto,
             compression: 0,
             filter: Filter::None,
             interlace: false,
@@ -115,8 +106,8 @@ fn bd_encode_stored(img: &Image) -> Vec<u8> {
     .expect("blazediff stored encode")
 }
 
-/// spng level-0 encode, mirroring io.rs::encode_png's spng branch: `FMT_PNG`,
-/// filtering disabled, compression level 0, finalize.
+/// spng level-0 RGBA8 reference encode: `FMT_PNG`, filtering disabled,
+/// compression level 0, finalize.
 fn spng_encode_stored(img: &Image) -> Vec<u8> {
     unsafe {
         let ctx = spng_ctx_new(spng_ctx_flags_SPNG_CTX_ENCODER as c_int);

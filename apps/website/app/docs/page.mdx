@@ -117,9 +117,9 @@ they are ranges rather than single numbers.
 
 | Comparison                           | Method                   | Baseline          | BlazeDiff       |
 | ------------------------------------ | ------------------------ | ----------------- | --------------- |
-| `@blazediff/core` vs pixelmatch      | 4K pair, decode excluded | 201.60-253.77ms   | 96.52-135.89ms  |
-| `@blazediff/core-wasm` vs pixelmatch | 4K pair, decode excluded | 332.26-423.14ms   | 33.18-68.37ms   |
-| `@blazediff/core-native` vs odiff    | 4K pair, decode included | 1157.12-1677.13ms | 288.01-349.43ms |
+| `@blazediff/core` vs pixelmatch      | 4K pair, decode excluded | 349.73-462.10ms   | 41.81-60.57ms   |
+| `@blazediff/core-wasm` vs pixelmatch | 4K pair, decode excluded | 345.40-438.65ms   | 32.95-68.49ms   |
+| `@blazediff/core-native` vs odiff    | 4K pair, decode included | 1238.75-1803.10ms | 274.41-367.63ms |
 
 Averaged over the full fixture set rather than the 4K pairs: `@blazediff/ssim` is
 ~25% faster than ssim.js and the Hitchhiker's variant ~70% faster, and
@@ -130,8 +130,8 @@ Per-fixture tables, iteration counts and methodology notes:
 
 <Callout type="info">
   Identical images are the common case in a passing suite, and every core has a
-  fast path for them. That is where the largest wins are: the pure-JS core is 7x
-  to 9x faster than pixelmatch on an unchanged 4K pair.
+  fast path for them. On an unchanged 4K pair the pure-JS core is 5x to 6x faster
+  than pixelmatch, and the WebAssembly core is 8x to 9x faster.
 </Callout>
 
 ## Where to go next

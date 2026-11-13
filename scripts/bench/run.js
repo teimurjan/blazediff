@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
  * One-shot orchestrator: runs a benchmark pair, runs the compare script,
- * writes the artifact (`benchmarks/results/<key>.json`), and patches the
- * target Markdown file from it. All paths resolved from the repo root.
+ * writes the artifact (`benchmarks/results/<platform>/<key>.json`), and
+ * patches the target Markdown file from it when this machine owns it. All paths resolved from the repo root.
  *
  * Standalone benches (`pairs.js` → `STANDALONE`) don't have a left/right pair;
  * they own their whole pipeline and are dispatched by key with the same flags.
@@ -26,7 +26,9 @@ const {
 	buildPairArtifact,
 	writeArtifact,
 	readArtifact,
+	ownsMarkdown,
 	artifactPath,
+	REFERENCE_PLATFORM,
 } = require("./artifact.js");
 
 const REPO_ROOT = path.resolve(__dirname, "../..");
@@ -175,7 +177,11 @@ function main() {
 	}
 
 	// 4. Patch the target Markdown file from the artifact.
-	if (!flags["skip-md"]) {
+	if (!flags["skip-md"] && !ownsMarkdown(benchKey)) {
+		console.log(
+			`\n${pair.targetFile} left as is: it shows the ${REFERENCE_PLATFORM} run.`,
+		);
+	} else if (!flags["skip-md"]) {
 		const reports = update({
 			pair,
 			artifact,

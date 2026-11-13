@@ -41,7 +41,6 @@ function runMatlabGmsd(img1Path: string, img2Path: string): number {
 	const img2Escaped = img2Path.replace(/'/g, "''");
 
 	const matlabScript = [
-		`pkg load image`,
 		`addpath('${matlabPath}')`,
 		`img1 = imread('${img1Escaped}')`,
 		`img2 = imread('${img2Escaped}')`,

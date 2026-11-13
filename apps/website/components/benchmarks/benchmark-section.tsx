@@ -1,12 +1,15 @@
 import {
 	type BenchmarkArtifact,
 	type BenchmarkSection,
+	type BenchmarkSeries,
 	completeRows,
 	sectionTotals,
 } from "./artifacts";
-import ColumnChart, { type ColumnBar } from "./column-chart";
+import ColumnChart from "./column-chart";
 import FixtureTable from "./fixture-table";
+import { formatValue } from "./format";
 import InlineCode from "./inline-code";
+import SeriesTable from "./series-table";
 
 const REPO_URL = "https://github.com/teimurjan/blazediff";
 
@@ -50,6 +53,8 @@ function RunMeta({ artifact }: { artifact: BenchmarkArtifact }) {
 
 	return (
 		<p className="font-mono text-[12px] text-muted leading-relaxed">
+			<code className="text-fg">pnpm benchmark {artifact.key}</code>
+			{" · "}
 			{parts.join(" · ")}
 			{sha && (
 				<>
@@ -65,50 +70,32 @@ function RunMeta({ artifact }: { artifact: BenchmarkArtifact }) {
 					</a>
 				</>
 			)}
-			{" · "}
-			<code>pnpm benchmark {artifact.key}</code>
 		</p>
 	);
 }
 
-interface Measured {
-	name: string;
-	value: number;
-}
-
-// Time reads as a speedup; size as a share of the other side's bytes.
-function versus(section: BenchmarkSection, subject: number, other: Measured) {
-	if (section.unit === "bytes") {
-		return `${((subject / other.value) * 100).toFixed(1)}% of ${other.name}'s size`;
-	}
-	const ratio = other.value / subject;
+/** Time reads as a speedup; size as a share of the other side's bytes. */
+export function versus(
+	section: BenchmarkSection,
+	subject: number,
+	other: number,
+) {
+	if (section.unit === "bytes")
+		return `${((subject / other) * 100).toFixed(1)}%`;
+	const ratio = other / subject;
 	return ratio >= 1
-		? `${ratio.toFixed(2)}x faster than ${other.name}`
-		: `${(1 / ratio).toFixed(2)}x slower than ${other.name}`;
+		? `${ratio.toFixed(2)}x faster`
+		: `${(1 / ratio).toFixed(2)}x slower`;
 }
 
-// BlazeDiff bars compare to the baseline; competitor bars say how BlazeDiff
-// does against them.
-function chartBars(section: BenchmarkSection): ColumnBar[] {
+/** Fastest (or smallest) first, so the chart and the table read as a ranking. */
+function ranked(section: BenchmarkSection) {
 	const totals = sectionTotals(section);
-	const measured = (id: string): Measured => ({
-		name: section.series.find((s) => s.id === id)?.name ?? id,
-		value: totals[id],
-	});
-	const base = section.series.find((s) => s.baseline) ?? section.series[0];
-	const ours = section.series.find((s) => s.ours);
-	return section.series.map((s) => ({
-		id: s.id,
-		name: s.name,
-		version: s.version,
-		value: totals[s.id],
-		highlight: s.ours,
-		comparison: s.ours
-			? versus(section, totals[s.id], measured(base.id))
-			: ours
-				? `${ours.name}: ${versus(section, totals[ours.id], measured(s.id))}`
-				: "baseline",
-	}));
+	const baseline = section.series.find((s) => s.baseline) ?? section.series[0];
+	const series = [...section.series].sort(
+		(a, b) => totals[a.id] - totals[b.id],
+	);
+	return { totals, baseline, series };
 }
 
 function Legend() {
@@ -127,16 +114,43 @@ function Legend() {
 	);
 }
 
+const barComparison = (
+	section: BenchmarkSection,
+	s: BenchmarkSeries,
+	baseline: BenchmarkSeries,
+	totals: Record<string, number>,
+) =>
+	s.id === baseline.id
+		? "baseline"
+		: section.unit === "bytes"
+			? `${versus(section, totals[s.id], totals[baseline.id])} of ${baseline.name}'s size`
+			: `${versus(section, totals[s.id], totals[baseline.id])} than ${baseline.name}`;
+
 export default function BenchmarkSectionCard({
 	artifacts,
 	section,
+	size,
 }: {
-	/** Every bench the chart draws from; a merged chart has several. */
+	/** Every bench the chart draws from; a combined chart has several. */
 	artifacts: BenchmarkArtifact[];
 	section: BenchmarkSection;
+	/** Output sizes of the same series, shown beside their times. */
+	size?: BenchmarkSection;
 }) {
+	const { totals, baseline, series } = ranked(section);
+	const sizes = size && sectionTotals(size);
+	const sizeOf = (id: string) => {
+		if (!size || !sizes || sizes[id] === undefined) return {};
+		return {
+			size: formatValue(sizes[id], "bytes"),
+			sizeVersus:
+				id === baseline.id
+					? "baseline"
+					: versus(size, sizes[id], sizes[baseline.id]),
+		};
+	};
 	return (
-		<article className="flex min-w-0 flex-col gap-4 border border-line bg-surface p-6">
+		<article className="flex min-w-0 flex-col gap-6 border border-line bg-surface p-6">
 			<header className="flex flex-col gap-2">
 				<h4 className="font-sans text-[16px] text-fg leading-snug">
 					<InlineCode text={section.title} />
@@ -145,21 +159,51 @@ export default function BenchmarkSectionCard({
 					{STAT_LABELS[section.stat]} · {chartSubtitle(artifacts[0], section)}
 				</p>
 			</header>
-			<ColumnChart
-				label={`${STAT_LABELS[section.stat]}: ${section.title.replaceAll("`", "")}`}
+			<div className="flex flex-col gap-3">
+				<ColumnChart
+					label={`${STAT_LABELS[section.stat]}: ${section.title.replaceAll("`", "")}`}
+					unit={section.unit}
+					bars={series.map((s) => ({
+						id: s.id,
+						name: s.name,
+						sublabel: s.runtime,
+						version: s.version,
+						value: totals[s.id],
+						highlight: s.ours,
+						comparison: barComparison(section, s, baseline, totals),
+					}))}
+				/>
+				<Legend />
+			</div>
+			<SeriesTable
 				unit={section.unit}
-				bars={chartBars(section)}
+				baselineName={baseline.name}
+				rows={series.map((s) => ({
+					id: s.id,
+					name: s.name,
+					runtime: s.runtime,
+					version: s.version,
+					ours: s.ours,
+					total: formatValue(totals[s.id], section.unit),
+					versus:
+						s.id === baseline.id
+							? "baseline"
+							: versus(section, totals[s.id], totals[baseline.id]),
+					...sizeOf(s.id),
+				}))}
 			/>
-			<Legend />
 			{section.note && (
 				<p className="font-sans text-[13px] text-muted leading-relaxed">
 					{section.note}
 				</p>
 			)}
-			{artifacts.map((artifact) => (
-				<RunMeta key={artifact.key} artifact={artifact} />
-			))}
 			<FixtureTable section={section} />
+			{size && <FixtureTable section={size} heading="Per-fixture sizes" />}
+			<div className="flex flex-col gap-1">
+				{artifacts.map((artifact) => (
+					<RunMeta key={artifact.key} artifact={artifact} />
+				))}
+			</div>
 		</article>
 	);
 }

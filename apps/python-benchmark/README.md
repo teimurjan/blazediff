@@ -23,7 +23,7 @@ pnpm benchmark python-pixelmatch --fixtures=pixelmatch --iterations=10
 pnpm benchmark python-opencv     --fixtures=pixelmatch --iterations=10
 ```
 
-Each command runs BlazeDiff and the competitor, then writes `benchmarks/results/<key>.json` (see `scripts/bench/README.md`). To run one side alone, call its module directly:
+Each command runs BlazeDiff and the competitor, then writes `benchmarks/results/<platform>/<key>.json` (see `scripts/bench/README.md`). To run one side alone, call its module directly:
 
 ```sh
 cd apps/python-benchmark && uv run python -m benchmarks.blazediff_bench --fixtures=pixelmatch --iterations=10

@@ -6,6 +6,8 @@ import { type BenchmarkUnit, formatTick, formatValue } from "./format";
 export interface ColumnBar {
 	id: string;
 	name: string;
+	/** A second label line, e.g. the runtime when several bars share a name. */
+	sublabel?: string;
 	version?: string;
 	value: number;
 	highlight: boolean;
@@ -20,8 +22,14 @@ interface ColumnChartProps {
 }
 
 const HEIGHT = 300;
-const MARGIN = { top: 28, right: 8, bottom: 60, left: 56 };
-const BAR_WIDTH = 24;
+const MARGIN = { top: 28, right: 8, left: 56 };
+const MIN_BAR_WIDTH = 24;
+const MAX_BAR_WIDTH = 56;
+// A bar this many times taller than the next one is cut, so the rest stay legible.
+const OUTLIER_RATIO = 4;
+const BREAK_Y = 14;
+// Narrower bands show only the rank, which matches the table under the chart.
+const MIN_LABEL_BAND = 110;
 const RADIUS = 4;
 const TICK_TARGET = 4;
 const LINE_HEIGHT = 14;
@@ -42,8 +50,17 @@ function columnPath(x: number, y: number, w: number, h: number) {
 
 // "BlazeDiff (ssim-native)" breaks before the parenthesis to fit narrow bands.
 function labelLines(bar: ColumnBar) {
-	const lines = bar.name.split(/ (?=\()/);
-	return bar.version ? [...lines, bar.version] : lines;
+	return [...bar.name.split(/ (?=\()/), bar.sublabel, bar.version].filter(
+		(line): line is string => Boolean(line),
+	);
+}
+
+/** The axis maximum, below an outlier's value when one would flatten the rest. */
+function scaleMax(values: number[]) {
+	const [first, second = 0] = [...values].sort((a, b) => b - a);
+	return values.length > 2 && first > second * OUTLIER_RATIO
+		? second * 1.25
+		: first;
 }
 
 function useWidth() {
@@ -65,7 +82,7 @@ export default function ColumnChart({ label, unit, bars }: ColumnChartProps) {
 	const [ref, width] = useWidth();
 	const [active, setActive] = useState<number | null>(null);
 
-	const max = Math.max(...bars.map((b) => b.value));
+	const max = scaleMax(bars.map((b) => b.value));
 	const step = niceStep(max);
 	const top = Math.ceil(max / step) * step;
 	const ticks = Array.from(
@@ -73,10 +90,17 @@ export default function ColumnChart({ label, unit, bars }: ColumnChartProps) {
 		(_, i) => i * step,
 	);
 	const plotWidth = Math.max(0, width - MARGIN.left - MARGIN.right);
-	const plotHeight = HEIGHT - MARGIN.top - MARGIN.bottom;
 	const band = plotWidth / bars.length;
+	const compact = band < MIN_LABEL_BAND;
+	const labels = bars.map((bar, i) =>
+		compact ? [String(i + 1)] : labelLines(bar),
+	);
+	const bottom = 18 + Math.max(...labels.map((l) => l.length)) * LINE_HEIGHT;
+	const plotHeight = HEIGHT - MARGIN.top - bottom;
+	const barWidth = Math.max(MIN_BAR_WIDTH, Math.min(MAX_BAR_WIDTH, band * 0.4));
 	const baseline = MARGIN.top + plotHeight;
-	const y = (value: number) => baseline - (value / top) * plotHeight;
+	const y = (value: number) =>
+		baseline - (Math.min(value, top) / top) * plotHeight;
 	const centerX = (i: number) => MARGIN.left + band * (i + 0.5);
 	const activeBar = active === null ? null : bars[active];
 
@@ -113,16 +137,23 @@ export default function ColumnChart({ label, unit, bars }: ColumnChartProps) {
 						</g>
 					))}
 					{bars.map((bar, i) => {
-						const x = centerX(i) - BAR_WIDTH / 2;
+						const x = centerX(i) - barWidth / 2;
 						const barTop = y(bar.value);
+						const clipped = bar.value > top;
 						return (
 							<g key={bar.id}>
 								<path
-									d={columnPath(x, barTop, BAR_WIDTH, baseline - barTop)}
+									d={columnPath(x, barTop, barWidth, baseline - barTop)}
 									className={`${bar.highlight ? "fill-accent" : "fill-muted/50"} transition-opacity ${
 										active === i ? "opacity-80" : ""
 									}`}
 								/>
+								{clipped && (
+									<path
+										d={`M${x - 2},${barTop + BREAK_Y + 4}L${x + barWidth + 2},${barTop + BREAK_Y - 2}V${barTop + BREAK_Y + 3}L${x - 2},${barTop + BREAK_Y + 9}Z`}
+										className="fill-surface"
+									/>
+								)}
 								<text
 									x={centerX(i)}
 									y={barTop - 8}
@@ -131,9 +162,9 @@ export default function ColumnChart({ label, unit, bars }: ColumnChartProps) {
 								>
 									{formatValue(bar.value, unit)}
 								</text>
-								{labelLines(bar).map((line, li) => (
+								{labels[i].map((line, li) => (
 									<text
-										key={line}
+										key={`${li}-${line}`}
 										x={centerX(i)}
 										y={baseline + 18 + li * LINE_HEIGHT}
 										textAnchor="middle"
@@ -147,7 +178,7 @@ export default function ColumnChart({ label, unit, bars }: ColumnChartProps) {
 									x={centerX(i) - band / 2}
 									y={MARGIN.top}
 									width={band}
-									height={plotHeight + MARGIN.bottom}
+									height={plotHeight + bottom}
 									fill="transparent"
 									tabIndex={0}
 									aria-label={`${bar.name}: ${formatValue(bar.value, unit)}, ${bar.comparison}`}

@@ -14,10 +14,10 @@ The root `package.json` has no per-library aliases. Each side's `cmd` in `pairs.
 
 ## Artifacts
 
-Every run writes `benchmarks/results/<key>.json` (built by `artifact.js`). This file is the single source of the numbers:
+Every run writes `benchmarks/results/<platform>/<key>.json` (built by `artifact.js`). `<platform>` is the machine the run happened on, as `<os>-<arch>`: `linux-x64` or `darwin-arm64`. A run replaces only its own machine's file, so both machines keep their numbers. These files are the single source of the numbers:
 
-- `update-benchmarks-md.js` and `png.js` build the Markdown tables in `benchmarks/*.md` from it.
-- The website reads all artifacts at build time (`apps/website/scripts/generate-benchmarks.mjs`) for the `/benchmarks` page and the homepage teaser and speed claims.
+- `update-benchmarks-md.js` and `png.js` build the Markdown tables in `benchmarks/*.md` from the reference platform, `darwin-arm64`. A run on another machine leaves the Markdown alone, unless the bench has no Mac run yet.
+- The website reads all artifacts at build time (`apps/website/scripts/generate-benchmarks.mjs`). `/benchmarks` shows the Mac run and `/benchmarks/linux-x64` shows the Linux run, with tabs to switch. The homepage teaser and speed claims use the Mac run, or the Linux run when a bench has no Mac run.
 - The benchmark workflows in `.github/workflows/benchmark-*.yml` upload the same files as GitHub Actions artifacts.
 
 Commit the artifact together with the Markdown it produced. The shape is (schemaVersion 1):
@@ -65,9 +65,9 @@ Some benches do not fit the left/right pair model. They own their whole pipeline
 
 | Key          | Writes                                          | Module                        | Build prerequisite                           |
 | ------------ | ----------------------------------------------- | ----------------------------- | -------------------------------------------- |
-| `png`        | `results/png.json`, `benchmarks/png-codec.md`   | `scripts/bench/png.js`        | none, it runs `cargo run` on the crate       |
-| `ssim-dssim` | `results/ssim-dssim.json` (no Markdown)         | `scripts/bench/ssim-dssim.js` | none, it runs `cargo run --features dssim`   |
-| `png-wasm`   | `results/png-wasm.json`, `benchmarks/png-codec.md` | `scripts/bench/png-wasm.js` | none, it builds the zune shim and the bench app |
+| `png`        | `results/<platform>/png.json`, `benchmarks/png-codec.md`   | `scripts/bench/png.js`        | none, it runs `cargo run` on the crate       |
+| `ssim-dssim` | `results/<platform>/ssim-dssim.json` (no Markdown)         | `scripts/bench/ssim-dssim.js` | none, it runs `cargo run --features dssim`   |
+| `png-wasm`   | `results/<platform>/png-wasm.json`, `benchmarks/png-codec.md` | `scripts/bench/png-wasm.js` | none, it builds the zune shim and the bench app |
 
 ## Variants (multi-table pairs)
 
@@ -97,9 +97,9 @@ From the repo root:
    `run.js` then does these steps in order:
    1. It runs each benchmark command with `--format=json --output=<filename> --iterations=N` (plus `--fixtures` when given), so each writes tinybench-shaped JSON.
    2. It prints the comparison table, through the pair's `.github/workflows/scripts/compare-and-print-*.js` or the shared `compare-and-print.js`.
-   3. It writes `benchmarks/results/<key>.json`. With `--skip-artifact` it reads the committed one instead.
-   4. It patches the `<table>`, the `_<N> iterations (<M> warmup)_` line and the `> **~X%** performance improvement on average` blockquote in `pair.targetFile` from the artifact.
-3. Commit `benchmarks/results/<key>.json` and the Markdown change together.
+   3. It writes `benchmarks/results/<platform>/<key>.json`. With `--skip-artifact` it reads the committed one instead.
+   4. On the reference platform, it patches the `<table>`, the `_<N> iterations (<M> warmup)_` line and the `> **~X%** performance improvement on average` blockquote in `pair.targetFile` from the artifact.
+3. Commit `benchmarks/results/<platform>/<key>.json` and the Markdown change together.
 
 While you iterate on an algorithm, use `--iterations 2` and a small `--fixtures` subset. Do the full default run only for the numbers you commit.
 
@@ -114,7 +114,7 @@ pnpm benchmark png --json <p>   # read/write a specific JSON path
 pnpm benchmark png --skip-md    # artifact only
 ```
 
-It runs `blazediff-png-benchmark -- --json <tmp>` from `crates/`, converts the result into `benchmarks/results/png.json`, and writes `benchmarks/png-codec.md` from that artifact. Without `--json`, the JSON goes to the OS temp directory, so `--skip-run` reuses whatever the last run wrote there.
+It runs `blazediff-png-benchmark -- --json <tmp>` from `crates/`, converts the result into `benchmarks/results/<platform>/png.json`, and writes `benchmarks/png-codec.md` from that artifact. Without `--json`, the JSON goes to the OS temp directory, so `--skip-run` reuses whatever the last run wrote there.
 
 Encode is measured at two compression modes, so the speed/size trade-off is explicit and zune's stored-only encoder is compared fairly:
 
@@ -140,7 +140,7 @@ Encode has two modes:
 - No compression: blazediff stored RGBA8 (`color: "rgba8"`) against zune's stored encoder. jSquash has no uncompressed mode, so it is not in this section.
 - Default settings: each codec's default. blazediff writes the smallest lossless color mode with fdeflate, jSquash uses the `png` crate's default level, and zune writes stored output.
 
-The results land in `results/png-wasm.json`. `png.js` adds them to `benchmarks/png-codec.md` as a WebAssembly part, whichever of the two benches runs last.
+The results land in `results/<platform>/png-wasm.json`. `png.js` adds them to `benchmarks/png-codec.md` as a WebAssembly part, whichever of the two benches runs last.
 
 ## SSIM vs dssim (`ssim-dssim` standalone)
 
@@ -149,7 +149,7 @@ pnpm benchmark ssim-dssim               # full corpus up to the default 30 MPx c
 pnpm benchmark ssim-dssim --max-mpx 2   # small corpus while iterating
 ```
 
-It runs `blazediff-ssim-benchmark --json <tmp>` (feature `dssim`, AGPL, opt-in) and stores the time table as `benchmarks/results/ssim-dssim.json`. Scores and rank agreement stay in the binary's stdout and in the crate README.
+It runs `blazediff-ssim-benchmark --json <tmp>` (feature `dssim`, AGPL, opt-in) and stores the time table as `benchmarks/results/<platform>/ssim-dssim.json`. Scores and rank agreement stay in the binary's stdout and in the crate README.
 
 ## Things to make sure of before you finish
 

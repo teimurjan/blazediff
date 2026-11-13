@@ -3,14 +3,14 @@
 //! stays free of these checks. Both metrics share one loop, monomorphised per
 //! [`Kernel`], and the same two-pass block structure as `diff.rs`.
 
-use crate::antialiasing::{is_antialiased, is_antialiased_over_white};
+use crate::antialiasing::{is_antialiased_over_white_px, is_antialiased_px};
 use crate::diff::{
     calculate_block_size, color_delta_scalar, compute_gray_pixel_f32, pack_color_pixel,
     pack_gray_pixel, reject_bound,
 };
 use crate::oklab::Oklab;
-use crate::output::fill_block_gray_optimized;
-use crate::types::{Background, DiffOptions, DiffResult, Image, Metric};
+use crate::output::fill_gray_rect;
+use crate::types::{Background, DiffOptions, DiffResult, Metric, Px};
 use crate::window::{max_window, window_side};
 use crate::yiq::threshold_to_max_delta_f32;
 
@@ -18,7 +18,7 @@ use crate::yiq::threshold_to_max_delta_f32;
 /// the second is darker, 1 when not.
 trait Kernel {
     fn delta(&self, pa: u32, pb: u32, index: usize) -> i32;
-    fn is_antialiased(&self, image1: &Image, image2: &Image, x: u32, y: u32) -> bool;
+    fn is_antialiased(&self, image1: Px, image2: Px, x: u32, y: u32) -> bool;
 }
 
 /// YIQ with the same kernel and reject bound as the default path, so an
@@ -50,8 +50,8 @@ impl Kernel for Yiq {
     }
 
     #[inline(always)]
-    fn is_antialiased(&self, image1: &Image, image2: &Image, x: u32, y: u32) -> bool {
-        is_antialiased(image1, image2, x, y) || is_antialiased(image2, image1, x, y)
+    fn is_antialiased(&self, image1: Px, image2: Px, x: u32, y: u32) -> bool {
+        is_antialiased_px(image1, image2, x, y) || is_antialiased_px(image2, image1, x, y)
     }
 }
 
@@ -62,17 +62,17 @@ impl Kernel for Oklab {
     }
 
     #[inline(always)]
-    fn is_antialiased(&self, image1: &Image, image2: &Image, x: u32, y: u32) -> bool {
-        is_antialiased_over_white(image1, image2, x, y)
-            || is_antialiased_over_white(image2, image1, x, y)
+    fn is_antialiased(&self, image1: Px, image2: Px, x: u32, y: u32) -> bool {
+        is_antialiased_over_white_px(image1, image2, x, y)
+            || is_antialiased_over_white_px(image2, image1, x, y)
     }
 }
 
 /// Diffs `image1` against `image2` honouring `metric`, `mask` and `window`. Sizes and the mask length are checked by the caller.
 pub(crate) fn diff_extended(
-    image1: &Image,
-    image2: &Image,
-    output: Option<&mut Image>,
+    image1: Px,
+    image2: Px,
+    output: Option<&mut [u32]>,
     options: &DiffOptions,
 ) -> DiffResult {
     match options.metric {
@@ -103,15 +103,15 @@ struct Block {
 
 fn run<M: Kernel>(
     metric: &M,
-    image1: &Image,
-    image2: &Image,
-    mut output: Option<&mut Image>,
+    image1: Px,
+    image2: Px,
+    mut output: Option<&mut [u32]>,
     options: &DiffOptions,
 ) -> DiffResult {
     let (width, height) = (image1.width, image1.height);
     let total_pixels = width * height;
-    let a32 = image1.as_u32();
-    let b32 = image2.as_u32();
+    let a32 = image1.data;
+    let b32 = image2.data;
     let mask = options.mask.as_deref();
     let render = &options.render;
     let transparent = render.background == Background::Transparent;
@@ -146,8 +146,9 @@ fn run<M: Kernel>(
                 changed.push(block);
             } else if let Some(out) = output.as_deref_mut() {
                 if !transparent {
-                    fill_block_gray_optimized(
-                        image1,
+                    fill_gray_rect(
+                        a32,
+                        width,
                         out,
                         render.alpha,
                         block.start_x,
@@ -162,7 +163,7 @@ fn run<M: Kernel>(
 
     let window = window_side(options.window, width, height);
     let mut diff_map = window.map(|_| vec![0u8; total_pixels as usize]);
-    let mut out32 = output.map(|out| out.as_u32_mut());
+    let mut out32 = output;
     let alpha_scaled = render.alpha as f32 / 255.0;
     let diff_color = pack_color_pixel(&render.diff_color);
     let diff_color_alt =

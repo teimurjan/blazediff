@@ -61,10 +61,11 @@ detection.
 
 ## Codecs
 
-- **PNG** — vendored [libspng](https://github.com/randy408/libspng), compiled with its SIMD paths.
-  Setting `BLAZEDIFF_PNG_ENABLED` to a truthy value (`1`/`true`/`yes`/`on`) routes decode and
-  level-0 encode through the in-house [`blazediff-png`](https://crates.io/crates/blazediff-png)
-  codec instead, with spng staying as a defensive fallback. The toggle lives here rather than in
+- **PNG**: encode uses the in-house [`blazediff-png`](https://crates.io/crates/blazediff-png)
+  codec and writes the smallest lossless color mode (a palette for images of at most 256 colors).
+  Decode uses vendored [libspng](https://github.com/randy408/libspng), compiled with its SIMD paths.
+  Setting `BLAZEDIFF_PNG_ENABLED` to a truthy value (`1`/`true`/`yes`/`on`) routes decode
+  through `blazediff-png` too, with spng staying as a defensive fallback. The toggle lives here rather than in
   any one front-end, so everything built on this crate inherits it — the `blazediff` CLI, its
   N-API and Python bindings, and `@blazediff/ssim-native`. Read once per process; query it with
   `blazediff_shared::blazediff_png_enabled()`.

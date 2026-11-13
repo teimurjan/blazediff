@@ -118,10 +118,10 @@ jobs:
       # The checkout holds the committed results; drop them so a failed run
       # cannot upload a stale copy.
       - name: Remove committed benchmark results
-        run: rm -f benchmarks/results/core-native.json benchmarks/results/honeydiff.json
+        run: rm -f benchmarks/results/*/core-native.json benchmarks/results/*/honeydiff.json
 
       # Runs core-native, core-native-next and odiff, then writes
-      # benchmarks/results/core-native.json.
+      # benchmarks/results/*/core-native.json.
       - name: Run Benchmark (@blazediff/core-native vs odiff)
         run: pnpm benchmark core-native --skip-md
 
@@ -135,6 +135,6 @@ jobs:
         with:
           name: benchmark-results-binary-${{ github.event.inputs.platform }}
           path: |
-            benchmarks/results/core-native.json
-            benchmarks/results/honeydiff.json
+            benchmarks/results/*/core-native.json
+            benchmarks/results/*/honeydiff.json
           if-no-files-found: warn

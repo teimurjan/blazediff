@@ -55,9 +55,6 @@ export function diff(
 	assertOptions(options);
 	assertTargets(options, width, height);
 
-	// "transparent" means a clear background, whatever the buffer held before.
-	if (output && background === "transparent") output.data.fill(0);
-
 	const side = windowSide(window, width, height);
 	const hit: WindowHit = { x: 0, y: 0, count: 0 };
 	const count = diffPixels(
@@ -74,6 +71,7 @@ export function diff(
 			diffColorAlt,
 			excludeAA: antialiasing,
 			diffMask: background === "transparent",
+			clear: background === "transparent",
 			oklab: metric === "oklab",
 			checkerboard: true,
 			mask,

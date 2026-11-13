@@ -35,7 +35,7 @@ jobs:
       # The checkout holds the committed results; drop them so a failed run
       # cannot upload a stale copy.
       - name: Remove committed benchmark results
-        run: rm -f benchmarks/results/ssim.json benchmarks/results/hitchhikers-ssim.json
+        run: rm -f benchmarks/results/*/ssim.json benchmarks/results/*/hitchhikers-ssim.json
 
       - name: Run Benchmark (ssim vs ssim.js fast)
         run: pnpm benchmark ssim --skip-md
@@ -50,6 +50,6 @@ jobs:
         with:
           name: benchmark-results-ssim
           path: |
-            benchmarks/results/ssim.json
-            benchmarks/results/hitchhikers-ssim.json
+            benchmarks/results/*/ssim.json
+            benchmarks/results/*/hitchhikers-ssim.json
           if-no-files-found: warn

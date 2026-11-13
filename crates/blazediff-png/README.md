@@ -200,9 +200,9 @@ them through the `Benchmark PNG` workflow.
 
 ## Status
 
-Experimental. Inside BlazeDiff it's opt-in behind the `BLAZEDIFF_PNG_ENABLED`
-environment variable while it stabilizes; spng stays the default and the defensive
-decode fallback.
+Experimental. Inside BlazeDiff it writes every PNG. Decode is opt-in behind the
+`BLAZEDIFF_PNG_ENABLED` environment variable while it stabilizes; spng stays the
+default decoder and the defensive decode fallback.
 
 ## License
 

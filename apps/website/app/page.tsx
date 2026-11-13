@@ -51,7 +51,7 @@ const PACKAGES: {
 		name: "@blazediff/core",
 		href: "/apis/core",
 		blurb: prose(
-			"Pure-JS pixel diff with two-pass block optimization.",
+			"Pure-JS pixel diff with a chunked, branch-free scan.",
 			claim("Identical accuracy,", SPEED_CLAIMS.core),
 		),
 		tier: "foundation",

@@ -1,7 +1,7 @@
 //! Anti-aliasing detection based on "Anti-aliased Pixel and Intensity Slope Detector"
 //! by V. Vysniauskas (2009). Examines 3x3 neighborhood to find gradient patterns.
 
-use crate::types::Image;
+use crate::types::{Image, Px};
 use crate::yiq::{brightness_delta, unpack_pixel, YIQ_Y};
 
 /// Check if pixel has more than 2 identical neighbors (not anti-aliased edge)
@@ -187,6 +187,11 @@ fn has_many_siblings_scalar(
 }
 
 pub fn is_antialiased(image1: &Image, image2: &Image, x: u32, y: u32) -> bool {
+    antialiased::<false>(Px::of(image1), Px::of(image2), x, y)
+}
+
+#[inline]
+pub(crate) fn is_antialiased_px(image1: Px, image2: Px, x: u32, y: u32) -> bool {
     antialiased::<false>(image1, image2, x, y)
 }
 
@@ -194,6 +199,11 @@ pub fn is_antialiased(image1: &Image, image2: &Image, x: u32, y: u32) -> bool {
 /// pixels are composited over white with an alpha tie-break, and neighbours
 /// are visited x-outer like the JS reference.
 pub fn is_antialiased_over_white(image1: &Image, image2: &Image, x: u32, y: u32) -> bool {
+    antialiased::<true>(Px::of(image1), Px::of(image2), x, y)
+}
+
+#[inline]
+pub(crate) fn is_antialiased_over_white_px(image1: Px, image2: Px, x: u32, y: u32) -> bool {
     antialiased::<true>(image1, image2, x, y)
 }
 
@@ -224,9 +234,9 @@ fn brightness_delta_over_white(center: u32, neighbor: u32) -> f64 {
 }
 
 #[inline]
-fn antialiased<const OVER_WHITE: bool>(image1: &Image, image2: &Image, x: u32, y: u32) -> bool {
-    let a32 = image1.as_u32();
-    let b32 = image2.as_u32();
+fn antialiased<const OVER_WHITE: bool>(image1: Px, image2: Px, x: u32, y: u32) -> bool {
+    let a32 = image1.data;
+    let b32 = image2.data;
 
     let width = image1.width;
     let height = image1.height;

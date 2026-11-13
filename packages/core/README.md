@@ -7,12 +7,12 @@
 
 </div>
 
-High-performance pixel-by-pixel image comparison with two-pass block-based optimization and YIQ perceptual color difference. Up to 91% faster than pixelmatch on identical images, ~62% average improvement overall.
+High-performance pixel-by-pixel image comparison with a chunked, branch-free scan and YIQ perceptual color difference. About 7x faster than pixelmatch in total time across the benchmark fixtures, with the same counts and output bytes.
 
 **Features:**
 - YIQ color space for perceptual color difference
 - Anti-aliasing detection and filtering
-- Two-pass block-based optimization with 32-bit integer comparison
+- Chunked scan that skips identical and provably sub-threshold pixels with 32-bit integer tests
 - Support for alpha channel and transparency
 
 For detailed algorithm explanation and mathematical formulas, see [FORMULA.md](./FORMULA.md).
@@ -144,34 +144,37 @@ const count = pixelmatch(img1.data, img2.data, output, width, height, { threshol
 
 ## Algorithm
 
-BlazeDiff uses a sophisticated multi-stage approach for high-performance image comparison:
+The default YIQ diff walks the image in chunks of 4096 pixels. Both inputs of a chunk fit the L1 cache. Each chunk narrows the work in steps:
 
-1. **Block-Based Pre-filtering**: Divides images into adaptive blocks and uses 32-bit integer comparison to quickly identify unchanged regions
-2. **YIQ Color Space**: Converts RGB to YIQ color space for perceptually accurate color difference measurement
-3. **Anti-Aliasing Detection**: Implements the Vysniauskas (2009) algorithm to distinguish anti-aliasing artifacts from real differences
-4. **Optimized Memory Access**: Zero-allocation design with cache-friendly memory patterns
+1. **Identical chunks**: In Node, a native `Buffer` compare skips chunks whose bytes are equal.
+2. **Dirty groups**: Groups of 4 pixels are tested as 32-bit words. A first pass drops the groups whose words agree on every bit that can matter at the threshold. A second pass keeps the groups with a pixel over the [eigenvalue bound](./FORMULA.md#early-rejection-bound) or a pixel that is not opaque.
+3. **Candidates**: The full YIQ metric runs on the dirty groups only. It is branch-free, because most differing pixels are noise and noise defeats branch prediction.
+4. **Anti-aliasing**: Only pixels over the threshold take the Vysniauskas (2009) check. Interior opaque pixels use exact integer luma keys.
+5. **Output**: The gray background comes from an exact integer-luma lookup table, with flat runs reused and long runs passed to the native `fill`. The few diff pixels are then drawn over it.
+
+Steps 2 and 3 have no data-dependent branch, and the scratch lists are allocated once. OKLab, `mask` and `window` take separate loops that match pixelmatch 8.0.0. Counts and output bytes are the same as the previous release.
 
 See [FORMULA.md](./FORMULA.md) for detailed mathematical formulas and algorithm explanation.
 
 ## Performance
 
-> **Average: ~62%** | Median: ~85% | Best case (identical): up to 91%
+> **Total: ~7.4x faster** | Average: ~79% | Median: ~86% | With an output image: ~4.2x faster in total, ~66% average
 
-Benchmarked against pixelmatch across 34 fixtures (50 iterations, 5 warmup) on Apple M1 Max with Node.js 22. Full numbers in the root [BENCHMARKS.md](https://github.com/teimurjan/blazediff/blob/main/BENCHMARKS.md).
+Benchmarked against pixelmatch across 34 fixtures (50 iterations, 5 warmup) on Apple M1 Max with Node.js 22, count only. Full numbers in the root [BENCHMARKS.md](https://github.com/teimurjan/blazediff/blob/main/BENCHMARKS.md).
 
 | Benchmark | Pixelmatch | BlazeDiff | Improvement |
 |-----------|------------|-----------|-------------|
-| 4k/1 (5600×3200) | 349.90ms | 172.60ms | **50.7%** |
-| 4k/1 (identical) | 21.47ms | 3.52ms | **83.6%** |
-| page/1 (3598×16384) | 147.00ms | 94.64ms | **35.6%** |
-| page/1 (identical) | 70.36ms | 7.77ms | **89.0%** |
-| small images | 0.2-4ms | 0.01-2ms | **30-91%** |
+| 4k/1 (5600×3200) | 333.85ms | 41.73ms | **87.5%** |
+| 4k/1 (identical) | 23.22ms | 3.31ms | **85.7%** |
+| page/1 (3598×16384) | 148.48ms | 14.90ms | **90.0%** |
+| page/1 (identical) | 69.44ms | 9.63ms | **86.1%** |
+| small images | 0.07-12ms | 0.01-4.1ms | **38-88%** |
 
-The block-based optimization provides the most benefit on identical images (~85-91% faster) and images with large unchanged regions.
+The largest gains are on large images, where most pixels are identical or below the threshold. Small images with dense diffs gain the least.
 
 ## References
 
-- **Algorithm Documentation**: [FORMULA.md](./FORMULA.md) - Complete mathematical foundation and formulas
+- **Algorithm Documentation**: [FORMULA.md](./FORMULA.md): mathematical foundation and formulas
 - **YIQ Color Space**: [Kotsarenko & Ramos (2009)](https://doaj.org/article/b2e3b5088ba943eebd9af2927fef08ad) - "Measuring perceived color difference using YIQ NTSC transmission color space"
 - **Anti-Aliasing Detection**: [Vysniauskas (2009)](https://www.researchgate.net/publication/234073157_Anti-aliased_Pixel_and_Intensity_Slope_Detector) - "Anti-aliased Pixel and Intensity Slope Detector"
 - **Inspiration**: [pixelmatch](https://github.com/mapbox/pixelmatch) - Original pixel-by-pixel diff algorithm

@@ -329,24 +329,29 @@ struct Scan {
 /// palette aborts the moment a `max`+1-th distinct color appears, but opacity
 /// keeps accumulating so the fallback mode needs no re-scan.
 fn scan_pixels(data: &[u8], max: usize) -> Scan {
-    let mut opaque = true;
     let mut map = ColorMap::new();
-    let mut indices = Vec::new();
-    let mut palette_ok = true;
-    for p in data.chunks_exact(4) {
-        opaque &= p[3] == 255;
-        if palette_ok {
-            match map.get_or_insert(u32::from_be_bytes([p[0], p[1], p[2], p[3]]), max) {
-                Some(index) => indices.push(index),
-                None => {
-                    palette_ok = false;
-                    indices = Vec::new();
-                }
-            }
-        }
+    // Zeroed pages are mapped lazily, so this costs no extra pass.
+    let mut indices = vec![0u8; data.len() / 4];
+    let mut alpha_and = 255u8;
+    let mut indexed = 0;
+    // One unconditional lookup per pixel: a "same as previous pixel" shortcut
+    // mispredicts on photos and measured 2.5x slower.
+    for (p, slot) in data.chunks_exact(4).zip(indices.iter_mut()) {
+        let Some(index) = map.get_or_insert(u32::from_be_bytes([p[0], p[1], p[2], p[3]]), max)
+        else {
+            break;
+        };
+        *slot = index;
+        alpha_and &= p[3];
+        indexed += 1;
+    }
+    let palette_ok = indexed == indices.len();
+    if !palette_ok {
+        indices = Vec::new();
+        alpha_and = data.chunks_exact(4).fold(alpha_and, |acc, p| acc & p[3]);
     }
     Scan {
-        opaque,
+        opaque: alpha_and == 255,
         palette_ok,
         map,
         indices,
@@ -385,11 +390,8 @@ pub fn encode(
     validate_options(options)?;
 
     if stored_rgba8_applies(options, meta) {
-        // The stored stream's size is analytic, so reserve once and let the
-        // direct writer fill the output Vec in a single pass.
-        let mut out = Vec::with_capacity(stored_rgba8_png_len(image));
-        if write_stored_rgba8(image, &mut out)? {
-            return Ok(out);
+        if let Some(png) = encode_stored(image, StoredRows::rgba8(image))? {
+            return Ok(png);
         }
     }
     encode_core(image, options, meta, compress)
@@ -426,7 +428,7 @@ pub fn encode_to<W: Write>(
     validate_image(image)?;
     validate_options(options)?;
 
-    if stored_rgba8_applies(options, meta) && write_stored_rgba8(image, out)? {
+    if stored_rgba8_applies(options, meta) && write_stored(image, StoredRows::rgba8(image), out)? {
         return Ok(());
     }
     let bytes = encode_core(image, options, meta, compress)?;
@@ -445,6 +447,11 @@ fn encode_core(
 ) -> Result<Vec<u8>, PngError> {
     let mode = resolve_mode(image, options.color)?;
     let mode = apply_explicit_palette(image, mode, meta)?;
+    if let Some(rows) = stored_indexed8_rows(image, &mode, options, meta) {
+        if let Some(png) = encode_stored(image, rows)? {
+            return Ok(png);
+        }
+    }
     let raw = build_raw_stream(image, &mode, options)?;
     let zlib = compress(&raw, options.compression);
 
@@ -487,17 +494,63 @@ fn rgba_byte_len(width: u32, height: u32) -> Option<usize> {
 // Direct stored RGBA8 fast path (the BlazeDiff diff-write hot path)
 // ---------------------------------------------------------------------------
 
-/// Whether the options + metadata select the direct stored RGBA8 writer:
-/// explicit `Rgba8`, no filtering, level 0 (stored), non-interlaced, and no
-/// ancillary chunks to interleave. `Auto` is excluded so it never triggers a
-/// second palette scan — callers wanting this path request `Rgba8` explicitly.
+/// Whether the options + metadata allow the direct stored writer: no
+/// filtering, level 0 (stored), non-interlaced, and no ancillary chunks to
+/// interleave.
 #[inline]
-fn stored_rgba8_applies(options: &EncodeOptions, meta: &Metadata) -> bool {
-    options.color == ColorMode::Rgba8
-        && options.filter == Filter::None
+fn stored_applies(options: &EncodeOptions, meta: &Metadata) -> bool {
+    options.filter == Filter::None
         && options.compression == 0
         && !options.interlace
         && *meta == Metadata::default()
+}
+
+/// [`stored_applies`] for explicit `Rgba8`, whose rows are the input itself.
+#[inline]
+fn stored_rgba8_applies(options: &EncodeOptions, meta: &Metadata) -> bool {
+    options.color == ColorMode::Rgba8 && stored_applies(options, meta)
+}
+
+/// Rows for the direct stored writer when the palette scan already produced
+/// one index byte per pixel.
+fn stored_indexed8_rows<'a>(
+    image: ImageRef,
+    mode: &'a Mode,
+    options: &EncodeOptions,
+    meta: &Metadata,
+) -> Option<StoredRows<'a>> {
+    if mode.bit_depth != 8 || !stored_applies(options, meta) {
+        return None;
+    }
+    Some(StoredRows {
+        samples: mode.indices.as_deref()?,
+        row_len: image.width as usize,
+        color_type: 3,
+        palette: mode.palette.as_ref(),
+    })
+}
+
+/// RGB entries plus per-entry alpha, in palette order.
+type Palette = (Vec<[u8; 3]>, Vec<u8>);
+
+/// Unfiltered 8-bit rows that the direct stored writer frames without a copy.
+#[derive(Clone, Copy)]
+struct StoredRows<'a> {
+    samples: &'a [u8],
+    row_len: usize,
+    color_type: u8,
+    palette: Option<&'a Palette>,
+}
+
+impl<'a> StoredRows<'a> {
+    fn rgba8(image: ImageRef<'a>) -> Self {
+        Self {
+            samples: image.data,
+            row_len: image.width as usize * 4,
+            color_type: 6,
+            palette: None,
+        }
+    }
 }
 
 /// Byte length of the stored zlib stream wrapping `raw_len` logical bytes:
@@ -510,41 +563,51 @@ fn stored_zlib_len(raw_len: usize) -> usize {
     2 + n_blocks * 5 + raw_len + 4
 }
 
-/// Logical deflate-stream length for the stored RGBA8 encode: one filter byte
-/// plus `width * 4` pixel bytes per row. `None` on `usize` overflow.
+/// Logical deflate-stream length of the direct stored encode: one filter byte
+/// plus `row_len` sample bytes per row. `None` on `usize` overflow.
 #[inline]
-fn stored_raw_len(image: ImageRef) -> Option<usize> {
-    let stride = (image.width as usize).checked_mul(4)?.checked_add(1)?;
-    (image.height as usize).checked_mul(stride)
+fn stored_raw_len(row_len: usize, height: u32) -> Option<usize> {
+    (height as usize).checked_mul(row_len.checked_add(1)?)
 }
 
-/// Total PNG size of the direct stored RGBA8 encode (signature + IHDR + single
-/// IDAT + IEND), used to size the output `Vec` in one shot. A best-effort
-/// capacity hint, so overflow collapses to 0 and lets the `Vec` grow naturally;
-/// [`write_stored_rgba8`] is the path that actually rejects overflow.
-fn stored_rgba8_png_len(image: ImageRef) -> usize {
-    let Some(raw_len) = stored_raw_len(image) else {
+/// Total PNG size of the direct stored encode (signature + IHDR + PLTE and
+/// tRNS at their largest + single IDAT + IEND), used to size the output `Vec`
+/// in one shot. A best-effort capacity hint, so overflow collapses to 0 and
+/// lets the `Vec` grow naturally; [`write_stored`] is the path that actually
+/// rejects overflow.
+fn stored_png_len(rows: StoredRows, height: u32) -> usize {
+    let Some(raw_len) = stored_raw_len(rows.row_len, height) else {
         return 0;
     };
+    let palette = match rows.palette {
+        Some(_) => 12 + 768 + 12 + 256,
+        None => 0,
+    };
     // sig(8) + IHDR(12+13) + IDAT(12 + zlib) + IEND(12)
-    8 + 25 + 12 + stored_zlib_len(raw_len) + 12
+    8 + 25 + palette + 12 + stored_zlib_len(raw_len) + 12
 }
 
-/// Write a complete stored RGBA8 PNG straight into `out` from the borrowed
-/// rows — no intermediate raw or zlib buffer. The logical deflate stream is
-/// `[0u8] ++ row` per row (filter byte + pixels); stored blocks re-chunk it to
+/// [`write_stored`] into a `Vec` reserved once at the analytic size.
+fn encode_stored(image: ImageRef, rows: StoredRows) -> io::Result<Option<Vec<u8>>> {
+    let mut out = Vec::with_capacity(stored_png_len(rows, image.height));
+    Ok(write_stored(image, rows, &mut out)?.then_some(out))
+}
+
+/// Write a complete stored PNG straight into `out` from the borrowed rows,
+/// with no intermediate raw or zlib buffer. The logical deflate stream is
+/// `[0u8] ++ row` per row (filter byte + samples); stored blocks re-chunk it to
 /// 0xffff bytes independent of row boundaries, with adler32 over the logical
 /// stream and the IDAT CRC framed incrementally. The output is byte-identical
-/// to the generic level-0 RGBA8 encoder.
+/// to the generic level-0 encoder.
 ///
 /// Returns `Ok(false)` without writing when the IDAT payload would exceed the
 /// PNG 2 GB chunk limit, so the caller falls back to the generic (IDAT-
 /// splitting) path.
-fn write_stored_rgba8<W: Write>(image: ImageRef, out: &mut W) -> io::Result<bool> {
+fn write_stored<W: Write>(image: ImageRef, rows: StoredRows, out: &mut W) -> io::Result<bool> {
     const BLOCK: usize = 0xffff;
-    let row_len = image.width as usize * 4;
-    let stride = 1 + row_len; // filter byte + pixel bytes
-    let Some(raw_len) = stored_raw_len(image) else {
+    let row_len = rows.row_len;
+    let stride = 1 + row_len; // filter byte + sample bytes
+    let Some(raw_len) = stored_raw_len(row_len, image.height) else {
         return Ok(false); // dimensions overflow usize; fall back to the generic path
     };
     let zlib_len = stored_zlib_len(raw_len);
@@ -557,9 +620,12 @@ fn write_stored_rgba8<W: Write>(image: ImageRef, out: &mut W) -> io::Result<bool
     ihdr[0..4].copy_from_slice(&image.width.to_be_bytes());
     ihdr[4..8].copy_from_slice(&image.height.to_be_bytes());
     ihdr[8] = 8; // bit depth
-    ihdr[9] = 6; // color type: RGBA (truecolor + alpha)
-                 // ihdr[10..13] (compression / filter / interlace methods) stay 0.
+    ihdr[9] = rows.color_type;
+    // ihdr[10..13] (compression / filter / interlace methods) stay 0.
     container::write_chunk(out, b"IHDR", &ihdr)?;
+    if let Some(palette) = rows.palette {
+        write_palette(out, palette)?;
+    }
 
     let mut idat = container::IdatStreamer::new(out, zlib_len as u32)?;
     idat.write(&[0x78, 0x01])?; // zlib header
@@ -588,7 +654,7 @@ fn write_stored_rgba8<W: Write>(image: ImageRef, out: &mut W) -> io::Result<bool
                 let in_row = col - 1;
                 let take = (row_len - in_row).min(left);
                 let base = row * row_len + in_row;
-                let seg = &image.data[base..base + take];
+                let seg = &rows.samples[base..base + take];
                 idat.write(seg)?;
                 adler.write(seg);
                 left -= take;
@@ -993,6 +1059,12 @@ fn build_raw_stream(
             continue;
         }
 
+        // 8-bit indices from the palette scan are already the raw samples.
+        if let (true, 8, Some(indices)) = (pass == usize::MAX, mode.bit_depth, &mode.indices) {
+            filter_pass(&mut out, indices, rb, ph, bpp, options);
+            continue;
+        }
+
         // Raw (unfiltered) pass samples, appended row by row straight into the
         // pass buffer — no per-row temp allocation or intermediate copy, and
         // the non-interlaced hot path skips the `dyn` pixel iterator.
@@ -1000,18 +1072,14 @@ fn build_raw_stream(
         if pass == usize::MAX {
             if let Some(indices) = mode.indices.as_ref() {
                 // Indexed, non-interlaced: the scan already computed each
-                // pixel's index in row-major order, so emit it without any
+                // pixel's index in row-major order, so pack it without any
                 // per-pixel map lookup.
-                if mode.bit_depth == 8 {
-                    raw.extend_from_slice(indices);
-                } else {
-                    for i in 0..ph {
-                        pack_bits(
-                            indices[i * width..(i + 1) * width].iter().copied(),
-                            mode.bit_depth,
-                            &mut raw,
-                        );
-                    }
+                for i in 0..ph {
+                    pack_bits(
+                        indices[i * width..(i + 1) * width].iter().copied(),
+                        mode.bit_depth,
+                        &mut raw,
+                    );
                 }
             } else {
                 for i in 0..ph {
@@ -1713,6 +1781,16 @@ fn write_chunk(out: &mut Vec<u8>, ty: &[u8; 4], payload: &[u8]) {
     container::write_chunk(out, ty, payload).expect("Vec write is infallible");
 }
 
+/// PLTE, plus tRNS up to the last entry that is not opaque.
+fn write_palette<W: Write>(out: &mut W, (rgb, alpha): &Palette) -> io::Result<()> {
+    let plte: Vec<u8> = rgb.iter().flatten().copied().collect();
+    container::write_chunk(out, b"PLTE", &plte)?;
+    if let Some(last) = alpha.iter().rposition(|&a| a != 255) {
+        container::write_chunk(out, b"tRNS", &alpha[..=last])?;
+    }
+    Ok(())
+}
+
 fn assemble_png(
     width: u32,
     height: u32,
@@ -1735,13 +1813,8 @@ fn assemble_png(
     write_meta_before_plte(&mut out, mode.color_type, meta);
     write_unknown(&mut out, meta, Location::AfterIhdr);
 
-    if let Some((rgb, alpha)) = &mode.palette {
-        let plte: Vec<u8> = rgb.iter().flatten().copied().collect();
-        write_chunk(&mut out, b"PLTE", &plte);
-        if alpha.iter().any(|&a| a != 255) {
-            let last = alpha.iter().rposition(|&a| a != 255).unwrap();
-            write_chunk(&mut out, b"tRNS", &alpha[..=last]);
-        }
+    if let Some(palette) = &mode.palette {
+        write_palette(&mut out, palette).expect("Vec write is infallible");
     }
 
     write_meta_after_plte(&mut out, mode.color_type, meta);
