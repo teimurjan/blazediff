@@ -1,18 +1,21 @@
 //! Build script for blazediff-shared
 //! Compiles libspng with SIMD optimizations and libjpeg-turbo via cmake
 
+#[cfg(feature = "spng")]
 use std::env;
+#[cfg(feature = "spng")]
 use std::path::PathBuf;
 
+// Only the PNG/JPEG decoders need C, so without `spng` (e.g. wasm builds) there
+// is nothing to compile and `cc`/`cmake` are not even dependencies.
 fn main() {
-    // Skip vendored C compilation when neither `spng` nor `codecs` is on (e.g.
-    // wasm builds). Only the PNG/JPEG decoders need C; `Image`, `ImageError`
-    // and `ImageFormat` are pure Rust. `spng` alone (the blazediff-png test
-    // oracle) needs libspng but not libjpeg-turbo.
-    if env::var("CARGO_FEATURE_SPNG").is_err() {
-        return;
-    }
+    #[cfg(feature = "spng")]
+    build_native();
+}
 
+// `spng` alone (the blazediff-png test oracle) needs libspng but not libjpeg-turbo.
+#[cfg(feature = "spng")]
+fn build_native() {
     let libspng_dir = "vendor/libspng/spng";
     let target_os = env::var("CARGO_CFG_TARGET_OS").unwrap();
     let target_env = env::var("CARGO_CFG_TARGET_ENV").unwrap_or_default();
@@ -60,6 +63,7 @@ fn main() {
     }
 }
 
+#[cfg(feature = "spng")]
 fn build_miniz(static_crt: bool) -> PathBuf {
     let src_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap())
         .join("vendor")
@@ -84,6 +88,7 @@ fn build_miniz(static_crt: bool) -> PathBuf {
     dst.join("include").join("miniz")
 }
 
+#[cfg(feature = "spng")]
 fn build_libspng(
     libspng_dir: &str,
     _target_os: &str,
@@ -128,6 +133,7 @@ fn build_libspng(
     println!("cargo:rerun-if-changed=vendor/libspng/spng/spng.h");
 }
 
+#[cfg(feature = "spng")]
 fn build_libjpeg_turbo(static_crt: bool) {
     let src_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap())
         .join("vendor")

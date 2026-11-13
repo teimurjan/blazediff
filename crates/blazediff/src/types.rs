@@ -6,6 +6,24 @@ use serde::{Deserialize, Serialize};
 /// crate can speak it without depending on this one.
 pub use blazediff_shared::Image;
 
+/// Borrowed RGBA8 bytes, e.g. a framebuffer readback, for [`crate::diff_rgba`].
+#[derive(Clone, Copy, Debug)]
+pub struct ImageView<'a> {
+    pub data: &'a [u8],
+    pub width: u32,
+    pub height: u32,
+}
+
+impl<'a> From<&'a Image> for ImageView<'a> {
+    fn from(image: &'a Image) -> Self {
+        Self {
+            data: &image.data,
+            width: image.width,
+            height: image.height,
+        }
+    }
+}
+
 /// Borrowed RGBA pixels, so bindings can diff caller memory without a copy.
 #[derive(Clone, Copy)]
 pub(crate) struct Px<'a> {

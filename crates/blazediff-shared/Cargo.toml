@@ -31,7 +31,7 @@ default = ["codecs"]
 codecs = ["spng", "dep:memmap2", "dep:qoi", "dep:rayon", "dep:blazediff-png"]
 # Vendored libspng and its decode path alone, without `blazediff-png`. Lets
 # `blazediff-png` test against spng without unifying its own default backend.
-spng = []
+spng = ["dep:cc", "dep:cmake"]
 # Internal-only: exposes the spng reference decoder to `blazediff-png`'s
 # differential tests and to blazediff's fuzz targets.
 fuzzing = ["spng"]
@@ -46,6 +46,5 @@ rayon = { version = "1.10", optional = true }
 blazediff-png = { path = "../blazediff-png", version = "6.1.1", optional = true }
 
 [build-dependencies]
-cc = "1.2"
-pkg-config = "0.3"
-cmake = "0.1.57"
+cc = { version = "1.2", optional = true }
+cmake = { version = "0.1.57", optional = true }

@@ -4,7 +4,7 @@
  * This implementation achieves exceptional accuracy compared to MATLAB's ssim():
  * - Image pair 1a vs 1b: 0.00% difference (0.000002 absolute)
  * - Image pair 2a vs 2b: 0.00% difference (0.000025 absolute)
- * - Image pair 3a vs 3b: 0.03% difference (0.000253 absolute)
+ * - Image pair 3a vs 3b: 0.01% difference (0.000141 absolute)
  *
  * These differences are within floating-point rounding errors and represent
  * the most accurate JavaScript/TypeScript SSIM implementation available.
