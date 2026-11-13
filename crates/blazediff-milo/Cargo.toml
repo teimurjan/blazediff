@@ -1,6 +1,6 @@
 [package]
 name = "blazediff-milo"
-version = "0.1.1"
+version = "0.2.0"
 edition = "2021"
 authors = ["Teimur Gasanov"]
 description = "MILO perceptual image quality metric (Çoğalan et al. 2025) as a std-only SIMD CNN with PyTorch parity"
@@ -42,7 +42,7 @@ napi-derive = { version = "2", optional = true }
 pyo3 = { version = "0.22", features = ["extension-module", "abi3-py38", "generate-import-lib"], optional = true }
 # Decoding for the path/buffer entry points. `version` is required to publish
 # to crates.io; kept in lockstep by scripts/release/sync-cargo-version.js.
-blazediff-shared = { path = "../blazediff-shared", version = "6.0.0", optional = true }
+blazediff-shared = { path = "../blazediff-shared", version = "7.0.0", optional = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 # Pinned to the wasm-bindgen-cli version in scripts/build-wasm.sh. Bumping

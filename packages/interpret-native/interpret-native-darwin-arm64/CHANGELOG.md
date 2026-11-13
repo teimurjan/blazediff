@@ -1,5 +1,7 @@
 # @blazediff/interpret-native-darwin-arm64
 
+## 7.1.0
+
 ## 7.0.0
 
 ## 6.4.1

@@ -1,6 +1,6 @@
 {
 	"name": "@blazediff/milo-native-linux-arm64",
-	"version": "0.1.1",
+	"version": "0.2.0",
 	"description": "blazediff-milo N-API binary for Linux ARM64",
 	"main": "blazediff_milo.node",
 	"os": [

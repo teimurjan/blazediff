@@ -1,6 +1,6 @@
 {
 	"name": "@blazediff/core",
-	"version": "2.0.0",
+	"version": "2.0.1",
 	"description": "Blazing-fast pixel-by-pixel image comparison. About 7x faster than pixelmatch, with the same output",
 	"private": false,
 	"publishConfig": {
