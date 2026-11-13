@@ -1,5 +1,11 @@
 # @blazediff/agent
 
+## 0.13.4
+
+### Patch Changes
+
+- @blazediff/core-native@8.1.0
+
 ## 0.13.3
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 [package]
 name = "blazediff-shared"
-version = "7.0.0"
+version = "7.0.1"
 edition = "2021"
 authors = ["Teimur Gasanov"]
 description = "Shared BlazeDiff primitives: the RGBA8 image type, YIQ color math, and PNG/JPEG/QOI I/O"
