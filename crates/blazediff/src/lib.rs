@@ -49,7 +49,7 @@ pub use blazediff_shared::yiq;
 pub use blazediff_shared::{
     decode_image, decode_image_pair, load_image, load_image_pair, ImageFormat,
 };
-pub use diff::{diff, diff_with};
+pub use diff::{diff, diff_rgba, diff_with};
 #[cfg(feature = "io")]
 pub use io::{encode_png, failing_path, load_png, load_pngs, save_png, save_png_with_compression};
 #[cfg(feature = "io")]
@@ -57,7 +57,8 @@ pub use jpeg_io::{load_jpeg, load_jpegs, save_jpeg};
 #[cfg(feature = "io")]
 pub use qoi_io::{load_qoi, load_qois, save_qoi};
 pub use types::{
-    Background, DiffError, DiffOptions, DiffResult, Image, Metric, RenderOptions, Size, WindowHit,
+    Background, DiffError, DiffOptions, DiffResult, Image, ImageView, Metric, RenderOptions, Size,
+    WindowHit,
 };
 
 /// Fuzzing-only oracle: exposes blazediff-shared's spng reference decoder so the

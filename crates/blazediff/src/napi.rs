@@ -3,7 +3,8 @@
 //! Provides native bindings via napi-rs for direct function calls from JavaScript
 //! without spawning child processes.
 
-use crate::diff::{diff_rgba, Rgba};
+use crate::diff::diff_rgba_with;
+use crate::types::ImageView;
 use crate::{Background, DiffError, DiffOptions, DiffResult, Image, Metric, RenderOptions};
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
@@ -233,14 +234,10 @@ enum Pixels {
 }
 
 impl Pixels {
-    fn rgba(&self) -> Rgba<'_> {
+    fn rgba(&self) -> ImageView<'_> {
         match self {
-            Self::Decoded(image) => Rgba {
-                data: &image.data,
-                width: image.width,
-                height: image.height,
-            },
-            Self::Raw(image) => Rgba {
+            Self::Decoded(image) => image.into(),
+            Self::Raw(image) => ImageView {
                 data: &image.data,
                 width: image.width,
                 height: image.height,
@@ -307,7 +304,7 @@ pub fn diff(
     let (a, b) = (img_a.rgba(), img_b.rgba());
     if a.width != b.width || a.height != b.height {
         return Ok(NapiDiffResult::from_result(
-            diff_rgba(a, b, None, &options, false).map_err(generic)?,
+            diff_rgba_with(a, b, None, &options, false).map_err(generic)?,
         ));
     }
 
@@ -316,11 +313,13 @@ pub fn diff(
         // Draw straight into the caller's buffer unless it is the wrong size
         // (reported after the diff, as before) or shares memory with an input.
         if target.len() == expected && !overlaps(&target, a.data) && !overlaps(&target, b.data) {
-            let result = diff_rgba(a, b, Some(&mut target), &options, true).map_err(generic)?;
+            let result =
+                diff_rgba_with(a, b, Some(&mut target), &options, true).map_err(generic)?;
             return Ok(NapiDiffResult::from_result(result));
         }
         let mut rendered = Image::new_uninit(a.width, a.height);
-        let result = diff_rgba(a, b, Some(&mut rendered.data), &options, true).map_err(generic)?;
+        let result =
+            diff_rgba_with(a, b, Some(&mut rendered.data), &options, true).map_err(generic)?;
         if target.len() != rendered.data.len() {
             return Err(invalid(format!(
                 "output.image is {} bytes, expected {}.",
@@ -334,11 +333,12 @@ pub fn diff(
 
     let Some(path) = output.path else {
         return Ok(NapiDiffResult::from_result(
-            diff_rgba(a, b, None, &options, false).map_err(generic)?,
+            diff_rgba_with(a, b, None, &options, false).map_err(generic)?,
         ));
     };
     let mut rendered = Image::new_uninit(a.width, a.height);
-    let result = diff_rgba(a, b, Some(&mut rendered.data), &options, false).map_err(generic)?;
+    let result =
+        diff_rgba_with(a, b, Some(&mut rendered.data), &options, false).map_err(generic)?;
     if !result.is_identical() {
         let saved = blazediff_shared::save_image(
             &rendered,

@@ -10,7 +10,7 @@ use crate::antialiasing::is_antialiased_px;
 use crate::extended::diff_extended;
 use crate::output::fill_gray_rect;
 use crate::types::{
-    Background, DiffError, DiffOptions, DiffResult, Image, Metric, Px, Size, WindowHit,
+    Background, DiffError, DiffOptions, DiffResult, Image, ImageView, Metric, Px, Size, WindowHit,
 };
 use crate::yiq::threshold_to_max_delta_f32;
 
@@ -2798,38 +2798,30 @@ pub fn diff_with(
             }
         }
     }
-    diff_rgba(
-        Rgba::of(image1),
-        Rgba::of(image2),
+    diff_rgba_with(
+        image1.into(),
+        image2.into(),
         output.map(|out| out.data.as_mut_slice()),
         options,
         fill_identical,
     )
 }
 
-/// Borrowed RGBA8 bytes: what the bindings hand over without copying.
-#[derive(Clone, Copy)]
-pub(crate) struct Rgba<'a> {
-    pub data: &'a [u8],
-    pub width: u32,
-    pub height: u32,
+/// [`diff`] over borrowed RGBA8 bytes, so callers skip the copy into an [`Image`].
+/// `output` must hold width × height × 4 bytes. Buffers that are not 4-byte aligned are copied.
+pub fn diff_rgba(
+    image1: ImageView,
+    image2: ImageView,
+    output: Option<&mut [u8]>,
+    options: &DiffOptions,
+) -> Result<DiffResult, DiffError> {
+    diff_rgba_with(image1, image2, output, options, true)
 }
 
-impl<'a> Rgba<'a> {
-    fn of(image: &'a Image) -> Self {
-        Self {
-            data: &image.data,
-            width: image.width,
-            height: image.height,
-        }
-    }
-}
-
-/// [`diff_with`] over borrowed buffers. `output` must hold width × height × 4
-/// bytes; misaligned buffers are copied, so any byte slice works.
-pub(crate) fn diff_rgba(
-    image1: Rgba,
-    image2: Rgba,
+/// [`diff_rgba`] with [`diff_with`]'s `fill_identical`.
+pub(crate) fn diff_rgba_with(
+    image1: ImageView,
+    image2: ImageView,
     output: Option<&mut [u8]>,
     options: &DiffOptions,
     fill_identical: bool,
@@ -2893,7 +2885,7 @@ pub(crate) fn diff_rgba(
 
 /// The bytes as native-endian pixels, borrowed when aligned.
 fn words(bytes: &[u8]) -> std::borrow::Cow<'_, [u32]> {
-    // SAFETY: see `diff_rgba`.
+    // SAFETY: see `diff_rgba_with`.
     let (head, body, tail) = unsafe { bytes.align_to::<u32>() };
     if head.is_empty() && tail.is_empty() {
         return std::borrow::Cow::Borrowed(body);
