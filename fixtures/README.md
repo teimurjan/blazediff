@@ -16,6 +16,8 @@ Contains test fixtures copied from pixelmatch repository to compare directly.
 ### `blazediff/`
 Contains test fixtures specifically designed for pixel-level comparison testing, often used to validate accuracy against reference implementations.
 
+`3a.png` and `3b.png` show Heidelberg. MapLibre Native 6.4.1 rendered them with the OpenFreeMap `liberty` style (planet snapshot `20261101_080013_pt`). The view is centered at 8.6990, 49.4085, at zoom 14.4 and pixel ratio 2, with POI layers shown from zoom 14. `3a` hides parking and lodging POIs, and `3b` hides clothing stores and bars. Both images hide dentist and doctor POIs. Map data © [OpenStreetMap contributors](https://www.openstreetmap.org/copyright), under the ODbL. Tile schema © [OpenMapTiles](https://openmaptiles.org/). [OpenFreeMap](https://openfreemap.org/) serves the tiles.
+
 ### `same/`
 Contains identical image pairs used to test the library's behavior when comparing images with no differences.
 
