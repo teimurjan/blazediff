@@ -1,5 +1,11 @@
 # @blazediff/rust-milo
 
+## 0.2.1
+
+### Patch Changes
+
+- b3f298a: Rebuild against the trimmed `blazediff-shared` and `blazediff` dependencies.
+
 ## 0.2.0
 
 ## 0.1.1

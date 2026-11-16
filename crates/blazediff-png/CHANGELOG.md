@@ -1,5 +1,11 @@
 # @blazediff/rust-png
 
+## 6.1.2
+
+### Patch Changes
+
+- b3f298a: Rebuild against the trimmed `blazediff-shared` and `blazediff` dependencies.
+
 ## 6.1.1
 
 ### Patch Changes

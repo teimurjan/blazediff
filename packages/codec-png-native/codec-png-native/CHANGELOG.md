@@ -1,5 +1,7 @@
 # @blazediff/codec-png-native
 
+## 6.1.2
+
 ## 6.1.1
 
 ### Patch Changes

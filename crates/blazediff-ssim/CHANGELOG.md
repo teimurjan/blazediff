@@ -1,5 +1,11 @@
 # @blazediff/rust-ssim
 
+## 6.2.1
+
+### Patch Changes
+
+- b3f298a: Rebuild against the trimmed `blazediff-shared` and `blazediff` dependencies.
+
 ## 6.2.0
 
 ## 6.1.1
