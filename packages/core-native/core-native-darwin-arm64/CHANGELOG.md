@@ -1,5 +1,7 @@
 # @blazediff/bin-darwin-arm64
 
+## 8.1.0
+
 ## 8.0.0
 
 ## 7.0.0

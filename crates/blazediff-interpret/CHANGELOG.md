@@ -1,5 +1,11 @@
 # @blazediff/rust-interpret
 
+## 7.1.1
+
+### Patch Changes
+
+- b3f298a: Rebuild against the trimmed `blazediff-shared` and `blazediff` dependencies.
+
 ## 7.1.0
 
 ## 7.0.0
