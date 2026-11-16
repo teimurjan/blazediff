@@ -68,11 +68,11 @@ jobs:
           BASE_SHA="${{ github.event.pull_request.base.sha }}"
           echo "Base SHA: $BASE_SHA"
 
-          # Binaries and WASM only need rebuilding when the crate sources
-          # compiled into them changed since the family's last published
-          # release tag. Version churn from `changeset version` doesn't
-          # count — changed-artifacts.js masks it — so an interpret-only
-          # release doesn't demand fresh core binaries. Same script drives
+          # Binaries and WASM only need rebuilding when what cargo compiles
+          # into them changed since the family's last published release tag.
+          # changed-artifacts.js asks `cargo tree` with each build's features
+          # and targets, and masks version churn from `changeset version`, so
+          # an interpret-only release doesn't demand fresh core binaries. Same script drives
           # build-artifacts.yml, keeping what /build produces aligned with
           # what this check requires.
           eval "$(node scripts/release/changed-artifacts.js "$BASE_SHA")"
