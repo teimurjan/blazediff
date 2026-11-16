@@ -11,20 +11,23 @@
 // `changeset version` bumps in Cargo.toml / Cargo.lock / pyproject.toml) is
 // masked out of the comparison.
 //
-// Families and the crate sources compiled into them:
-//   core       CLI binary + core .node    blazediff, blazediff-shared, blazediff-png
-//   ssim       ssim .node                 blazediff-ssim, blazediff-shared, blazediff-png
-//   interpret  interpret .node            blazediff-interpret, blazediff, blazediff-ssim,
-//                                         blazediff-shared, blazediff-png
-//   wasm       core wasm module           blazediff, blazediff-shared (built without codecs)
+// Families and the builds that produce them (FAMILY_BUILDS):
+//   core       CLI binary + core .node + wheels   blazediff (default, napi, python)
+//   ssim       ssim .node + wheels                blazediff-ssim (napi, python)
+//   interpret  interpret .node + wheels           blazediff-interpret (napi, python)
+//   wasm       core wasm module                   blazediff (wasm)
 //   wasm_interpret
-//              interpret wasm module      blazediff-interpret, blazediff, blazediff-ssim,
-//                                         blazediff-shared (built without codecs)
-//   milo       milo .node                 blazediff-milo, blazediff-shared, blazediff-png
-//   wasm_milo  milo wasm module           blazediff-milo (built without codecs)
-//   codec_png  codec-png .node            blazediff-png
+//              interpret wasm module              blazediff-interpret (wasm)
+//   milo       milo .node                         blazediff-milo (napi)
+//   wasm_milo  milo wasm module                   blazediff-milo (wasm)
+//   codec_png  codec-png .node                    blazediff-png (napi)
 //   wasm_codec_png
-//              codec-png wasm module      blazediff-png (pure-Rust backend)
+//              codec-png wasm module              blazediff-png (wasm)
+//
+// Which crates and dependencies each build compiles is not listed by hand:
+// cargo-resolve.js asks `cargo tree` with that build's features and targets,
+// at the release tag and now. A family changed when that resolved package set
+// changed, or when a source file of a workspace crate in it changed.
 //
 // Family keys are shell identifiers: this script's output is `eval`'d in
 // release-artifacts-check.yml and `tee`'d into $GITHUB_OUTPUT, so a hyphen
@@ -53,6 +56,7 @@
 const { execFileSync } = require("node:child_process");
 const fs = require("node:fs");
 const path = require("node:path");
+const { resolveBuilds, checkoutCache } = require("./cargo-resolve.js");
 
 const ROOT = path.resolve(__dirname, "..", "..");
 
@@ -68,32 +72,51 @@ const FAMILIES = [
 	"wasm_codec_png",
 ];
 
-/** The crate sources compiled into each family's artifacts. */
-const FAMILY_CRATES = {
-	core: ["blazediff", "blazediff-shared", "blazediff-png"],
-	ssim: ["blazediff-ssim", "blazediff-shared", "blazediff-png"],
-	interpret: [
-		"blazediff-interpret",
-		"blazediff",
-		"blazediff-ssim",
-		"blazediff-shared",
-		"blazediff-png",
-	],
-	// blazediff-shared's `codecs` feature (and blazediff-png with it) is off
-	// in the wasm build.
-	wasm: ["blazediff", "blazediff-shared"],
-	wasm_interpret: [
-		"blazediff-interpret",
-		"blazediff",
-		"blazediff-ssim",
-		"blazediff-shared",
-	],
-	milo: ["blazediff-milo", "blazediff-shared", "blazediff-png"],
-	// The wasm build's only dependency is std; blazediff-shared is a
-	// binding-only optional dependency it never enables.
-	wasm_milo: ["blazediff-milo"],
-	codec_png: ["blazediff-png"],
-	wasm_codec_png: ["blazediff-png"],
+const NATIVE_TARGETS = [
+	"aarch64-apple-darwin",
+	"x86_64-apple-darwin",
+	"aarch64-unknown-linux-gnu",
+	"x86_64-unknown-linux-gnu",
+	"aarch64-pc-windows-msvc",
+	"x86_64-pc-windows-msvc",
+].flatMap((target) => ["--target", target]);
+
+const native = (crate, ...featureSets) =>
+	featureSets.map((features) => ({
+		crate,
+		args: [...features, ...NATIVE_TARGETS],
+	}));
+
+const wasm = (crate) => [
+	{
+		crate,
+		args: [
+			"--no-default-features",
+			"--features",
+			"wasm",
+			"--target",
+			"wasm32-unknown-unknown",
+		],
+	},
+];
+
+const NAPI = ["--features", "napi"];
+const PYTHON = ["--features", "python"];
+
+/**
+ * The cargo builds behind each family's artifacts, mirroring build-all.sh,
+ * build-napi.sh, build-maturin.sh and each crate's build-wasm.sh.
+ */
+const FAMILY_BUILDS = {
+	core: native("blazediff", [], NAPI, PYTHON),
+	ssim: native("blazediff-ssim", NAPI, PYTHON),
+	interpret: native("blazediff-interpret", NAPI, PYTHON),
+	wasm: wasm("blazediff"),
+	wasm_interpret: wasm("blazediff-interpret"),
+	milo: native("blazediff-milo", NAPI),
+	wasm_milo: wasm("blazediff-milo"),
+	codec_png: native("blazediff-png", NAPI),
+	wasm_codec_png: wasm("blazediff-png"),
 };
 
 /** The npm package whose changesets tag anchors each family's last release. */
@@ -120,8 +143,6 @@ const FAMILY_PACKAGE = {
 	codec_png: "packages/codec-png-native/codec-png-native/package.json",
 	wasm_codec_png: "packages/codec-png-wasm/package.json",
 };
-
-const ALL_CRATES = [...new Set(Object.values(FAMILY_CRATES).flat())];
 
 /** Families whose artifact is a wasm module rather than a native binary. */
 const WASM_FAMILIES = new Set([
@@ -167,87 +188,6 @@ function maskManifestVersions(src) {
  */
 function maskWorkspaceMembers(src) {
 	return src.replace(/members\s*=\s*\[[^\]]*\]/, "members = [*]");
-}
-
-/**
- * Mask the version lines of the workspace's own crates in Cargo.lock, and
- * nothing else — an external dependency bump (`cargo update`) must still
- * read as a source change.
- */
-function maskLockVersions(src) {
-	const workspaceCrates = ALL_CRATES.join("|");
-	const re = new RegExp(
-		`(name = "(?:${workspaceCrates})"\\nversion = ")[^"]*(")`,
-		"g",
-	);
-	return src.replace(re, "$1*$2");
-}
-
-/**
- * Cargo.lock as `name -> { block, deps }`.
- *
- * The lockfile is one flat list of `[[package]]` stanzas, each naming the
- * packages it pulls in, which is exactly the graph needed to answer "does this
- * lockfile edit reach that family's crates?".
- */
-function parseLockPackages(src) {
-	const packages = new Map();
-	for (const block of src.split("\n[[package]]\n").slice(1)) {
-		const name = /^name = "([^"]+)"/m.exec(block)?.[1];
-		if (!name) continue;
-		const deps = /\ndependencies = \[\n([\s\S]*?)\n\]/.exec(block);
-		packages.set(name, {
-			block,
-			// Entries are `"foo"` or `"foo 1.2.3 (registry+...)"`; the leading
-			// token is the name either way.
-			deps: deps ? [...deps[1].matchAll(/"([^"\s]+)/g)].map((m) => m[1]) : [],
-		});
-	}
-	return packages;
-}
-
-/** Everything `roots` pull in, transitively, across both lockfile revisions. */
-function dependencyClosure(graphs, roots) {
-	const seen = new Set();
-	const stack = [...roots];
-	while (stack.length > 0) {
-		const name = stack.pop();
-		if (seen.has(name)) continue;
-		seen.add(name);
-		for (const graph of graphs) {
-			for (const dep of graph.get(name)?.deps ?? []) stack.push(dep);
-		}
-	}
-	return seen;
-}
-
-/**
- * Which of `crates`' dependencies a Cargo.lock edit actually touched.
- *
- * Without this the lockfile is attributed to every family at once, because it
- * is listed in all of their source sets: adding a wasm dep under
- * `blazediff-interpret` flagged core, ssim and core-wasm too, and
- * `--check-bumps` then demanded changesets for three packages whose binaries
- * could not have changed. Comparing per `[[package]]` stanza and walking the
- * dependency graph keeps a lockfile edit with the family it belongs to.
- */
-function lockPackagesAffecting(before, after, crates) {
-	const previous = parseLockPackages(maskLockVersions(before));
-	const current = parseLockPackages(maskLockVersions(after));
-
-	const changed = new Set();
-	for (const [name, entry] of current) {
-		if (previous.get(name)?.block !== entry.block) changed.add(name);
-	}
-	for (const name of previous.keys()) {
-		if (!current.has(name)) changed.add(name);
-	}
-	if (changed.size === 0) return [];
-
-	// Closure over both revisions so a dependency that was *removed* still
-	// counts against the family that used to pull it in.
-	const reachable = dependencyClosure([previous, current], crates);
-	return [...changed].filter((name) => reachable.has(name));
 }
 
 function contentAt(ref, file) {
@@ -304,9 +244,12 @@ function isNotABuildInput(parts, basename) {
 		// Docs and licences ship in no binary.
 		/\.md$/i.test(basename) ||
 		/^LICENSE/i.test(basename) ||
-		// Crates that never ship, and fuzz harnesses.
+		// Crates that never ship, fuzz harnesses, and a crate's integration
+		// tests and benches with their fixtures.
 		UNSHIPPED_CRATES.has(parts[1]) ||
 		parts.includes("fuzz") ||
+		parts[2] === "tests" ||
+		parts[2] === "benches" ||
 		// crates.io publish recipe (publish-rust.js); runs `cargo publish`,
 		// never produces a .node, wasm module or wheel.
 		basename === "Dockerfile.publish" ||
@@ -326,8 +269,7 @@ function isNotABuildInput(parts, basename) {
  * Only build *inputs* count. Version bumps and the binaries, wheels and wasm
  * modules this pipeline produces are outputs, and must never feed back in.
  */
-function sourcesChangedSince(ref, crates, family) {
-	const relevant = new Set(crates);
+function sourcesChangedSince(ref, relevant, family) {
 	for (const file of changedPathsSince(ref)) {
 		const parts = file.split("/");
 		const crate = parts[1];
@@ -340,11 +282,11 @@ function sourcesChangedSince(ref, crates, family) {
 		// generic file of its crate and flags that crate's native families too.
 		if (basename === "build-wasm.sh") {
 			if (!WASM_FAMILIES.has(family)) continue;
-			if (ALL_CRATES.includes(crate) && !relevant.has(crate)) continue;
+			if (isCrate(ref, crate) && !relevant.has(crate)) continue;
 			return `${file} changed`;
 		}
 
-		if (ALL_CRATES.includes(crate)) {
+		if (isCrate(ref, crate)) {
 			if (!relevant.has(crate)) continue;
 			// Version-only churn from `changeset version`:
 			// the npm shadow package,
@@ -366,25 +308,61 @@ function sourcesChangedSince(ref, crates, family) {
 			continue;
 		}
 
-		if (file === "crates/Cargo.lock") {
-			const before = contentAt(ref, file);
-			const after = currentContent(file);
-			// Unreadable on either side: can't attribute it, so assume the worst.
-			if (before === null || after === null) return `${file} changed`;
-			const hits = lockPackagesAffecting(before, after, crates);
-			if (hits.length > 0) {
-				const named = hits.slice(0, 3).join(", ");
-				const rest = hits.length > 3 ? `, +${hits.length - 3} more` : "";
-				return `${file} changed for ${named}${rest}`;
-			}
-			continue;
-		}
+		// Every lockfile edit that reaches this family shows up in its resolved
+		// package set, which familyChangedSince() compares first.
+		if (file === "crates/Cargo.lock") continue;
 
 		// Workspace manifest, shared build scripts, Cross.toml, anything not
 		// attributed above: assume it can affect every artifact.
 		return `${file} changed`;
 	}
 	return null;
+}
+
+function isCrate(ref, dir) {
+	const manifest = `crates/${dir}/Cargo.toml`;
+	return (
+		fs.existsSync(path.join(ROOT, manifest)) ||
+		contentAt(ref, manifest) !== null
+	);
+}
+
+const checkoutAt = checkoutCache(git);
+
+function describeDrift(before, after) {
+	const name = (key) => key.split("|")[0];
+	const added = [...after].filter((key) => !before.has(key));
+	const removed = [...before].filter((key) => !after.has(key));
+	const drift = [
+		...added.map((key) => `+${name(key)}`),
+		...removed.map((key) => `-${name(key)}`),
+	];
+	const rest = drift.length > 3 ? `, +${drift.length - 3} more` : "";
+	return drift.length === 0 ? null : `${drift.slice(0, 3).join(", ")}${rest}`;
+}
+
+/**
+ * Did anything `family`'s builds compile change since `ref`? Returns a reason
+ * string, or null. Unresolvable on either side reads as changed.
+ */
+function familyChangedSince(ref, family) {
+	const builds = FAMILY_BUILDS[family];
+	let releaseDir;
+	try {
+		releaseDir = checkoutAt(ref);
+	} catch (error) {
+		return `could not check out ${ref} (${error.message})`;
+	}
+	const before = resolveBuilds(releaseDir, builds);
+	if (before.error) return `${before.error} at the release`;
+	const after = resolveBuilds(path.join(ROOT, "crates"), builds);
+	if (after.error) return after.error;
+
+	const drift = describeDrift(before.packages, after.packages);
+	if (drift !== null) return `resolved dependencies changed (${drift})`;
+
+	const relevant = new Set([...before.members, ...after.members]);
+	return sourcesChangedSince(ref, relevant, family);
 }
 
 function versionAt(ref, file) {
@@ -444,7 +422,7 @@ function changedFamilies(baseRef) {
 			);
 			continue;
 		}
-		const reason = sourcesChangedSince(ref, FAMILY_CRATES[family], family);
+		const reason = familyChangedSince(ref, family);
 		families[family] = reason !== null;
 		reasons.push(
 			reason === null
@@ -468,7 +446,7 @@ function missingBumps(baseRef) {
 	for (const family of FAMILIES) {
 		const { ref, tag } = lastReleaseRef(family, mergeBase);
 		if (ref === null) continue; // nothing released yet to be stale against
-		const reason = sourcesChangedSince(ref, FAMILY_CRATES[family], family);
+		const reason = familyChangedSince(ref, family);
 		if (reason === null) continue;
 		const before = versionAt(mergeBase, FAMILY_PACKAGE[family]);
 		const after = versionNow(FAMILY_PACKAGE[family]);
