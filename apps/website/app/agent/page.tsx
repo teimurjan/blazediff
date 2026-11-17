@@ -16,7 +16,7 @@ import interpretData from "../../data/interpret/blazediff-3-diff.json";
 export const metadata = {
 	title: "Agent",
 	description:
-		"Open-source visual regression. A deterministic CLI runs the tests; your coding agent (Claude Code, Cursor, Codex) judges ambiguous diffs from compact region tiles. No SaaS, no API key.",
+		"Open-source visual regression. A deterministic CLI runs tests and your coding agent (Claude Code, Cursor, Codex) judges ambiguous diffs. No SaaS, no API key.",
 };
 
 const FIXTURE_A =

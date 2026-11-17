@@ -1,6 +1,6 @@
 ---
-title: Image Diffing in the Browser and at the Edge With WebAssembly
-description: Run SIMD-accelerated image comparison client-side or in an edge runtime with a ~32KB WebAssembly module - how to decode pixels, measured speed against pixelmatch, and which package to use per runtime.
+title: Browser and Edge Image Diffing With WebAssembly
+description: Run SIMD image comparison client-side or at the edge with a ~32KB WebAssembly module. Pixel decoding, speed against pixelmatch, and which package to use.
 ---
 
 # Browser and Edge Image Diffing
@@ -14,7 +14,7 @@ network call. On a changed 4K pair it is 5x to 10x faster than pixelmatch.
 
 ## Measured speed
 
-From the [pixel benchmarks](/benchmarks/pixel-by-pixel), M1 Max, image IO
+From the [pixel benchmarks](/benchmarks#pixel-by-pixel), M1 Max, image IO
 excluded, about 6.8x faster than pixelmatch in total time across the fixture set:
 
 | Fixture | pixelmatch | `core-wasm` | Improvement |
@@ -125,4 +125,4 @@ just counted.
 
 - [Rust + WASM in JavaScript →](/docs/pixel-comparison/rust-wasm)
 - [Speed up 4K diffs →](/guides/speed-up-4k-screenshot-diffs)
-- [Full benchmarks →](/benchmarks/pixel-by-pixel)
+- [Full benchmarks →](/benchmarks#pixel-by-pixel)

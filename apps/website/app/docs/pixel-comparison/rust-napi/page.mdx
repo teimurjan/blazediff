@@ -1,6 +1,6 @@
 ---
 title: Fastest Image Diff in Node With Native Rust and N-API
-description: Compare screenshots in Node with @blazediff/core-native, a SIMD Rust addon that decodes PNG, JPEG and QOI itself, writes the diff image, and runs a 4K pair about 4x to 5x faster than odiff.
+description: Compare screenshots in Node with @blazediff/core-native, a SIMD Rust addon that decodes PNG, JPEG and QOI and diffs a 4K pair 4x to 5x faster than odiff.
 ---
 
 # Pixel-by-pixel Comparison with Node Native
@@ -121,7 +121,7 @@ image IO included, measured with tinybench on an M1 Max, 25 runs:
 
 That is 4.3x to 4.9x on a changed 4K pair. Because decode dominates end-to-end time,
 passing already-decoded buffers moves the number further than any change to the
-diff kernel would. [Full tables](/benchmarks/pixel-by-pixel).
+diff kernel would. [Full tables](/benchmarks#pixel-by-pixel).
 
 ## Next
 

@@ -1,6 +1,6 @@
 ---
 title: Choosing a Metric - Pixel Diff vs SSIM vs GMSD vs MILO
-description: Which image comparison metric to use for visual regression - exact pixel diffing, SSIM, MS-SSIM, Hitchhiker's SSIM, GMSD, or the learned MILO metric. Side-by-side comparison, thresholds, and how to score rendering changes without raw RGB thresholds.
+description: "Which image metric to use for visual regression: exact pixel diff, SSIM, MS-SSIM, Hitchhiker's SSIM, GMSD or MILO. Side-by-side comparison and thresholds."
 ---
 
 # Choosing a Metric
@@ -128,8 +128,8 @@ blazediff-cli hitchhikers-ssim baseline.png current.png
 
 ## Measured cost
 
-Numbers from the [pixel benchmarks](/benchmarks/pixel-by-pixel) and
-[structural benchmarks](/benchmarks/structural), M1 Max, Node 22, across the three
+Numbers from the [pixel benchmarks](/benchmarks#pixel-by-pixel) and
+[structural benchmarks](/benchmarks#structural), M1 Max, Node 22, across the three
 4K fixtures:
 
 - Pixel diff, native Rust, image IO included: **288-349ms**

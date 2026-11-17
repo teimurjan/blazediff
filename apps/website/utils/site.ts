@@ -1,4 +1,4 @@
-export const SITE_URL = "https://blazediff.dev";
+export const SITE_URL = "https://www.blazediff.dev";
 
 export const SITE_NAME = "BlazeDiff";
 
@@ -6,7 +6,7 @@ export const SITE_TITLE =
 	"BlazeDiff. Visual regression with an agent-in-the-loop.";
 
 export const SITE_DESCRIPTION =
-	"Open-source visual regression for JS. Deterministic Rust + JS diff cores (3 to 8x faster than pixelmatch and odiff on 4K), SSIM/GMSD metrics, and an agent that hands ambiguous diffs to Claude Code, Cursor, or Codex. No SaaS, no API key.";
+	"Open-source visual regression for JS. Rust and JS diff cores 3 to 8x faster than pixelmatch and odiff, SSIM/GMSD, and your coding agent as judge. No SaaS.";
 
 export const REPO_URL = "https://github.com/teimurjan/blazediff";
 

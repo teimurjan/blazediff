@@ -1,6 +1,6 @@
 ---
 title: Image Diffing in the Browser With WebAssembly
-description: Run the BlazeDiff Rust pixel-diff core in browsers, Workers, Deno, Bun and edge runtimes from a ~32KB wasm32 SIMD module - how to decode RGBA, the API, and measured speed against pixelmatch.
+description: Run the BlazeDiff Rust pixel diff in browsers, Workers, Deno, Bun and edge runtimes from a ~32KB SIMD wasm module. API and speed against pixelmatch.
 ---
 
 # Pixel-by-pixel Comparison with WebAssembly
@@ -128,7 +128,7 @@ total time over the whole fixture set. In Node, an identical pair with no `outpu
 returns early through `Buffer.compare`, a native memcmp, before any bytes are
 copied into wasm. Browsers and edge runtimes have no `Buffer`, so there the block
 scan reaches the same answer with `v128` compares.
-[Full tables](/benchmarks/pixel-by-pixel).
+[Full tables](/benchmarks#pixel-by-pixel).
 
 ## Next
 
