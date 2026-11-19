@@ -8,6 +8,8 @@ import {
 	parseBenchmarkArgs,
 } from "../utils";
 
+const EXACT = { threshold: 0, antialiasing: false };
+
 async function main() {
 	const { iterations, format, output, fixtures } = parseBenchmarkArgs();
 
@@ -31,6 +33,12 @@ async function main() {
 		const output = { ...a, data: new Uint8Array(a.width * a.height * 4) };
 		bench.add(`blazediff (w\\ output) - ${pairs[i].name}`, () => {
 			diff(a, b, { output });
+		});
+		bench.add(`blazediff (exact) - ${pairs[i].name}`, () => {
+			diff(a, b, EXACT);
+		});
+		bench.add(`blazediff (exact, w\\ output) - ${pairs[i].name}`, () => {
+			diff(a, b, { ...EXACT, output });
 		});
 	}
 

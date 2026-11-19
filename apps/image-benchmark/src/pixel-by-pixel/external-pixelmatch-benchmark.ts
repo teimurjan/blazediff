@@ -8,6 +8,8 @@ import {
 	parseBenchmarkArgs,
 } from "../utils";
 
+const EXACT = { threshold: 0, includeAA: true };
+
 async function main() {
 	const { iterations, format, output, fixtures } = parseBenchmarkArgs();
 
@@ -31,6 +33,12 @@ async function main() {
 		const output = new Uint8Array(a.width * a.height * 4);
 		bench.add(`pixelmatch (w\\ output) - ${pairs[i].name}`, () => {
 			pixelmatch(a.data, b.data, output, a.width, a.height);
+		});
+		bench.add(`pixelmatch (exact) - ${pairs[i].name}`, () => {
+			pixelmatch(a.data, b.data, undefined, a.width, a.height, EXACT);
+		});
+		bench.add(`pixelmatch (exact, w\\ output) - ${pairs[i].name}`, () => {
+			pixelmatch(a.data, b.data, output, a.width, a.height, EXACT);
 		});
 	}
 
