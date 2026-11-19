@@ -1,6 +1,6 @@
 {
 	"name": "@blazediff/bun",
-	"version": "2.0.2",
+	"version": "2.0.3",
 	"description": "Bun test matcher for visual regression testing with blazediff",
 	"private": false,
 	"publishConfig": {

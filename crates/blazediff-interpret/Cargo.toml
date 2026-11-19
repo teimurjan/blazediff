@@ -57,7 +57,7 @@ required-features = ["cli"]
 # than either of them depending on it. `version` is required to publish to
 # crates.io; kept in lockstep by scripts/release/sync-cargo-version.js.
 blazediff-shared = { path = "../blazediff-shared", version = "7.0.1", default-features = false }
-blazediff = { path = "../blazediff", version = "8.1.0", default-features = false }
+blazediff = { path = "../blazediff", version = "8.1.1", default-features = false }
 blazediff-ssim = { path = "../blazediff-ssim", version = "6.2.1" }
 serde = { version = "1", features = ["derive"] }
 napi = { version = "2", features = ["napi4", "serde-json"], optional = true }

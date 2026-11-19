@@ -1,5 +1,15 @@
 # @blazediff/cli
 
+## 6.0.3
+
+### Patch Changes
+
+- Updated dependencies [8cd83a7]
+- Updated dependencies [1fe3553]
+  - @blazediff/core@2.0.2
+  - @blazediff/core-native@8.1.1
+  - @blazediff/core-wasm@8.1.1
+
 ## 6.0.2
 
 ### Patch Changes
