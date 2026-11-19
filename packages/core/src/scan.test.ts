@@ -127,6 +127,11 @@ describe("word and byte paths", () => {
 				diffColorAlt: [0, 255, 0] as [number, number, number],
 			},
 		},
+		{
+			threshold: 0,
+			antialiasing: false,
+			render: { diffColorAlt: [0, 255, 0] as [number, number, number] },
+		},
 	];
 
 	it.each([
