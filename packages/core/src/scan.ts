@@ -35,6 +35,10 @@ import type { Rgb } from "./types";
 const CHUNK = 1 << 12;
 const GROUP = 4;
 
+/** Per-candidate luma sign: 0 when image 2 is not darker, {@link SIGN_DARKER} when it is, {@link SIGN_UNKNOWN} when not yet known. */
+const SIGN_DARKER = 1;
+const SIGN_UNKNOWN = 2;
+
 /** The largest squared RGB distance of two pixels. */
 const MAX_DISTANCE_SQ = 3 * 255 * 255;
 
@@ -151,13 +155,16 @@ function findDirtyGroups(
 
 /**
  * Lists the pixels of the dirty groups that differ beyond `maxDelta` and
- * returns how many.
+ * returns how many. `findSignedCandidates` also stores each candidate's luma
+ * sign, so the draw step does not recompute it. Pixels that are not both
+ * opaque get {@link SIGN_UNKNOWN} and take `brightnessDelta`. The count step
+ * keeps the unsigned loop: storing the sign costs it about 5% on dense diffs.
  *
  * The function is built inside another one so that the YIQ weights are closure
  * constants, which V8 folds into the loop. Bundlers turn module-level `const`
  * into `var`, and V8 reloads a `var` on each use: 25 to 40% slower here.
  */
-const findCandidates = (() => {
+const { findCandidates, findSignedCandidates } = (() => {
 	const yR = YIQ_Y_R;
 	const yG = YIQ_Y_G;
 	const yB = YIQ_Y_B;
@@ -170,6 +177,7 @@ const findCandidates = (() => {
 	const coeffY = YIQ_COEFF_Y;
 	const coeffI = YIQ_COEFF_I;
 	const coeffQ = YIQ_COEFF_Q;
+	const unknownSign = SIGN_UNKNOWN;
 
 	/** YIQ distance of two pixels that are not both opaque, blended over the checkerboard. */
 	function blendedDistance(av: number, bv: number, index: number): number {
@@ -191,7 +199,7 @@ const findCandidates = (() => {
 		return coeffY * yc * yc + coeffI * ic * ic + coeffQ * qc * qc;
 	}
 
-	return (
+	const findCandidates = (
 		a: Int32Array,
 		b: Int32Array,
 		dirty: Int32Array,
@@ -225,6 +233,47 @@ const findCandidates = (() => {
 		}
 		return found;
 	};
+
+	const findSignedCandidates = (
+		a: Int32Array,
+		b: Int32Array,
+		dirty: Int32Array,
+		groups: number,
+		end: number,
+		maxDelta: number,
+		candidates: Int32Array,
+		signs: Uint8Array,
+	): number => {
+		let found = 0;
+		for (let group = 0; group < groups; group++) {
+			const from = dirty[group];
+			const to = from + GROUP < end ? from + GROUP : end;
+			for (let i = from; i < to; i++) {
+				const av = a[i];
+				const bv = b[i];
+				let dist: number;
+				let sign = unknownSign;
+				if ((av & bv) >>> 24 === 0xff) {
+					const dr = (av & 0xff) - (bv & 0xff);
+					const dg = ((av >>> 8) & 0xff) - ((bv >>> 8) & 0xff);
+					const db = ((av >>> 16) & 0xff) - ((bv >>> 16) & 0xff);
+					const yc = dr * yR + dg * yG + db * yB;
+					const ic = dr * iR + dg * iG + db * iB;
+					const qc = dr * qR + dg * qG + db * qB;
+					dist = coeffY * yc * yc + coeffI * ic * ic + coeffQ * qc * qc;
+					sign = +(yc > 0);
+				} else {
+					dist = blendedDistance(av, bv, i);
+				}
+				candidates[found] = i;
+				signs[found] = sign;
+				found += +(dist > maxDelta);
+			}
+		}
+		return found;
+	};
+
+	return { findCandidates, findSignedCandidates };
 })();
 
 /**
@@ -233,6 +282,7 @@ const findCandidates = (() => {
  */
 const DIRTY = new Int32Array(CHUNK / GROUP + 1);
 const CANDIDATES = new Int32Array(CHUNK + 1);
+const SIGNS = new Uint8Array(CHUNK + 1);
 
 /** Counts the pixels that differ beyond `maxDelta`. */
 export function countDiff(
@@ -312,6 +362,8 @@ export function drawDiff(
 	const a = signedView(a32);
 	const b = signedView(b32);
 	const out = signedView(out32);
+	const unknownSign = SIGN_UNKNOWN;
+	const darkerSign = SIGN_DARKER;
 	let diff = 0;
 	for (let start = 0; start < len; start += CHUNK) {
 		const end = start + CHUNK < len ? start + CHUNK : len;
@@ -320,7 +372,7 @@ export function drawDiff(
 		if (sameRange?.(start, end)) continue;
 		const groups = findDirtyGroups(a, b, start, end, near, rejectFloor, DIRTY);
 		if (groups === 0) continue;
-		const found = findCandidates(
+		const found = findSignedCandidates(
 			a,
 			b,
 			DIRTY,
@@ -328,6 +380,7 @@ export function drawDiff(
 			end,
 			maxDelta,
 			CANDIDATES,
+			SIGNS,
 		);
 		for (let k = 0; k < found; k++) {
 			const i = CANDIDATES[k];
@@ -335,8 +388,11 @@ export function drawDiff(
 				if (!diffMask) out[i] = aaWord;
 				continue;
 			}
-			// A positive luma delta means image 2 is darker.
-			const darker = brightnessDelta(image1, image2, i * 4, i * 4) > 0;
+			const sign = SIGNS[k];
+			const darker =
+				sign === unknownSign
+					? brightnessDelta(image1, image2, i * 4, i * 4) > 0
+					: sign === darkerSign;
 			out[i] = darker ? altWord : diffWord;
 			diff++;
 		}

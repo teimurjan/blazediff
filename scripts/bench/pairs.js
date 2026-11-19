@@ -48,6 +48,20 @@ const PAIRS = {
 				leftTaskPrefix: "pixelmatch (w\\ output)",
 				rightTaskPrefix: "blazediff (w\\ output)",
 			},
+			{
+				id: "core-exact",
+				section:
+					"JavaScript, threshold 0 and anti-aliased pixels counted (`@blazediff/core` vs `pixelmatch`) (image IO excluded)",
+				leftTaskPrefix: "pixelmatch (exact)",
+				rightTaskPrefix: "blazediff (exact)",
+			},
+			{
+				id: "core-exact-output",
+				section:
+					"JavaScript with output buffer, threshold 0 and anti-aliased pixels counted (`@blazediff/core` vs `pixelmatch`) (image IO excluded)",
+				leftTaskPrefix: "pixelmatch (exact, w\\ output)",
+				rightTaskPrefix: "blazediff (exact, w\\ output)",
+			},
 		],
 		left: {
 			name: "Pixelmatch",

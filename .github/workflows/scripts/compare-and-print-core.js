@@ -29,3 +29,33 @@ compareAndPrint({
 		{ file: blazediff, name: "BlazeDiff", prefix: "blazediff (w\\ output)" },
 	],
 });
+
+console.log(
+	"\n### JavaScript, threshold 0 and anti-aliased pixels counted (`@blazediff/core` vs `pixelmatch`) (image IO excluded)\n",
+);
+compareAndPrint({
+	precision: 2,
+	series: [
+		{ file: pixelmatch, name: "Pixelmatch", prefix: "pixelmatch (exact)" },
+		{ file: blazediff, name: "BlazeDiff", prefix: "blazediff (exact)" },
+	],
+});
+
+console.log(
+	"\n### JavaScript with output buffer, threshold 0 and anti-aliased pixels counted (`@blazediff/core` vs `pixelmatch`) (image IO excluded)\n",
+);
+compareAndPrint({
+	precision: 2,
+	series: [
+		{
+			file: pixelmatch,
+			name: "Pixelmatch",
+			prefix: "pixelmatch (exact, w\\ output)",
+		},
+		{
+			file: blazediff,
+			name: "BlazeDiff",
+			prefix: "blazediff (exact, w\\ output)",
+		},
+	],
+});
