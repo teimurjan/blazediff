@@ -1,6 +1,6 @@
+import type { PixelData } from "@blazediff/contract";
 import {
 	LITTLE_ENDIAN,
-	type PixelData,
 	SHIFT_A,
 	SHIFT_B,
 	SHIFT_G,

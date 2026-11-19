@@ -1,7 +1,15 @@
+import {
+	assertImage,
+	assertOptions,
+	assertTargets,
+	type DiffOptions,
+	type DiffResult,
+	type Image,
+	type Rgb,
+	type WindowHit,
+	windowSide,
+} from "@blazediff/contract";
 import { diffPixels } from "./engine";
-import type { DiffOptions, DiffResult, Image, Rgb, WindowHit } from "./types";
-import { assertImage, assertOptions, assertTargets } from "./validate";
-import { windowSide } from "./window";
 
 const DEFAULT_DIFF_COLOR: Rgb = [255, 0, 0];
 const DEFAULT_AA_COLOR: Rgb = [255, 255, 0];

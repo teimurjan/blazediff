@@ -10,9 +10,14 @@
  *
  * @module
  */
-import { diffPixels, isValidImage } from "./engine";
-import type { PixelData, Rgb, WindowHit } from "./types";
-import { windowSide } from "./window";
+import {
+	isValidImage,
+	type PixelData,
+	type Rgb,
+	type WindowHit,
+	windowSide,
+} from "@blazediff/contract";
+import { diffPixels } from "./engine";
 
 export interface PixelmatchOptions {
 	threshold?: number;

@@ -7,11 +7,11 @@ import {
 	type Image,
 	type Rgb,
 	windowSide,
-} from "@blazediff/core";
+} from "@blazediff/contract";
 import init, { diffRgba } from "../wasm/blazediff.js";
 
-export type { DiffOptions, DiffResult, Image } from "@blazediff/core";
-export { BlazeDiffError } from "@blazediff/core";
+export type { DiffOptions, DiffResult, Image } from "@blazediff/contract";
+export { BlazeDiffError } from "@blazediff/contract";
 
 export type WasmInput =
 	| RequestInfo

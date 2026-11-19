@@ -5,11 +5,12 @@
  * monomorphic: branching between both kernels in one loop measurably slows
  * V8's code (inlining budget, unfolded constants).
  */
+
+import type { PixelData, Rgb, WindowHit } from "@blazediff/contract";
 import { antialiased } from "./antialiasing";
 import { oklabDelta, oklabDeltaOverWhite, stepLimits } from "./oklab";
 import {
 	LITTLE_ENDIAN,
-	type PixelData,
 	SHIFT_A,
 	SHIFT_B,
 	SHIFT_G,
@@ -28,7 +29,6 @@ import {
 	YIQ_Y_G,
 	YIQ_Y_R,
 } from "./pixel";
-import type { Rgb, WindowHit } from "./types";
 import { findMaxWindow } from "./window";
 
 /**

@@ -11,10 +11,11 @@
  * and spell the channel math out, because V8 compiles the loops about twice as
  * fast without helper calls.
  */
+
+import type { PixelData, Rgb } from "@blazediff/contract";
 import { antialiased, brightnessDelta } from "./antialiasing";
 import { fillGrayRange, grayTable } from "./gray";
 import {
-	type PixelData,
 	YIQ_COEFF_I,
 	YIQ_COEFF_Q,
 	YIQ_COEFF_Y,
@@ -29,7 +30,6 @@ import {
 	YIQ_Y_G,
 	YIQ_Y_R,
 } from "./pixel";
-import type { Rgb } from "./types";
 
 /** Pixels per chunk: both inputs of a chunk fit the L1 cache, and V8 optimizes short calls without on-stack replacement. */
 const CHUNK = 1 << 12;
