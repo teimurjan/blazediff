@@ -1,5 +1,12 @@
 # @blazediff/core
 
+## 2.0.2
+
+### Patch Changes
+
+- 8cd83a7: Move the shared diff API (types, `BlazeDiffError`, argument checks, `windowSide`) to the new `@blazediff/contract` package. `@blazediff/core` re-exports all of it unchanged. `@blazediff/core-native` and `@blazediff/core-wasm` now depend on `@blazediff/contract` instead of `@blazediff/core`, so a change to the JS engine no longer releases them.
+- 1fe3553: Draw dense diffs faster: the draw step reuses the luma sign from the candidate scan instead of calling `brightnessDelta` again. Output bytes are unchanged.
+
 ## 2.0.1
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @blazediff/core-native
 
+## 8.1.1
+
+### Patch Changes
+
+- 8cd83a7: Move the shared diff API (types, `BlazeDiffError`, argument checks, `windowSide`) to the new `@blazediff/contract` package. `@blazediff/core` re-exports all of it unchanged. `@blazediff/core-native` and `@blazediff/core-wasm` now depend on `@blazediff/contract` instead of `@blazediff/core`, so a change to the JS engine no longer releases them.
+
 ## 8.1.0
 
 ## 8.0.0

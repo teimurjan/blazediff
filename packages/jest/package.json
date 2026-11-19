@@ -1,6 +1,6 @@
 {
 	"name": "@blazediff/jest",
-	"version": "2.0.2",
+	"version": "2.0.3",
 	"description": "Jest matcher for visual regression testing with blazediff",
 	"private": false,
 	"publishConfig": {

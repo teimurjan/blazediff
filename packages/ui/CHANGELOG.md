@@ -1,5 +1,13 @@
 # @blazediff/ui
 
+## 3.0.2
+
+### Patch Changes
+
+- Updated dependencies [8cd83a7]
+- Updated dependencies [1fe3553]
+  - @blazediff/core@2.0.2
+
 ## 3.0.1
 
 ### Patch Changes
