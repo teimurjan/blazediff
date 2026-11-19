@@ -141,7 +141,7 @@ type NativeDiffResult =
   | { kind: "io-error"; path?: string; message: string };
 ```
 
-Invalid options or buffers throw a `BlazeDiffError` (re-exported from `@blazediff/core`) with a `code`: `invalid-image`, `invalid-output`, `invalid-mask` or `invalid-option`.
+Invalid options or buffers throw a `BlazeDiffError` (re-exported from `@blazediff/contract`, the same class `@blazediff/core` throws) with a `code`: `invalid-image`, `invalid-output`, `invalid-mask` or `invalid-option`.
 
 #### Encoded Buffer Inputs
 

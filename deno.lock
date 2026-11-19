@@ -50,7 +50,6 @@
     "npm:happy-dom@^18.0.1": "18.0.1",
     "npm:jest@^29.7.0": "29.7.0_@types+node@24.13.2",
     "npm:microdiff@^1.5.0": "1.5.0",
-    "npm:next@^16.0.10": "16.2.9_react@19.2.7_react-dom@19.2.7__react@19.2.7",
     "npm:nextra-theme-docs@^4.6.1": "4.6.1_next@16.2.9__react@19.2.7__react-dom@19.2.7___react@19.2.7_nextra@4.6.1__next@16.2.9___react@19.2.7___react-dom@19.2.7____react@19.2.7__react@19.2.7__react-dom@19.2.7___react@19.2.7__typescript@5.9.2_react@19.2.7_react-dom@19.2.7__react@19.2.7_@types+react@19.2.17_typescript@5.9.2",
     "npm:nextra@^4.6.1": "4.6.1_next@16.2.9__react@19.2.7__react-dom@19.2.7___react@19.2.7_react@19.2.7_react-dom@19.2.7__react@19.2.7_typescript@5.9.2",
     "npm:odiff-bin@^4.3.8": "4.3.8",
@@ -9998,7 +9997,7 @@
             "npm:@types/node@20",
             "npm:@types/react-dom@19",
             "npm:@types/react@19",
-            "npm:next@^16.0.10",
+            "npm:next@^16.4.6",
             "npm:nextra-theme-docs@^4.6.1",
             "npm:nextra@^4.6.1",
             "npm:pagefind@^1.4.0",
@@ -10172,7 +10171,18 @@
           ]
         }
       },
+      "packages/contract": {
+        "packageJson": {
+          "dependencies": [
+            "npm:tsup@8.5.0",
+            "npm:typescript@5.9.2"
+          ]
+        }
+      },
       "packages/core": {
+        "dependencies": [
+          "jsr:@blazediff/contract@1"
+        ],
         "packageJson": {
           "dependencies": [
             "npm:@types/node@^24.3.0",
@@ -10188,7 +10198,7 @@
       },
       "packages/core-native/core-native": {
         "dependencies": [
-          "jsr:@blazediff/core@2",
+          "jsr:@blazediff/contract@1",
           "npm:@blazediff/core-native-darwin-arm64@7.0.0",
           "npm:@blazediff/core-native-darwin-x64@7.0.0",
           "npm:@blazediff/core-native-linux-arm64@7.0.0",
@@ -10209,7 +10219,7 @@
       },
       "packages/core-wasm": {
         "dependencies": [
-          "jsr:@blazediff/core@2"
+          "jsr:@blazediff/contract@1"
         ],
         "packageJson": {
           "dependencies": [

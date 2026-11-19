@@ -1,5 +1,23 @@
 import { diff } from "./diff";
 
+export {
+	assertImage,
+	assertOptions,
+	assertTargets,
+	BlazeDiffError,
+	type BlazeDiffErrorCode,
+	type DiffOptions,
+	type DiffResult,
+	type Image,
+	isValidImage,
+	type Metric,
+	type PixelData,
+	type RenderOptions,
+	type Rgb,
+	type Size,
+	type WindowHit,
+	windowSide,
+} from "@blazediff/contract";
 export { antialiased, brightnessDelta } from "./antialiasing";
 export { diff } from "./diff";
 export {
@@ -7,21 +25,6 @@ export {
 	colorDelta,
 	drawGrayPixel,
 	drawPixel,
-	isValidImage,
 } from "./engine";
-export { BlazeDiffError, type BlazeDiffErrorCode } from "./errors";
-export type {
-	DiffOptions,
-	DiffResult,
-	Image,
-	Metric,
-	PixelData,
-	RenderOptions,
-	Rgb,
-	Size,
-	WindowHit,
-} from "./types";
-export { assertImage, assertOptions, assertTargets } from "./validate";
-export { windowSide } from "./window";
 
 export default diff;

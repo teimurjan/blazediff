@@ -1,8 +1,8 @@
+import type { PixelData, Rgb, WindowHit } from "@blazediff/contract";
 import { antialiased } from "./antialiasing";
 import { diffExtendedCountOnly, diffExtendedWithOutput } from "./extended";
 import {
 	LITTLE_ENDIAN,
-	type PixelData,
 	YIQ_COEFF_I,
 	YIQ_COEFF_Q,
 	YIQ_COEFF_Y,
@@ -17,7 +17,6 @@ import {
 	YIQ_Y_R,
 } from "./pixel";
 import { countDiff, drawDiff, drawGray, type SameRange } from "./scan";
-import type { Rgb, WindowHit } from "./types";
 
 /** Resolved options for {@link diffPixels}; every entry point validates first. */
 export interface EngineOptions {
@@ -295,10 +294,6 @@ function diffBytes(
 }
 
 /** Check if array is valid pixel data */
-export function isValidImage(arr: unknown): arr is PixelData {
-	// work around instanceof Uint8Array not working properly in some Jest environments
-	return ArrayBuffer.isView(arr) && (arr as any).BYTES_PER_ELEMENT === 1;
-}
 
 const LOG2_E = Math.LOG2E;
 

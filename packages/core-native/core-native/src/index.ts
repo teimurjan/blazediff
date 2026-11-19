@@ -14,12 +14,12 @@ import {
 	type DiffResult,
 	type Image,
 	type Rgb,
-} from "@blazediff/core";
+} from "@blazediff/contract";
 
 const execFileAsync = promisify(execFile);
 
-export type { DiffOptions, DiffResult, Image } from "@blazediff/core";
-export { BlazeDiffError } from "@blazediff/core";
+export type { DiffOptions, DiffResult, Image } from "@blazediff/contract";
+export { BlazeDiffError } from "@blazediff/contract";
 
 /** A file path, encoded PNG, JPEG or QOI bytes, or raw RGBA pixels. */
 export type NativeInput = Image | string | Uint8Array;

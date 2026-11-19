@@ -2,9 +2,13 @@
  * Argument checks shared by `diff` in core, core-wasm and core-native, so all
  * three throw the same {@link BlazeDiffError} codes and messages.
  */
-import { isValidImage } from "./engine";
 import { BlazeDiffError, type BlazeDiffErrorCode } from "./errors";
-import type { DiffOptions, Image, Rgb } from "./types";
+import type { DiffOptions, Image, PixelData, Rgb } from "./types";
+
+export function isValidImage(arr: unknown): arr is PixelData {
+	// work around instanceof Uint8Array not working properly in some Jest environments
+	return ArrayBuffer.isView(arr) && (arr as any).BYTES_PER_ELEMENT === 1;
+}
 
 export function assertImage(
 	image: Image,

@@ -1,6 +1,3 @@
-/** Pixel buffer accepted by every entry point (Node `Buffer` is a Uint8Array). */
-export type PixelData = Uint8Array | Uint8ClampedArray;
-
 /** Rec. 601 luma weights, shared by the YIQ metric, the AA detector and the gray fill. */
 export const YIQ_Y_R = 0.29889531;
 export const YIQ_Y_G = 0.58662247;

@@ -5,6 +5,9 @@
 		".": "./src/index.ts",
 		"./pixelmatch": "./src/pixelmatch.ts"
 	},
+	"imports": {
+		"@blazediff/contract": "jsr:@blazediff/contract@^1.0.0"
+	},
 	"publish": {
 		"include": ["src/**/*.ts", "README.md"],
 		"exclude": ["src/**/*.test.ts", "src/**/*.spec.ts", "src/**/*.deno.test.ts"]

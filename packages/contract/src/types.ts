@@ -1,6 +1,5 @@
-import type { PixelData } from "./pixel";
-
-export type { PixelData };
+/** Pixel buffer accepted by every entry point (Node `Buffer` is a Uint8Array). */
+export type PixelData = Uint8Array | Uint8ClampedArray;
 
 export type Rgb = [number, number, number];
 

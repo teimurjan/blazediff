@@ -3,7 +3,7 @@
 	"version": "7.0.0",
 	"exports": "./src/index.ts",
 	"imports": {
-		"@blazediff/core": "jsr:@blazediff/core@^2.0.0",
+		"@blazediff/contract": "jsr:@blazediff/contract@^1.0.0",
 		"@blazediff/core-native-darwin-arm64": "npm:@blazediff/core-native-darwin-arm64@7.0.0",
 		"@blazediff/core-native-darwin-x64": "npm:@blazediff/core-native-darwin-x64@7.0.0",
 		"@blazediff/core-native-linux-arm64": "npm:@blazediff/core-native-linux-arm64@7.0.0",
