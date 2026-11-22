@@ -200,6 +200,11 @@ const USED_BY: { name: string; logo: ImageSrc; href: string }[] = [
 		logo: "/avatune-logo.png",
 		href: "https://www.avatune.dev/",
 	},
+	{
+		name: "LaTeX.js",
+		logo: "/latexjs-logo.png",
+		href: "https://latex.js.org/",
+	},
 ];
 
 const FEATURES = [
