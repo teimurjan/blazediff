@@ -52,6 +52,7 @@ const SOURCES = {
 	"/vega-logo.png": LOGO,
 	"/apexcharts-logo.png": LOGO,
 	"/avatune-logo.png": LOGO,
+	"/latexjs-logo.png": LOGO,
 	// Nav renders it at 32 px, the Nextra navbar at 48 px.
 	"/logo.png": { axis: "height", targets: [32, 48, 64, 96, 144] },
 };
