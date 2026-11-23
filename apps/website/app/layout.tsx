@@ -1,5 +1,6 @@
 import { Inter, JetBrains_Mono, Space_Grotesk } from "next/font/google";
 import Script from "next/script";
+import { ThemeProvider } from "next-themes";
 import { Head } from "nextra/components";
 import {
 	AUTHOR_NAME,
@@ -114,8 +115,7 @@ export const metadata = {
 };
 
 export const viewport = {
-	themeColor: "#0a0a0f",
-	colorScheme: "dark",
+	colorScheme: "light dark",
 };
 
 export default function RootLayout({
@@ -127,11 +127,20 @@ export default function RootLayout({
 		<html
 			lang="en"
 			dir="ltr"
-			className={`dark ${spaceGrotesk.variable} ${jetbrainsMono.variable} ${inter.variable}`}
+			className={`${spaceGrotesk.variable} ${jetbrainsMono.variable} ${inter.variable}`}
 			suppressHydrationWarning
 		>
 			<Head backgroundColor={{ light: "#f7f5f2", dark: "#0a0a0f" }} />
-			<body>{children}</body>
+			<body>
+				<ThemeProvider
+					attribute="class"
+					defaultTheme="system"
+					enableSystem
+					disableTransitionOnChange
+				>
+					{children}
+				</ThemeProvider>
+			</body>
 			<Script
 				defer
 				src="https://cloud.umami.is/script.js"
