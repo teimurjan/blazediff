@@ -205,6 +205,11 @@ const USED_BY: { name: string; logo: ImageSrc; href: string }[] = [
 		logo: "/latexjs-logo.png",
 		href: "https://latex.js.org/",
 	},
+	{
+		name: "Angular Native",
+		logo: "/ngnative-logo.png",
+		href: "https://github.com/ng-native/ng-native",
+	},
 ];
 
 const FEATURES = [
