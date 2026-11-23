@@ -223,7 +223,7 @@ export default function InterpretComparison({
 						<button
 							type="button"
 							onClick={() => run(pair)}
-							className="rounded-lg border border-accent px-3 py-1.5 text-sm text-accent transition-colors hover:bg-accent hover:text-canvas"
+							className="rounded-lg border border-accent px-3 py-1.5 text-sm text-accent transition-colors hover:bg-accent hover:text-on-accent"
 						>
 							Analyze anyway
 						</button>

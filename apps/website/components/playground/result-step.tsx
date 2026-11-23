@@ -92,7 +92,7 @@ export default function ResultStep({
 
 	if (mismatch) {
 		return (
-			<p className="text-sm text-red-400">
+			<p className="text-sm text-red-600 dark:text-red-400">
 				Image A decodes to {mismatch.a.width}×{mismatch.a.height} and image B to{" "}
 				{mismatch.b.width}×{mismatch.b.height}. Use two images of the same size.
 			</p>

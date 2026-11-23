@@ -94,7 +94,7 @@ export default function PickImagesStep({
 					<button
 						type="button"
 						onClick={() => onLoadGated(gatedPair)}
-						className="rounded-lg border border-accent px-3 py-1.5 text-sm text-accent transition-colors hover:bg-accent hover:text-canvas"
+						className="rounded-lg border border-accent px-3 py-1.5 text-sm text-accent transition-colors hover:bg-accent hover:text-on-accent"
 					>
 						Load anyway
 					</button>
@@ -105,19 +105,21 @@ export default function PickImagesStep({
 				<p className="font-mono text-sm text-muted">Fetching sample…</p>
 			)}
 			{mismatch && (
-				<p className="text-sm text-red-400">
+				<p className="text-sm text-red-600 dark:text-red-400">
 					Image A is {imageA.size.width}×{imageA.size.height}, image B is{" "}
 					{imageB.size.width}×{imageB.size.height}. Use two images of the same
 					size.
 				</p>
 			)}
-			{error && <p className="text-sm text-red-400">{error}</p>}
+			{error && (
+				<p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+			)}
 
 			<button
 				type="button"
 				onClick={onContinue}
 				disabled={!ready}
-				className="rounded-lg bg-accent px-4 py-2 font-mono text-sm text-canvas transition-opacity disabled:pointer-events-none disabled:opacity-40"
+				className="rounded-lg bg-accent px-4 py-2 font-mono text-sm text-on-accent transition-opacity disabled:pointer-events-none disabled:opacity-40"
 			>
 				Continue
 			</button>

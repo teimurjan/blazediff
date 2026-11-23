@@ -61,7 +61,7 @@ export function RegionList({
 						<span className="text-gray-500">·</span>
 						<span className="text-gray-500">{humanize(region.shape)}</span>
 						<span className="text-gray-500">·</span>
-						<span className="text-xs text-gray-400">
+						<span className="text-xs text-gray-500 dark:text-gray-400">
 							({region.bbox.x}, {region.bbox.y}, {region.bbox.width}×
 							{region.bbox.height}) · {region.percentage.toFixed(2)}%
 						</span>

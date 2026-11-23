@@ -127,10 +127,10 @@ export default function RootLayout({
 		<html
 			lang="en"
 			dir="ltr"
-			className={`${spaceGrotesk.variable} ${jetbrainsMono.variable} ${inter.variable}`}
+			className={`dark ${spaceGrotesk.variable} ${jetbrainsMono.variable} ${inter.variable}`}
 			suppressHydrationWarning
 		>
-			<Head backgroundColor={{ light: "#0a0a0f", dark: "#0a0a0f" }} />
+			<Head backgroundColor={{ light: "#f7f5f2", dark: "#0a0a0f" }} />
 			<body>{children}</body>
 			<Script
 				defer

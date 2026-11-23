@@ -131,7 +131,7 @@ export default function SettingsStep({
 			<button
 				type="button"
 				onClick={onCompare}
-				className="rounded-lg bg-accent px-4 py-2 font-mono text-sm text-canvas"
+				className="rounded-lg bg-accent px-4 py-2 font-mono text-sm text-on-accent"
 			>
 				Compare
 			</button>

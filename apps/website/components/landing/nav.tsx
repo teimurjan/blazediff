@@ -94,7 +94,7 @@ export default function LandingNav({
 					</a>
 					<Link
 						href={ctaHref}
-						className="bg-accent text-canvas font-mono px-3 py-1.5 text-[11px] md:px-6 md:py-2 md:text-[14px] whitespace-nowrap hover:bg-opacity-90 hover:shadow-[0_0_12px_rgba(255,122,26,0.4)] transition-all"
+						className="bg-accent text-on-accent font-mono px-3 py-1.5 text-[11px] md:px-6 md:py-2 md:text-[14px] whitespace-nowrap hover:bg-opacity-90 hover:shadow-[0_0_12px_rgba(255,122,26,0.4)] transition-all"
 					>
 						{ctaLabel}
 					</Link>

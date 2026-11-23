@@ -5,7 +5,7 @@ export type StepStatus = "active" | "done" | "upcoming";
 
 const CIRCLE: Record<StepStatus, string> = {
 	active: "border-accent text-accent",
-	done: "border-accent bg-accent text-canvas",
+	done: "border-accent bg-accent text-on-accent",
 	upcoming: "border-line text-muted",
 };
 
