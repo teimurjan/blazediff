@@ -51,6 +51,12 @@ body {
 	background-color: var(--color-canvas);
 }
 
+html:not(.dark) .nextra-banner {
+	background: var(--color-terminal);
+	color: var(--color-fg);
+	border-bottom: 1px solid var(--color-line);
+}
+
 .nextra-navbar > nav {
 	max-width: 80rem;
 }

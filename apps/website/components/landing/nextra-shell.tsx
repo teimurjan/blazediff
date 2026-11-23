@@ -10,11 +10,11 @@ const banner = (
 	<Banner storageKey="codec-png-launch">
 		New:{" "}
 		<Link href="/vs/spng" className="underline underline-offset-2">
-			<b className="text-blue-400">codec-png-native</b>
+			<b className="text-blue-700 dark:text-blue-400">codec-png-native</b>
 		</Link>{" "}
 		and{" "}
 		<Link href="/vs/jsquash" className="underline underline-offset-2">
-			<b className="text-blue-400">codec-png-wasm</b>
+			<b className="text-blue-700 dark:text-blue-400">codec-png-wasm</b>
 		</Link>{" "}
 		bring the blazediff-png codec to Node and WebAssembly, faster than spng and
 		jSquash. Read more →
