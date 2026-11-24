@@ -30,6 +30,9 @@ const workspaceVersion = (pkg) =>
 export default withNextra({
 	reactStrictMode: true,
 	devIndicators: false,
+	experimental: {
+		turbopackFileSystemCacheForBuild: false,
+	},
 	env: {
 		NEXT_PUBLIC_INTERPRET_WASM_VERSION: workspaceVersion("interpret-wasm"),
 		NEXT_PUBLIC_CORE_WASM_VERSION: workspaceVersion("core-wasm"),
