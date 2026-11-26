@@ -1,5 +1,7 @@
 # @blazediff/core-native-linux-arm64
 
+## 8.1.2
+
 ## 8.1.1
 
 ## 8.1.0
