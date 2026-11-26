@@ -14,7 +14,7 @@ export default defineConfig([
 	},
 	{
 		entry: ["src/index.ts", "src/pixelmatch.ts"],
-		format: ["cjs"],
+		format: ["cjs", "esm"],
 		dts: { only: true },
 	},
 ]);
