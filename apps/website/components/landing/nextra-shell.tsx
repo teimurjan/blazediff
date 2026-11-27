@@ -5,6 +5,7 @@ import { Banner } from "nextra/components";
 import { getPageMap } from "nextra/page-map";
 import { Footer, Layout, Navbar } from "nextra-theme-docs";
 import Picture, { sizesForHeight } from "./picture";
+import "./nextra-shell.css";
 
 const banner = (
 	<Banner storageKey="codec-png-launch">

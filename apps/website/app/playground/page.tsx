@@ -12,7 +12,7 @@ export const metadata = {
 export default function PlaygroundPage() {
 	return (
 		<LandingShell activeTab="playground" ctaLabel="GET STARTED" ctaHref="/docs">
-			<section className="w-full max-w-screen-2xl mx-auto px-10 pt-16 pb-20 flex flex-col gap-10">
+			<section className="w-full max-w-screen-2xl mx-auto px-4 md:px-10 pt-16 pb-20 flex flex-col gap-10">
 				<div className="flex flex-col gap-6">
 					<HeroHeading>
 						DIFF <HeroAccent>ANYTHING</HeroAccent>

@@ -40,13 +40,13 @@ export default function MobileMenu({ activeTab, links }: MobileMenuProps) {
 	}, [open]);
 
 	return (
-		<div ref={containerRef} className="relative md:hidden">
+		<div ref={containerRef} className="relative lg:hidden">
 			<button
 				type="button"
 				aria-label={open ? "Close menu" : "Open menu"}
 				aria-expanded={open}
 				onClick={() => setOpen((v) => !v)}
-				className="flex items-center justify-center w-8 h-8 text-muted hover:text-fg transition-colors"
+				className="flex items-center justify-center w-10 h-10 text-muted hover:text-fg transition-colors"
 			>
 				{open ? <IconX size={20} /> : <IconMenu2 size={20} />}
 			</button>

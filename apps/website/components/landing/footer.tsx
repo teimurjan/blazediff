@@ -12,7 +12,7 @@ const LINKS = [
 
 export default function LandingFooter() {
 	return (
-		<footer className="bg-surface border-t border-line w-full px-10 py-4 flex flex-col md:flex-row justify-between items-center mt-auto">
+		<footer className="bg-surface border-t border-line w-full px-4 md:px-10 py-4 flex flex-col md:flex-row justify-between items-center mt-auto">
 			<div className="font-mono text-[14px] text-fg">
 				© {new Date().getFullYear()} BLAZEDIFF
 			</div>
@@ -23,7 +23,7 @@ export default function LandingFooter() {
 						href={l.href}
 						target="_blank"
 						rel="noopener noreferrer"
-						className="hover:text-fg transition-colors"
+						className="py-2 hover:text-fg transition-colors"
 					>
 						{l.label}
 					</a>

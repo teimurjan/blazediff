@@ -249,7 +249,7 @@ export default function BenchmarksView({ platform }: { platform: Platform }) {
 	const AVAILABLE = availableCategories(platform);
 	return (
 		<LandingShell activeTab="benchmarks" ctaLabel="GET STARTED" ctaHref="/docs">
-			<section className="w-full max-w-screen-2xl mx-auto px-10 pt-16 pb-12 flex flex-col gap-8">
+			<section className="w-full max-w-screen-2xl mx-auto px-4 md:px-10 pt-16 pb-12 flex flex-col gap-8">
 				<HeroHeading>
 					BENCH<HeroAccent>MARKS</HeroAccent>
 				</HeroHeading>
@@ -276,7 +276,7 @@ export default function BenchmarksView({ platform }: { platform: Platform }) {
 					</p>
 				</Section>
 			) : (
-				<div className="w-full max-w-screen-2xl mx-auto px-10 pb-20 grid gap-12 lg:grid-cols-[minmax(0,1fr)_220px]">
+				<div className="w-full max-w-screen-2xl mx-auto px-4 md:px-10 pb-20 grid gap-12 lg:grid-cols-[minmax(0,1fr)_220px]">
 					<div className="flex min-w-0 flex-col gap-20">
 						{AVAILABLE.map((category, i) => (
 							<section

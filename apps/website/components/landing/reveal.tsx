@@ -23,7 +23,9 @@ export default function Reveal({
 			ref={ref}
 			style={delayMs ? { transitionDelay: `${delayMs}ms` } : undefined}
 			className={`transition-all duration-700 ease-out motion-reduce:transition-none ${
-				isInView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+				isInView
+					? "opacity-100 translate-y-0"
+					: "reveal-pending opacity-0 translate-y-4"
 			} ${className}`}
 		>
 			{children}

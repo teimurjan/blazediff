@@ -1,12 +1,18 @@
 "use client";
 
-import { Fragment } from "react";
+import {
+	IconPlayerPauseFilled,
+	IconPlayerPlayFilled,
+} from "@tabler/icons-react";
+import { Fragment, useState } from "react";
+import { usePrefersReducedMotion } from "../../hooks/use-prefers-reduced-motion";
+import type { ImageSrc } from "./picture";
 import RegionImage from "./region-image";
 import { type CyclingRegion, useReportCycling } from "./use-report-cycling";
 
 interface HeroInterpretProps {
-	fixtureBaseline: string;
-	fixtureCurrent: string;
+	fixtureBaseline: ImageSrc;
+	fixtureCurrent: ImageSrc;
 	imageWidth: number;
 	imageHeight: number;
 	diffPercentage: number;
@@ -19,6 +25,7 @@ interface HeroInterpretProps {
 // underneath.
 const IMAGE_WIDTH_SHARE = 0.88;
 const LIFT_SHARE = 0.18;
+const IMAGE_SIZES = "(min-width: 1024px) 458px, 88vw";
 
 const CHANGE_TYPES: { type: string; singular: string; plural: string }[] = [
 	{ type: "content-change", singular: "change", plural: "changes" },
@@ -48,7 +55,10 @@ export default function HeroInterpret({
 	severity,
 	regions,
 }: HeroInterpretProps) {
-	const { activeIndex, active } = useReportCycling(regions);
+	const prefersReducedMotion = usePrefersReducedMotion();
+	const [pausedByUser, setPausedByUser] = useState<boolean | null>(null);
+	const paused = pausedByUser ?? prefersReducedMotion;
+	const { activeIndex, active } = useReportCycling(regions, { paused });
 	if (!active) return null;
 
 	const verdict = countByChangeType(regions);
@@ -61,9 +71,27 @@ export default function HeroInterpret({
 			data-blazediff-agent-mask
 			className="flex flex-col w-full max-w-[520px] mx-auto"
 		>
-			<p className="font-mono text-[12px] md:text-[13px] text-muted mb-6">
-				<span className="text-accent">$</span> blazediff a.png b.png --interpret
-			</p>
+			<div className="flex items-center justify-between gap-4 mb-6">
+				<p className="font-mono text-[12px] md:text-[13px] text-muted">
+					<span className="text-accent">$</span> blazediff a.png b.png
+					--interpret
+				</p>
+				<button
+					type="button"
+					onClick={() => setPausedByUser(!paused)}
+					aria-pressed={paused}
+					aria-label={
+						paused ? "Play region highlight" : "Pause region highlight"
+					}
+					className="flex items-center justify-center size-10 -m-3 shrink-0 text-muted hover:text-accent transition-colors"
+				>
+					{paused ? (
+						<IconPlayerPlayFilled size={14} />
+					) : (
+						<IconPlayerPauseFilled size={14} />
+					)}
+				</button>
+			</div>
 
 			<div
 				className="relative w-full"
@@ -74,7 +102,9 @@ export default function HeroInterpret({
 						label="BASELINE"
 						labelPosition="bottom"
 						src={fixtureBaseline}
-						alt="baseline"
+						alt="Baseline screenshot: a city map"
+						sizes={IMAGE_SIZES}
+						priority
 						imageWidth={imageWidth}
 						imageHeight={imageHeight}
 						regions={regions}
@@ -88,7 +118,9 @@ export default function HeroInterpret({
 					<RegionImage
 						label="CURRENT"
 						src={fixtureCurrent}
-						alt="current"
+						alt="Current screenshot of the same map, with changed regions outlined"
+						sizes={IMAGE_SIZES}
+						priority
 						imageWidth={imageWidth}
 						imageHeight={imageHeight}
 						regions={regions}

@@ -1,21 +1,28 @@
+import Picture, { type ImageSrc } from "./picture";
 import type { CyclingRegion } from "./use-report-cycling";
 
 interface RegionImageProps {
 	label?: string;
 	labelPosition?: "top" | "bottom";
-	src: string;
+	src: ImageSrc;
 	alt: string;
+	sizes: string;
+	priority?: boolean;
 	imageWidth: number;
 	imageHeight: number;
 	regions: CyclingRegion[];
 	activeIndex: number;
 }
 
+const pct = (value: number, total: number) => `${(value / total) * 100}%`;
+
 export default function RegionImage({
 	label,
 	labelPosition = "top",
 	src,
 	alt,
+	sizes,
+	priority = false,
 	imageWidth,
 	imageHeight,
 	regions,
@@ -28,15 +35,17 @@ export default function RegionImage({
 		>
 			{label && (
 				<div
-					className={`absolute ${labelPosition === "bottom" ? "bottom-2" : "top-2"} left-2 bg-surface/80 px-2 py-0.5 font-mono text-[10px] tracking-widest text-muted z-30`}
+					className={`absolute ${labelPosition === "bottom" ? "bottom-2" : "top-2"} left-2 bg-surface/80 px-2 py-0.5 font-mono text-[11px] tracking-widest text-muted z-30`}
 				>
 					{label}
 				</div>
 			)}
-			{/* biome-ignore lint/performance/noImgElement: external static fixture, no Image config */}
-			<img
+			<Picture
 				src={src}
 				alt={alt}
+				sizes={sizes}
+				loading={priority ? "eager" : "lazy"}
+				fetchPriority={priority ? "high" : undefined}
 				className="w-full h-full object-cover opacity-90"
 			/>
 			{regions.map((r, i) => {
@@ -44,18 +53,16 @@ export default function RegionImage({
 				return (
 					<div
 						key={`${r.bbox.x}-${r.bbox.y}-${r.bbox.width}-${r.bbox.height}`}
-						className="absolute pointer-events-none transition-all duration-500 ease-out"
+						className={`absolute pointer-events-none transition-colors duration-500 ease-out motion-reduce:transition-none ${
+							isActive
+								? "z-20 border-2 border-magenta bg-magenta/20"
+								: "z-10 border border-dashed border-magenta/40"
+						}`}
 						style={{
-							left: `${(r.bbox.x / imageWidth) * 100}%`,
-							top: `${(r.bbox.y / imageHeight) * 100}%`,
-							width: `${(r.bbox.width / imageWidth) * 100}%`,
-							height: `${(r.bbox.height / imageHeight) * 100}%`,
-							border: isActive
-								? "2px solid #ff2e8b"
-								: "1px dashed rgba(255, 46, 139, 0.35)",
-							background: isActive ? "rgba(255, 46, 139, 0.18)" : "transparent",
-							boxShadow: isActive ? "0 0 12px #ff2e8b" : "none",
-							zIndex: isActive ? 20 : 10,
+							left: pct(r.bbox.x, imageWidth),
+							top: pct(r.bbox.y, imageHeight),
+							width: pct(r.bbox.width, imageWidth),
+							height: pct(r.bbox.height, imageHeight),
 						}}
 					/>
 				);

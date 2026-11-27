@@ -15,7 +15,7 @@ export default function Section({
 }: SectionProps) {
 	return (
 		<section
-			className={`w-full max-w-screen-2xl mx-auto px-10 py-20 border-t border-line ${className}`}
+			className={`w-full max-w-screen-2xl mx-auto px-4 md:px-10 py-20 border-t border-line ${className}`}
 		>
 			{title && (
 				<h2

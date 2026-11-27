@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 export interface CyclingRegion {
 	bbox: { x: number; y: number; width: number; height: number };
@@ -19,20 +19,17 @@ export interface UseReportCyclingResult<R extends CyclingRegion> {
 
 export function useReportCycling<R extends CyclingRegion>(
 	regions: R[],
-	intervalMs = 2000,
+	{ paused = false, intervalMs = 2000 } = {},
 ): UseReportCyclingResult<R> {
 	const [activeIndex, setActiveIndex] = useState(0);
-	const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
 	useEffect(() => {
-		if (regions.length === 0) return;
-		intervalRef.current = setInterval(() => {
+		if (paused || regions.length === 0) return;
+		const interval = setInterval(() => {
 			setActiveIndex((i) => (i + 1) % regions.length);
 		}, intervalMs);
-		return () => {
-			if (intervalRef.current) clearInterval(intervalRef.current);
-		};
-	}, [regions.length, intervalMs]);
+		return () => clearInterval(interval);
+	}, [paused, regions.length, intervalMs]);
 
 	return { activeIndex, active: regions[activeIndex], regions };
 }

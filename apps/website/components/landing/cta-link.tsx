@@ -9,7 +9,7 @@ interface CtaLinkProps {
 }
 
 const BASE = "font-mono text-[14px] uppercase px-6 py-3 transition-all";
-const PRIMARY = `${BASE} bg-accent text-on-accent hover:shadow-[0_0_12px_rgba(255,122,26,0.4)]`;
+const PRIMARY = `${BASE} bg-accent text-on-accent hover:brightness-110`;
 const SECONDARY = `${BASE} border border-line text-fg hover:border-accent transition-colors`;
 
 export default function CtaLink({

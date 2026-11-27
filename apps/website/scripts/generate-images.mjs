@@ -35,6 +35,12 @@ const FORMATS = {
 // mobile; logos render 48 px tall. Targets cover 1x/2x/3x DPR of that.
 const ILLUSTRATION = { axis: "width", targets: [480, 960, 1440] };
 const LOGO = { axis: "height", targets: [48, 96, 144] };
+// The landing hero stacks two fixture cards ≤460 CSS px wide.
+const HERO_FIXTURE = { axis: "width", targets: [480, 960, 1440] };
+const repoFixture = (name) => ({
+	...HERO_FIXTURE,
+	from: path.resolve(websiteRoot, "../../fixtures/blazediff", name),
+});
 
 const SOURCES = {
 	"/home-fast.png": ILLUSTRATION,
@@ -54,6 +60,8 @@ const SOURCES = {
 	"/avatune-logo.png": LOGO,
 	"/latexjs-logo.png": LOGO,
 	"/ngnative-logo.png": LOGO,
+	"/fixtures/blazediff-3a.png": repoFixture("3a.png"),
+	"/fixtures/blazediff-3b.png": repoFixture("3b.png"),
 	// Nav renders it at 32 px, the Nextra navbar at 48 px.
 	"/logo.png": { axis: "height", targets: [32, 48, 64, 96, 144] },
 };
@@ -61,8 +69,8 @@ const SOURCES = {
 const scriptMtime = fs.statSync(scriptPath).mtimeMs;
 const counts = { encoded: 0, upToDate: 0 };
 
-async function encodeVariant(file, staleAfter, axis, size, format) {
-	const name = path.basename(file, ".png");
+async function encodeVariant(src, file, staleAfter, axis, size, format) {
+	const name = path.basename(src, ".png");
 	const out = path.join(outDir, `${name}-${axis[0]}${size}.${format}`);
 	const existing = fs.statSync(out, { throwIfNoEntry: false });
 
@@ -80,8 +88,8 @@ async function encodeVariant(file, staleAfter, axis, size, format) {
 	return { width, src: `/images/${path.basename(out)}` };
 }
 
-async function processSource([src, { axis, targets }]) {
-	const file = path.join(publicDir, src);
+async function processSource([src, { axis, targets, from }]) {
+	const file = from ?? path.join(publicDir, src);
 	const staleAfter = Math.max(fs.statSync(file).mtimeMs, scriptMtime);
 	const meta = await sharp(file).metadata();
 	const sizes = [...new Set(targets.map((t) => Math.min(t, meta[axis])))];
@@ -91,7 +99,7 @@ async function processSource([src, { axis, targets }]) {
 		variants[format] = [];
 		for (const size of sizes) {
 			variants[format].push(
-				await encodeVariant(file, staleAfter, axis, size, format),
+				await encodeVariant(src, file, staleAfter, axis, size, format),
 			);
 		}
 	}

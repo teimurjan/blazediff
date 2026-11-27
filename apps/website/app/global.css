@@ -1,5 +1,4 @@
 @import "tailwindcss";
-@import "nextra-theme-docs/style.css";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
@@ -12,7 +11,7 @@
 	--color-fg: #16141c;
 	--color-accent: #b84a06;
 	--color-on-accent: #ffffff;
-	--color-magenta: #c4126a;
+	--color-magenta: #b81063;
 	--color-grid: rgba(0, 0, 0, 0.04);
 
 	--font-display: var(--font-space-grotesk);
@@ -25,7 +24,7 @@
 	--color-surface: #15151c;
 	--color-terminal: #1c1c26;
 	--color-line: #2a2a38;
-	--color-muted: #7a7585;
+	--color-muted: #8b8697;
 	--color-fg: #f0ece8;
 	--color-accent: #ff7a1a;
 	--color-on-accent: #0a0a0f;
@@ -42,23 +41,12 @@
 }
 
 html {
-	--nextra-content-width: 80rem;
 	background-color: var(--color-canvas);
 	color-scheme: light;
 }
 
 body {
 	background-color: var(--color-canvas);
-}
-
-html:not(.dark) .nextra-banner {
-	background: var(--color-terminal);
-	color: var(--color-fg);
-	border-bottom: 1px solid var(--color-line);
-}
-
-.nextra-navbar > nav {
-	max-width: 80rem;
 }
 
 @utility marquee-mask {
@@ -91,6 +79,11 @@ html:not(.dark) .nextra-banner {
 	animation: marquee 45s linear infinite;
 }
 
+.marquee-track:hover,
+.marquee-track:focus-within {
+	animation-play-state: paused;
+}
+
 @keyframes typing {
 	from {
 		clip-path: inset(0 100% 0 0);
@@ -109,5 +102,17 @@ html:not(.dark) .nextra-banner {
 	.marquee-track,
 	.typing {
 		animation: none;
+	}
+
+	.marquee-mask {
+		-webkit-mask-image: none;
+		mask-image: none;
+	}
+}
+
+@media (scripting: none) {
+	.reveal-pending {
+		opacity: 1;
+		translate: none;
 	}
 }

@@ -27,10 +27,8 @@ import LandingShell from "../components/landing/shell";
 import StructuredData from "../components/landing/structured-data";
 import interpretData from "../data/interpret/blazediff-3-diff.json";
 
-const FIXTURE_A =
-	"https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3a.png";
-const FIXTURE_B =
-	"https://raw.githubusercontent.com/teimurjan/blazediff/refs/heads/main/fixtures/blazediff/3b.png";
+const FIXTURE_A: ImageSrc = "/fixtures/blazediff-3a.png";
+const FIXTURE_B: ImageSrc = "/fixtures/blazediff-3b.png";
 
 type Tier = "foundation" | "metrics" | "harness" | "surfaces";
 
@@ -260,9 +258,11 @@ export default function Home() {
 						<HeroSubhead>
 							Rust, WASM, and JS diff cores. SSIM and GMSD metrics. Jest,
 							Vitest, and Bun matchers. And{" "}
-							<span className="font-mono text-fg">--interpret</span>, which
-							turns a wall of changed pixels into regions, change types, and a
-							verdict you can read. No SaaS. No API key. MIT.
+							<span className="font-mono text-fg whitespace-nowrap">
+								--interpret
+							</span>
+							, which turns a wall of changed pixels into regions, change types,
+							and a verdict you can read. No SaaS. No API key. MIT.
 						</HeroSubhead>
 						<InstallSnippet commands="npm install @blazediff/core" />
 					</>
@@ -291,7 +291,7 @@ export default function Home() {
 			{TEASER_GROUPS.length > 0 && (
 				<Section
 					title="BENCHMARKS"
-					intro={`Total time across the repo fixtures, measured on ${teaserMachine()} with pnpm benchmarkmark. Lower is better.`}
+					intro={`Total time across the repo fixtures, measured on ${teaserMachine()} with pnpm benchmark. Lower is better.`}
 				>
 					<BenchmarkChart
 						groups={TEASER_GROUPS}
@@ -302,11 +302,13 @@ export default function Home() {
 
 			<Section title="USED BY">
 				<Reveal className="marquee-mask overflow-hidden">
-					<div className="marquee-track flex w-max hover:[animation-play-state:paused]">
+					<div className="marquee-track flex w-max motion-reduce:w-full">
 						{[0, 1].map((copy) => (
 							<div
 								key={copy}
-								className="flex shrink-0 items-center"
+								className={`flex shrink-0 items-center motion-reduce:shrink motion-reduce:flex-wrap motion-reduce:justify-center motion-reduce:gap-y-8 ${
+									copy === 1 ? "motion-reduce:hidden" : ""
+								}`}
 								aria-hidden={copy === 1}
 							>
 								{USED_BY.map((p) => (
@@ -316,15 +318,15 @@ export default function Home() {
 										target="_blank"
 										rel="noopener noreferrer"
 										tabIndex={copy === 1 ? -1 : undefined}
-										className="flex shrink-0 flex-col items-center gap-2 px-8 grayscale hover:grayscale-0 opacity-70 hover:opacity-100 transition-all"
+										className="group flex shrink-0 flex-col items-center gap-2 px-8"
 									>
 										<Picture
 											src={p.logo}
-											alt={p.name}
+											alt=""
 											sizes={sizesForHeight(p.logo, 48)}
-											className="h-12 w-auto"
+											className="h-12 w-auto grayscale opacity-70 transition-[filter,opacity] group-hover:grayscale-0 group-hover:opacity-100 group-focus-visible:grayscale-0 group-focus-visible:opacity-100"
 										/>
-										<span className="font-mono text-[11px] text-muted uppercase tracking-wider">
+										<span className="font-mono text-[11px] text-muted uppercase tracking-wider transition-colors group-hover:text-fg">
 											{p.name}
 										</span>
 									</a>

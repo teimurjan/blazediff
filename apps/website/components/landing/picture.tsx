@@ -9,6 +9,7 @@ interface PictureProps {
 	sizes: string;
 	className?: string;
 	loading?: "eager" | "lazy";
+	fetchPriority?: "high" | "low" | "auto";
 }
 
 const FORMATS = ["avif", "webp"] as const;
@@ -28,6 +29,7 @@ export default function Picture({
 	sizes,
 	className,
 	loading = "lazy",
+	fetchPriority,
 }: PictureProps) {
 	const entry = manifest[src];
 	if (!entry) {
@@ -47,12 +49,13 @@ export default function Picture({
 				/>
 			))}
 			<img
-				src={src}
+				src={entry.variants.webp.at(-1)?.src ?? src}
 				alt={alt}
 				width={entry.width}
 				height={entry.height}
 				sizes={sizes}
 				loading={loading}
+				fetchPriority={fetchPriority}
 				decoding="async"
 				className={className}
 			/>

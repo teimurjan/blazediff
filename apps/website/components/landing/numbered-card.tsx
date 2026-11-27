@@ -39,7 +39,10 @@ export default function NumberedCard({
 				</Reveal>
 				<div className="flex-1 flex flex-col gap-5">
 					<div className="flex items-start justify-between">
-						<span className="font-display text-[64px] leading-none font-bold text-muted opacity-30">
+						<span
+							aria-hidden="true"
+							className="font-display text-[64px] leading-none font-bold text-muted opacity-30"
+						>
 							{num}
 						</span>
 						{Icon && <Icon size={32} className="text-accent" />}
@@ -57,7 +60,10 @@ export default function NumberedCard({
 	return (
 		<Card>
 			<div className="flex items-start justify-between">
-				<span className="font-display text-[48px] font-bold text-muted opacity-30">
+				<span
+					aria-hidden="true"
+					className="font-display text-[48px] font-bold text-muted opacity-30"
+				>
 					{num}
 				</span>
 				{Icon && <Icon size={32} className="text-accent" />}

@@ -37,7 +37,7 @@ export default function InstallSnippet({
 				<button
 					type="button"
 					onClick={copy}
-					className="text-muted hover:text-accent transition-colors"
+					className="flex items-center justify-center size-10 -m-3 text-muted hover:text-accent transition-colors"
 					aria-label="Copy install command"
 				>
 					{copied ? <IconCheck size={14} /> : <IconCopy size={14} />}
