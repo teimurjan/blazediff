@@ -1,6 +1,6 @@
 {
 	"name": "@blazediff/core-native",
-	"version": "8.1.1",
+	"version": "8.1.2",
 	"description": "Native Rust binaries for blazediff - the fastest image diff in the world",
 	"private": false,
 	"publishConfig": {
@@ -30,12 +30,12 @@
 		"@blazediff/contract": "workspace:*"
 	},
 	"optionalDependencies": {
-		"@blazediff/core-native-darwin-arm64": "8.1.1",
-		"@blazediff/core-native-darwin-x64": "8.1.1",
-		"@blazediff/core-native-linux-arm64": "8.1.1",
-		"@blazediff/core-native-linux-x64": "8.1.1",
-		"@blazediff/core-native-win32-arm64": "8.1.1",
-		"@blazediff/core-native-win32-x64": "8.1.1"
+		"@blazediff/core-native-darwin-arm64": "8.1.2",
+		"@blazediff/core-native-darwin-x64": "8.1.2",
+		"@blazediff/core-native-linux-arm64": "8.1.2",
+		"@blazediff/core-native-linux-x64": "8.1.2",
+		"@blazediff/core-native-win32-arm64": "8.1.2",
+		"@blazediff/core-native-win32-x64": "8.1.2"
 	},
 	"keywords": [
 		"image",

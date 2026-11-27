@@ -1,6 +1,6 @@
 {
 	"name": "@blazediff/contract",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"description": "Shared diff API of the BlazeDiff engines: types, errors and argument checks",
 	"private": false,
 	"publishConfig": {

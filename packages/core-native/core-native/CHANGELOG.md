@@ -1,5 +1,12 @@
 # @blazediff/core-native
 
+## 8.1.2
+
+### Patch Changes
+
+- Updated dependencies [816aa4d]
+  - @blazediff/contract@1.0.1
+
 ## 8.1.1
 
 ### Patch Changes
